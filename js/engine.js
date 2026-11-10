@@ -776,6 +776,27 @@
     return true;
   };
 
+  /* What playing a card would do right now, worked out by playing it on a copy of the state.
+     The UI uses it for the CREST / LETHAL / VICTORY / LOW WATER badges. Pass `json` (the run
+     serialized with map/shop/event/rewards/treasure dropped) to reuse one copy for many previews. */
+  E.previewJSON = (run) => JSON.stringify(Object.assign({}, run, { map: null, shop: null, event: null, rewards: null, treasure: null, log: [] }), (k, v) => (k === 'fx' ? [] : v));
+  E.preview = function (run, uid, targetUid, json) {
+    const c = run.combat;
+    if (!c || c.phase !== 'player' || c.won || c.lost) return null;
+    const r2 = JSON.parse(json || E.previewJSON(run));
+    if (!E.playCard(r2, uid, targetUid)) return null;
+    const c2 = r2.combat;
+    let damage = 0;
+    let kills = 0;
+    c.enemies.forEach((e, i) => {
+      const e2 = c2.enemies[i];
+      if (!e2) return;
+      damage += Math.max(0, e.hp) - Math.max(0, e2.hp);
+      if (e2.dead && !e.dead) kills++;
+    });
+    return { crests: c2.turnCrests - c.turnCrests, lows: c2.turnLows - c.turnLows, chain: c2.turnCrests, kills, won: c2.won, damage };
+  };
+
   E.useTonic = function (run, slot, targetUid) {
     const t = run.tonics[slot];
     if (!t) return false;

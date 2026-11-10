@@ -1,0 +1,10 @@
+# local build output and test artifacts
+_site/
+node_modules/
+screens/
+tools/out/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

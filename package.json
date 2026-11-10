@@ -1,0 +1,13 @@
+{
+  "name": "brinelight",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Brinelight: a roguelike deckbuilder about a lighthouse keeper and the tide. Plain HTML, CSS and JavaScript.",
+  "scripts": {
+    "start": "node tools/serve.js 8000",
+    "test": "node --test \"tests/*.test.js\"",
+    "test:ui": "node tests/ui-smoke.js",
+    "screens": "node tools/screens.js",
+    "opening": "node tools/opening.js"
+  }
+}

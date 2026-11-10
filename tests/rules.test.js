@@ -1,0 +1,595 @@
+/* Rule tests: every rule the README and the in-game How to Play state, checked against js/engine.js.
+   Run with: node --test tests/ */
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { load, saveLoad, snapshot, playRun, step } = require('../tools/bot');
+
+const { BL, E } = load();
+
+/* ---------- helpers ---------- */
+/* A fight against `enc` with an optional fixed deck, hand and keepsakes. */
+function fight(enc, o = {}) {
+  const run = E.newRun(o.seed || 1, o.level || 0);
+  if (o.deck) { run.deck = []; o.deck.forEach((id) => E.addCard(run, id)); }
+  if (o.keepsakes) run.keepsakes = o.keepsakes.slice();
+  E.startCombat(run, o.kind || 'easy', enc);
+  const c = run.combat;
+  if (o.hand) {
+    c.discard.push(...c.hand);
+    c.hand = o.hand.map((id) => ({ uid: run.nextUid++, id, up: 0 }));
+  }
+  if (o.tide != null) c.tide = o.tide;
+  c.fx.length = 0;
+  return { run, c };
+}
+const cardIn = (c, id) => c.hand.find((x) => x.id === id);
+function play(run, id, target) {
+  const c = run.combat;
+  const card = cardIn(c, id);
+  assert.ok(card, `${id} should be in hand`);
+  return E.playCard(run, card.uid, target ? target.uid : undefined);
+}
+const give = (run, id, up) => { const card = { uid: run.nextUid++, id, up: up ? 1 : 0 }; run.combat.hand.push(card); return card; };
+const tough = (c) => c.enemies.forEach((e) => { e.hp = e.maxHp = 500; });
+/* Make every enemy do nothing this turn. */
+const pacify = (c) => c.enemies.forEach((e) => { e.intent = 'none'; });
+
+/* ---------- hero ---------- */
+test('the keeper starts with 70 HP, 3 Light and the 10-card starting deck', () => {
+  const run = E.newRun(5);
+  assert.equal(run.hp, 70);
+  assert.equal(run.maxHp, 70);
+  const count = (id) => run.deck.filter((c) => c.id === id).length;
+  assert.equal(run.deck.length, 10);
+  assert.deepEqual([count('jab'), count('brace'), count('swell'), count('slack')], [4, 4, 1, 1]);
+  assert.deepEqual(run.keepsakes, ['tidebell']);
+  E.startCombat(run, 'easy');
+  assert.equal(run.combat.maxLight, 3);
+});
+
+/* ---------- Light ---------- */
+test('you get 3 Light each turn, and each card costs the Light in its corner', () => {
+  const { run, c } = fight(['kelp'], { hand: ['jab', 'brace', 'depthcharge', 'riptide'] });
+  tough(c);
+  assert.equal(c.light, 3);
+  assert.ok(play(run, 'jab'));
+  assert.equal(c.light, 2);
+  assert.ok(play(run, 'depthcharge'), 'a 2-cost card is playable with 2 Light');
+  assert.equal(c.light, 0);
+  const brace = cardIn(c, 'brace');
+  assert.deepEqual(E.playable(run, brace), { ok: false, reason: 'Not enough Light' });
+  assert.equal(E.playCard(run, brace.uid), false, 'cannot play without enough Light');
+  assert.ok(cardIn(c, 'brace'), 'the card stays in hand');
+  assert.ok(play(run, 'riptide'), 'a 0-cost card is playable at 0 Light');
+  pacify(c);
+  E.endTurn(run);
+  assert.equal(c.light, 3, 'Light refills to 3 at the start of the next turn');
+});
+
+test('unused Light does not carry over', () => {
+  const { run, c } = fight(['kelp']);
+  pacify(c);
+  E.endTurn(run);
+  assert.equal(c.light, 3);
+});
+
+/* ---------- Drawing ---------- */
+test('you draw 5 cards each turn', () => {
+  const { run, c } = fight(['kelp'], { keepsakes: [] });
+  tough(c);
+  assert.equal(c.hand.length, 5);
+  assert.equal(c.draw.length, 5);
+  pacify(c);
+  E.endTurn(run);
+  assert.equal(c.hand.length, 5);
+});
+
+test('cards you play and cards you do not play both go to the discard pile', () => {
+  const { run, c } = fight(['kelp'], { keepsakes: [] });
+  tough(c);
+  const before = c.hand.map((x) => x.uid).sort();
+  const jab = cardIn(c, 'jab') || cardIn(c, 'brace');
+  E.playCard(run, jab.uid, c.enemies[0].uid);
+  assert.ok(c.discard.some((x) => x.uid === jab.uid), 'played card is in the discard pile');
+  pacify(c);
+  E.endTurnStart(run);
+  assert.equal(c.hand.length, 0, 'hand is emptied at the end of the turn');
+  assert.deepEqual(c.discard.map((x) => x.uid).sort(), before);
+});
+
+test('when the draw pile runs out, the discard pile is shuffled back into it', () => {
+  const { run, c } = fight(['kelp'], { keepsakes: [] });
+  tough(c);
+  pacify(c);
+  E.endTurn(run); // turn 2 draws the last 5
+  assert.equal(c.draw.length, 0);
+  assert.equal(c.discard.length, 5);
+  c.fx.length = 0;
+  pacify(c);
+  E.endTurn(run); // turn 3 must reshuffle
+  assert.ok(c.fx.some((f) => f.t === 'shuffle'), 'a shuffle happened');
+  assert.equal(c.hand.length, 5);
+  assert.equal(c.hand.length + c.draw.length + c.discard.length, 10, 'no card is lost or duplicated');
+});
+
+/* ---------- Ward ---------- */
+test('Ward blocks damage', () => {
+  const { run, c } = fight(['kelp'], { hand: ['brace'] });
+  c.enemies[0].intent = 'lash'; // 8 damage
+  play(run, 'brace');
+  assert.equal(c.player.ward, 5);
+  E.endTurn(run);
+  assert.equal(run.hp, 70 - 3);
+});
+
+test('Ward washes away at the start of your next turn', () => {
+  const { run, c } = fight(['kelp'], { hand: ['brace', 'brace'] });
+  pacify(c);
+  play(run, 'brace');
+  play(run, 'brace');
+  assert.equal(c.player.ward, 10);
+  E.endTurn(run);
+  assert.equal(c.player.ward, 0);
+});
+
+test('enemies can have Ward too: it blocks your attacks and washes away when they act again', () => {
+  const { run, c } = fight(['crab'], { hand: ['jab'] });
+  const crab = c.enemies[0];
+  crab.ward = 9;
+  const hp = crab.hp;
+  play(run, 'jab', crab);
+  assert.equal(crab.hp, hp, 'all 6 damage is blocked');
+  assert.equal(crab.ward, 3);
+  crab.intent = 'snap';
+  E.endTurn(run);
+  assert.equal(crab.ward, 0, 'Ward is gone once the enemy acts');
+});
+
+/* ---------- The Tide ---------- */
+test('the Tide starts every fight at 3; Surge raises it and Ebb lowers it', () => {
+  const { run, c } = fight(['kelp'], { hand: ['swell', 'slack'] });
+  tough(c);
+  assert.equal(c.tide, 3);
+  play(run, 'swell', c.enemies[0]);
+  assert.equal(c.tide, 5);
+  play(run, 'slack');
+  assert.equal(c.tide, 3);
+});
+
+test('at 6 the wave Crests: 6 damage to every enemy, then the Tide resets to 3', () => {
+  const { run, c } = fight(['kelp', 'crab', 'mite'], { hand: ['swell'], tide: 4, keepsakes: [] });
+  tough(c);
+  const target = c.enemies[0];
+  play(run, 'swell', target);
+  assert.equal(c.tide, 3);
+  assert.equal(c.turnCrests, 1);
+  assert.deepEqual(c.enemies.map((e) => 500 - e.hp), [5 + 6, 6, 6]);
+});
+
+test('at 0 you hit Low Water: gain 6 Ward, then the Tide resets to 3', () => {
+  const { run, c } = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: [] });
+  play(run, 'slack');
+  assert.equal(c.tide, 3);
+  assert.equal(c.player.ward, 5 + 6);
+  assert.equal(c.turnLows, 1);
+});
+
+test('extra Surge carries over: Surge 6 from Tide 3 Crests twice', () => {
+  const { run, c } = fight(['kelp', 'crab'], { hand: ['stormsurge'], keepsakes: [] });
+  tough(c);
+  play(run, 'stormsurge');
+  assert.equal(c.turnCrests, 2);
+  assert.equal(c.tide, 3);
+  assert.deepEqual(c.enemies.map((e) => 500 - e.hp), [6 + 9, 6 + 9]);
+});
+
+test('extra Ebb carries over too: Ebb 2 from Tide 1 reaches Low Water and keeps falling from 3', () => {
+  const { run, c } = fight(['kelp'], { hand: ['slack'], tide: 1, keepsakes: [] });
+  play(run, 'slack');
+  assert.equal(c.turnLows, 1);
+  assert.equal(c.tide, 2);
+});
+
+test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12) and each extra Low Water gives 3 more Ward (6, 9)', () => {
+  const { run, c } = fight(['kelp'], { hand: ['stormsurge', 'tidereading'], keepsakes: [] });
+  tough(c);
+  const e = c.enemies[0];
+  play(run, 'stormsurge');
+  assert.equal(500 - e.hp, 6 + 9);
+  c.tide = 5;
+  play(run, 'tidereading');
+  assert.equal(500 - e.hp, 6 + 9 + 12);
+  assert.equal(c.maxChain, 3);
+  const r2 = fight(['kelp'], { hand: ['bilgepump', 'bilgepump'], tide: 2, keepsakes: [] });
+  play(r2.run, 'bilgepump');
+  assert.equal(r2.c.player.ward, 6);
+  r2.c.tide = 2;
+  play(r2.run, 'bilgepump');
+  assert.equal(r2.c.player.ward, 6 + 9);
+});
+
+test('chains start over each turn', () => {
+  const { run, c } = fight(['kelp'], { hand: ['stormsurge'], keepsakes: [] });
+  tough(c);
+  play(run, 'stormsurge');
+  pacify(c);
+  E.endTurn(run);
+  const e = c.enemies[0];
+  const hp = e.hp;
+  give(run, 'tidereading');
+  c.tide = 5;
+  play(run, 'tidereading');
+  assert.equal(hp - e.hp, 6);
+});
+
+test('the Brass Tide-Bell draws a card whenever you Crest or hit Low Water', () => {
+  const { run, c } = fight(['kelp'], { hand: ['swell', 'slack'] });
+  tough(c);
+  c.tide = 4;
+  const n = c.hand.length;
+  play(run, 'swell', c.enemies[0]);
+  assert.equal(c.hand.length, n - 1 + 1);
+  c.tide = 2;
+  play(run, 'slack');
+  assert.equal(c.hand.length, n - 2 + 2);
+});
+
+test('cards that scale with the Tide: Undercurrent, Tsunami, Lighthouse Beam, Toppled Tower', () => {
+  let f = fight(['kelp'], { hand: ['undercurrent'], tide: 5 });
+  tough(f.c);
+  play(f.run, 'undercurrent', f.c.enemies[0]);
+  assert.equal(500 - f.c.enemies[0].hp, 3 + 2 * 5);
+
+  f = fight(['kelp', 'crab'], { hand: ['tsunami'], tide: 4, keepsakes: [] });
+  tough(f.c);
+  play(f.run, 'tsunami');
+  assert.deepEqual(f.c.enemies.map((e) => 500 - e.hp), [12, 12]);
+  assert.equal(f.c.turnLows, 1, 'Tsunami drains to Low Water');
+  assert.equal(f.c.player.ward, 6);
+
+  f = fight(['kelp'], { hand: ['beam'], tide: 4 });
+  tough(f.c);
+  play(f.run, 'beam');
+  f.c.tide = 5;
+  pacify(f.c);
+  E.endTurnStart(f.run);
+  assert.equal(500 - f.c.enemies[0].hp, 3 * 5);
+
+  f = fight(['kelp'], { hand: ['toppledtower', 'stormsurge'] });
+  tough(f.c);
+  const tower = cardIn(f.c, 'toppledtower');
+  assert.equal(E.cost(tower, f.c), 3);
+  play(f.run, 'stormsurge');
+  assert.equal(E.cost(tower, f.c), 1, 'costs 1 less per Crest this turn');
+});
+
+/* ---------- Keywords and statuses ---------- */
+test('Sink: the card is gone for the rest of the fight once played', () => {
+  const { run, c } = fight(['kelp'], { hand: ['stormsurge'] });
+  tough(c);
+  const uid = cardIn(c, 'stormsurge').uid;
+  play(run, 'stormsurge');
+  assert.ok(c.sunk.some((x) => x.uid === uid));
+  assert.ok(!c.discard.some((x) => x.uid === uid));
+  pacify(c); E.endTurn(run); pacify(c); E.endTurn(run); pacify(c); E.endTurn(run);
+  assert.ok(![...c.hand, ...c.draw, ...c.discard].some((x) => x.uid === uid), 'it never comes back');
+});
+
+test('Float: the card stays in your hand at the end of the turn', () => {
+  const { run, c } = fight(['kelp'], { hand: ['driftwood', 'jab'] });
+  const uid = cardIn(c, 'driftwood').uid;
+  pacify(c);
+  E.endTurnStart(run);
+  assert.deepEqual(c.hand.map((x) => x.uid), [uid]);
+});
+
+test('Rite: stays in effect for the rest of the fight', () => {
+  const { run, c } = fight(['kelp'], { hand: ['moonpull'] });
+  tough(c);
+  play(run, 'moonpull');
+  assert.equal(c.rites.length, 1);
+  assert.equal(c.discard.filter((x) => x.id === 'moonpull').length, 0);
+  for (let t = 0; t < 2; t++) {
+    const tide = c.tide;
+    pacify(c);
+    E.endTurn(run);
+    assert.equal(c.tide, tide === 5 ? 3 : tide + 1, 'Moon Pull Surges 1 at the start of each turn');
+  }
+});
+
+test('Echo: your next card is played twice', () => {
+  const { run, c } = fight(['kelp'], { hand: ['sirensecho', 'jab', 'jab'] });
+  tough(c);
+  play(run, 'sirensecho');
+  assert.equal(c.echo, 1, 'playing Echo does not use itself up');
+  play(run, 'jab', c.enemies[0]);
+  assert.equal(500 - c.enemies[0].hp, 12);
+  play(run, 'jab', c.enemies[0]);
+  assert.equal(500 - c.enemies[0].hp, 18, 'only the next card');
+});
+
+test('Might adds damage to every hit', () => {
+  const { run, c } = fight(['kelp'], { hand: ['galeheart', 'oarflurry'] });
+  tough(c);
+  play(run, 'galeheart');
+  play(run, 'oarflurry', c.enemies[0]);
+  assert.equal(500 - c.enemies[0].hp, 3 * (3 + 2));
+});
+
+test('Spines deal damage back to attackers', () => {
+  const { run, c } = fight(['hulk'], { hand: ['jab', 'oarflurry'], kind: 'elite' });
+  assert.equal(c.enemies[0].st.spines, 3);
+  play(run, 'jab', c.enemies[0]);
+  assert.equal(run.hp, 70 - 3);
+  play(run, 'oarflurry', c.enemies[0]);
+  assert.equal(run.hp, 70 - 3 - 9, 'once per hit');
+});
+
+test('Soaked: takes 50% more damage from attacks and Crests', () => {
+  const { run, c } = fight(['kelp'], { hand: ['jab', 'swell'], keepsakes: [] });
+  tough(c);
+  const e = c.enemies[0];
+  e.st.soaked = 2;
+  play(run, 'jab', e);
+  assert.equal(500 - e.hp, 9);
+  c.tide = 4;
+  play(run, 'swell', e);
+  assert.equal(500 - e.hp, 9 + 7 + 9, 'Swell 5 -> 7, Crest 6 -> 9');
+});
+
+test('Chilled: deals 25% less attack damage', () => {
+  const { run, c } = fight(['kelp'], { hand: ['jab', 'kelpsnare'] });
+  tough(c);
+  const e = c.enemies[0];
+  play(run, 'kelpsnare', e);
+  e.intent = 'lash';
+  assert.equal(E.intentInfo(run, e).dmg, 6, '8 -> 6');
+  E.endTurn(run);
+  assert.equal(run.hp, 70 - Math.max(0, 6 - 5));
+  c.player.st.chilled = 1;
+  give(run, 'jab');
+  const hp = e.hp;
+  play(run, 'jab', e);
+  assert.equal(hp - e.hp, 4, 'a Chilled keeper hits for 25% less too');
+});
+
+test('Brine: loses that much HP at the start of its turn, then Brine drops by 1', () => {
+  const { run, c } = fight(['kelp'], { hand: ['saltspray'] });
+  tough(c);
+  const e = c.enemies[0];
+  play(run, 'saltspray', e);
+  assert.equal(e.st.brine, 5);
+  pacify(c);
+  E.endTurn(run);
+  assert.equal(500 - e.hp, 5);
+  assert.equal(e.st.brine, 4);
+  pacify(c);
+  E.endTurn(run);
+  assert.equal(500 - e.hp, 9);
+});
+
+test('status cards: Fog Bank is unplayable; Lull sinks at the end of your turn', () => {
+  const { run, c } = fight(['kelp'], { hand: ['fogbank', 'lull'] });
+  assert.equal(E.playable(run, cardIn(c, 'fogbank')).ok, false);
+  const lull = cardIn(c, 'lull').uid;
+  pacify(c);
+  E.endTurnStart(run);
+  assert.ok(c.sunk.some((x) => x.uid === lull));
+});
+
+/* ---------- Badges (simulated plays) ---------- */
+test('card badges come from simulating the play, and match what really happens', () => {
+  const { run, c } = fight(['mite', 'mite'], { hand: ['stormsurge', 'jab', 'slack'] });
+  c.enemies[0].hp = 5;
+  c.enemies[1].hp = 15;
+  const pStorm = E.preview(run, cardIn(c, 'stormsurge').uid);
+  assert.equal(pStorm.crests, 2);
+  assert.equal(pStorm.chain, 2);
+  const pJab = E.preview(run, cardIn(c, 'jab').uid, c.enemies[0].uid);
+  assert.equal(pJab.kills, 1);
+  assert.equal(pJab.won, false);
+  c.tide = 2;
+  const pSlack = E.preview(run, cardIn(c, 'slack').uid);
+  assert.equal(pSlack.lows, 1);
+  const json = snapshot(run);
+  E.preview(run, cardIn(c, 'stormsurge').uid);
+  assert.equal(snapshot(run), json, 'previewing does not change the real state');
+  c.tide = 3;
+  play(run, 'stormsurge');
+  assert.equal(c.turnCrests, 2);
+  assert.ok(c.won, 'two Crests (6 + 9) beat 5 and 15 HP');
+});
+
+/* ---------- Bosses and elites ---------- */
+test('the Bellwether calls a shoal of Bell Minnows at half health, and the shoal scatters when it falls', () => {
+  const { run, c } = fight(['bell'], { kind: 'boss', deck: ['brace', 'brace', 'brace', 'brace', 'brace'] });
+  run.hp = run.maxHp = 999;
+  const bell = c.enemies[0];
+  bell.hp = 80;
+  E.endTurn(run);
+  assert.equal(bell.intent, 'shoal');
+  E.endTurn(run);
+  assert.equal(E.alive(c).filter((e) => e.id === 'minnow').length, 2);
+  bell.hp = 1;
+  give(run, 'jab');
+  play(run, 'jab', bell);
+  assert.ok(c.won);
+  assert.equal(E.alive(c).length, 0);
+});
+
+test('Hollow Siren: the lullaby calms your Tide back to 3', () => {
+  const { run, c } = fight(['siren'], { kind: 'elite' });
+  c.enemies[0].intent = 'lullaby';
+  c.tide = 5;
+  E.endTurn(run);
+  assert.equal(c.tide, 3);
+});
+
+test('Angler Twins: the survivor enrages when its twin dies', () => {
+  const { run, c } = fight(['angler', 'angler'], { kind: 'elite', hand: ['jab'] });
+  const [a, b] = c.enemies;
+  a.hp = 1;
+  play(run, 'jab', a);
+  assert.equal(b.st.might, 4);
+});
+
+/* ---------- After a fight ---------- */
+test('after a fight: Pearls, an optional tonic and a choice of 3 cards you can skip', () => {
+  const { run, c } = fight(['mite'], { hand: ['jab'] });
+  c.enemies[0].hp = 1;
+  const pearls = run.pearls;
+  play(run, 'jab', c.enemies[0]);
+  E.finishCombat(run);
+  assert.equal(run.screen, 'reward');
+  assert.equal(run.rewards.cards.length, 3);
+  assert.ok(run.pearls > pearls);
+  const n = run.deck.length;
+  E.takeRewardCard(run, null);
+  assert.equal(run.deck.length, n, 'skipping adds nothing');
+});
+
+test('bonus Pearls: Flawless, Swift (3 turns, 4 for elites) and Tidal Fury', () => {
+  const { run, c } = fight(['kelp'], { hand: ['stormsurge'], keepsakes: [] });
+  c.enemies[0].hp = 30;
+  play(run, 'stormsurge'); // 15 damage, chain 2
+  c.enemies[0].hp = 1;
+  give(run, 'jab');
+  play(run, 'jab', c.enemies[0]);
+  E.finishCombat(run);
+  const names = run.rewards.bonuses.map((b) => b.name);
+  assert.deepEqual(names, ['Flawless', 'Swift', 'Tidal Fury']);
+
+  const slow = fight(['kelp'], { kind: 'elite' });
+  slow.c.turn = 4;
+  slow.c.flags.hpLost = true;
+  slow.c.enemies[0].dead = true;
+  slow.c.won = true;
+  E.finishCombat(slow.run);
+  assert.deepEqual(slow.run.rewards.bonuses.map((b) => b.name), ['Swift'], 'turn 4 is still Swift for an elite');
+  assert.equal(slow.run.rewards.keepsakeChoices.length, 2, 'elites offer 1 of 2 keepsakes');
+});
+
+test('the map: about 11 stops, fights first, a wreck halfway, a cove before the boss, and enough variety', () => {
+  for (let seed = 1; seed <= 200; seed++) {
+    const run = E.newRun(seed);
+    const nodes = run.map.grid.flat().filter(Boolean);
+    assert.equal(run.map.rows + 1, 11);
+    assert.ok(run.map.grid[0].filter(Boolean).every((n) => n.type === 'fight'));
+    assert.ok(run.map.grid[5].filter(Boolean).every((n) => n.type === 'treasure'));
+    assert.ok(run.map.grid[9].filter(Boolean).every((n) => n.type === 'rest'));
+    const count = (t) => nodes.filter((n) => n.type === t).length;
+    ['fight', 'elite', 'event', 'shop', 'rest', 'treasure'].forEach((t) => assert.ok(count(t) >= 1, `seed ${seed} has a ${t}`));
+    assert.ok(nodes.every((n) => n.type !== 'elite' || n.row >= 3), 'no elites in the first rows');
+  }
+});
+
+test('Sheltered Cove: rest heals 30% of max HP (25% in the Abyss), or upgrade a card', () => {
+  const run = E.newRun(3);
+  run.hp = 20;
+  E.rest(run);
+  assert.equal(run.hp, 20 + 21);
+  const deep = E.newRun(3, 3);
+  deep.hp = 20;
+  E.rest(deep);
+  assert.equal(deep.hp, 20 + 17);
+  const card = run.deck.find((c) => c.id === 'jab');
+  E.upgradeCard(run, card.uid);
+  assert.equal(card.up, 1);
+  assert.equal(E.vals(card).dmg, 9);
+});
+
+test("Barnaby's shop: cards, keepsakes, tonics, and one paid card removal per visit", () => {
+  const run = E.newRun(9);
+  run.pearls = 1000;
+  E.enterNode(run, { row: 2, col: 0, type: 'shop' });
+  const s = run.shop;
+  assert.equal(s.cards.length, 5);
+  assert.equal(s.cards.filter((x) => x.sale).length, 1);
+  assert.equal(s.keepsakes.length, 2);
+  assert.equal(s.tonics.length, 2);
+  const n = run.deck.length;
+  assert.ok(E.buy(run, 'cards', 0));
+  assert.equal(run.deck.length, n + 1);
+  assert.equal(E.buy(run, 'cards', 0), false, 'sold out');
+  assert.ok(E.buy(run, 'keepsakes', 0));
+  assert.ok(E.has(run, s.keepsakes[0].id));
+  assert.ok(E.buy(run, 'tonics', 0));
+  assert.equal(run.tonics.filter(Boolean).length, 1);
+  const cost = E.removePrice(run);
+  assert.ok(E.buyRemoval(run, run.deck[0].uid));
+  assert.equal(E.buyRemoval(run, run.deck[0].uid), false, 'once per visit');
+  assert.equal(run.removeCost, cost + 25);
+});
+
+test('Wrecks: a chest of Pearls and a choice of 1 of 3 keepsakes', () => {
+  const run = E.newRun(4);
+  E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
+  const pearls = run.pearls;
+  E.openTreasure(run);
+  assert.ok(run.pearls > pearls);
+  assert.equal(run.treasure.choices.length, 3);
+  E.takeTreasureKeepsake(run, run.treasure.choices[1]);
+  assert.ok(E.has(run, run.treasure.choices[1]));
+  E.takeTreasureKeepsake(run, run.treasure.choices[0]);
+  assert.ok(!E.has(run, run.treasure.choices[0]), 'only one');
+});
+
+/* ---------- Depths and score ---------- */
+test('deeper starting depths: tougher enemies and a higher score multiplier', () => {
+  const hpAt = (lv) => { const r = E.newRun(11, lv); E.startCombat(r, 'easy', ['kelp']); return r.combat.enemies[0]; };
+  const base = hpAt(0).maxHp;
+  assert.equal(hpAt(1).maxHp, Math.round(base * 1.1));
+  assert.equal(hpAt(3).maxHp, Math.round(base * 1.2));
+  const r = E.newRun(11, 2);
+  E.startCombat(r, 'easy', ['kelp']);
+  r.combat.enemies[0].intent = 'lash';
+  assert.equal(E.intentInfo(r, r.combat.enemies[0]).dmg, Math.round(8 * 1.1));
+  const run0 = E.newRun(1, 0);
+  const run2 = E.newRun(1, 2);
+  run0.floor = run2.floor = 5;
+  assert.equal(E.score(run2, false), Math.round(E.score(run0, false) * 1.5));
+  assert.deepEqual(E.LEVELS.map((l) => l.name), ['Shallows', 'Dark Water', 'Riptide', 'The Abyss']);
+});
+
+/* ---------- Content (README counts) ---------- */
+test('content: 38 collectible cards (14/16/8), all upgradable; 3 statuses and 1 curse; 13 enemies; 19 keepsakes; 7 tonics; 7 events', () => {
+  const cards = Object.values(BL.CARDS);
+  const by = (r) => cards.filter((c) => c.rarity === r).length;
+  assert.deepEqual([by('common'), by('uncommon'), by('rare')], [14, 16, 8]);
+  cards.filter((c) => ['common', 'uncommon', 'rare', 'starter'].includes(c.rarity)).forEach((c) => assert.ok(Object.keys(c.up).length > 0, c.id + ' has an upgrade'));
+  assert.equal(cards.filter((c) => c.type === 'status').length, 3);
+  assert.equal(cards.filter((c) => c.type === 'curse').length, 1);
+  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 13);
+  assert.equal(Object.keys(BL.KEEPSAKES).length, 19);
+  assert.equal(Object.keys(BL.TONICS).length, 7);
+  assert.equal(BL.EVENTS.length, 7);
+});
+
+/* ---------- Determinism, save and continue ---------- */
+test('the same seed and the same decisions give the same run', () => {
+  for (const seed of [1, 42, 2024]) {
+    const a = E.newRun(seed);
+    const b = E.newRun(seed);
+    const la = playRun(a);
+    const lb = playRun(b);
+    assert.deepEqual(la, lb);
+    assert.equal(snapshot(a), snapshot(b));
+  }
+  assert.notEqual(snapshot(E.newRun(1).map), snapshot(E.newRun(2).map), 'different seeds, different maps');
+});
+
+test('save and continue: a run reloaded from its save plays out exactly like one that never stopped', () => {
+  for (const seed of [3, 77]) {
+    for (const stopAt of [5, 23, 60]) {
+      const a = E.newRun(seed);
+      for (let i = 0; i < stopAt; i++) step(a);
+      // the game only saves at the start of a turn or between stops
+      while (a.screen === 'combat' && a.combat.turn > 0 && a.combat.phase !== 'player') step(a);
+      const b = saveLoad(a);
+      playRun(a);
+      playRun(b);
+      assert.equal(snapshot(b), snapshot(a), `seed ${seed}, saved after ${stopAt} steps`);
+    }
+  }
+});
