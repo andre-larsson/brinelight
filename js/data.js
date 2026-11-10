@@ -501,8 +501,34 @@
       },
       ai: weighted([['bite', 60], ['nip', 40]], 2),
     },
+    // ---------- Tutorial only (never in a random encounter) ----------
+    tut_mite: {
+      name: 'Barnacle Mite', hp: [12, 12], art: 'mite', scale: 0.7, tutorial: true,
+      moves: { nibble: { name: 'Nibble', dmg: 4 } },
+      ai: cycleFrom(['nibble']),
+    },
+    tut_crab: {
+      name: 'Brine Crab', hp: [24, 24], art: 'crab', scale: 1.0, tutorial: true,
+      moves: {
+        harden: { name: 'Harden', ward: 4, dmg: 3 },
+        snap: { name: 'Snap', dmg: 6 },
+        pinch: { name: 'Pinch', dmg: 3, hits: 2 },
+      },
+      ai: cycleFrom(['harden', 'snap', 'pinch']),
+    },
   };
   BL.ENEMIES = ENEMIES;
+
+  /* The guided first fight (see js/tutorial.js). Cards are drawn in this order, 5 a turn;
+     turn 3 runs out and refills from the discard pile, lowest card first. */
+  BL.TUTORIAL = {
+    enc: ['tut_mite', 'tut_crab'],
+    deck: [
+      'jab', 'brace', 'jab', 'brace', 'jab', // turn 1
+      'swell', 'shellup', 'slack', 'jab', 'brace', // turn 2
+      'riptide', 'stormsurge', 'jab', // turn 3, then the reshuffle
+    ],
+  };
 
   BL.ENCOUNTERS = {
     easy: [['kelp'], ['crab'], ['mite', 'mite', 'mite'], ['jelly', 'jelly'], ['eel', 'mite'], ['gull', 'mite']],

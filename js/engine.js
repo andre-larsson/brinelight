@@ -96,6 +96,18 @@
     return run;
   };
 
+  /* The guided first fight: a fixed deck drawn in order against two weak enemies with scripted moves.
+     It is a separate run object that is never saved, so it cannot touch real runs, seeds or scores. */
+  E.newTutorialRun = function () {
+    const run = E.newRun(1, 0);
+    run.tutorial = true;
+    run.keepsakes = [];
+    run.deck = [];
+    BL.TUTORIAL.deck.forEach((id) => E.addCard(run, id));
+    E.startCombat(run, 'tutorial', BL.TUTORIAL.enc, { noShuffle: true });
+    return run;
+  };
+
   E.tick = function (run) {
     const now = Date.now();
     const dt = now - (run.stats.lastTick || now);
@@ -445,7 +457,9 @@
     };
     run.combat = c;
     run.screen = 'combat';
-    c.draw = R.shuffle(run.deck.map((card) => ({ uid: card.uid, id: card.id, up: card.up })));
+    const pile = run.deck.map((card) => ({ uid: card.uid, id: card.id, up: card.up }));
+    // noShuffle (tutorial only): draw the deck in order, and refill from the discard pile in a fixed order
+    if (opts && opts.noShuffle) { c.noShuffle = true; c.draw = pile.reverse(); } else c.draw = R.shuffle(pile);
     enc.forEach((id, idx) => spawnEnemy(run, c, id, idx));
     if (E.has(run, 'whaletooth')) c.player.st.might = (c.player.st.might || 0) + 1;
     if (E.has(run, 'barnacleplate')) c.player.st.spines = (c.player.st.spines || 0) + 3;
@@ -558,7 +572,7 @@
       if (c.hand.length >= HAND_MAX) break;
       if (!c.draw.length) {
         if (!c.discard.length) break;
-        c.draw = R.shuffle(c.discard);
+        c.draw = c.noShuffle ? c.discard.sort((a, b) => b.uid - a.uid) : R.shuffle(c.discard);
         c.discard = [];
         fx(c, { t: 'shuffle' });
       }
