@@ -3,7 +3,8 @@
    - desktop 1280x800 with the mouse (clicks, a drag) and the keyboard
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
-   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial] */
+   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial]
+          [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
 'use strict';
 const path = require('path');
 const { serve } = require('../tools/serve');
@@ -14,6 +15,8 @@ const arg = (name, def) => { const i = args.indexOf('--' + name); return i >= 0 
 const PORT = +arg('port', process.env.PORT || 8873);
 const STOPS = args.includes('--full') ? 99 : +arg('stops', 6);
 const ONLY = arg('only', null);
+const ROOT = path.resolve(arg('root', path.join(__dirname, '..'))); // folder to serve
+const SUBPATH = arg('path', '/'); // where the game sits under ROOT, e.g. /brinelight/
 
 const failures = [];
 const log = (...a) => console.log(...a);
@@ -107,6 +110,11 @@ async function fight(page, label, opts) {
     const st = await page.eval(`(() => { const r = window.Brinelight.run; if (!r || r.screen !== 'combat') return 'left'; const c = r.combat; return c.won ? 'won' : c.lost ? 'lost' : 'play'; })()`);
     if (st === 'left') return { plays, turns };
     if (st !== 'play') { await sleep(300); continue; }
+    // README claims: the keeper shows the damage that will get past Ward, and End Turn lights up when nothing is playable
+    const ui = await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run, c = r.combat; let inc = 0; E.alive(c).forEach((e) => { const i = E.intentInfo(r, e); if (i && i.dmg) inc += i.dmg * i.hits; }); const el = document.querySelector('.unit.player .incoming'); return { inc, unblocked: Math.max(0, inc - c.player.ward), shown: el ? el.innerText.trim() : '', anyPlayable: c.hand.some((x) => E.playable(r, x).ok), endLit: document.getElementById('btn-end').classList.contains('primary') }; })()`);
+    const expectShown = ui.inc ? (ui.unblocked ? String(ui.unblocked) : 'Blocked') : '';
+    if (ui.shown !== expectShown) failures.push(`${label}: keeper shows incoming "${ui.shown}", expected "${expectShown}"`);
+    if (ui.endLit === ui.anyPlayable) failures.push(`${label}: End Turn ${ui.endLit ? 'lit' : 'not lit'} while ${ui.anyPlayable ? 'a card is' : 'nothing is'} playable`);
     const d = await page.eval('window.__t.decide()');
     if (d) {
       const mode = opts.keyboardTurns && turns % 2 === 1 ? 'key' : (plays === 1 && opts.drag) ? 'drag' : 'click';
@@ -338,9 +346,9 @@ async function tutorialMidRun(page, base) {
 }
 
 (async () => {
-  const server = await serve(PORT, path.join(__dirname, '..'));
+  const server = await serve(PORT, ROOT);
   const page = await launch();
-  const base = `http://127.0.0.1:${PORT}/`;
+  const base = `http://127.0.0.1:${PORT}${SUBPATH}`;
   const t0 = Date.now();
   try {
     if (!ONLY || ONLY === 'tutorial') {

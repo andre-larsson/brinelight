@@ -833,3 +833,5 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   .hand .card .c-cost { font-size: 14px; }
   .hand .card { --card-text: 12px; --card-text-long: 12px; }
 }
+.card.static .c-type { top: calc(var(--cw) * .685 - 14px); }
+.map-header h2, .map-header p { text-shadow: 0 2px 6px #000, 0 0 12px #06121c; }

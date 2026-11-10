@@ -18,7 +18,7 @@
   let Teach = null; // tutorial and first-time hints (js/tutorial.js), created at boot
   const ui = {
     sel: null, target: null, hover: null, busy: false, tonicSel: null, drag: null,
-    mapFocus: 0, lastPointer: 'mouse', combatRef: null, cw: 140, overlayOnClose: null, overlayLocked: false, tipFor: null,
+    mapFocus: 0, lastPointer: (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 'touch' : 'mouse', combatRef: null, cw: 140, overlayOnClose: null, overlayLocked: false, tipFor: null,
   };
   let prefs = { sound: true, music: true, fast: false };
   const BEST_KEY = 'brinelight.best.v1';
