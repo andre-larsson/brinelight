@@ -73,6 +73,7 @@
     close: svg('<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
   };
   const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss };
+  const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', boss: 'Boss' };
   const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'The Drowned Bellwether' };
 
   /* ================================================================== *
@@ -539,47 +540,60 @@
     openOverlay(modal(title, body, '<button class="btn" data-act="choosecard" data-id="">Skip</button>', ''), { locked: true });
   }
 
-  function helpHTML() {
-    const kw = Object.keys(BL.KEYWORDS).map((k) => `<dt>${k}</dt><dd>${BL.KEYWORDS[k]}</dd>`).join('');
-    return `<div class="help">
-      <h3>The story</h3>
-      <p>The great light of Saltmere has gone dark. Something far below the waves rang a bell, and the Lantern Heart sank with the tide. You are Wren, the last keeper. Dive into the Drowned Reach, choose your route, and take the Heart back from the Drowned Bellwether at the bottom.</p>
-      <h3>Fights</h3>
-      <ul>
-        <li>Each turn you get <b>3 Light</b> and draw <b>5 cards</b>. Playing a card costs the Light shown in its corner.</li>
-        <li>Enemies show their <b>intent</b> above their heads: the number is how hard they will hit you.</li>
-        <li><b>Ward</b> blocks damage and washes away at the start of your next turn.</li>
-        <li>Cards you don't play are discarded at the end of the turn. When your draw pile is empty, your discard pile is shuffled back in.</li>
-      </ul>
-      <h3>The Tide</h3>
-      <p>The Tide runs from 0 to 6 and starts each fight at 3. <b>Surge</b> raises it, <b>Ebb</b> lowers it.</p>
-      <ul>
-        <li>Reach <b>6</b> and the wave <b>Crests</b>: 6 damage to every enemy, then the Tide returns to 3.</li>
-        <li>Reach <b>0</b> for <b>Low Water</b>: gain 6 Ward, then the Tide returns to 3.</li>
-        <li>Extra Surge or Ebb is never wasted: it keeps flowing from 3, so a big Surge can Crest twice.</li>
-        <li><b>Chains:</b> every extra Crest in the same turn hits 3 harder (6, 9, 12...). Every extra Low Water gives 3 more Ward. Line up your Surges for one huge turn.</li>
-        <li>Your Brass Tide-Bell draws you a card whenever either happens. Some cards grow stronger the higher (or lower) the Tide is.</li>
-        <li>Badges on your cards show what they will do right now: <b>CREST</b>, <b>LETHAL</b>, <b>VICTORY</b>, <b>ECHO</b>.</li>
-      </ul>
-      <h3>Between fights</h3>
-      <ul>
-        <li>After a fight, pick 1 of 3 new cards for your deck (sometimes already upgraded), or skip. A lean deck draws its best cards more often.</li>
-        <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (a quick win) and <b>Tidal Fury</b> (2+ Crests in one turn) fights.</li>
-        <li>Win a run to unlock a deeper, harder starting depth, and chase a higher score.</li>
-        <li>On the map, choose your route: skirmishes, Dread elites (harder, but they drop keepsakes), Fog events, Barnaby's shop, wrecks with treasure, and sheltered coves where you can rest or upgrade a card.</li>
-        <li><b>Keepsakes</b> are permanent bonuses. <b>Tonics</b> are one-use potions, used from the top bar.</li>
-      </ul>
-      <h3>Controls</h3>
-      <dl>
-        <dt>Mouse</dt><dd>Click a card, then click an enemy (or click the card again). You can also drag cards onto enemies or up into the sea.</dd>
-        <dt>Touch</dt><dd>Tap a card to raise it and read it, then tap an enemy or tap the card again to play it. Tap an enemy to see its intent and effects.</dd>
-        <dt>Keyboard</dt><dd><span class="kbd">1</span>-<span class="kbd">0</span> pick a card, <span class="kbd">&larr;</span><span class="kbd">&rarr;</span> choose a target, <span class="kbd">Enter</span> or <span class="kbd">Space</span> play, <span class="kbd">Esc</span> cancel, <span class="kbd">E</span> end turn, <span class="kbd">D</span> deck, <span class="kbd">Z</span><span class="kbd">X</span><span class="kbd">C</span> tonics. On the map, <span class="kbd">&larr;</span><span class="kbd">&rarr;</span> and <span class="kbd">Enter</span>. <span class="kbd">Tab</span> reaches every button.</dd>
-      </dl>
-      <h3>Glossary</h3>
-      <dl>${kw}</dl>
-    </div>`;
+  /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
+  const HELP_TABS = [['basics', 'Basics'], ['tide', 'The Tide'], ['keywords', 'Keywords'], ['map', 'The map'], ['controls', 'Controls']];
+  function helpSection(tab) {
+    const kbd = (k) => `<span class="kbd">${k}</span>`;
+    const dl = (rows) => `<dl class="help-dl">${rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`;
+    switch (tab) {
+      case 'tide': return `<ul class="help-list">
+        <li>A gauge from <b>0 to 6</b>. It starts every fight at 3 and stays put between turns.</li>
+        <li><b>Surge</b> raises it. <b>Ebb</b> lowers it.</li>
+        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Low Water</b> at 0: gain 6 Ward. Either way the Tide resets to 3.</li>
+        <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
+        <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Each extra Low Water gives 3 more Ward. Save Surge for one big turn.</li>
+        <li>Your <b>Tide-Bell</b> draws a card on every Crest and Low Water.</li>
+        <li>Badges on your cards say what a card would do right now: ${['CREST', 'LETHAL', 'VICTORY', 'LOW WATER', 'ECHO'].map((b) => `<span class="c-badge ${b.split(' ')[0].toLowerCase()}">${b}</span>`).join(' ')}</li>
+      </ul>`;
+      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine'].map((k) => [k, BL.KEYWORDS[k]]));
+      case 'map': return `<ul class="help-list">
+        <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
+      </ul>${dl([
+        [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
+        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and you choose 1 of 2 keepsakes after.'],
+        [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
+        [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
+        [`${NODE_ICON.rest} Cove`, 'Rest to heal 30% of your max HP, or upgrade a card.'],
+        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and 1 of 3 keepsakes.'],
+      ])}<ul class="help-list">
+        <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
+        <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads) and <b>Tidal Fury</b> (2+ Crests in a turn).</li>
+        <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar.</li>
+        <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
+      </ul>`;
+      case 'controls': return dl([
+        ['Mouse', 'Click a card, then click an enemy (or the card again). Or drag a card onto an enemy, or up into the sea. Hover anything for details.'],
+        ['Touch', 'Tap a card to raise it, then tap an enemy or the card again. Dragging works too. Tap a creature to read its effects.'],
+        ['Keyboard', `${kbd('1')}-${kbd('0')} pick a card, ${kbd('&larr;')} ${kbd('&rarr;')} aim, ${kbd('Enter')} play, ${kbd('Esc')} cancel, ${kbd('E')} end turn, ${kbd('D')} deck, ${kbd('Z')} ${kbd('X')} ${kbd('C')} tonics. On the map: arrows and ${kbd('Enter')}.`],
+      ]);
+      default: return `<ul class="help-list">
+        <li><b>Win a fight</b> by bringing every enemy to 0 HP. If your HP reaches 0, the run is over.</li>
+        <li><b>Each turn</b> you get <b>3 Light</b> and draw <b>5 cards</b>. A card costs the Light in its corner.</li>
+        <li>The <b>intent</b> above an enemy shows what it will do on its turn. The number is the damage.</li>
+        <li><b>Ward</b> blocks damage, then washes away at the start of your next turn. Enemies can have Ward too.</li>
+        <li>Played and unplayed cards go to the <b>discard pile</b>. When the draw pile runs out, the discard pile is shuffled back in.</li>
+      </ul>`;
+    }
   }
-  function showHelp() { openOverlay(modal('How to Play', helpHTML(), '<button class="btn primary" data-act="close" autofocus>Got it</button>')); }
+  function helpHTML(tab) {
+    const tabs = HELP_TABS.map(([id, name]) => `<button class="tab${id === tab ? ' on' : ''}" data-act="helptab" data-tab="${id}" aria-pressed="${id === tab}">${name}</button>`).join('');
+    return `<div class="help"><div class="tabs" role="group" aria-label="Sections">${tabs}</div><div class="help-sec">${helpSection(tab)}</div></div>`;
+  }
+  function showHelp(tab) {
+    ui.helpTab = tab || ui.helpTab || 'basics';
+    const tutBtn = run && run.tutorial ? '' : '<button class="btn" data-act="tutorial">Play the tutorial</button>';
+    openOverlay(modal('How to Play', helpHTML(ui.helpTab), `${tutBtn}<button class="btn primary" data-act="close" autofocus>Got it</button>`, 'help-modal'));
+  }
 
   function showMenu() {
     const body = `<div class="choice-list" style="margin:0 auto">
@@ -615,7 +629,7 @@
     const ts = run.tonics.map((t, i) => t
       ? `<button class="medal tonic-slot${ui.tonicSel === i ? ' selected' : ''}" data-tip="tonic:${i}" data-act="tonic" data-slot="${i}" aria-label="Tonic: ${BL.TONICS[t].name}"><img src="img/icons/${BL.TONICS[t].art}.webp" alt=""></button>`
       : `<span class="medal empty" data-tip="tonic:${i}" aria-hidden="true"></span>`).join('');
-    return `<header class="hud">
+    return `<header class="hud${run.screen === 'combat' ? ' in-combat' : ''}">
       <div class="stat hp" data-tip="hp" aria-label="Health">${ICON.heart}<span>${run.hp}/${run.maxHp}</span></div>
       <div class="stat pearls" data-tip="pearls" aria-label="Pearls">${ICON.pearl}<span>${run.pearls}</span></div>
       <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Depth </span>${run.floor}/${E.MAP_ROWS + 1}</span></div>
@@ -743,12 +757,13 @@
     const nodeHTML = (n) => {
       const key = n.row + ',' + n.col;
       const isAvail = availKey.has(key);
-      const cls = `node t-${n.type}${visited.has(key) ? ' visited' : ''}${key === cur ? ' current' : ''}${isAvail ? ' avail' : ''}`;
+      const edge = n.x < 0.16 ? ' lbl-l' : n.x > 0.84 ? ' lbl-r' : '';
+      const cls = `node t-${n.type}${visited.has(key) ? ' visited' : ''}${key === cur ? ' current' : ''}${isAvail ? ' avail' + edge : ''}`;
       const style = `left:${n.x * 100}%;top:${yOf(n)}px`;
       const label = NODE_NAME[n.type];
       if (isAvail) {
         const idx = avail.findIndex((a) => a.row === n.row && a.col === n.col);
-        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}">${NODE_ICON[n.type]}</button>`;
+        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}">${NODE_ICON[n.type]}<span class="node-label">${SHORT_NAME[n.type]}</span></button>`;
       }
       return `<div class="${cls}" style="${style}" data-tip="node:${n.type}" aria-hidden="true">${NODE_ICON[n.type]}</div>`;
     };
@@ -799,7 +814,7 @@
         <div class="dock-left"><div class="light-orb" id="orb" data-tip="light"></div>
           <button class="pile" id="pile-draw" data-act="pile" data-pile="draw" data-tip="pile:draw"></button></div>
         <div class="hand" id="hand" role="list" aria-label="Your hand"></div>
-        <div class="dock-right"><button class="btn primary end-turn" id="btn-end" data-act="endturn">End Turn</button>
+        <div class="dock-right"><button class="btn end-turn" id="btn-end" data-act="endturn">End Turn</button>
           <button class="pile" id="pile-discard" data-act="pile" data-pile="discard" data-tip="pile:discard"></button></div>
       </div></div></div>`;
     ui.combatRef = c;
@@ -940,6 +955,7 @@
     endBtn.textContent = c.phase === 'player' ? 'End Turn' : 'Enemy Turn';
     const anyPlayable = c.hand.some((card) => E.playable(run, card).ok);
     endBtn.classList.toggle('nudge', c.phase === 'player' && !ui.busy && !anyPlayable);
+    endBtn.classList.toggle('primary', c.phase === 'player' && !ui.busy && !anyPlayable);
     updateHud();
     updateHand();
     if (Teach) Teach.checkHints();
@@ -971,10 +987,10 @@
     let hint = '';
     if (preview === 6) hint = '<div class="tb-hint">Crest! 6 damage to all</div>';
     else if (preview === 0) hint = '<div class="tb-hint">Low Water! +6 Ward</div>';
+    tb.setAttribute('aria-label', `Tide ${c.tide} of 6`);
     tb.innerHTML = `<span class="tb-label low" data-tip="kw:Low Water">Low<span class="long"> Water</span></span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
-      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>
-      <span class="tb-value" data-tip="tide">Tide ${c.tide}</span>`;
+      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>`;
   }
 
   /* ----- Hand ----- */
@@ -982,11 +998,14 @@
   function computeSizes() {
     const vw = innerWidth, vh = innerHeight;
     let cw;
-    if (vw <= 760) cw = Math.min(108, (vw - 12) / 3.75, vh * 0.135);
+    if (vw <= 760) cw = Math.min(112, (vw - 12) / 3.6, vh * 0.15);
+    else if (vh < 520) cw = Math.min(96, vh * 0.24, vw * 0.105); // short landscape phones
     else cw = Math.min(158, vh * 0.17, vw * 0.105);
-    cw = Math.max(70, Math.round(cw));
+    cw = Math.max(76, Math.round(cw));
     ui.cw = cw;
     document.documentElement.style.setProperty('--cw', cw + 'px');
+    // small hand cards switch to fixed, readable text sizes instead of scaling with the card
+    document.documentElement.classList.toggle('small-cards', cw < 120);
     layoutHand();
   }
 
@@ -1104,14 +1123,16 @@
     const step = n > 1 ? Math.min(cw * 1.04, (W - cw) / (n - 1)) : 0;
     const total = cw + step * (n - 1);
     const x0 = (W - total) / 2;
+    // how much of each card the next one covers: small cards wrap their text inside the visible part
+    h.style.setProperty('--cover', Math.max(0, Math.round(cw - step)) + 'px');
     const fUid = ui.sel != null ? ui.sel : ui.hover;
     const f = els.findIndex((el) => +el.dataset.uid === fUid);
     const hr = h.getBoundingClientRect();
     const mobile = innerWidth <= 760;
     els.forEach((el, i) => {
       const off = i - (n - 1) / 2;
-      let rot = n > 1 ? off * Math.min(3.5, 22 / n) : 0;
-      let y = off * off * Math.min(2.6, 16 / n);
+      let rot = n > 1 ? off * (mobile ? Math.min(2, 12 / n) : Math.min(3.5, 22 / n)) : 0;
+      let y = off * off * (mobile ? Math.min(1.6, 10 / n) : Math.min(2.6, 16 / n));
       let x = x0 + i * step;
       let s = 1;
       let z = i + 1;
@@ -1726,37 +1747,37 @@
   /* ----- Reward ----- */
   function renderReward() {
     const rw = run.rewards;
-    const items = [];
-    const bonusTotal = (rw.bonuses || []).reduce((a, b) => a + b.pearls, 0);
-    items.push(`<div class="reward-item done"><span class="medal" style="display:grid;place-items:center">${ICON.pearl}</span><div class="grow"><b>${rw.pearls} Pearls</b><small>${bonusTotal ? `Including ${bonusTotal} in bonuses.` : 'Added to your purse.'}</small></div></div>`);
-    (rw.bonuses || []).forEach((b) => {
-      items.push(`<div class="reward-item bonus done"><span class="medal bonus-medal">&#9733;</span><div class="grow"><b>${b.name}</b><small>${b.desc}</small></div><span class="price">+${b.pearls}</span></div>`);
-    });
+    const bonusChips = (rw.bonuses || []).map((b) => `<span class="chip bonus" title="${b.desc}">&#9733; ${b.name} +${b.pearls}</span>`).join('');
+    const summary = `<div class="reward-summary"><span class="chip pearls">${ICON.pearl}<b>+${rw.pearls}</b> Pearls</span>${bonusChips}</div>`;
+    const extras = [];
     if (rw.keepsake) {
       const k = BL.KEEPSAKES[rw.keepsake];
-      items.push(`<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>`);
+      extras.push(`<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>${k.name}</b><small>${k.desc}</small></div></div>`);
     }
     if (rw.tonic) {
-      const t = BL.TONICS[rw.tonic];
+      const tn = BL.TONICS[rw.tonic];
       const full = run.tonics.indexOf(null) < 0;
-      items.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${t.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${t.name}</b><small>${t.desc}</small></div>
+      extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}</small></div>
         ${rw.tonicTaken ? '<span class="muted">Taken</span>' : `<button class="btn small" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : ''}>${full ? 'Slots full' : 'Take'}</button>`}</div>`);
     }
     const ksPanel = rw.keepsakeChoices && rw.keepsakeChoices.length && !rw.keepsake
-      ? `<div class="panel"><h3>The Dread drops a keepsake. Choose one</h3><div class="shop-row">${rw.keepsakeChoices.map((k) => {
+      ? `<div class="panel"><h3>Choose a keepsake</h3><div class="shop-row">${rw.keepsakeChoices.map((k) => {
         const K = BL.KEEPSAKES[k];
         return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="rewardks" data-k="${k}"><span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><small>${K.desc}</small></div>`;
       }).join('')}</div></div>` : '';
     const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : ''}`,
       (rw.cardTaken ? '' : `tabindex="0" role="button" data-act="rewardcard" data-i="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
-    const cardPanel = `<div class="panel"><h3>${rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card to add to your deck'}</h3>
-      <div class="card-row reward-cards">${cards}</div>${rw.cardTaken ? '' : '<div style="margin-top:12px"><button class="btn ghost small" data-act="rewardcard" data-i="">Skip card</button></div>'}</div>`;
-    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner">
-      <h1>The deep goes quiet</h1>
-      <div class="reward-list">${items.join('')}</div>
+    const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
+    const buttons = rw.cardTaken
+      ? '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>'
+      : '<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card</button>';
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner reward-screen">
+      <h1>Victory</h1>
+      ${summary}
       ${ksPanel}
-      ${cardPanel}
-      <button class="btn primary" data-act="tomap" ${rw.cardTaken ? 'autofocus' : ''}>Continue</button>
+      <section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div></section>
+      ${extras.length ? `<div class="reward-list">${extras.join('')}</div>` : ''}
+      <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl) || $('.card.choice', screenEl);
     if (f && ui.lastPointer !== 'touch') f.focus({ preventScroll: true });
@@ -1969,6 +1990,7 @@
       case 'startlevel': closeOverlay(true); startNewRun(+t.dataset.lv); break;
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
+      case 'helptab': ui.helpTab = t.dataset.tab; $('.help', overlayEl).outerHTML = helpHTML(ui.helpTab); { const b = $(`.tab[data-tab="${ui.helpTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'menu': showMenu(); break;
       case 'togglesound': prefs.sound = !prefs.sound; savePrefs(); showMenu(); break;
       case 'togglefast': prefs.fast = !prefs.fast; savePrefs(); showMenu(); break;

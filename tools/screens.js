@@ -23,7 +23,31 @@ const SIZES = {
   const server = await serve(port, path.join(__dirname, '..'));
   const page = await launch();
   const base = `http://127.0.0.1:${port}/`;
-  const shot = async (tag, name) => { await sleep(350); await page.screenshot(path.join(out, `${tag}_${name}.png`)); };
+  const MIN_PX = 12;
+  const small = [];
+  /* every visible text element rendered below MIN_PX (transforms included) */
+  const audit = (tag, name) => page.eval(`(() => {
+    const out = [];
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const seen = new Set();
+    while (walk.nextNode()) {
+      const t = walk.currentNode;
+      const txt = t.textContent.trim();
+      if (!txt) continue;
+      const el = t.parentElement;
+      if (!el || seen.has(el)) continue;
+      seen.add(el);
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || +cs.opacity === 0 || el.closest('[hidden]') || el.closest('[aria-hidden="true"]')) continue;
+      const scale = el.offsetHeight ? r.height / el.offsetHeight : 1;
+      const px = parseFloat(cs.fontSize) * scale;
+      if (px < ${MIN_PX} - 0.05) out.push(px.toFixed(1) + 'px ' + (el.className && el.className.baseVal === undefined ? '.' + String(el.className).split(' ')[0] : el.tagName) + ' "' + txt.slice(0, 30) + '"');
+    }
+    return out;
+  })()`).then((list) => { if (list.length) small.push(`${tag}_${name}: ${list.length}\n    ` + list.slice(0, 8).join('\n    ')); });
+  const shot = async (tag, name) => { await sleep(350); await page.screenshot(path.join(out, `${tag}_${name}.png`)); await audit(tag, name); };
   const setup = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, BL = window.BL; ${js}; })()`);
   try {
     for (const tag of sizes) {
@@ -31,6 +55,9 @@ const SIZES = {
       await page.viewport(s.w, s.h, s);
       await page.goto(base + '?seed=4242');
       await page.eval(`(() => { try { localStorage.clear(); } catch (e) {} })()`);
+      await page.goto(base + '?seed=4242');
+      // review the screens themselves: mark the first-time hints and the tutorial offer as seen
+      await page.eval(`(() => { localStorage.setItem('brinelight.hints.v1', JSON.stringify(window.Brinelight.teach ? window.Brinelight.teach.hintIds() : [])); localStorage.setItem('brinelight.tutorial.v1', 'done'); })()`);
       await page.goto(base + '?seed=4242');
       await sleep(400);
       await shot(tag, '01_title');
@@ -76,6 +103,8 @@ const SIZES = {
       await page.eval(`document.querySelector('[data-act="help"]') && document.querySelector('[data-act="help"]').click()`);
       await shot(tag, '13_help');
     }
+    fs.writeFileSync(path.join(out, 'small-text.txt'), small.join('\n') + '\n');
+    console.log(small.length ? `Text below ${MIN_PX}px on ${small.length} screens (see small-text.txt)` : `No text below ${MIN_PX}px`);
     if (page.errors.length) { console.log('Page errors:\n' + page.errors.join('\n')); process.exitCode = 1; }
     console.log('Screenshots in ' + out);
   } finally {

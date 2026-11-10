@@ -62,7 +62,8 @@
         if (btn && api.ui.lastPointer !== 'touch') setTimeout(() => btn.focus({ preventScroll: true }), 30);
       }
       const el = anchorEl(shown.anchor);
-      if (shown.kind === 'hint' && !el) { closeHint(); return; }
+      // a hint belongs to the screen it was shown on
+      if (shown.kind === 'hint' && (!el || !run || run.screen !== shown.screen)) { closeHint(); return; }
       box.hidden = false;
       const vw = innerWidth, vh = innerHeight;
       const w = Math.min(360, vw - 16);
@@ -255,8 +256,6 @@
     /* ---------------- first-time hints in real runs ---------------- */
     const KW_TEXT = (k) => BL.KEYWORDS[k];
     const HINTS = [
-      { id: 'basics', when: (r) => r.screen === 'combat' && store.get(KEY_TUTORIAL) !== 'done', anchor: '.hud [data-act="menu"]',
-        html: () => 'New to Brinelight? The <b>2-minute tutorial</b> is in the menu, any time.' },
       { id: 'map', when: (r) => r.screen === 'map', anchor: '.node.avail',
         html: () => 'Choose your route. <b>Lit stops</b> are where you can go next, and the legend names every icon. The boss waits at the top.' },
       { id: 'elite', when: (r) => (r.screen === 'map' && !!document.querySelector('.node.avail.t-elite')) || (r.screen === 'combat' && r.combat.kind === 'elite'),
@@ -321,7 +320,7 @@
         if (!ok || !anchorEl(h.anchor)) continue;
         seenHints.push(h.id);
         store.set(KEY_HINTS, JSON.stringify(seenHints));
-        show({ kind: 'hint', id: h.id, anchor: h.anchor, html: () => `<div class="cm-text">${h.html()}</div><div class="cm-foot"><button class="btn small" data-act="hintok">Got it</button></div>` });
+        show({ kind: 'hint', id: h.id, screen: r.screen, anchor: h.anchor, html: () => `<div class="cm-text">${h.html()}</div><div class="cm-foot"><button class="btn small" data-act="hintok">Got it</button></div>` });
         return;
       }
     }
@@ -338,6 +337,7 @@
       /* the current step without its functions, for the UI tests */
       stepSpec: () => { const s = tut.active && STEPS[tut.i]; return s ? { id: s.id, info: !!s.info, endTurn: !!s.endTurn, play: s.play || null } : null; },
       steps: STEPS.map((s) => s.id),
+      hintIds: () => HINTS.map((h) => h.id),
     };
   };
 })();
