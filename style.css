@@ -810,8 +810,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   .shop-item .card.static { --cw: clamp(136px, 40vw, 160px); }
   .shop-tile { width: calc(50% - 6px); }
   .card-row .card.static { --cw: clamp(104px, 29vw, 150px); }
-  .reward-main .card-row .card.static { --cw: clamp(104px, 29.5vw, 150px); }
-  .reward-main .card-row { gap: 6px; flex-wrap: nowrap; }
+  .reward-main .card-row .card.static { --cw: clamp(136px, 41vw, 160px); }
+  .reward-main .card-row { gap: 10px; }
 }
 
 /* rest, events, end */
@@ -826,12 +826,17 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .card.static .c-type { font-size: max(12px, .62em); padding: .05em .7em; }
 .small-cards .hand .card .c-cost { font-size: 15px; }
 .sale-tag { font-size: 12px; }
-@media (max-width: 600px) {
-  .reward-main .card.static, .card-grid .card.static, .card-row .card.static { --card-text: 12.5px; --card-text-long: 12px; }
-}
+/* the raised card is scaled up 1.6x on phones, so smaller CSS text still reads at 15-17px and long rules fit */
+.small-cards .hand .card.selected { --card-text: 11px; --card-text-long: 9.5px; }
+.small-cards .hand .card.selected .c-art { height: 3.8em; }
+.small-cards .hand .card.selected .c-text { top: 6em; }
 @media (max-height: 500px) and (min-width: 601px) {
   .hand .card .c-cost { font-size: 14px; }
   .hand .card { --card-text: 12px; --card-text-long: 12px; }
 }
 .card.static .c-type { top: calc(var(--cw) * .685 - 14px); }
 .map-header h2, .map-header p { text-shadow: 0 2px 6px #000, 0 0 12px #06121c; }
+@media (max-height: 500px) and (min-width: 601px) {
+  /* landscape raises cards 1.35x, so this still renders at about 12-13.5px */
+  .small-cards .hand .card.selected { --card-text: 10px; --card-text-long: 9px; }
+}

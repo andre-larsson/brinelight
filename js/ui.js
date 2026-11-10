@@ -475,13 +475,15 @@
       `<div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ''}</div>`;
   }
 
+  /* card size in deck and pile views: two readable columns on phones, three or more elsewhere */
+  const gridCardW = () => (innerWidth < 600 ? Math.min(160, (innerWidth - 60) / 2.15) : Math.max(96, Math.min(132, (innerWidth - 60) / 3.3)));
   function showDeck(mode, onPick) {
     mode = mode || 'view';
     let cards = sortDeck(run.deck);
     if (mode === 'upgrade') cards = cards.filter(E.canUpgrade);
     if (mode === 'duplicate') cards = cards.filter((c) => BL.CARDS[c.id].type !== 'curse');
     const titles = { view: `Your Deck (${run.deck.length})`, upgrade: 'Choose a card to upgrade', remove: 'Choose a card to remove', shopremove: 'Choose a card to remove', duplicate: 'Choose a card to duplicate' };
-    const gcw = Math.max(96, Math.min(132, (innerWidth - 60) / 3.3));
+    const gcw = gridCardW();
     const grid = `<div class="card-grid" style="--gcw:${gcw}px">` + cards.map((c, i) =>
       staticCard(c, mode === 'view' ? '' : 'choice', `tabindex="0" role="button" data-act="deckpick" data-uid="${c.uid}" data-i="${i}"`)).join('') + '</div>';
     const hint = mode === 'view' ? '<p class="muted" style="margin:0 0 12px">Starting deck plus everything you have collected. Click a card to see its upgrade.</p>' : '';
@@ -528,7 +530,7 @@
     if (which === 'draw') cards = sortDeck(cards);
     const names = { draw: 'Draw pile', discard: 'Discard pile', sunk: 'Sunk cards' };
     const note = which === 'draw' ? '<p class="muted" style="margin:0 0 12px">Shown in sorted order; the real order is hidden.</p>' : '';
-    const gcw = Math.max(96, Math.min(128, (innerWidth - 60) / 3.3));
+    const gcw = gridCardW();
     const body = note + (cards.length ? `<div class="card-grid" style="--gcw:${gcw}px">${cards.map((x) => staticCard(x)).join('')}</div>` : '<p class="muted">Empty.</p>');
     const tabs = ['draw', 'discard', 'sunk'].map((p) => `<button class="btn small ${p === which ? 'primary' : ''}" data-act="pile" data-pile="${p}">${names[p]} (${c[p].length})</button>`).join('');
     openOverlay(modal(names[which], body, `<div class="pile-tabs">${tabs}</div><button class="btn" data-act="close">Close</button>`));
