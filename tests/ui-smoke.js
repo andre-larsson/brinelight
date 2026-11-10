@@ -342,6 +342,19 @@ async function tutorialMidRun(page, base) {
   await sleep(300);
   const after = await page.eval('window.Brinelight.run ? JSON.stringify({ hp: window.Brinelight.run.hp, hand: window.Brinelight.run.combat.hand.length, e: window.Brinelight.run.combat.enemies.map((x) => x.hp), seed: window.Brinelight.run.seed }) : "none"');
   if (after !== before) failures.push(`tutorial from a run: came back to ${after}, expected ${before}`);
+  // save and quit in the middle of an enemy turn waits for the turn to end, then Continue picks it up
+  await dismissHints(page);
+  await waitIdle(page);
+  await page.click('#btn-end');
+  await sleep(250);
+  await page.click('.hud [data-act="menu"]');
+  await sleep(150);
+  await page.click('#overlay [data-act="totitle"]');
+  await page.waitFor('!window.Brinelight.run && !!document.querySelector(\'[data-act="continue"]\')', 15000, 'title after save and quit');
+  await page.click('[data-act="continue"]');
+  await sleep(300);
+  const turn = await page.eval('window.Brinelight.run && window.Brinelight.run.combat ? window.Brinelight.run.combat.turn : 0');
+  if (turn < 2) failures.push(`save and quit during the enemy turn: continued at turn ${turn}, expected the next turn`);
   if (page.errors.length) failures.push('tutorial from a run: page errors:\n    ' + page.errors.join('\n    '));
 }
 

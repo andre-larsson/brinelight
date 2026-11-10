@@ -1969,7 +1969,17 @@
     handleAct(act, t, e);
   });
 
+  /* Actions that swap or drop the current run wait for an enemy turn to finish first:
+     the enemy turn is an async loop over `run`, and changing `run` under it broke it. */
+  const SWAPS_RUN = ['totitle', 'confirmabandon', 'tutorial', 'tutskip'];
   function handleAct(act, t, e) {
+    if (ui.busy && SWAPS_RUN.indexOf(act) >= 0) {
+      closeOverlay(true);
+      toast('One moment: finishing the enemy turn');
+      const again = () => (ui.busy ? setTimeout(again, 100) : handleAct(act, t, e));
+      setTimeout(again, 100);
+      return;
+    }
     switch (act) {
       case 'close': closeOverlay(); break;
       case 'tutorial': closeOverlay(true); Teach.startTutorial(); break;
