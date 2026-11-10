@@ -146,6 +146,30 @@ test('enemies can have Ward too: it blocks your attacks and washes away when the
   assert.equal(crab.ward, 0, 'Ward is gone once the enemy acts');
 });
 
+/* ---------- Intents ---------- */
+test('the intent number is the damage the enemy deals when it acts (all enemies, several turns)', () => {
+  const ids = ['kelp', 'crab', 'eel', 'sailor', 'jelly', 'mite', 'wisp', 'gull', 'hulk', 'siren', 'angler', 'bell', 'minnow'];
+  for (const id of ids) {
+    for (let seed = 1; seed <= 6; seed++) {
+      const { run, c } = fight([id], { seed, deck: ['brace', 'brace', 'brace', 'brace', 'brace'], keepsakes: [] });
+      const e = c.enemies[0];
+      e.hp = e.maxHp = 999;
+      for (let turn = 0; turn < 7; turn++) {
+        run.hp = run.maxHp = 9999;
+        const info = E.intentInfo(run, e);
+        const expected = info.dmg * info.hits;
+        const before = run.hp;
+        c.player.ward = 0;
+        E.endTurn(run);
+        // Brine on the keeper is lost at the start of the turn, not from the attack
+        const brine = c.fx.filter((f) => f.t === 'dmg' && f.who === 'p' && f.brine).reduce((s, f) => s + f.n, 0);
+        c.fx.length = 0;
+        assert.equal(before - run.hp - brine, expected, `${id} seed ${seed} turn ${turn + 1}: ${info.name} showed ${expected}`);
+      }
+    }
+  }
+});
+
 /* ---------- The Tide ---------- */
 test('the Tide starts every fight at 3; Surge raises it and Ebb lowers it', () => {
   const { run, c } = fight(['kelp'], { hand: ['swell', 'slack'] });
@@ -336,6 +360,17 @@ test('Soaked: takes 50% more damage from attacks and Crests', () => {
   c.tide = 4;
   play(run, 'swell', e);
   assert.equal(500 - e.hp, 9 + 7 + 9, 'Swell 5 -> 7, Crest 6 -> 9');
+});
+
+test('Soaked on the keeper makes the next enemy attack hit 50% harder, as its intent shows', () => {
+  const { run, c } = fight(['kelp'], { keepsakes: [] });
+  const e = c.enemies[0];
+  e.intent = 'lash';
+  c.player.st.soaked = 1;
+  assert.equal(E.intentInfo(run, e).dmg, 12);
+  E.endTurn(run);
+  assert.equal(run.hp, 70 - 12);
+  assert.equal(c.player.st.soaked, undefined, 'and then it wears off');
 });
 
 test('Chilled: deals 25% less attack damage', () => {

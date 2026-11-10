@@ -857,7 +857,9 @@
       else c.discard.push(card);
     });
     c.hand = keep;
-    decay(P);
+    // The keeper's Soaked and Chilled wear off after the enemy turn, so a stack the keeper has now
+    // also covers the attacks that follow (as the intents show). Stacks enemies add this turn stay.
+    c.pDecay = ['soaked', 'chilled'].filter((k) => (P.st[k] || 0) > 0);
     c.enemies.forEach((e) => { e.acted = false; });
     return true;
   };
@@ -939,6 +941,10 @@
   E.endTurnFinish = function (run) {
     const c = run.combat;
     if (c.won || c.lost) return;
+    const P = c.player;
+    (c.pDecay || []).forEach((k) => { if (P.st[k] > 0) P.st[k]--; });
+    Object.keys(P.st).forEach((k) => { if (!P.st[k]) delete P.st[k]; });
+    c.pDecay = null;
     E.alive(c).forEach((e) => {
       decay(e);
       if (e.acted) chooseIntent(run, c, e);
