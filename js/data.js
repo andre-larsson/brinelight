@@ -328,6 +328,7 @@
     Sink: 'After you play it, this card is gone for the rest of the fight.',
     Float: 'Stays in your hand at the end of your turn.',
     Rite: 'Rites stay in effect for the rest of the fight once played.',
+    Echo: 'Your next card is played twice.',
     Might: 'Each hit of an attack deals that much more damage.',
     Spines: 'Whenever you are attacked, deal that much damage back.',
     Soaked: 'Takes 50% more damage from attacks and Crests. Wears off by 1 each turn.',

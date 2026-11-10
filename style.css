@@ -685,3 +685,39 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 
 .hud .stat.bump { animation: statBump .45s ease; }
 @keyframes statBump { 40% { transform: scale(1.25); } }
+
+/* ===================== Teaching: tutorial coachmarks and first-time hints ===================== */
+.coachmark {
+  position: fixed; z-index: 460; left: 0; top: 0; width: 340px; padding: 12px 14px 10px; border-radius: 14px;
+  background: #f4e9cf; color: #23190b; font-size: 16px; line-height: 1.45;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55), 0 0 0 2px #ffd68a;
+}
+.coachmark[hidden] { display: none; }
+.coachmark b { color: #6a3a00; }
+.coachmark .cm-arrow { position: absolute; width: 16px; height: 16px; background: inherit; transform: translateX(-50%) rotate(45deg); box-shadow: 2px 2px 0 0 #ffd68a; }
+.coachmark[data-side="above"] .cm-arrow { bottom: -8px; }
+.coachmark[data-side="below"] .cm-arrow { top: -8px; box-shadow: -2px -2px 0 0 #ffd68a; }
+.coachmark .cm-arrow[hidden], .coachmark[data-side="none"] .cm-arrow { display: none; }
+.cm-body { position: relative; }
+.cm-keys { display: block; margin-top: 4px; font-size: 14px; color: #6b5a3c; }
+.cm-foot { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.cm-step { font-size: 13px; font-weight: 700; color: #7c6a48; }
+.cm-skip { margin-left: auto; padding: 8px 4px; min-height: 36px; border: 0; background: none; color: #6b5a3c; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.cm-foot .btn { min-height: 40px; padding: .35em 1.1em; font-size: 15px; }
+.cm-foot .btn:only-child { margin-left: auto; }
+.coachmark[data-kind="hint"] { background: #0d2433; color: var(--text); box-shadow: 0 10px 30px rgba(0, 0, 0, .6), 0 0 0 2px rgba(255, 184, 77, .75); font-size: 15px; }
+.coachmark[data-kind="hint"] b { color: #ffd98a; }
+.coachmark[data-kind="hint"] .cm-arrow { box-shadow: 2px 2px 0 0 rgba(255, 184, 77, .75); }
+.coachmark[data-kind="hint"][data-side="below"] .cm-arrow { box-shadow: -2px -2px 0 0 rgba(255, 184, 77, .75); }
+.cm-ring {
+  position: fixed; z-index: 455; pointer-events: none; border-radius: 14px; border: 3px solid #ffd68a;
+  box-shadow: 0 0 0 4px rgba(255, 184, 77, .35), 0 0 0 100vmax rgba(2, 8, 13, .45);
+  animation: cmPulse 1.6s ease-in-out infinite;
+}
+.cm-ring[hidden] { display: none; }
+.cm-ring.hint { box-shadow: 0 0 0 4px rgba(255, 184, 77, .35); }
+@keyframes cmPulse { 0%, 100% { border-color: #ffd68a; } 50% { border-color: #fff4d6; } }
+.lead-sm { font-size: 16px; line-height: 1.5; margin: 0; color: #d6e3e0; }
+.tut-done p, .tut-done li { font-size: 16px; line-height: 1.5; color: #d6e3e0; }
+.tut-done ul { padding-left: 1.2em; margin: 8px 0; }
+.tut-done li { margin: 6px 0; }

@@ -59,9 +59,9 @@ async function waitIdle(page, what) {
 /* Dismiss anything that teaches (first-time hints) so the run can continue. */
 async function dismissHints(page) {
   for (let i = 0; i < 5; i++) {
-    const has = await page.eval(`!!document.querySelector('[data-act="hintok"]')`);
+    const has = await page.center('.coachmark:not([hidden]) [data-act="hintok"]');
     if (!has) return;
-    await page.click('[data-act="hintok"]');
+    await page.click('.coachmark:not([hidden]) [data-act="hintok"]');
     await sleep(120);
   }
 }
@@ -246,12 +246,109 @@ async function scenario(page, base, name, size, opts) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* The guided first fight, start to finish, with one input method. */
+async function tutorialScenario(page, base, name, size, input) {
+  log(`${name}: ${size.w}x${size.h} ${input}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.best.v1', '1234'); })()`);
+  await page.goto(base);
+  await inject(page);
+  // first launch: New Descent offers the tutorial
+  await page.click('[data-act="newrun"]');
+  await sleep(250);
+  await page.click('#overlay [data-act="tutorial"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.tutorial', 4000, 'tutorial run');
+  const t0 = Date.now();
+  let actions = 0;
+  for (let guard = 0; guard < 80; guard++) {
+    await waitIdle(page, 'tutorial idle');
+    if (await page.eval('!document.getElementById("overlay").hidden')) break;
+    const s = await page.eval('window.Brinelight.teach.stepSpec()');
+    if (!s) { await sleep(200); continue; }
+    await page.waitFor('!document.querySelector(".coachmark").hidden', 4000, 'bubble for ' + s.id);
+    if (s.info) {
+      if (input === 'keyboard') await page.key('Enter'); else await page.click('.coachmark [data-act="tutnext"]');
+      actions++;
+    } else if (s.endTurn) {
+      if (input === 'keyboard') await page.key('e'); else await page.click('#btn-end');
+      actions++;
+      await sleep(300);
+    } else {
+      // try a wrong card first once, to check the gate holds
+      if (s.id === 'attack') {
+        const wrong = await page.eval(`(() => { const c = window.Brinelight.run.combat; const x = c.hand.find((k) => k.id !== ${JSON.stringify(s.play.card)}); return x ? x.uid : null; })()`);
+        if (wrong) {
+          await page.click(`#hand .card[data-uid="${wrong}"]`); await sleep(320); await page.click(`#hand .card[data-uid="${wrong}"]`); await sleep(200);
+          const played = await page.eval('window.Brinelight.run.stats.cardsPlayed');
+          if (played) failures.push(`${name}: the tutorial let a wrong card be played`);
+          await page.key('Escape');
+        }
+      }
+      const d = await page.eval(`(() => { const c = window.Brinelight.run.combat; const card = c.hand.find((k) => k.id === ${JSON.stringify(s.play.card)}); const t = ${JSON.stringify(s.play.target)} ? c.enemies.find((e) => e.id === ${JSON.stringify(s.play.target)} && !e.dead) : null; return { uid: card.uid, target: t ? t.uid : null }; })()`);
+      const mode = input === 'keyboard' ? 'key' : (s.id === 'crest' ? 'drag' : 'click');
+      await playCard(page, d, mode);
+      actions++;
+    }
+    await sleep(150);
+  }
+  await page.waitFor('!document.getElementById("overlay").hidden && /Tutorial complete/.test(document.getElementById("overlay").innerText)', 8000, 'tutorial complete');
+  const secs = (Date.now() - t0) / 1000;
+  log(`  ${name}: tutorial finished, ${actions} steps acted on, ${secs.toFixed(0)} s headless`);
+  await page.click('#overlay [data-act="tutback"]');
+  await sleep(200);
+  const st = await page.eval(`JSON.stringify({ save: localStorage.getItem('brinelight.save.v1'), best: localStorage.getItem('brinelight.best.v1'), tut: localStorage.getItem('brinelight.tutorial.v1'), run: !!window.Brinelight.run })`);
+  const o = JSON.parse(st);
+  if (o.save) failures.push(`${name}: the tutorial left a saved run`);
+  if (o.best !== '1234') failures.push(`${name}: the tutorial changed the best score (${o.best})`);
+  if (o.tut !== 'done') failures.push(`${name}: tutorial not marked done (${o.tut})`);
+  if (o.run) failures.push(`${name}: expected the title screen after the tutorial`);
+  // New Descent no longer offers it, and starts a run
+  await page.click('[data-act="newrun"]');
+  await sleep(250);
+  if (await page.eval('!!document.querySelector("#overlay [data-act=\\"tutorial\\"]")')) failures.push(`${name}: offered the tutorial again`);
+  await checkPage(page, name);
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
+/* A real run survives a trip into the tutorial and back. */
+async function tutorialMidRun(page, base) {
+  log('tutorial from a run: desktop');
+  await page.viewport(1280, 800, {});
+  page.errors.length = 0;
+  await startRun(page, base, 3333);
+  await clickIf(page, '.node.avail[data-idx="0"]');
+  await sleep(600);
+  await dismissHints(page);
+  await waitIdle(page);
+  const d = await page.eval('window.__t.decide()');
+  if (d) await playCard(page, d, 'click');
+  const before = await page.eval('JSON.stringify({ hp: window.Brinelight.run.hp, hand: window.Brinelight.run.combat.hand.length, e: window.Brinelight.run.combat.enemies.map((x) => x.hp), seed: window.Brinelight.run.seed })');
+  await page.click('.hud [data-act="menu"]');
+  await sleep(200);
+  await page.click('#overlay [data-act="tutorial"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.tutorial', 4000, 'tutorial from menu');
+  await waitIdle(page);
+  await page.click('.coachmark [data-act="tutskip"]');
+  await sleep(300);
+  const after = await page.eval('window.Brinelight.run ? JSON.stringify({ hp: window.Brinelight.run.hp, hand: window.Brinelight.run.combat.hand.length, e: window.Brinelight.run.combat.enemies.map((x) => x.hp), seed: window.Brinelight.run.seed }) : "none"');
+  if (after !== before) failures.push(`tutorial from a run: came back to ${after}, expected ${before}`);
+  if (page.errors.length) failures.push('tutorial from a run: page errors:\n    ' + page.errors.join('\n    '));
+}
+
 (async () => {
   const server = await serve(PORT, path.join(__dirname, '..'));
   const page = await launch();
   const base = `http://127.0.0.1:${PORT}/`;
   const t0 = Date.now();
   try {
+    if (!ONLY || ONLY === 'tutorial') {
+      await tutorialScenario(page, base, 'tutorial desktop mouse', { w: 1280, h: 800 }, 'mouse');
+      await tutorialScenario(page, base, 'tutorial phone touch', { w: 390, h: 844, mobile: true, touch: true }, 'touch');
+      await tutorialScenario(page, base, 'tutorial desktop keyboard', { w: 1280, h: 800 }, 'keyboard');
+      await tutorialMidRun(page, base);
+    }
     if (!ONLY || ONLY === 'desktop') await scenario(page, base, 'desktop', { w: 1280, h: 800 }, { seed: 1111, drag: true, keyboardTurns: true });
     if (!ONLY || ONLY === 'phone') await scenario(page, base, 'phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 2222, drag: true });
   } catch (e) {

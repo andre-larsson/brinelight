@@ -15,6 +15,7 @@
   const toastEl = $('#toast');
 
   let run = null;
+  let Teach = null; // tutorial and first-time hints (js/tutorial.js), created at boot
   const ui = {
     sel: null, target: null, hover: null, busy: false, tonicSel: null, drag: null,
     mapFocus: 0, lastPointer: 'mouse', combatRef: null, cw: 140, overlayOnClose: null, overlayLocked: false, tipFor: null,
@@ -264,7 +265,7 @@
    *  Helpers: save/load, toast, tooltip
    * ================================================================== */
   function save() {
-    if (!run) return;
+    if (!run || run.tutorial) return; // the tutorial is never saved
     if (run.screen === 'victory' || run.screen === 'defeat') { clearSave(); return; }
     if (run.combat && (run.combat.phase !== 'player' || run.combat.won || run.combat.lost)) return;
     try {
@@ -584,11 +585,12 @@
     const body = `<div class="choice-list" style="margin:0 auto">
       <button class="choice" data-act="close"><b>Resume</b><span>Back to the deep.</span></button>
       <button class="choice" data-act="help"><b>How to Play</b><span>Rules, controls and glossary.</span></button>
+      ${run && run.tutorial ? '<button class="choice" data-act="tutskip"><b>Leave the tutorial</b><span>You can replay it from the menu or the title screen.</span></button>' : '<button class="choice" data-act="tutorial"><b>Tutorial</b><span>A guided fight that teaches the basics.' + (run ? ' Your run is saved and waits for you.' : '') + '</span></button>'}
       <button class="choice" data-act="togglesound"><b>Sound effects: ${prefs.sound ? 'On' : 'Off'}</b><span>Synthesized hits, waves and bells.</span></button>
       <button class="choice" data-act="togglemusic"><b>Music: ${prefs.music ? 'On' : 'Off'}</b><span>A quiet generative score over the sound of the sea.</span></button>
       <button class="choice" data-act="togglefast"><b>Fast animations: ${prefs.fast ? 'On' : 'Off'}</b><span>Halves the waits between actions.</span></button>
-      ${run ? '<button class="choice" data-act="totitle"><b>Save and quit to title</b><span>Your run is saved; continue it from the title screen.</span></button>' : ''}
-      ${run ? '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>' : ''}
+      ${run && !run.tutorial ? '<button class="choice" data-act="totitle"><b>Save and quit to title</b><span>Your run is saved; continue it from the title screen.</span></button>' : ''}
+      ${run && !run.tutorial ? '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>' : ''}
     </div>`;
     openOverlay(modal('Menu', body, null, 'narrow'));
   }
@@ -645,6 +647,10 @@
    *  Screens
    * ================================================================== */
   function render() {
+    renderScreen();
+    if (Teach) Teach.checkHints();
+  }
+  function renderScreen() {
     hideTip();
     ui.combatRef = null;
     if (!run) Music.setMood('calm');
@@ -674,6 +680,7 @@
       <div class="title-buttons">
         ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (Depth ${saved.floor})</button>` : ''}
         <button class="btn ${saved ? '' : 'primary'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
+        <button class="btn ghost" data-act="tutorial">Tutorial</button>
         <button class="btn ghost" data-act="help">How to Play</button>
       </div>
       ${getNum(BEST_KEY) ? `<div class="title-best">Best score ${getNum(BEST_KEY)}${getNum(LEVEL_KEY) ? ` &middot; ${E.LEVELS[getNum(LEVEL_KEY)].name} unlocked` : ''}</div>` : ''}
@@ -698,10 +705,16 @@
     save();
     render();
     sfx('bell');
-    if (!localStorage.getItem('brinelight.seenhelp')) {
-      try { localStorage.setItem('brinelight.seenhelp', '1'); } catch (e) { /* ignore */ }
-      setTimeout(showHelp, 250);
+  }
+
+  /* New Descent: the first time, offer the guided fight first. */
+  function beginNewRun() {
+    if (!Teach.status()) {
+      openOverlay(modal('First dive?', '<p class="lead-sm">A short guided fight teaches the basics: health, Ward, Light, and the Tide. About 2 minutes.</p>',
+        '<button class="btn" data-act="tutorialskip">Skip, start the run</button><button class="btn primary" data-act="tutorial" autofocus>Play the tutorial</button>', 'narrow'));
+      return;
     }
+    chooseLevelThenStart();
   }
 
   /* ----- Map ----- */
@@ -796,15 +809,6 @@
         <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">Wren, the Keeper</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
     bindHand();
     updateCombat(true);
-    let seenTip = '1';
-    try { seenTip = localStorage.getItem('brinelight.tip1'); } catch (e) { /* ignore */ }
-    if (!seenTip && c.turn === 1) {
-      try { localStorage.setItem('brinelight.tip1', '1'); } catch (e) { /* ignore */ }
-      const tip = document.createElement('div');
-      tip.className = 'coach';
-      tip.innerHTML = `<b>Tip:</b> Cards with <span class="kw k-surge">Surge</span> raise the Tide. Reach 6 to <b>Crest</b>: 6 damage to every enemy, and extra Surge keeps flowing. Two Crests in one turn hit even harder. Watch for the <span class="c-badge crest">CREST</span> badge. <button class="btn small" data-act="closecoach">Got it</button>`;
-      $('#field').appendChild(tip);
-    }
     const names = c.turn === 1 ? (c.kind === 'boss' ? 'The Drowned Bellwether' : c.kind === 'elite' ? 'Dread: ' + c.enemies[0].name : null) : null;
     if (names) {
       c.fx.length = 0;
@@ -938,6 +942,7 @@
     endBtn.classList.toggle('nudge', c.phase === 'player' && !ui.busy && !anyPlayable);
     updateHud();
     updateHand();
+    if (Teach) Teach.checkHints();
   }
 
   function renderTidebar() {
@@ -1139,6 +1144,7 @@
     if (!c) return;
     const uid = ui.sel != null ? ui.sel : ui.hover;
     if (uid == null || (ui.drag && ui.drag.moved)) return;
+    if (Teach && Teach.active) return; // the tutorial bubble explains instead
     const card = c.hand.find((x) => x.uid === uid);
     const el = handCardEl(uid);
     if (!card || !el || !el._lay) return;
@@ -1171,6 +1177,7 @@
 
   function renderHandHint() {
     $$('.hand-hint', screenEl).forEach((x) => x.remove());
+    if (Teach && Teach.active) return; // the tutorial bubble says it instead
     const c = run.combat;
     let msg = null;
     if (ui.tonicSel != null) msg = 'Choose an enemy for the tonic';
@@ -1235,6 +1242,14 @@
   async function playCard(uid, targetUid) {
     const c = run.combat;
     if (ui.busy) return;
+    const card = c.hand.find((x) => x.uid === uid);
+    const tgt = targetUid ? c.enemies.find((e) => e.uid === targetUid) : null;
+    const cardId = card && card.id;
+    const targetId = tgt ? tgt.id : (card && E.needsTarget(card) && E.alive(c).length === 1 ? E.alive(c)[0].id : null);
+    if (Teach.active) {
+      const ok = Teach.allows('play', cardId, targetId);
+      if (ok !== true) { toast(ok); ui.sel = null; ui.target = null; updateCombat(); return; }
+    }
     const el = handCardEl(uid);
     const targetEl = targetUid ? $(`.unit[data-uid="${targetUid}"] .sprite`, screenEl) : null;
     if (!E.playCard(run, uid, targetUid)) return;
@@ -1246,6 +1261,7 @@
     if (el) flyTo(el, targetEl || $('#field'), 0.45, true);
     await processFx();
     ui.busy = false;
+    if (Teach.active) Teach.onPlayed(cardId, targetId);
     updateCombat();
     await afterAction();
   }
@@ -1263,6 +1279,7 @@
     sfx('victory');
     await wait(1000);
     ui.busy = false;
+    if (run.tutorial) { Teach.onVictory(); return; }
     const boss = run.combat.kind === 'boss';
     E.finishCombat(run);
     if (boss) clearSave(); else save();
@@ -1281,6 +1298,11 @@
   async function endTurn() {
     const c = run.combat;
     if (!c || ui.busy || c.phase !== 'player') return;
+    if (Teach.active) {
+      const ok = Teach.allows('endturn');
+      if (ok !== true) { toast(ok); return; }
+      Teach.onEndTurn();
+    }
     ui.busy = true;
     ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null;
     E.endTurnStart(run);
@@ -1317,6 +1339,7 @@
       return;
     }
     if (ui.busy) return;
+    if (Teach.active) { toast(Teach.allows('tonic')); return; }
     if (td.target === 'enemy' && !targetUid) {
       const al = E.alive(c);
       if (al.length === 1) targetUid = al[0].uid;
@@ -1727,7 +1750,7 @@
     const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : ''}`,
       (rw.cardTaken ? '' : `tabindex="0" role="button" data-act="rewardcard" data-i="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
     const cardPanel = `<div class="panel"><h3>${rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card to add to your deck'}</h3>
-      <div class="card-row">${cards}</div>${rw.cardTaken ? '' : '<div style="margin-top:12px"><button class="btn ghost small" data-act="rewardcard" data-i="">Skip card</button></div>'}</div>`;
+      <div class="card-row reward-cards">${cards}</div>${rw.cardTaken ? '' : '<div style="margin-top:12px"><button class="btn ghost small" data-act="rewardcard" data-i="">Skip card</button></div>'}</div>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner">
       <h1>The deep goes quiet</h1>
       <div class="reward-list">${items.join('')}</div>
@@ -1928,15 +1951,21 @@
   function handleAct(act, t, e) {
     switch (act) {
       case 'close': closeOverlay(); break;
-      case 'closecoach': { const x = $('.coach'); if (x) x.remove(); break; }
+      case 'tutorial': closeOverlay(true); Teach.startTutorial(); break;
+      case 'tutorialskip': Teach.setStatus('skipped'); closeOverlay(true); chooseLevelThenStart(); break;
+      case 'tutnext': Teach.next(); break;
+      case 'tutskip': closeOverlay(true); Teach.endTutorial(false); break;
+      case 'tutback': closeOverlay(true); Teach.endTutorial(true); break;
+      case 'tutstart': closeOverlay(true); Teach.endTutorial(true); run = null; render(); handleAct('newrun', t, e); break;
+      case 'hintok': Teach.closeHint(); Teach.checkHints(); break;
       case 'newrun':
         if (run && loadSave() && run.screen !== 'victory' && run.screen !== 'defeat') {
           openOverlay(modal('Start a new descent?', '<p>Your current run will be lost.</p>', '<button class="btn" data-act="close">Keep playing</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
         } else if (!run && loadSave()) {
           openOverlay(modal('Start a new descent?', '<p>You have a run in progress. Starting over will erase it.</p>', '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
-        } else chooseLevelThenStart();
+        } else beginNewRun();
         break;
-      case 'confirmnew': closeOverlay(true); chooseLevelThenStart(); break;
+      case 'confirmnew': closeOverlay(true); beginNewRun(); break;
       case 'startlevel': closeOverlay(true); startNewRun(+t.dataset.lv); break;
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
@@ -2117,6 +2146,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     Sound.unlock();
+    if (Teach && Teach.onKey(e)) return;
     const k = e.key;
     if (!overlayEl.hidden) {
       if (k === 'Escape') { e.preventDefault(); closeOverlay(); return; }
@@ -2223,9 +2253,18 @@
   window.addEventListener('beforeunload', () => save());
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
+  Teach = BL.Teach({
+    E, $, ui, save, loadSave, render, openOverlay, modal,
+    getRun: () => run,
+    setRun: (r) => { run = r; },
+    overlayHidden: () => overlayEl.hidden,
+  });
+  // tidy up keys from older builds
+  try { ['brinelight.seenhelp', 'brinelight.tip1'].forEach((k) => localStorage.removeItem(k)); } catch (e) { /* ignore */ }
+
   computeSizes();
   render();
 
-  // expose for debugging/testing
-  window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui };
+  // exposed for debugging and the UI tests
+  window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; } };
 })();
