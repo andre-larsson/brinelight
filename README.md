@@ -90,6 +90,12 @@ Both are announced the moment you earn them. The score counts Crests and Low Wat
 - Shallows → Dark Water → Riptide → The Abyss.
 - Each depth has tougher enemies and a higher score multiplier.
 
+**The Workshop (lasts across runs).** Every finished run turns its score into **Salvage**: 1 for every 50 points. Abandoning a run earns nothing.
+- Spend Salvage in the Workshop on the title screen. **Gear** you buy is yours for good.
+- Before each dive you **pack** gear. Each piece takes 1 or 2 spaces. The Shallows hold 3 spaces, and each deeper depth holds 1 more (Dark Water 4, Riptide 5, The Abyss 6). The game remembers your choice.
+- Some gear is locked until an **achievement**, such as Crest three times in one turn or defeat a Dread with 12 or fewer cards in your deck. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
+- Gear never changes the map: the same seed gives the same map with any gear.
+
 ## Content
 
 - **Hero:** Wren, the keeper. 70 HP, 3 Light, and a 10-card starting deck: 4 Harpoon Jab, 4 Brace, Rising Swell, Slack Water.
@@ -111,6 +117,7 @@ Both are announced the moment you earn them. The score counts Crests and Low Wat
     - Angler Twins, where the survivor enrages when its twin dies.
   - The boss, The Drowned Bellwether. At half health it cracks, calls a shoal of Bell Minnows, and the music shifts.
 - **19 keepsakes, 7 tonics, 7 events.**
+- **9 pieces of gear and 6 achievements** in the Workshop.
 - **Endings:** win and lose screens with run stats and score, best score, depth unlocks, and a one-click new run.
 
 Sound effects and music are synthesized at runtime with the Web Audio API, so there are no audio files. The music is a generative pad-and-pluck score over an ocean bed, and it changes mood for fights, the boss, and the boss's second phase.

@@ -24,9 +24,18 @@
   const BEST_KEY = 'brinelight.best.v1';
   const LEVEL_KEY = 'brinelight.maxlevel.v1';
   const VERSION_KEY = 'brinelight.version.v1'; // the last version whose What's new the player has seen
+  const META_KEY = 'brinelight.meta.v1'; // the Workshop: Salvage, gear owned and packed, achievements
+  const MT = BL.META_TEXT; // working names (Salvage, Workshop, Gear, Pack), kept in js/data.js
   const getNum = (k) => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
   const setNum = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* ignore */ } };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { /* ignore */ }
+  let meta = E.newMeta();
+  try {
+    const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
+    ['salvage', 'earned'].forEach((k) => { if (typeof m[k] === 'number') meta[k] = m[k]; });
+    ['owned', 'packed', 'ach'].forEach((k) => { if (Array.isArray(m[k])) meta[k] = m[k].filter((x) => typeof x === 'string'); });
+  } catch (e) { /* ignore */ }
+  const saveMeta = () => { try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch (e) { /* ignore */ } };
   const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
 
   const wait = (ms) => new Promise((r) => setTimeout(r, prefs.fast ? ms * 0.5 : ms));
@@ -72,6 +81,9 @@
     echo: svg('<path d="M4 12a8 8 0 0 1 8-8M20 12a8 8 0 0 1-8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M8 12a4 4 0 0 1 4-4M16 12a4 4 0 0 1-4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6"/>'),
     music: svg('<path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="17.5" cy="16" r="2.8"/>'),
     close: svg('<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
+    salvage: '<img class="salv" src="img/icons/g_salvage.webp" alt="">',
+    lock: svg('<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/>'),
+    pack: svg('<path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="7" width="16" height="14" rx="3" fill="currentColor" opacity=".9"/><path d="M4 12h16M10 12v2.5h4V12" fill="none" stroke="#0b1f2c" stroke-width="1.6"/>'),
     chevron: svg('<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
   const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss };
@@ -296,15 +308,16 @@
   }
   function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
 
-  function toast(msg) {
+  function toast(msg, ms) {
     const d = document.createElement('div');
     d.className = 'toast-msg';
     d.textContent = msg;
+    if (ms) d.style.animationDuration = ms / 1000 + 's';
     // fights keep messages up top; other screens have their title there, so messages go to the bottom
     toastEl.classList.toggle('low', !(run && run.screen === 'combat'));
     toastEl.appendChild(d);
     while (toastEl.children.length > 3) toastEl.firstChild.remove();
-    setTimeout(() => d.remove(), 2300);
+    setTimeout(() => d.remove(), (ms || 2200) + 100);
   }
 
   const KW_RE = /\b(Low Water|Surge|Ebb|Ward|Soaked|Chilled|Brine|Sink|Float|Might|Spines|Crest|Light|Tide)\b/g;
@@ -337,6 +350,7 @@
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
       case 'floor': return `<b>Depth ${run.floor} of ${E.MAP_ROWS + 1}</b><br>The Drowned Bellwether waits at depth ${E.MAP_ROWS + 1}.`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b><br>${k.desc}`; }
+      case 'gear': return `<b>${MT.item} you packed</b>${(run.gear || []).map((id) => `<div class="tip-row"><b>${BL.GEAR[id].name}:</b> ${BL.GEAR[id].desc}</div>`).join('')}`;
       case 'tonic': {
         const t = run.tonics[+parts[1]];
         if (!t) return '<b>Empty tonic slot</b><br>Tonics are found after fights and sold by Barnaby.';
@@ -604,6 +618,7 @@
         <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
+        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on ${MT.item.toLowerCase()} that lasts across runs. Achievements unlock more. Before a dive you pack it: the Shallows hold ${pips(3)}, and each deeper depth ${pips(1)} more.</li>
       </ul>`;
       case 'controls': return dl([
         ['Mouse', 'Click a card, then click an enemy (or the card again). Or drag a card onto an enemy, or up into the sea. Hover anything for details.'],
@@ -669,6 +684,7 @@
       <div class="stat pearls" data-tip="pearls" aria-label="Pearls">${ICON.pearl}<span>${run.pearls}</span></div>
       <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Depth </span>${run.floor}/${E.MAP_ROWS + 1}</span></div>
       <div class="hud-break"></div>
+      ${run.gear && run.gear.length ? `<button class="medal gear-pack" data-tip="gear" data-act="gearinfo" aria-label="${MT.item}: ${run.gear.map((id) => BL.GEAR[id].name).join(', ')}">${ICON.pack}<span class="n">${run.gear.length}</span></button>` : ''}
       <div class="keepsakes">${ks}</div>
       <div class="tonics">${ts}</div>
       <button class="icon-btn" data-act="deck" aria-label="View deck (D)" title="Deck (D)">${ICON.deck}</button>
@@ -773,6 +789,7 @@
       <div class="title-buttons">
         ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (Depth ${saved.floor})</button>` : ''}
         <button class="btn ${saved ? '' : 'primary'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
+        ${workshopOpen() ? `<button class="btn ghost ws-btn" data-act="workshop" aria-label="${MT.shop}: ${meta.salvage} ${MT.currency}">${ICON.salvage}${MT.shop} <small>${meta.salvage}</small></button>` : ''}
         <button class="btn ghost" data-act="tutorial">Tutorial</button>
         <button class="btn ghost" data-act="help">How to Play</button>
       </div>
@@ -808,16 +825,72 @@
 
   function chooseLevelThenStart() {
     const max = Math.min(getNum(LEVEL_KEY), E.LEVELS.length - 1);
-    if (max <= 0) return startNewRun(0);
+    if (max <= 0) return prepareDive(0);
     const body = `<div class="choice-list" style="margin:0 auto">${E.LEVELS.slice(0, max + 1).map((L, i) =>
       `<button class="choice" data-act="startlevel" data-lv="${i}" ${i === max ? 'autofocus' : ''}><b>${i === 0 ? '' : 'Depth ' + i + ': '}${L.name}</b><span>${L.desc}${i ? ` Score x${(1 + 0.25 * i).toFixed(2)}.` : ''}</span></button>`).join('')}</div>`;
     openOverlay(modal('Choose your depth', body, null, 'narrow'));
   }
 
-  function startNewRun(level) {
+  /* ----- Workshop: gear bought with Salvage, packed before a dive ----- */
+  const levelName = (lv) => { const n = E.LEVELS[lv].name; return n === 'Shallows' ? 'the Shallows' : n.replace(/^The /, 'the '); };
+  const pips = (n, of) => `<span class="pips" aria-hidden="true">${'&#9670;'.repeat(n)}${of ? '&#9671;'.repeat(Math.max(0, of - n)) : ''}</span>`;
+  const space = (n) => `<span class="g-weight">${pips(n)} ${n} ${n === 1 ? 'space' : 'spaces'}</span>`;
+  const gearArt = (g) => `<span class="medal gear"><img src="img/icons/${g.art}.webp" alt=""></span>`;
+  const workshopOpen = () => meta.earned > 0 || meta.owned.length > 0;
+
+  function showWorkshop() {
+    const tiles = Object.keys(BL.GEAR).map((id) => {
+      const g = BL.GEAR[id];
+      const owned = meta.owned.indexOf(id) >= 0;
+      const open = E.gearUnlocked(meta, id);
+      const a = g.unlock ? BL.ACHIEVEMENTS[g.unlock] : null;
+      const foot = owned ? '<span class="g-state">Owned</span>'
+        : !open ? `<span class="g-lock">${ICON.lock}<span><b>${a.name}:</b> ${a.desc}</span></span>`
+          : `<span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span>`;
+      const attrs = !owned && open ? ` tabindex="0" role="button" data-act="gearbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
+      return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small>${foot}</div>`;
+    }).join('');
+    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Before each dive you pack it: the Shallows hold ${pips(3)} and every deeper depth holds ${pips(1)} more.</p>
+      <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div><div class="shop-row">${tiles}</div>`;
+    openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
+  }
+
+  /* Before a dive: choose the gear to bring, up to the depth's capacity. Skipped while nothing is owned. */
+  function prepareDive(level) {
+    if (!meta.owned.length) return startNewRun(level, []);
+    showPack(level);
+  }
+  function showPack(level) {
+    meta.packed = E.fitGear(meta.packed, level, meta.owned);
+    const cap = E.capacity(level);
+    const used = E.gearWeight(meta.packed);
+    const tiles = meta.owned.filter((id) => BL.GEAR[id]).map((id) => {
+      const g = BL.GEAR[id];
+      const on = meta.packed.indexOf(id) >= 0;
+      const fits = on || used + g.weight <= cap;
+      return `<div class="shop-tile gear-tile pack-tile${on ? ' chosen' : ''}${fits ? '' : ' nofit'}" tabindex="0" role="button" aria-pressed="${on}" data-act="packtoggle" data-g="${id}" data-lv="${level}">${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small><span class="g-state">${on ? 'Packed' : fits ? 'Not packed' : 'No room'}</span></div>`;
+    }).join('');
+    const body = `<div class="pack-meter"><span>${MT.pack}</span>${pips(used, cap)}<b>${used} / ${cap}</b></div>
+      <p class="ws-lead">Deeper depths hold more. Your choice is remembered for the next dive.</p><div class="shop-row">${tiles}</div>`;
+    openOverlay(modal(`${MT.pack} for ${levelName(level)}`, body,
+      `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" data-lv="${level}" autofocus>Dive</button>`, 'workshop-modal'));
+  }
+
+  /* Achievements reached in this run unlock gear at once, so they're kept even if the run is abandoned. */
+  function checkUnlocks(quiet) {
+    if (!run || run.tutorial) return;
+    const fresh = E.unlockAchievements(meta, run);
+    if (!fresh.length) return;
+    saveMeta();
+    if (quiet) return; // the end screen lists them itself
+    fresh.forEach((a) => toast(`\u2605 ${BL.ACHIEVEMENTS[a].name}! ${E.gearFor(a).map((id) => BL.GEAR[id].name).join(', ')} can now be bought in the ${MT.shop}.`, 4500));
+    sfx('buff');
+  }
+
+  function startNewRun(level, gear) {
     clearSave();
     const m = /[?&]seed=(\d+)/.exec(location.search);
-    run = E.newRun(m ? +m[1] : undefined, level || 0);
+    run = E.newRun(m ? +m[1] : undefined, level || 0, gear || []);
     save();
     render();
     sfx('bell');
@@ -1453,6 +1526,7 @@
     if (run.tutorial) { Teach.onVictory(); return; }
     const boss = run.combat.kind === 'boss';
     E.finishCombat(run);
+    checkUnlocks();
     if (boss) clearSave(); else save();
     render();
   }
@@ -2130,8 +2204,9 @@
     if (!run.final) {
       const score = E.score(run, win);
       const best = getNum(BEST_KEY);
-      const fin = { score, best, newBest: score > best, unlocked: null };
+      const fin = { score, best, newBest: score > best, unlocked: null, salvage: 0 };
       if (fin.newBest) setNum(BEST_KEY, score);
+      if (!run.tutorial) { checkUnlocks(true); fin.salvage = E.earnSalvage(meta, score); saveMeta(); }
       if (win) {
         const ml = getNum(LEVEL_KEY);
         if ((run.level || 0) >= ml && ml < E.LEVELS.length - 1) { setNum(LEVEL_KEY, ml + 1); fin.unlocked = E.LEVELS[ml + 1].name; }
@@ -2144,7 +2219,9 @@
       ['Damage dealt', st.dmgDealt], ['Crests / Low Waters', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}</div>
-      ${fin.unlocked ? `<div class="unlock-box">New depth unlocked: <b>${fin.unlocked}</b>. Choose it when you start your next descent.</div>` : ''}`;
+      ${fin.unlocked ? `<div class="unlock-box">New depth unlocked: <b>${fin.unlocked}</b>. Choose it when you start your next descent.</div>` : ''}
+      ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b> for the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
+      ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.gearFor(a).map((id) => `<b>${BL.GEAR[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? 'The Lantern Heart rises' : 'The tide takes you';
     const text = win
       ? 'The Bellwether cracks and falls silent. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up through the dark water, and by dawn the great light of Saltmere is turning again.'
@@ -2199,7 +2276,36 @@
         } else beginNewRun();
         break;
       case 'confirmnew': closeOverlay(true); beginNewRun(); break;
-      case 'startlevel': closeOverlay(true); startNewRun(+t.dataset.lv); break;
+      case 'startlevel': closeOverlay(true); prepareDive(+t.dataset.lv); break;
+      case 'workshop': showWorkshop(); break;
+      case 'gearbuy': {
+        const id = t.dataset.g, g = BL.GEAR[id];
+        if (!g || meta.owned.indexOf(id) >= 0) break;
+        if (meta.salvage < g.price) { toast(`Not enough ${MT.currency}`); break; }
+        openOverlay(modal(`Buy ${g.name} for ${g.price} ${MT.currency}?`,
+          `<div class="buy-item">${gearArt(g)}<div><b>${g.name}</b><p>${g.desc}</p></div></div><p class="buy-left">You have ${meta.salvage} ${MT.currency}; ${meta.salvage - g.price} left after this.</p>`,
+          `<button class="btn" data-act="workshop">Back</button><button class="btn primary" data-act="gearbuyconfirm" data-g="${id}" autofocus>Buy</button>`, 'narrow'));
+        break;
+      }
+      case 'gearbuyconfirm':
+        if (E.buyGear(meta, t.dataset.g)) {
+          // packed straight away when the Shallows have room for it
+          if (E.gearWeight(meta.packed) + BL.GEAR[t.dataset.g].weight <= E.capacity(0)) meta.packed.push(t.dataset.g);
+          saveMeta();
+          sfx('coin');
+          if (!run) render();
+        }
+        showWorkshop();
+        break;
+      case 'packtoggle': {
+        const lv = +t.dataset.lv;
+        if (E.togglePack(meta, t.dataset.g, lv)) { saveMeta(); sfx('select'); } else toast(`No room: unpack something first`);
+        showPack(lv);
+        { const b = $(`[data-act="packtoggle"][data-g="${t.dataset.g}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); }
+        break;
+      }
+      case 'dive': closeOverlay(true); startNewRun(+t.dataset.lv, meta.packed.slice()); break;
+      case 'gearinfo': if (ui.lastPointer !== 'mouse') showTip(t, tipContent('gear')); break;
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
       case 'changelog': showChangelog(); break;
@@ -2521,5 +2627,5 @@
   render();
 
   // exposed for debugging and the UI tests
-  window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; } };
+  window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; }, get meta() { return meta; } };
 })();

@@ -5,12 +5,19 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.6.0';
+  BL.VERSION = '0.7.0';
   BL.CHANGELOG = [
+    { v: '0.7.0', date: '2026-11-11', items: [
+      'The Workshop: every finished run turns its score into Salvage. Spend it on gear that lasts across runs.',
+      'Pack gear before each dive. The Shallows hold 3 spaces and each deeper depth 1 more, so you choose what to bring.',
+      '9 pieces of gear: Coin Purse, Cork Vest, Spare Flask, Flood Chart, Ebb Chart, Shell Gorget, Barnaby\'s Marker, Storm Lens and Whetstone.',
+      '6 achievements unlock gear, such as Crest three times in one turn, or win 3 fights in a run without losing HP.',
+    ] },
     { v: '0.6.0', date: '2026-11-11', items: [
       'The version number and this list of changes are on the title screen.',
       'Turning down a reward is worth more: +50 score for a card or an event\'s Leave, +80 for a Dread\'s card, +20 for a tonic. It was +20 for each.',
       'The map runs downward: you start at the top and the boss waits at the bottom.',
+      'Fix: the title screen overlapped itself on landscape phones.',
     ] },
     { v: '0.5.0', date: '2026-11-11', items: [
       'Turning down a reward (a card, a tonic, an event\'s Leave) adds to your final score.',

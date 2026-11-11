@@ -119,6 +119,44 @@ Provisional calls (each can be undone on its own):
 6. **The Tide bar hint** reads "Low Water! Enemy Ward gone, +1 Light". When the keyword box leaves no room on the bar, the hint lifts above the box.
 7. **Old saves and best scores:** a saved run continues under the new rule. Scores are a little higher now that Low Waters count.
 
+## The Workshop (v0.7.0, 2026-11-11): first slice of meta-progression
+
+**Decided with the user** (names and numbers stay open until the final version):
+- **Salvage** is the currency. Every finished run earns it from its **score**: 1 per 50 (`E.SALVAGE_PER_SCORE`). Deeper depths pay more through the score multiplier. Abandoning a run earns nothing, and neither does the tutorial.
+- A permanent shop, the **Workshop**, sells **gear** for Salvage. Gear stays bought.
+- **Achievements** unlock specific gear. New depths will unlock whole categories, planned as: starting keepsakes after the first Shallows win, heirloom starter cards and reward-pool unlocks after Dark Water, Bounties after Riptide. Tide Marks are another candidate for a big unlock.
+- **Capacity follows the depth of this dive**: before each dive you pack gear up to `E.capacity(level)`, which is 3 + depth (Shallows 3, Dark Water 4, Riptide 5, The Abyss 6). Each piece weighs 1 or 2.
+- Deck changes: both heirlooms and pool unlocks (not built yet).
+
+**Built:** 9 pieces of gear and 6 achievements (`BL.GEAR`, `BL.ACHIEVEMENTS` and `BL.META_TEXT` for the working names, all in js/data.js). Rules are in the engine (`E.newRun(seed, level, gear)`, `E.applyGear`, `E.fitGear`, `E.togglePack`, `E.buyGear`, `E.unlockAchievements`) and tested in `tests/workshop.test.js`.
+- **Screens:** the title gets a Workshop button once a run has finished. New Descent opens a Pack screen when you own gear. The HUD has one square pack button, with a tooltip listing the gear. The end screen shows "+N Salvage" and what was unlocked. A toast announces an achievement after the fight that earned it.
+- **Gear is square with a brass edge; keepsakes are round.** That keeps the two item types apart, which the user asked for.
+- Gear is applied after the map is generated, so the same seed gives the same map with any gear. Same seed and same gear give the same run (tested).
+- Lasting state is in `brinelight.meta.v1`: `{ salvage, earned, owned, packed, ach }`.
+
+**Provisional calls (each can be undone on its own):**
+1. **Prices** 8 to 35 Salvage, about 210 in all. That's about 7 runs for a player who scores ~1600 (32 Salvage a run) and about 11 for the bot (18.5 a run). The cheapest piece (Coin Purse, 8) can be bought after almost any first run.
+2. **Whetstone** upgrades only Rising Swell, at weight 2. Upgrading Slack Water too took the bot from 24% to 43%, far beyond anything else.
+3. **Storm Lens** is weight 1 (it was 2). Alone it's worth +5 to the bot, the same as the other weight-1 pieces.
+4. Newly bought gear goes straight into the pack if the Shallows have room. Gear that no longer fits a shallower dive is dropped from the end of the pack.
+5. Achievements are checked after every won fight and at the end of a run, never mid-fight.
+6. **The achievement list** covers several play styles: Double Crest (Flood Chart), Double Low Water (Ebb Chart), Triple Crest (Storm Lens), Untouched, i.e. 3 fights without losing HP (Shell Gorget), Dread Hunter (Whetstone), and Travel Light, i.e. a Dread with 12 or fewer cards (Barnaby's Marker).
+
+**Bot measurements** (1000 seeds a row; for comparisons only):
+
+| Depth (capacity) | Empty pack | Full pack |
+|---|---|---|
+| Shallows (3) | 24.2% | 35.3% (Cork Vest + Spare Flask + Shell Gorget) to 41.9% (Storm Lens + Shell Gorget + Cork Vest) |
+| Dark Water (4) | 13.5% | 28.7% (Whetstone + Cork Vest + Shell Gorget) |
+| Riptide (5) | 5.7% | 10.6% (Whetstone + Cork Vest + Shell Gorget + Spare Flask) |
+| The Abyss (6) | 1.6% | 6.2% (the same plus Storm Lens) |
+
+- One weight-1 piece alone at Shallows: 27.8 to 29.5%. Coin Purse shows 24.2% because the bot never shops. Whetstone (weight 2): 31.2%.
+- A full pack at a depth does about as well as an empty pack one depth shallower: the offset the user asked for.
+- Shallows gets the biggest jump, +11 to +18 points. If that makes the Shallows too easy, the lever is a smaller base capacity (2 + depth).
+
+**Art:** 10 gear icons (the 9 pieces plus Salvage), generated with Codex from `assets-src/wanted-images.tsv`. That file also holds the style preamble. `tools/cut-icon.py` crops each to the object and saves a 160 px WebP in `img/icons/g_*.webp`. The full-size PNGs in `assets-src/gear/` are git-ignored, because they are about 2 MB each; Codex also keeps copies in `~/.codex/generated_images/`. Nothing is queued.
+
 ## For later (from the user)
 
 - **Unlockable permanent effects that last across runs** (meta-progression), so players can reach the deeper Depths. Not started. Open questions: what unlocks them (score, wins, Depth reached, a currency), and whether they're always on or chosen before a run. They also must not make Shallows trivial.
@@ -151,18 +189,20 @@ Provisional calls (each can be undone on its own):
 - `tools/screens.js`: screenshots of every screen at the four sizes, plus the small-text list. `tools/tutorial-shots.js`: one screenshot per tutorial step.
 - `tools/serve.js`, `tools/cdp.js`: static server and a tiny Chrome DevTools client (launches its own headless Chrome on a free port).
 - `tools/build.js`: assembles `_site/` for Pages and checks every referenced file exists.
+- `tests/workshop.test.js`: the Workshop rules. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: buy, pack, dive, Salvage at the end, and abandoning a run earns nothing.
+- `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 
 ## Determinism and saves
 
 - All game randomness goes through a mulberry32 RNG whose state lives in the run (`run.rng`), so a save restores it exactly. Same seed and same decisions give the same run; tested, including a save/reload mid-fight.
 - `Math.random` is used only for a fresh seed and in the UI (music, particles, float positions).
 - The tutorial is a separate run object (`run.tutorial`) that is never saved and never scores. A run in progress is saved before the tutorial starts and reloaded after.
-- localStorage keys: `brinelight.save.v1`, `brinelight.prefs.v1`, `brinelight.best.v1`, `brinelight.maxlevel.v1`, `brinelight.tutorial.v1`, `brinelight.hints.v1`, `brinelight.version.v1`. Every project site on the Pages origin shares storage, so keep the `brinelight.` prefix on anything new.
+- localStorage keys: `brinelight.save.v1`, `brinelight.prefs.v1`, `brinelight.best.v1`, `brinelight.maxlevel.v1`, `brinelight.tutorial.v1`, `brinelight.hints.v1`, `brinelight.version.v1`, `brinelight.meta.v1`. Every project site on the Pages origin shares storage, so keep the `brinelight.` prefix on anything new.
 
 ## Art
 
 - Painterly underwater scenes: teal deep water, warm lantern and brass highlights, creatures and objects on transparent backgrounds for units. All images are WebP in `img/`.
-- No new images were generated in this pass. Nothing is queued.
+- Gear icons (v0.7.0): see "The Workshop" above.
 
 ## Open questions for the next playtest
 

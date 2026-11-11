@@ -9,3 +9,6 @@ Thumbs.db
 .vscode/
 .idea/
 ui-smoke-failure.png
+
+# full-size generated originals (Codex also keeps a copy in ~/.codex/generated_images); the queue file with the prompts is kept
+assets-src/**/*.png

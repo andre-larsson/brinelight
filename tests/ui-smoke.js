@@ -3,7 +3,7 @@
    - desktop 1280x800 with the mouse (clicks, a drag) and the keyboard
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
-   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial]
+   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
 'use strict';
 const path = require('path');
@@ -289,6 +289,72 @@ async function summonDeathCheck(page, base) {
   if (page.errors.length) failures.push('summon check: page errors:\n    ' + page.errors.join('\n    '));
 }
 
+/* The Workshop: buy gear with Salvage, pack it for a dive, see it in the run, and earn Salvage and an
+   unlock at the end of the run. */
+async function workshopScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=4444');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done');
+    localStorage.setItem('brinelight.meta.v1', JSON.stringify({ salvage: 60, earned: 60, owned: [], packed: [], ach: ['twocrests'] })); })()`);
+  await page.goto(base + '?seed=4444');
+  await inject(page);
+  const stored = () => page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
+  await page.click('[data-act="workshop"]');
+  await sleep(150);
+  if (await page.eval(`!!document.querySelector('#overlay [data-act="gearbuy"][data-g="stormlens"]')`)) failures.push(`${name}: locked gear can be bought`);
+  for (const g of ['cork', 'floodchart']) {
+    await clickIf(page, `#overlay [data-act="gearbuy"][data-g="${g}"]`);
+    await clickIf(page, '#overlay [data-act="gearbuyconfirm"]');
+  }
+  let m = await stored();
+  if (m.owned.join() !== 'cork,floodchart' || m.salvage !== 60 - 12 - 20) failures.push(`${name}: after buying, stored ${JSON.stringify(m)}`);
+  await checkPage(page, name + ' workshop');
+  await clickIf(page, '#overlay [data-act="close"]');
+  // New Descent opens the pack, with the new gear already packed
+  await page.click('[data-act="newrun"]');
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the pack before a dive');
+  await checkPage(page, name + ' pack');
+  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="cork"]');
+  if ((await stored()).packed.join() !== 'floodchart') failures.push(`${name}: unpacking the Cork Vest didn't stick`);
+  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="cork"]');
+  await clickIf(page, '#overlay [data-act="dive"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after Dive');
+  const gear = await page.eval('window.Brinelight.run.gear.join()');
+  if (gear !== 'floodchart,cork') failures.push(`${name}: the run took gear "${gear}"`);
+  if (!(await page.eval(`!!document.querySelector('.hud .gear-pack')`))) failures.push(`${name}: no packed gear in the HUD`);
+  // the first fight starts one Tide higher
+  await dismissHints(page);
+  await page.click('[data-act="node"]');
+  await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop');
+  if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
+  const tide = await page.eval('window.Brinelight.run.combat.tide');
+  if (tide !== 4) failures.push(`${name}: Flood Chart: the fight started at Tide ${tide}`);
+  // the run ends: Salvage from the score, and an achievement reached in it unlocks gear
+  await waitIdle(page);
+  await page.eval(`(() => { const B = window.Brinelight; B.run.stats.maxChain = 3; B.run.screen = 'defeat'; B.render(); })()`);
+  await sleep(300);
+  m = await stored();
+  const expect = await page.eval('window.Brinelight.E.salvageFor(window.Brinelight.run.final.score)');
+  if (m.salvage !== 28 + expect) failures.push(`${name}: Salvage after the run is ${m.salvage}, expected ${28 + expect}`);
+  if (m.ach.indexOf('threecrests') < 0) failures.push(`${name}: Triple Crest wasn't unlocked`);
+  if (!(await page.eval(`!!document.querySelector('.salvage-box') && /Storm Lens/.test(document.body.innerText)`))) failures.push(`${name}: the end screen doesn't show the Salvage and the unlock`);
+  await checkPage(page, name + ' end');
+  // abandoning a run earns nothing
+  const before = (await stored()).salvage;
+  await page.click('[data-act="totitle"]');
+  await sleep(150);
+  await page.click('[data-act="newrun"]');
+  await clickIf(page, '#overlay [data-act="dive"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after a second Dive');
+  await page.click('.hud [data-act="menu"]');
+  await clickIf(page, '#overlay [data-act="abandon"]');
+  await clickIf(page, '#overlay [data-act="confirmabandon"]');
+  if ((await stored()).salvage !== before) failures.push(`${name}: abandoning a run changed the Salvage`);
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 /* The guided first fight, start to finish, with one input method. */
 async function tutorialScenario(page, base, name, size, input) {
   log(`${name}: ${size.w}x${size.h} ${input}`);
@@ -408,6 +474,10 @@ async function tutorialMidRun(page, base) {
     if (!ONLY || ONLY === 'desktop') await scenario(page, base, 'desktop', { w: 1280, h: 800 }, { seed: 1111, drag: true, keyboardTurns: true });
     if (!ONLY || ONLY === 'desktop') await summonDeathCheck(page, base);
     if (!ONLY || ONLY === 'phone') await scenario(page, base, 'phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 2222, drag: true });
+    if (!ONLY || ONLY === 'workshop') {
+      await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });
+      await workshopScenario(page, base, 'workshop phone', { w: 390, h: 844, mobile: true, touch: true });
+    }
   } catch (e) {
     failures.push('crashed: ' + (e.stack || e));
     try { await page.screenshot(path.join(__dirname, '..', 'ui-smoke-failure.png')); failures.push('screenshot: ui-smoke-failure.png'); } catch (e2) { /* ignore */ }

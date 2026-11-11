@@ -76,7 +76,7 @@
     { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1.1, dmg: 1, rest: 0.3 }, { hp: 1.15, dmg: 1.1, rest: 0.3 }, { hp: 1.2, dmg: 1.15, rest: 0.25 },
   ][lv || 0] || { hp: 1, dmg: 1, rest: 0.3 });
 
-  E.newRun = function (seed, level) {
+  E.newRun = function (seed, level, gear) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
       version: 2,
@@ -93,6 +93,7 @@
     };
     BL.STARTER_DECK.forEach((id) => run.deck.push(E.newCard(run, id)));
     run.map = genMap(run);
+    if (gear && gear.length) E.applyGear(run, gear);
     return run;
   };
 
@@ -366,12 +367,14 @@
     if (kind === 'tonics') E.gainTonic(run, item.id);
     return true;
   };
-  E.removePrice = (run) => E.price(run, run.removeCost);
+  E.freeRemoval = (run) => E.hasGear(run, 'marker') && !run.markerUsed;
+  E.removePrice = (run) => (E.freeRemoval(run) ? 0 : E.price(run, run.removeCost));
   E.buyRemoval = function (run, uid) {
     const p = E.removePrice(run);
     if (run.shop.removed || run.pearls < p) return false;
     run.pearls -= p;
-    run.removeCost += 25;
+    if (E.freeRemoval(run)) run.markerUsed = true;
+    else run.removeCost += 25;
     run.shop.removed = true;
     E.removeCard(run, uid);
     return true;
@@ -481,8 +484,11 @@
     if (E.has(run, 'moonshard')) c.tide = 5;
     if (E.has(run, 'sirenscale')) c.enemies.forEach((e) => { e.st.soaked = (e.st.soaked || 0) + 2; });
     if (E.has(run, 'echoconch')) c.echo = 1;
+    if (E.hasGear(run, 'floodchart')) c.tide = Math.min(TIDE_MAX - 1, c.tide + 1);
+    if (E.hasGear(run, 'ebbchart')) c.tide = Math.max(1, c.tide - 1);
     if (kind === 'easy' || kind === 'hard') run.normalFights++;
     startPlayerTurn(run);
+    if (E.hasGear(run, 'gorget')) gainWard(c, c.player, 4);
     return c;
   };
 
@@ -605,7 +611,7 @@
   }
   E.waveValue = waveValue;
   E.crestDamage = function (run, c, chain) {
-    let dmg = 6 + 3 * Math.max(0, chain - 1) + (E.has(run, 'tidewatch') ? 4 : 0);
+    let dmg = 6 + 3 * Math.max(0, chain - 1) + (E.has(run, 'tidewatch') ? 4 : 0) + (E.hasGear(run, 'stormlens') ? 2 : 0);
     dmg *= 1 + (c.player.st.r_maelstrom || 0);
     return dmg;
   };
@@ -1045,6 +1051,8 @@
     const R = makeR(run);
     run.stats.fights++;
     if (c.kind === 'elite') run.stats.elites++;
+    if (!c.flags.hpLost) run.stats.flawless = (run.stats.flawless || 0) + 1;
+    if (c.kind === 'elite' && run.deck.length <= 12) run.stats.leanDread = true;
     if (c.kind === 'boss') {
       run.screen = 'victory';
       run.combat = null;
@@ -1118,6 +1126,69 @@
     if (!E.gainTonic(run, rw.tonic)) return false;
     rw.tonicTaken = true;
     return true;
+  };
+
+  /* ---------------- Workshop: progression that lasts across runs ----------------
+     `meta` is the player's lasting state (the UI keeps it in localStorage):
+     { salvage, earned, owned: [gear ids], packed: [gear ids], ach: [achievement ids] }. */
+  E.SALVAGE_PER_SCORE = 50;
+  E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
+  E.capacity = (level) => 3 + (level || 0);
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], packed: [], ach: [] });
+  E.hasGear = (run, id) => !!run.gear && run.gear.indexOf(id) >= 0;
+  E.gearWeight = (ids) => ids.reduce((w, id) => w + (BL.GEAR[id] ? BL.GEAR[id].weight : 0), 0);
+  E.gearUnlocked = (meta, id) => { const g = BL.GEAR[id]; return !!g && (!g.unlock || meta.ach.indexOf(g.unlock) >= 0); };
+  E.buyGear = function (meta, id) {
+    const g = BL.GEAR[id];
+    if (!g || meta.owned.indexOf(id) >= 0 || !E.gearUnlocked(meta, id) || meta.salvage < g.price) return false;
+    meta.salvage -= g.price;
+    meta.owned.push(id);
+    return true;
+  };
+  /* Known gear, once each, in order, while it fits the capacity. */
+  E.fitGear = function (ids, level, owned) {
+    const out = [];
+    let w = 0;
+    (ids || []).forEach((id) => {
+      const g = BL.GEAR[id];
+      if (!g || out.indexOf(id) >= 0 || (owned && owned.indexOf(id) < 0) || w + g.weight > E.capacity(level)) return;
+      out.push(id);
+      w += g.weight;
+    });
+    return out;
+  };
+  /* Pack or unpack one piece of owned gear for a dive at `level`. Returns false if it doesn't fit. */
+  E.togglePack = function (meta, id, level) {
+    const i = meta.packed.indexOf(id);
+    if (i >= 0) { meta.packed.splice(i, 1); return true; }
+    if (meta.owned.indexOf(id) < 0 || !BL.GEAR[id] || E.gearWeight(meta.packed) + BL.GEAR[id].weight > E.capacity(level)) return false;
+    meta.packed.push(id);
+    return true;
+  };
+  /* Start-of-run gear effects. The rest are checked where they apply (fights, Crests, the shop). */
+  E.applyGear = function (run, ids) {
+    run.gear = E.fitGear(ids, run.level);
+    if (E.hasGear(run, 'cork')) { run.maxHp += 5; run.hp += 5; }
+    if (E.hasGear(run, 'purse')) run.pearls += 30;
+    if (E.hasGear(run, 'whetstone')) run.deck.forEach((card) => { if (card.id === 'swell') card.up = 1; });
+    if (E.hasGear(run, 'flask')) run.tonics[0] = E.randomTonic(run);
+    return run.gear;
+  };
+  E.achievementsMet = (run) => (run.tutorial ? [] : Object.keys(BL.ACHIEVEMENTS).filter((id) => BL.ACHIEVEMENTS[id].met(run)));
+  /* Records achievements this run has newly met; returns their ids (also kept on the run for the end screen). */
+  E.unlockAchievements = function (meta, run) {
+    const fresh = E.achievementsMet(run).filter((id) => meta.ach.indexOf(id) < 0);
+    fresh.forEach((id) => meta.ach.push(id));
+    if (fresh.length) run.unlocks = (run.unlocks || []).concat(fresh);
+    return fresh;
+  };
+  /* Gear that an achievement unlocks. */
+  E.gearFor = (achId) => Object.keys(BL.GEAR).filter((id) => BL.GEAR[id].unlock === achId);
+  E.earnSalvage = function (meta, score) {
+    const n = E.salvageFor(score);
+    meta.salvage += n;
+    meta.earned += n;
+    return n;
   };
 
   BL.E = E;

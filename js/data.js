@@ -665,4 +665,33 @@
       ],
     },
   ];
+
+  /* ------------------------------------------------------------------ *
+   *  WORKSHOP (permanent progression between runs)
+   *  Every finished run turns its score into Salvage. Salvage buys gear in the Workshop, and gear
+   *  stays bought. Before a dive you pack gear up to the depth's capacity (Shallows 3, +1 per depth).
+   *  Some gear is locked until an achievement. The names are working names, kept here so they are
+   *  easy to change.
+   * ------------------------------------------------------------------ */
+  BL.META_TEXT = { currency: 'Salvage', shop: 'Workshop', item: 'Gear', pack: 'Pack' };
+  BL.GEAR = {
+    purse: { name: 'Coin Purse', art: 'g_purse', weight: 1, price: 8, desc: 'Start each run with 30 more Pearls.' },
+    cork: { name: 'Cork Vest', art: 'g_cork', weight: 1, price: 12, desc: 'Start each run with 5 more Max HP.' },
+    flask: { name: 'Spare Flask', art: 'g_flask', weight: 1, price: 12, desc: 'Start each run with a random tonic.' },
+    floodchart: { name: 'Flood Chart', art: 'g_floodchart', weight: 1, price: 20, unlock: 'twocrests', desc: 'Start each fight 1 Tide higher (4 instead of 3).' },
+    ebbchart: { name: 'Ebb Chart', art: 'g_ebbchart', weight: 1, price: 20, unlock: 'twolows', desc: 'Start each fight 1 Tide lower (2 instead of 3).' },
+    gorget: { name: 'Shell Gorget', art: 'g_gorget', weight: 1, price: 25, unlock: 'untouched', desc: 'Start each fight with 4 Ward.' },
+    marker: { name: "Barnaby's Marker", art: 'g_marker', weight: 1, price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
+    stormlens: { name: 'Storm Lens', art: 'g_stormlens', weight: 1, price: 30, unlock: 'threecrests', desc: 'Your Crests deal 2 more damage.' },
+    whetstone: { name: 'Whetstone', art: 'g_whetstone', weight: 2, price: 35, unlock: 'dreadhunter', desc: 'Your Rising Swell starts upgraded.' },
+  };
+  /* Achievements unlock gear. met(run) is checked after every fight and at the end of a run (never in the tutorial). */
+  BL.ACHIEVEMENTS = {
+    twocrests: { name: 'Double Crest', desc: 'Crest twice in one turn.', met: (r) => (r.stats.maxChain || 0) >= 2 },
+    twolows: { name: 'Double Low Water', desc: 'Reach Low Water twice in one turn.', met: (r) => (r.stats.maxLowChain || 0) >= 2 },
+    threecrests: { name: 'Triple Crest', desc: 'Crest three times in one turn.', met: (r) => (r.stats.maxChain || 0) >= 3 },
+    untouched: { name: 'Untouched', desc: 'Win 3 fights in one run without losing HP.', met: (r) => (r.stats.flawless || 0) >= 3 },
+    dreadhunter: { name: 'Dread Hunter', desc: 'Defeat a Dread.', met: (r) => (r.stats.elites || 0) >= 1 },
+    travellight: { name: 'Travel Light', desc: 'Defeat a Dread with 12 or fewer cards in your deck.', met: (r) => !!r.stats.leanDread },
+  };
 })();

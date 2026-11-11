@@ -942,3 +942,40 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   /* landscape raises cards 1.35x, so this still renders at about 12-13.5px */
   .small-cards .hand .card.selected { --card-text: 10px; --card-text-long: 9px; }
 }
+
+/* ---------- Workshop (permanent gear) ---------- */
+.workshop-modal { width: min(760px, 100%); }
+.ws-lead { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: #d6e3e0; }
+.ws-bal { display: flex; justify-content: center; margin: 0 0 14px; }
+.pips { color: var(--amber); letter-spacing: 1px; font-size: 13px; }
+/* gear is square with a brass corner, so it never reads as a (round) keepsake */
+.medal.gear { border-radius: 10px; border-color: #b8893a; background: radial-gradient(circle at 50% 40%, #3a3322, #14120c 75%); }
+.gear-tile .medal.gear { width: 64px; height: 64px; }
+.gear-tile.owned { cursor: default; border-color: rgba(159, 240, 181, .45); }
+.gear-tile.locked { cursor: default; }
+.gear-tile.locked .medal img { filter: grayscale(1) brightness(.55); }
+.gear-tile.nofit { opacity: .5; }
+.g-state { font-size: 13px; font-weight: 700; color: #9ff0b5; }
+.pack-tile .g-state { color: var(--muted); }
+.pack-tile.chosen .g-state { color: var(--amber); }
+.g-lock { display: flex; gap: 6px; align-items: flex-start; text-align: left; font-size: 13px; line-height: 1.35; color: #cbbfa8; }
+.g-lock svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 2px; color: #a8987a; }
+.g-lock b { color: #e6d3a8; }
+.pack-meter { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 8px; font-size: 16px; color: #e6dcc6; }
+.pack-meter .pips { font-size: 20px; letter-spacing: 3px; }
+.pack-meter b { color: #ffe2a8; }
+.ws-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.ws-btn svg { width: 20px; height: 20px; flex: 0 0 auto; }
+.ws-btn small { font-size: 14px; font-weight: 700; color: #e6d3a8; white-space: nowrap; }
+.g-weight { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.salvage-box { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 10px; background: rgba(40, 32, 14, .75); border: 1px solid rgba(201, 162, 74, .55); color: #f1e6cf; font-size: 15px; text-align: left; }
+.salvage-box svg { width: 24px; height: 24px; flex: 0 0 auto; }
+.salvage-box b { color: #ffe2a8; }
+.hud .gear-pack { border-radius: 9px; border-color: #b8893a; background: radial-gradient(circle at 50% 40%, #3a3322, #14120c 75%); color: #e8c77e; overflow: visible; }
+.hud .gear-pack svg { width: 20px; height: 20px; }
+.hud .gear-pack .n { position: absolute; right: -5px; bottom: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #f2c46b; color: #2a1504; font-size: 12px; font-weight: 800; line-height: 18px; }
+img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
+.price img.salv { width: 20px; height: 20px; }
+.chip img.salv { width: 24px; height: 24px; }
+.ws-btn img.salv { width: 24px; height: 24px; }
+.salvage-box img.salv { width: 40px; height: 40px; }
