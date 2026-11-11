@@ -303,8 +303,9 @@
     // statuses, the first time one shows on anyone
     ['soaked', 'chilled', 'brine', 'might', 'spines', 'grief'].forEach((key) => HINTS.push({
       id: 'st-' + key,
-      when: (r) => r.screen === 'combat' && !!document.querySelector(`.unit [data-tip$=":${key}"]`),
-      anchor: `.unit [data-tip$=":${key}"]`,
+      // only on a living creature: a dead one's badges fade out with it
+      when: (r) => r.screen === 'combat' && !!document.querySelector(`.unit:not(.dead):not(.gone) [data-tip$=":${key}"]`),
+      anchor: `.unit:not(.dead):not(.gone) [data-tip$=":${key}"]`,
       html: () => `<b>${BL.STATUSES[key].name}</b>: ${statusText(key)} ${api.ui.lastPointer === 'mouse' ? 'Hover' : 'Tap a creature'} to read its effects.`,
     }));
     function statusText(key) {

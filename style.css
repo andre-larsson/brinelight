@@ -270,7 +270,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .target-reticle { position: absolute; left: 50%; bottom: 30%; width: 64px; height: 64px; transform: translate(-50%, 50%); pointer-events: none; opacity: 0; transition: opacity .15s; }
 .enemy.targeted .target-reticle { opacity: 1; animation: spin 6s linear infinite; }
 @keyframes spin { to { transform: translate(-50%, 50%) rotate(360deg); } }
-.enemy.dead { animation: die .7s ease forwards; pointer-events: none; }
+/* .unit.enemy so it beats .unit.summoned's rise animation: a summoned enemy (the boss's minnows) has to fade out too */
+.unit.enemy.dead { animation: die .7s ease forwards; pointer-events: none; }
 @keyframes die { 0% { opacity: 1; filter: none; } 30% { filter: brightness(2) saturate(0); } 100% { opacity: 0; transform: translateY(16px) scale(.92); visibility: hidden; } }
 .enemy.gone { visibility: hidden; }
 .unit.hit .sprite { animation: shake .35s ease; }

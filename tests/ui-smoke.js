@@ -262,6 +262,30 @@ async function scenario(page, base, name, size, opts) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* A summoned enemy has to fade out when it dies, like any other. The boss's minnows once stayed
+   on the field at 0 HP, because the summon's rise animation overrode the death fade. */
+async function summonDeathCheck(page, base) {
+  log('summoned enemy death: 1280x800');
+  await page.viewport(1280, 800);
+  page.errors.length = 0;
+  await startRun(page, base, 3333);
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; E.startCombat(r, 'boss', ['bell']); r.combat.enemies[0].intent = 'shoal'; B.render(); })()`);
+  await waitIdle(page);
+  await dismissHints(page);
+  await page.click('#btn-end');
+  await waitIdle(page);
+  await dismissHints(page);
+  const n = await page.eval(`window.Brinelight.run.combat.enemies.filter((e) => e.id === 'minnow' && !e.dead).length`);
+  if (n !== 2) { failures.push(`summon check: the boss called ${n} minnows, expected 2`); return; }
+  await page.eval(`window.Brinelight.run.combat.enemies.forEach((e) => { if (e.id === 'minnow') e.st.brine = 99; })`);
+  await page.click('#btn-end');
+  await waitIdle(page);
+  await sleep(1000);
+  const shown = await page.eval(`window.Brinelight.run.combat.enemies.filter((e) => e.id === 'minnow').map((e) => { const el = document.querySelector('.unit[data-uid="' + e.uid + '"]'); return e.dead + ':' + (el ? getComputedStyle(el).visibility : 'none'); }).join(',')`);
+  if (shown !== 'true:hidden,true:hidden') failures.push(`a summoned enemy stayed on the field after dying (dead:visibility = ${shown})`);
+  if (page.errors.length) failures.push('summon check: page errors:\n    ' + page.errors.join('\n    '));
+}
+
 /* The guided first fight, start to finish, with one input method. */
 async function tutorialScenario(page, base, name, size, input) {
   log(`${name}: ${size.w}x${size.h} ${input}`);
@@ -379,6 +403,7 @@ async function tutorialMidRun(page, base) {
       await tutorialMidRun(page, base);
     }
     if (!ONLY || ONLY === 'desktop') await scenario(page, base, 'desktop', { w: 1280, h: 800 }, { seed: 1111, drag: true, keyboardTurns: true });
+    if (!ONLY || ONLY === 'desktop') await summonDeathCheck(page, base);
     if (!ONLY || ONLY === 'phone') await scenario(page, base, 'phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 2222, drag: true });
   } catch (e) {
     failures.push('crashed: ' + (e.stack || e));
