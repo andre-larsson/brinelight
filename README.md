@@ -69,9 +69,11 @@ The menu (top right) has the tutorial, How to Play, sound effects on/off, music 
 - **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card.
 - **Wrecks:** a chest of pearls where you pick 1 of 3 keepsakes.
 
-If you leave a keepsake pick without choosing, you get one of the offered keepsakes at random.
+You must take one of the offered keepsakes before you move on.
 
 After each fight you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded, and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
+
+Turning down a reward adds 20 to your final score. That counts skipping a card (after a fight or in an event), leaving a tonic behind when you have a free slot, and choosing an event's Leave or Decline.
 
 Fights also pay bonus Pearls for:
 - **Flawless:** no HP lost.
@@ -91,7 +93,7 @@ Both are announced the moment you earn them. The score counts Crests and Low Wat
 - **38 collectible cards:**
   - 14 common, 16 uncommon, 8 rare.
   - Every card has an upgraded version.
-  - There are also 3 status cards that enemies add to your deck, and 1 curse.
+  - There are also 3 status cards that enemies add to your deck, and 1 curse (Barnacle Growth: unplayable, and it stays in your deck until you remove it).
   - The cards support several builds:
     - Crest chaining (Storm Surge, Siren's Echo, Toppled Tower, Maelstrom, Spindrift).
     - Low Water tempo: Ebb to strip enemy Ward and win back Light (Riptide Cut, Bilge Pump, Depth Charge, Abyssal Pull).

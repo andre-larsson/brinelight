@@ -193,9 +193,11 @@ async function afterStop(page, label) {
     if (s === 'map' || s === 'victory' || s === 'defeat' || s === 'title') return;
     if (s === 'combat') { await fight(page, label + ' event fight', {}); continue; }
     if (s === 'reward') {
-      await clickIf(page, '[data-act="rewardks"]');
       await clickIf(page, '[data-act="taketonic"]:not([disabled])');
       await clickIf(page, '[data-act="rewardcard"][data-i="0"]');
+      // a Dread's keepsake has to be taken before Continue is offered
+      if (await page.eval(`!!document.querySelector('[data-act="rewardks"]') && !!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: Continue was offered before the keepsake was taken`);
+      await clickIf(page, '[data-act="rewardks"]');
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'rest') {
       if (!(await clickIf(page, '[data-act="rest"]'))) await clickIf(page, '[data-act="tomap"]');
@@ -212,6 +214,7 @@ async function afterStop(page, label) {
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'treasure') {
       await clickIf(page, '[data-act="opentreasure"]');
+      if (await page.eval(`!!document.querySelector('[data-act="treasureks"]') && !!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: the Wreck could be left before a keepsake was taken`);
       await clickIf(page, '[data-act="treasureks"]');
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'event') {

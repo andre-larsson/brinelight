@@ -569,7 +569,7 @@
   function showCardChoice(ids, title, onDone) {
     const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" data-act="choosecard" data-id="${id}" data-i="${i}"`)).join('')}</div>${keywordLegend(ids.map((id) => pseudo(id)))}`;
     ui.cardChoiceDone = onDone;
-    openOverlay(modal(title, body, '<button class="btn" data-act="choosecard" data-id="">Skip</button>', ''), { locked: true });
+    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">Skip (+${E.DECLINE_SCORE} score)</button>`, ''), { locked: true });
   }
 
   /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
@@ -592,15 +592,16 @@
         <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
-        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and you choose 1 of 2 keepsakes after (one at random if you don\'t choose).'],
+        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and you choose 1 of 2 keepsakes after.'],
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
         [`${NODE_ICON.rest} Cove`, 'Rest to heal 30% of your max HP, or upgrade a card.'],
-        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and 1 of 3 keepsakes (one at random if you don\'t choose).'],
+        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and 1 of 3 keepsakes.'],
       ])}<ul class="help-list">
         <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>Deep Ebb</b> (2+ Low Waters in a turn).</li>
-        <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar.</li>
+        <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
+        <li>Turning down a reward adds ${E.DECLINE_SCORE} to your final score: skipping a card, leaving a tonic when you have a free slot, or choosing an event's Leave.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
       </ul>`;
       case 'controls': return dl([
@@ -1924,7 +1925,7 @@
     if (rw.tonic) {
       const tn = BL.TONICS[rw.tonic];
       const full = run.tonics.indexOf(null) < 0;
-      extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}</small></div>
+      extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}${!rw.tonicTaken && !full ? ` <span class="muted">Leave it for +${E.DECLINE_SCORE} score.</span>` : ''}</small></div>
         ${rw.tonicTaken ? '<span class="muted">Taken</span>' : `<button class="btn small" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : ''}>${full ? 'Slots full' : 'Take'}</button>`}</div>`);
     }
     // the panel stays after the pick (chosen tile lit, the other dimmed) so nothing below it jumps up under the pointer
@@ -1932,9 +1933,12 @@
     const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : ''}`,
       (rw.cardTaken ? '' : `tabindex="0" role="button" data-act="rewardcard" data-i="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
     const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
-    const buttons = rw.cardTaken
-      ? `<button class="btn primary wide" data-act="tomap" autofocus>${ksChoices && !rw.keepsake ? 'Continue (random keepsake)' : 'Continue'}</button>`
-      : '<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card</button>';
+    // a keepsake on offer must be taken before moving on
+    const buttons = !rw.cardTaken
+      ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card (+${E.DECLINE_SCORE} score)</button>`
+      : ksChoices && !rw.keepsake
+        ? '<button class="btn primary wide" disabled>Choose a keepsake to continue</button>'
+        : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner reward-screen">
       <h1>Victory</h1>
       ${summary}
@@ -1943,7 +1947,7 @@
       ${extras.length ? `<div class="reward-list">${extras.join('')}</div>` : ''}
       <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
-    const f = $('[autofocus]', screenEl) || $('.card.choice', screenEl);
+    const f = $('[autofocus]', screenEl) || (rw.cardTaken && $('.ks-pick', screenEl)) || $('.card.choice', screenEl);
     if (f && ui.lastPointer !== 'touch') f.focus({ preventScroll: true });
   }
 
@@ -2002,7 +2006,7 @@
     if (st.stage === 'choose') {
       body = `<div class="choice-list">${ev.options.map((o, i) => {
         const ok = E.optionAvailable(run, o);
-        return `<button class="choice" data-act="evopt" data-i="${i}" ${ok === true ? '' : 'disabled'}><b>${o.label}</b><span>${o.desc}</span>${ok === true ? '' : `<span class="reason">${ok}</span>`}</button>`;
+        return `<button class="choice" data-act="evopt" data-i="${i}" ${ok === true ? '' : 'disabled'}><b>${o.label}</b><span>${o.desc}${o.decline ? ` +${E.DECLINE_SCORE} score.` : ''}</span>${ok === true ? '' : `<span class="reason">${ok}</span>`}</button>`;
       }).join('')}</div>`;
     } else {
       body = `<p class="lead">${st.text}</p>${st.outcome ? `<p class="lead outcome">${st.outcome}</p>` : ''}<button class="btn primary" data-act="evcontinue" autofocus>Continue</button>`;
@@ -2037,7 +2041,7 @@
       showDeck('upgrade', (uid) => { const n = nameOf(uid); E.upgradeCard(run, uid); done(`${n} is now ${nameOf(uid)}.`); });
     } else if (next.cards) {
       showCardChoice(next.cards, 'Choose a card', (id) => {
-        if (id) E.addCard(run, id);
+        E.takeEventCard(run, id);
         done(id ? `${BL.CARDS[id].name} joins your deck.` : 'You leave the cards where they are.');
       });
     } else if (next.fight) {
@@ -2078,7 +2082,7 @@
       body = `<div class="reward-list">
         <div class="reward-item done"><span class="medal" style="display:grid;place-items:center">${ICON.pearl}</span><div class="grow"><b>${t.pearls} Pearls</b></div></div>
         ${k && !hasChoices ? `<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>` : ''}
-      </div>${choices}<button class="btn ${picking ? '' : 'primary'}" data-act="tomap" ${picking ? '' : 'autofocus'}>${picking ? 'Take one at random' : 'Continue'}</button>`;
+      </div>${choices}${picking ? '<button class="btn" disabled>Choose a keepsake to continue</button>' : '<button class="btn primary" data-act="tomap" autofocus>Continue</button>'}`;
     }
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="chest" style="background-image:url(img/scenes/treasure.webp)"></div>
@@ -2108,7 +2112,7 @@
     }
     const fin = run.final;
     const stats = [
-      ['Depth reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights won', st.fights], ['Dreads slain', st.elites], ['Biggest Crest chain', st.maxChain || 0],
+      ['Depth reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights / Dreads won', `${st.fights} / ${st.elites}`], ['Rewards declined', st.declined || 0], ['Biggest Crest chain', st.maxChain || 0],
       ['Damage dealt', st.dmgDealt], ['Crests / Low Waters', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}</div>
@@ -2252,11 +2256,12 @@
       }
       case 'taketonic': if (E.takeRewardTonic(run)) { sfx('tonic'); save(); render(); } break;
       case 'tomap': {
-        // leaving a keepsake pick unchosen takes one of them at random; say which, since the pick screen is gone
-        const auto = E.backToMap(run);
+        // a keepsake on offer has to be taken first (the button is disabled until then)
+        const ksWait = (src, list) => src && !src.keepsake && list && list.length;
+        if (ksWait(run.rewards, run.rewards && run.rewards.keepsakeChoices) || ksWait(run.treasure, run.treasure && run.treasure.choices)) break;
+        E.backToMap(run);
         save();
         render();
-        if (auto) { sfx('coin'); toast(`Taken at random: ${BL.KEEPSAKES[auto].name}`); }
         break;
       }
       case 'rest': {

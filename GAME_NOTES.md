@@ -14,7 +14,10 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 - Add a guided first fight (tutorial).
 - Do a layout and text-size pass.
 - Add rule tests and a UI smoke test so later changes are safe.
-- A keepsake pick (Dread reward, Wreck) left without a choice gives one of the offered keepsakes at random. Before, you got nothing. (2026-11-11. The user said "tonic"; there is no tonic choice in the game, so I read it as the keepsake picks.)
+- Keepsake picks (Dread reward, Wreck): you can't move on until you take one. Before, you could leave with nothing. (2026-11-11. The user first asked for a random keepsake when none is chosen, then said you shouldn't be able to continue without choosing. The engine still takes one at random if something leaves the pick unchosen; the UI never does.)
+- Turning down a reward adds to the final score (2026-11-11): skipping a card, leaving a tonic when a slot is free, or an event's Leave or Decline. Each one is worth 20 (`E.DECLINE_SCORE`), a provisional number: about a Flawless bonus (15) and below a floor (40). A player who skips every card gets roughly 200 over a run, a third of the win bonus. The random keepsake fallback doesn't count.
+- The flooded-hold dive (Wreck of the Gilded Gull) paid 90 Pearls or cost 12 HP, half and half. That is the same 45 Pearls on average as the safe salvage, minus 6 HP, so it was never the better pick (the user's point). It now pays 150 (a rare card or a keepsake at the shop): 75 Pearls on average for 6 HP, about the Glimmering Pool's sure rate of 30 Pearls for 5 HP. Healthy players should dive and hurt ones should salvage.
+- Barnacle Growth now says what it does, on the card, in the event option, in How to Play and in the README. It used to say only "A curse that clings to your deck".
 
 ## Provisional calls (made without the user; each can be judged and undone on its own)
 

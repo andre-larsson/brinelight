@@ -654,7 +654,7 @@ test('Wrecks: a chest of Pearls and a choice of 1 of 3 keepsakes', () => {
   assert.ok(!E.has(run, run.treasure.choices[0]), 'only one');
 });
 
-test('leaving a keepsake pick without choosing gives one of the offered keepsakes at random', () => {
+test('a keepsake pick is never lost: if one is left unchosen (the UI requires a pick), one of the offered keepsakes is taken at random', () => {
   // Wreck
   const seen = new Set();
   for (let seed = 1; seed <= 40; seed++) {
@@ -736,6 +736,83 @@ test('deeper starting depths: tougher enemies and a higher score multiplier', ()
   run0.floor = run2.floor = 5;
   assert.equal(E.score(run2, false), Math.round(E.score(run0, false) * 1.5));
   assert.deepEqual(E.LEVELS.map((l) => l.name), ['Shallows', 'Dark Water', 'Riptide', 'The Abyss']);
+});
+
+test('turning down a reward adds 20 to the score: a skipped card, a tonic left with a free slot, an event Leave', () => {
+  const won = (seed, o) => { const f = fight(['kelp'], Object.assign({ seed }, o)); f.c.enemies[0].dead = true; f.c.won = true; E.finishCombat(f.run); return f.run; };
+  // skip the reward card
+  let run = won(1);
+  const s0 = E.score(run, false);
+  E.takeRewardCard(run, null);
+  assert.equal(run.stats.declined, 1);
+  assert.equal(E.score(run, false), s0 + 20);
+  // taking a card is not a decline
+  run = won(1);
+  E.takeRewardCard(run, 0);
+  assert.equal(run.stats.declined, 0);
+  // a reward tonic left behind counts only with a free slot
+  run = won(1);
+  run.rewards.tonic = 'shell';
+  E.backToMap(run);
+  assert.equal(run.stats.declined, 1, 'left with a free slot');
+  run = won(1);
+  run.rewards.tonic = 'shell';
+  run.tonics = ['shell', 'shell', 'shell'];
+  E.backToMap(run);
+  assert.equal(run.stats.declined, 0, 'slots full: no choice was made');
+  run = won(1);
+  run.rewards.tonic = 'shell';
+  E.takeRewardTonic(run);
+  E.backToMap(run);
+  assert.equal(run.stats.declined, 0, 'taken');
+  // an event's Leave / Decline counts; its other options don't
+  for (const ev of BL.EVENTS) {
+    ev.options.forEach((opt, i) => {
+      const r = E.newRun(3);
+      r.pearls = 500;
+      r.event = { id: ev.id, stage: 'choose', text: null, next: null };
+      if (E.chooseEventOption(r, i) === null) return;
+      const isLeave = /^(Leave|Decline)$/.test(opt.label);
+      assert.equal(r.stats.declined, isLeave ? 1 : 0, `${ev.id}: ${opt.label}`);
+    });
+  }
+  // skipping an event's card pick counts too
+  run = E.newRun(3);
+  E.takeEventCard(run, null);
+  assert.equal(run.stats.declined, 1);
+  const n = run.deck.length;
+  E.takeEventCard(run, 'jab');
+  assert.equal(run.stats.declined, 1);
+  assert.equal(run.deck.length, n + 1);
+});
+
+test('Wreck of the Gilded Gull: the dive pays 150 Pearls or costs 12 HP, about half the time each; the cabin adds Barnacle Growth, which stays until removed', () => {
+  const ev = BL.EVENTS.find((e) => e.id === 'wreck');
+  const dive = ev.options.findIndex((o) => o.label === 'Dive into the flooded hold');
+  let wins = 0;
+  for (let seed = 1; seed <= 200; seed++) {
+    const r = E.newRun(seed);
+    const p = r.pearls, hp = r.hp;
+    r.event = { id: 'wreck', stage: 'choose', text: null, next: null };
+    E.chooseEventOption(r, dive);
+    if (r.pearls === p + 150) { wins++; assert.equal(r.hp, hp); } else { assert.equal(r.pearls, p); assert.equal(r.hp, hp - 12); }
+  }
+  assert.ok(wins > 70 && wins < 130, `wins ${wins}/200`);
+
+  const r = E.newRun(2);
+  r.event = { id: 'wreck', stage: 'choose', text: null, next: null };
+  E.chooseEventOption(r, 0);
+  const curse = r.deck.find((c) => c.id === 'barnacles');
+  assert.ok(curse, 'the curse is in the deck');
+  assert.ok(BL.CARDS.barnacles.unplayable);
+  E.backToMap(r);
+  E.startCombat(r, 'easy', ['kelp']);
+  r.combat.enemies[0].dead = true; r.combat.won = true;
+  E.finishCombat(r);
+  E.backToMap(r);
+  assert.ok(r.deck.some((c) => c.id === 'barnacles'), 'still there after a fight');
+  E.removeCard(r, curse.uid);
+  assert.ok(!r.deck.some((c) => c.id === 'barnacles'), 'gone once removed');
 });
 
 test('the score counts Low Waters and the best Low Water chain the same as Crests', () => {

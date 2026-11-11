@@ -88,7 +88,7 @@
       nextUid: 1, floor: 0, pos: null, screen: 'map',
       combat: null, rewards: null, shop: null, event: null, treasure: null,
       removeCost: 75, seenEvents: [], lastEnc: [], normalFights: 0,
-      stats: { fights: 0, elites: 0, cardsPlayed: 0, dmgDealt: 0, dmgTaken: 0, crests: 0, lows: 0, maxChain: 0, maxLowChain: 0, kills: 0, bonuses: 0, elapsed: 0, lastTick: Date.now() },
+      stats: { fights: 0, elites: 0, cardsPlayed: 0, dmgDealt: 0, dmgTaken: 0, crests: 0, lows: 0, maxChain: 0, maxLowChain: 0, kills: 0, bonuses: 0, declined: 0, elapsed: 0, lastTick: Date.now() },
       log: [],
     };
     BL.STARTER_DECK.forEach((id) => run.deck.push(E.newCard(run, id)));
@@ -222,8 +222,9 @@
     }
   };
 
-  /* Leaving a keepsake pick (Dread reward, opened Wreck) without choosing takes one of the
-     offered keepsakes at random. Returns its id, or null. */
+  /* The UI won't leave a keepsake pick (Dread reward, opened Wreck) until one is taken. If some
+     other path leaves it unchosen, one of the offered keepsakes is taken at random rather than
+     lost. Returns its id, or null. A reward tonic left behind with a free slot counts as declined. */
   E.backToMap = function (run) {
     const pick = (src, list) => {
       if (!src || src.keepsake || !list || !list.length) return null;
@@ -233,6 +234,8 @@
       return k;
     };
     const auto = pick(run.rewards, run.rewards && run.rewards.keepsakeChoices) || pick(run.treasure, run.treasure && run.treasure.choices);
+    const rw = run.rewards;
+    if (rw && rw.tonic && !rw.tonicTaken && run.tonics.indexOf(null) >= 0) E.decline(run);
     run.screen = 'map';
     run.combat = null;
     run.rewards = null;
@@ -415,6 +418,7 @@
     const opt = ev.options[i];
     if (E.optionAvailable(run, opt) !== true) return null;
     const res = opt.act(run, E) || {};
+    if (opt.decline) E.decline(run);
     run.event.stage = 'result';
     run.event.text = res.text || '';
     run.event.next = res.next || null;
@@ -1075,7 +1079,16 @@
     rw.cardTakenIdx = i == null ? -1 : i;
     const pick = i == null ? null : rw.cards[i];
     if (pick) E.addCard(run, pick.id, pick.up);
+    else E.decline(run);
   };
+  /* A card picked from an event's choice of cards; null skips it. */
+  E.takeEventCard = function (run, id) {
+    if (id) E.addCard(run, id);
+    else E.decline(run);
+  };
+  /* Turning down a reward (a card, a tonic with a free slot, an event's Leave) adds to the final score. */
+  E.DECLINE_SCORE = 20;
+  E.decline = function (run) { run.stats.declined = (run.stats.declined || 0) + 1; };
   E.takeRewardKeepsake = function (run, k) {
     const rw = run.rewards;
     if (!rw || rw.keepsake || rw.keepsakeChoices.indexOf(k) < 0) return;
@@ -1086,7 +1099,7 @@
   /* Score for the end screen. */
   E.score = function (run, won) {
     const st = run.stats;
-    let s = run.floor * 40 + (st.kills || 0) * 12 + st.elites * 80 + st.crests * 6 + (st.maxChain || 0) * 30 + (st.lows || 0) * 6 + (st.maxLowChain || 0) * 30 + (st.bonuses || 0) * 15;
+    let s = run.floor * 40 + (st.kills || 0) * 12 + st.elites * 80 + st.crests * 6 + (st.maxChain || 0) * 30 + (st.lows || 0) * 6 + (st.maxLowChain || 0) * 30 + (st.bonuses || 0) * 15 + (st.declined || 0) * E.DECLINE_SCORE;
     if (won) s += 600 + run.hp * 5;
     return Math.round(s * (1 + 0.25 * (run.level || 0)));
   };

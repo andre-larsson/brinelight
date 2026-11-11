@@ -303,7 +303,7 @@
   card('barnacles', {
     name: 'Barnacle Growth', type: 'curse', rarity: 'special', cost: null, target: 'none', unplayable: true,
     v: {}, art: 'c_barnacles',
-    text: () => `Unplayable. A curse that clings to your deck.`,
+    text: () => `Unplayable. Stays in your deck until you remove it.`,
   });
 
   BL.CARDS = CARDS;
@@ -595,22 +595,22 @@
           act: (r, E) => { E.loseHp(r, 7); const n = E.upgradeRandom(r, 2); return { text: n ? `The water warms. ${n} of your cards feel sharper.` : 'The goddess has nothing left to teach you.' }; } },
         { label: 'Offer pearls', desc: 'Pay 35 Pearls. Remove a card from your deck.', cond: (r) => r.pearls >= 35 || 'Not enough Pearls',
           act: (r) => { r.pearls -= 35; return { text: 'The pearls sink into the stone, and the goddess waits for you to let something go.', next: { pick: 'remove' } }; } },
-        { label: 'Leave', desc: 'Swim on.', act: () => ({ text: 'You leave the goddess to her waiting.' }) },
+        { label: 'Leave', desc: 'Swim on.', decline: true, act: () => ({ text: 'You leave the goddess to her waiting.' }) },
       ],
     },
     {
       id: 'wreck', title: 'Wreck of the Gilded Gull', art: 'ev_wreck',
       text: "A merchant ship lies split on the seabed. The captain's cabin is sealed and something glints inside; the cargo hold gapes open.",
       options: [
-        { label: "Pry open the captain's cabin", desc: 'Gain a random keepsake. Gain the curse Barnacle Growth.',
+        { label: "Pry open the captain's cabin", desc: 'Gain a random keepsake. Gain the curse Barnacle Growth: an unplayable card that stays in your deck until you remove it.',
           act: (r, E) => { const k = E.gainRandomKeepsake(r); E.addCard(r, 'barnacles'); return { text: k ? `You find the ${BL.KEEPSAKES[k].name}, but barnacles creep onto your hands as you leave.` : 'The cabin is empty, and barnacles creep onto your hands.' }; } },
         { label: 'Salvage the cargo', desc: 'Gain 45 Pearls.', act: (r) => { r.pearls += 45; return { text: 'Water-swollen crates, but a pouch of pearls is still dry inside one of them.' }; } },
-        { label: 'Dive into the flooded hold', desc: 'A gamble. Half the time: 90 Pearls. Otherwise something in the dark bites for 12 HP.',
+        { label: 'Dive into the flooded hold', desc: 'A gamble. Half the time: 150 Pearls. Otherwise something in the dark bites for 12 HP.',
           act: (r, E) => {
-            if (E.makeR(r).chance(0.5)) { r.pearls += 90; return { text: 'Your lantern finds a strongbox wedged under the stairs. It is heavy with pearls. (+90 Pearls)' }; }
+            if (E.makeR(r).chance(0.5)) { r.pearls += 150; return { text: 'Your lantern finds a strongbox wedged under the stairs. It is heavy with pearls. (+150 Pearls)' }; }
             E.loseHp(r, 12); return { text: 'Something long and cold uncoils in the dark and bites before you can kick away. (-12 HP)' };
           } },
-        { label: 'Leave', desc: 'Let the dead keep their things.', act: () => ({ text: 'You swim past the wreck.' }) },
+        { label: 'Leave', desc: 'Let the dead keep their things.', decline: true, act: () => ({ text: 'You swim past the wreck.' }) },
       ],
     },
     {
@@ -621,7 +621,7 @@
           act: (r, E) => { E.loseMaxHp(r, 7); return { text: 'She plucks a few of your years like loose threads, and spreads her cards.', next: { cards: E.randomCards(r, 'rare', 3) } }; } },
         { label: 'Buy a brew', desc: 'Pay 30 Pearls. Gain a random tonic.', cond: (r) => (r.pearls >= 30 ? (r.tonics.includes(null) || 'Tonic slots full') : 'Not enough Pearls'),
           act: (r, E) => { r.pearls -= 30; const t = E.gainRandomTonic(r); return { text: `She corks a bottle of ${BL.TONICS[t].name} and presses it into your hand.` }; } },
-        { label: 'Decline', desc: 'Leave politely.', act: () => ({ text: '"Another time," she cackles.' }) },
+        { label: 'Decline', desc: 'Leave politely.', decline: true, act: () => ({ text: '"Another time," she cackles.' }) },
       ],
     },
     {
@@ -643,7 +643,7 @@
         { label: 'Share your light', desc: 'Lose 6 HP. Choose 1 of 3 uncommon cards.',
           act: (r, E) => { E.loseHp(r, 6); return { text: 'His lantern flickers to life. In gratitude he shows you an old trick.', next: { cards: E.randomCards(r, 'uncommon', 3) } }; } },
         { label: 'Ask for guidance', desc: 'Remove a card from your deck.', act: () => ({ text: '"Carry less," he says. "The deep is kind to the light."', next: { pick: 'remove' } }) },
-        { label: 'Leave', desc: 'Leave him be.', act: () => ({ text: 'He bows as you pass.' }) },
+        { label: 'Leave', desc: 'Leave him be.', decline: true, act: () => ({ text: 'He bows as you pass.' }) },
       ],
     },
     {
