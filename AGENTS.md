@@ -10,6 +10,6 @@
 - Checks: `npm run screens -- <outdir>` screenshots every screen at 1280x800, 390x844, 360x640 and 844x390 and lists any text rendered below 12px. `npm run opening -- --ui` measures the first fight and the tutorial in actions and seconds. `node tools/tutorial-shots.js <outdir>` screenshots each tutorial step.
 - Code map: `js/version.js` (version number and What's new list), `js/data.js` (cards, enemies, keepsakes, events, tutorial deck, Workshop gear and achievements), `js/engine.js` (rules, seeded RNG, no DOM), `js/tutorial.js` (guided fight and first-time hints), `js/ui.js` (rendering, input, sound, saving).
 - Versioning: every player-facing change bumps `BL.VERSION` in `js/version.js` (minor for rules, content or features; patch for fixes only), adds a plain-language entry at the top of `BL.CHANGELOG`, and updates `package.json` to match. `npm test` checks they agree.
-- Notes: Keep asset paths relative (the site lives under `/brinelight/`). localStorage keys all start with `brinelight.`. Rules in README.md and How to Play must stay backed by tests. Decisions, measurements and open questions are in GAME_NOTES.md.
+- Notes: Keep asset paths relative (the site lives under `/brinelight/`). localStorage keys all start with `brinelight.`. Rules in README.md and How to Play must stay backed by tests. Decisions, measurements and open questions are in GAME_NOTES.md. The fiction, and what later story text has to agree with, is in WORLD.md.
 - For game design or iteration work, follow the game-iteration skill.
 </INSTRUCTIONS>

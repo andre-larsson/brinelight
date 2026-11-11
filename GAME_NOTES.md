@@ -10,6 +10,9 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 
 ## Decisions the user made
 
+- **Expedition and depth direction (2026-11-12; not built):** Every run starts in the Shallows and proceeds through the depths in one expedition. A band boss holds water in its own area. Defeating it drains the area and reveals a stair or tunnel down. After a boss, the player can continue or return home, ending the run with everything collected but resetting depth progress. A run also ends on completing the game or falling. Starting a new run at a deeper depth is not possible. Whether a fall is death or unconsciousness, what it costs, and how the collected items are retained between runs remain open. See WORLD.md for the story.
+- **Return after a boss (2026-11-12; not built):** Wren can always get home safely after defeating a boss. The Bellwether starts drawing water back as she retreats, without blocking her way home. Returning ends the expedition. Wren unloads, rests, and prepares, and by her next departure the Bellwether has restored the water and called back the boss or a similar replacement. There is no quick lighthouse visit that resumes the same expedition.
+- **Current game versus this direction:** The current game still ends a run after one boss and unlocks deeper starting depths. Existing Workshop capacity and depth unlock notes below describe the current implementation or earlier plans, not a decision to retain deeper starting depths.
 - Keep this build's rules and balance. Don't retune them. (Lifted for Low Water on 2026-11-11: see "Low Water rework".)
 - Add a guided first fight (tutorial).
 - Do a layout and text-size pass.
@@ -144,7 +147,7 @@ Provisional calls (each can be undone on its own):
 - **Keepsakes** stay, as small trinkets with strong magical effects.
 - You can't carry more than a set number of keepsakes without a strong penalty. This replaces gear overburden.
 - **Magic capacity** grows at deeper levels. The user's analogy: warm air holds more water before it condenses.
-- A lore overhaul comes later.
+- A lore overhaul comes later. What the fiction already says, and what is still open, is in WORLD.md.
 
 Bot check for a keepsake limit (no overloading; at the limit the bot keeps the better one by the starter ranking). The Tide-Bell counts:
 
