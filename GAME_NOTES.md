@@ -80,6 +80,29 @@ The user paused the design work here. Nothing in this section is built. Names an
 5. **Should v0.9.0 get a git tag before the rework,** so the old and new versions can be compared side by side?
 6. **Which slot does the diving suit take, and does it push out the item in that slot?** This question is new, from WORLD.md.
 
+**The user's answers (2026-11-12):**
+- **Question 1, still under discussion. The user proposes a cost per keepsake.**
+  - Every keepsake has a magical cost, and stronger keepsakes cost more.
+  - Deeper levels raise the capacity.
+  - You can equip any number of keepsakes while their total cost stays within capacity.
+  - You may go over, with a penalty that grows with the overshoot.
+  - Future characters could have a higher or lower capacity.
+  - The user isn't sure it's too complex. My response, not decided:
+    - Hollow Knight's charm notches are the precedent.
+    - The concept moves from gear overburden to keepsakes, so the total complexity stays about the same.
+    - Working names: "Charge" for the cost and "Hold" for the capacity.
+    - Cost 1 to 3 pips. My first-guess costs come from the bot starter values: about 3 for Whale Tooth, Drowned Anchor, Storm Bottle and Conch of Echoes; 2 for Whispering Conch, Scallop Charm, Tidewatch and Kelp Bracelet; 1 for the rest. Barnacle Plate needs a nerf as well as a high cost. The bot undervalues synergy keepsakes such as Coral Branch and Salted Hook.
+    - Hold grows by band within the expedition.
+    - Keepsakes brought home could go into a cabinet at the lighthouse. You could start an expedition with some of them, up to the Shallows Hold. Keepsakes Wren carries when she falls would be lost.
+- **Question 2:** the user wants a penalty that fits the lore. I proposed two:
+  - **Seep**: the charge she can't hold condenses into seawater. Each fight, 1 unplayable Seep card per point over goes into the draw pile, and it leaves after the fight.
+  - **A guttering lantern**: water drips onto her open flame, so she has 1 less Light on turn 1 per point over.
+  - Measure both with the bot.
+- **Question 3:** the user asked what the Tide-Bell does. It is the starter keepsake: "Whenever you Crest or reach Low Water, draw 1 card". The bot rates it at about +2 points. WORLD.md says it is the keeper's own tool, not magic from the deep. My proposal is that it becomes the starting off-hand kit, and the off-hand always holds a bell, with other bells unlocked later.
+- **Question 4:** yes. Move the money keepsakes into kit, drop the charts and Storm Lens, and rebalance the outliers. The user suggests an **off-hand** slot next to the weapon. The slots would then be Head, Weapon, Off-hand, Body and Belt. The Belt may need 2 spaces for all the money items.
+- **Question 5:** yes. The local tag `v0.9.0` is on 483d635, the build that went live on 2026-11-12. It isn't pushed.
+- **Question 6:** the suit replaces the item in its slot. Which slot it takes is postponed until the final depth exists.
+
 ### Later slices of meta-progression (planned 2026-11-11)
 
 - Starting keepsakes, after the first Shallows win.
