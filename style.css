@@ -658,12 +658,38 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 /* crest chains */
 .crest-text { display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
 .crest-text b { color: #fff6c9; text-shadow: 0 0 18px #ffb84d, 0 3px 8px #000; }
-.crest-text small { font-family: var(--sans); font-size: .32em; letter-spacing: .12em; font-weight: 800; color: #d8f6ff; margin-top: .2em; }
+.crest-text small { font-family: var(--sans); font-size: max(13px, .32em); letter-spacing: .12em; font-weight: 800; color: #d8f6ff; margin-top: .2em; }
 .crest-text.chain-2 { font-size: clamp(36px, 7.5vw, 68px); }
 .crest-text.chain-3 { font-size: clamp(42px, 9vw, 84px); color: #fff8dc; text-shadow: 0 0 26px #ffcf6e, 0 0 50px #5fd3ee, 0 3px 8px #000; }
 .crest-text.chain-4 { font-size: clamp(48px, 10.5vw, 100px); color: #fffbe8; text-shadow: 0 0 30px #ff9d5c, 0 0 60px #ffd36e, 0 0 90px #5fd3ee, 0 3px 8px #000; }
 .crest-wave.chain-2::before { filter: blur(2px) brightness(1.15); }
 .crest-wave.chain-3::before, .crest-wave.chain-4::before { filter: blur(2px) brightness(1.35) hue-rotate(-15deg); width: 90%; }
+
+/* chain bonuses (Tidal Fury, Deep Ebb) and Low Water's strand, shown the moment they happen */
+.crest-text.fury { animation-duration: 2s; }
+.chain-ribbon {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; margin-top: .4em; padding: 7px 26px;
+  font-family: var(--sans); font-size: 18px; letter-spacing: .06em; white-space: nowrap;
+  background: linear-gradient(90deg, rgba(58, 34, 4, 0), rgba(58, 34, 4, .94) 14%, rgba(58, 34, 4, .94) 86%, rgba(58, 34, 4, 0));
+  animation: ribbonIn .5s cubic-bezier(.2, 1.4, .4, 1) .15s both;
+}
+.chain-ribbon b { color: #ffe08a; font-weight: 900; text-transform: uppercase; text-shadow: 0 0 12px rgba(255, 190, 70, .9), 0 2px 4px #000; }
+.chain-ribbon em { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-weight: 800; color: #fff3d6; letter-spacing: .02em; text-shadow: 0 1px 3px #000; }
+.chain-ribbon em svg { width: 17px; height: 17px; }
+.chain-ribbon::after { content: ""; position: absolute; top: 0; bottom: 0; width: 35%; left: -45%; background: linear-gradient(100deg, transparent, rgba(255, 240, 200, .5), transparent); animation: ribbonGlint .9s ease .5s forwards; }
+.crest-text.low .chain-ribbon { background: linear-gradient(90deg, rgba(8, 22, 62, 0), rgba(8, 22, 62, .94) 14%, rgba(8, 22, 62, .94) 86%, rgba(8, 22, 62, 0)); }
+.crest-text.low .chain-ribbon b { color: #dbe7ff; text-shadow: 0 0 12px rgba(110, 150, 255, .9), 0 2px 4px #000; }
+@keyframes ribbonIn { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+@keyframes ribbonGlint { to { left: 120%; } }
+.field.fury-flash::before { content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; background: radial-gradient(ellipse at 50% 32%, rgba(255, 214, 130, .38), transparent 62%); animation: furyFlash .9s ease forwards; }
+@keyframes furyFlash { from { opacity: 1; } to { opacity: 0; } }
+.float.ward-lost { font-family: var(--sans); font-size: 21px; font-weight: 900; color: #e6efff; text-shadow: 0 0 8px #2f63c4, 0 0 3px #000, 0 2px 4px #000, 0 0 14px #000; }
+.float.light-gain { font-family: var(--sans); font-size: 17px; font-weight: 900; color: #fff1c9; text-shadow: 0 0 10px #ffb84d, 0 2px 4px #000; }
+.ward-badge.shatter { animation: wardShatter .55s ease-in forwards; }
+@keyframes wardShatter { 0% { transform: translateY(-50%); } 30% { transform: translateY(-50%) scale(1.25) rotate(-8deg); filter: brightness(1.7); } 100% { transform: translateY(10%) scale(.5) rotate(20deg); opacity: 0; } }
+.light-orb.gain { animation: orbGain .7s ease; }
+@keyframes orbGain { 35% { transform: scale(1.25); box-shadow: 0 0 42px rgba(255, 224, 150, 1), inset 0 -4px 10px rgba(0, 0, 0, .35); } }
+@media (prefers-reduced-motion: reduce) { .chain-ribbon, .chain-ribbon::after, .ward-badge.shatter { animation: none; } .ward-badge.shatter { opacity: 0; } }
 .echo-text {
   position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); z-index: 6; pointer-events: none;
   font-family: var(--serif); font-size: clamp(26px, 5vw, 46px); letter-spacing: .2em; color: #f3e3ff; text-shadow: 0 0 18px #a77be0, 0 3px 8px #000;

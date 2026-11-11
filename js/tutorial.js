@@ -161,7 +161,7 @@
       playStep('crest', 'shellup', null,
         () => 'At 6 the wave <b>Crests</b>: 6 damage to <b>every</b> enemy. Play <b>Shell Up</b> (Surge 1).'),
       playStep('ebb', 'slack', null,
-        () => '<b>Crest!</b> The Tide resets to 3. Now play <b>Slack Water</b> (Ebb 2). At 0 you get <b>Low Water</b>: +6 Ward.'),
+        () => '<b>Crest!</b> The Tide resets to 3. Now play <b>Slack Water</b> (Ebb 2). At 0 you get <b>Low Water</b>: enemies lose their Ward, and you gain 1 Light.'),
       { id: 'end2', endTurn: true, anchor: '#btn-end',
         html: () => `Tide 1. It stays put between turns. ${tap()} <b>End Turn</b>.${kbd('Or press E')}` },
       { id: 'reshuffle', info: true, anchor: '#pile-draw',
@@ -169,7 +169,7 @@
       playStep('low', 'riptide', 'tut_crab',
         () => `Play <b>Riptide Cut</b> on the crab: Ebb 1 takes the Tide to 0, <b>Low Water</b>.`),
       playStep('payoff', 'stormsurge', null,
-        () => '<b>+6 Ward!</b> Now the payoff: extra Surge <b>carries over</b>, and each extra Crest in a turn hits 3 harder. Play <b>Storm Surge</b> (Surge 6) to Crest twice.'),
+        () => '<b>+1 Light!</b> Now the payoff: extra Surge <b>carries over</b>, and each extra Crest in a turn hits 3 harder. Play <b>Storm Surge</b> (Surge 6) to Crest twice.'),
     ];
 
     const tut = { active: false, i: 0, resume: false, note: null };
@@ -256,7 +256,7 @@
         <ul>
           <li><b>Attack</b> to bring enemy HP to 0, and <b>Ward</b> up against their intents.</li>
           <li>Each turn: <b>3 Light</b>, <b>5 cards</b>. The discard pile comes back when you run out.</li>
-          <li><b>Surge</b> to 6 to <b>Crest</b> (hits every enemy). <b>Ebb</b> to 0 for <b>Low Water</b> (Ward). Save Surge for one big turn: chained Crests hit harder.</li>
+          <li><b>Surge</b> to 6 to <b>Crest</b> (hits every enemy). <b>Ebb</b> to 0 for <b>Low Water</b> (enemies lose their Ward, +1 Light). Save Surge for one big turn: chained Crests hit harder.</li>
         </ul>
         <p class="muted">The full rules are in How to Play, in the menu.</p></div>`;
       const foot = (tut.resume ? '<button class="btn" data-act="tutback">Back to my run</button>' : '<button class="btn" data-act="tutback">Title screen</button>') +

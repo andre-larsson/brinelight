@@ -10,7 +10,7 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 
 ## Decisions the user made
 
-- Keep this build's rules and balance. Don't retune them.
+- Keep this build's rules and balance. Don't retune them. (Lifted for Low Water on 2026-11-11: see "Low Water rework".)
 - Add a guided first fight (tutorial).
 - Do a layout and text-size pass.
 - Add rule tests and a UI smoke test so later changes are safe.
@@ -64,6 +64,49 @@ Provisional calls (each can be undone on its own):
 3. **Phones:** covered hand cards now show a correct but shorter name ("Br…", "H…") instead of one with its first letters under the coin ("race", "Har…"). Tap to raise a card for the full name. A smaller coin would buy one or two letters.
 4. **Tutorial text** grew by about 30 words (the LETHAL aside and the reasons).
 
+## Low Water rework (2026-11-11)
+
+**Why.** The user felt Ebb was harder to do than Surge and paid less, and that Ward cards felt flat. The bot agreed. A Crest hit 1.4 enemies for about 10 damage. Low Water gave 6 Ward, and about two thirds of it blocked nothing. The card pool also has 6 Surge attacks against 3 Ebb attacks, and Tidal Fury and the score counted only Crests.
+
+**Decided with the user:**
+- **Low Water:** enemies lose all their Ward, and you gain 1 Light. It gives no Ward of its own. It still draws with the Tide-Bell and still resets the Tide to 3.
+- **Low Water is rewarded the same way as Crest.** A new bonus, **Deep Ebb**, pays for 2+ Low Waters in one turn, at the Tidal Fury rate (6 Pearls per Low Water in the chain). The score counts Low Waters and the best Low Water chain the same way as Crests.
+- **Tidal Fury and Deep Ebb are announced the moment a new best chain earns them.** A ribbon under the CREST / LOW WATER text shows "★ Tidal Fury, +12 Pearls", with a flash and a sound. There's no ribbon where no Pearls are paid (the tutorial and the boss).
+- **Low Water says what it did:** "Enemy Ward gone · +1 Light". Each stripped Ward badge cracks and falls away with a "-9 Ward" float, and the Light orb flares with "+1 Light".
+- **Keyword legend on card choices.** Rewards, the shop and event card picks list every keyword on the offered cards, once each. Pointing at or focusing a card lights its own entries. The reward and shop first-time hints now sit above the cards so they don't cover the legend.
+
+**Rejected in discussion (don't re-propose without new reasons):**
+- A Tide that moves on its own each turn. It locks players into following the flow.
+- Random Surge/Ebb on attack and Ward cards. It breaks plans and the previews.
+- Enemy Tide weaknesses or strengths that favour one end. They force a strategy. If enemy Tide traits come back, use ones that disrupt both ends equally (like the Siren's Lullaby), or small one-sided bonuses, never immunities.
+
+**Prototypes tried (bot, 1000 Shallows runs; 21.1% before):**
+
+| Low Water also… | Bot win rate |
+|---|---|
+| deals half your Ward to all enemies | 44.0% |
+| deals a quarter of your Ward to all enemies | 30.4% |
+| strips enemy Ward (keeping its 6 Ward) | 21.4% |
+| +1 Light (keeping its 6 Ward) | 29.2% |
+| Soaked 2 on all enemies, no Ward | 22.4% |
+| **strips enemy Ward, +1 Light, no Ward (shipped)** | **23.7% prototype, 24.2% as shipped** |
+
+The shipped figure also includes the Tidal Memory and Spring Tide changes below. The bot doesn't plan move order, so it undervalues stripping Ward before a big hit.
+
+Provisional calls (each can be undone on its own):
+
+1. **Kelp Bracelet** ("Low Water gives 5 more Ward") now reads "Whenever you reach Low Water, gain 8 Ward". That brings back a defensive Low Water for players who want one.
+2. **Tidal Memory** ("whenever you Crest or reach Low Water, gain 1 Light") is now Crest only, since Low Water gives Light by itself. Stacking both would make Ebb loops (Bilge Pump plus Riptide Cut) gain Light.
+3. **Spring Tide** is now "Reach Low Water, then Crest", so the Crest lands on enemies whose Ward was just stripped.
+4. **Low Water chains:** every Low Water gives a flat 1 Light. Crests still grow by 3 per chain.
+5. **The tutorial** says what Low Water does ("enemies lose their Ward, and you gain 1 Light"). It doesn't show the strip, because the crab has no Ward on turn 3. Showing it would mean changing the crab's moves.
+6. **The Tide bar hint** reads "Low Water! Enemy Ward gone, +1 Light". When the keyword box leaves no room on the bar, the hint lifts above the box.
+7. **Old saves and best scores:** a saved run continues under the new rule. Scores are a little higher now that Low Waters count.
+
+## For later (from the user)
+
+- **Unlockable permanent effects that last across runs** (meta-progression), so players can reach the deeper Depths. Not started. Open questions: what unlocks them (score, wins, Depth reached, a currency), and whether they're always on or chosen before a run. They also must not make Shallows trivial.
+
 ## Measurements (latest)
 
 - **First real fight** (rules unchanged), bot over 500 seeds, median / p90:
@@ -74,7 +117,7 @@ Provisional calls (each can be undone on its own):
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot, 1000 seeds): win 21.1%, average depth 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets.
+- **Bot run outcomes** (careful bot, 1000 seeds): win 24.2% (21.1% before the Low Water rework), average depth 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets.
 
 ## Tools
 
@@ -108,3 +151,6 @@ Provisional calls (each can be undone on its own):
 - Do the Hollow Siren, the Angler Twins and the Bellwether feel noticeably harder (Soaked fix)?
 - Does the shop's "Buy X for N Pearls?" step feel safe or slow?
 - Shallows felt easy in the 2026-11-11 playtest (lowest HP 43/80, won with 66/80). Does it for you?
+- Low Water rework: is an Ebb deck now worth building? Do you miss Low Water's Ward? Does the strip read clearly when it happens?
+- Do you notice Tidal Fury and Deep Ebb when you earn them?
+- On reward screens, does the keyword legend help, or is it clutter?

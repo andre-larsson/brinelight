@@ -160,7 +160,7 @@
   card('tidalmemory', {
     name: 'Tidal Memory', type: 'rite', rarity: 'uncommon', cost: 2, target: 'none',
     v: { n: 1 }, up: { cost: 1 }, art: 'c_tidalmemory',
-    text: () => `Whenever you Crest or reach Low Water, gain 1 Light.`,
+    text: () => `Whenever you Crest, gain 1 Light.`,
     play: (A, v) => A.rite('r_tidalmemory', v.n),
   });
   card('volley', {
@@ -279,8 +279,8 @@
   card('springtide', {
     name: 'Spring Tide', type: 'skill', rarity: 'rare', cost: 1, target: 'none', sink: true,
     v: {}, up: { cost: 0 }, art: 'c_springtide',
-    text: () => `Crest, then reach Low Water. Sink.`,
-    play: (A) => { A.crest(); A.lowWater(); },
+    text: () => `Reach Low Water, then Crest. Sink.`,
+    play: (A) => { A.lowWater(); A.crest(); },
   });
 
   // ---------- Status & curse ----------
@@ -324,7 +324,7 @@
     Ebb: 'Lower the Tide. At 0 you reach Low Water; any extra keeps falling from 3.',
     Tide: 'The sea level, from 0 to 6. It starts each fight at 3.',
     Crest: 'The wave breaks: deal 6 damage to ALL enemies, +3 for every earlier Crest this turn. Then the Tide resets to 3.',
-    'Low Water': 'The sea pulls back: gain 6 Ward, +3 for every earlier Low Water this turn. Then the Tide resets to 3.',
+    'Low Water': 'The sea pulls back: enemies lose all their Ward, and you gain 1 Light. Then the Tide resets to 3.',
     Sink: 'After you play it, this card is gone for the rest of the fight.',
     Float: 'Stays in your hand at the end of your turn.',
     Rite: 'Rites stay in effect for the rest of the fight once played.',
@@ -346,7 +346,7 @@
     chilled: { name: 'Chilled', kind: 'debuff', icon: 'chilled', desc: (n) => `Deals 25% less attack damage for ${n} more turn${n > 1 ? 's' : ''}.` },
     brine: { name: 'Brine', kind: 'debuff', icon: 'brine', desc: (n) => `Loses ${n} HP at the start of its turn, then Brine drops by 1.` },
     r_moonpull: { name: 'Moon Pull', kind: 'rite', icon: 'moon', desc: (n) => `At the start of your turn, Surge ${n}.` },
-    r_tidalmemory: { name: 'Tidal Memory', kind: 'rite', icon: 'shell', desc: (n) => `Whenever you Crest or reach Low Water, gain ${n} Light.` },
+    r_tidalmemory: { name: 'Tidal Memory', kind: 'rite', icon: 'shell', desc: (n) => `Whenever you Crest, gain ${n} Light.` },
     r_maelstrom: { name: 'Maelstrom', kind: 'rite', icon: 'vortex', desc: (n) => `Crests deal ${n + 1}x damage.` },
     r_spindrift: { name: 'Spindrift', kind: 'rite', icon: 'wave', desc: (n) => `Whenever you Surge, deal ${n} damage to a random enemy.` },
     r_abyss: { name: 'Abyssal Pull', kind: 'rite', icon: 'anchor', desc: (n) => `Whenever you reach Low Water, deal ${n} damage to ALL enemies.` },
@@ -551,7 +551,7 @@
     pearlearring: { name: 'Pearl Earring', art: 'k_pearlearring', desc: 'Gain 10 extra Pearls after each fight.' },
     tidewatch: { name: 'Tidewatch', art: 'k_tidewatch', desc: 'Your Crests deal 4 more damage.' },
     moonshard: { name: 'Moon Shard', art: 'k_moonshard', desc: 'Start each fight at Tide 5.' },
-    kelpbracelet: { name: 'Kelp Bracelet', art: 'k_kelpbracelet', desc: 'Low Water gives 5 more Ward.' },
+    kelpbracelet: { name: 'Kelp Bracelet', art: 'k_kelpbracelet', desc: 'Whenever you reach Low Water, gain 8 Ward.' },
     gullfeather: { name: 'Gull Feather', art: 'k_gullfeather', desc: 'Draw 2 extra cards on your first turn of each fight.' },
     biscuit: { name: 'Scallop Charm', art: 'k_biscuit', desc: 'When picked up, raise your Max HP by 10 and heal 10.' },
     stormbottle: { name: 'Storm Bottle', art: 'k_stormbottle', desc: 'Every 3rd turn of a fight, gain 1 extra Light.' },

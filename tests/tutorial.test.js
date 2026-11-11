@@ -58,7 +58,7 @@ test('the tutorial fight plays out as scripted', () => {
   assert.deepEqual(handIds(c), ['riptide', 'stormsurge', 'jab', 'jab', 'brace']);
   playId(run, 'riptide', 'tut_crab');
   assert.equal(c.turnLows, 1);
-  assert.equal(c.player.ward, 6);
+  assert.equal(c.light, 3 + 1, 'Riptide Cut is free and Low Water gives 1 Light');
   assert.ok(!c.won);
   playId(run, 'stormsurge');
   assert.equal(c.turnCrests, 2);

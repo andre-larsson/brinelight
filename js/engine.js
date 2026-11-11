@@ -88,7 +88,7 @@
       nextUid: 1, floor: 0, pos: null, screen: 'map',
       combat: null, rewards: null, shop: null, event: null, treasure: null,
       removeCost: 75, seenEvents: [], lastEnc: [], normalFights: 0,
-      stats: { fights: 0, elites: 0, cardsPlayed: 0, dmgDealt: 0, dmgTaken: 0, crests: 0, lows: 0, maxChain: 0, kills: 0, bonuses: 0, elapsed: 0, lastTick: Date.now() },
+      stats: { fights: 0, elites: 0, cardsPlayed: 0, dmgDealt: 0, dmgTaken: 0, crests: 0, lows: 0, maxChain: 0, maxLowChain: 0, kills: 0, bonuses: 0, elapsed: 0, lastTick: Date.now() },
       log: [],
     };
     BL.STARTER_DECK.forEach((id) => run.deck.push(E.newCard(run, id)));
@@ -453,7 +453,7 @@
       player: { ward: 0, st: {} },
       enemies: [], fx: [], nextEid: 1, won: false, lost: false,
       flags: { hpLost: false }, phase: 'player', bonusPearls: (opts && opts.bonusPearls) || 0,
-      turnCrests: 0, turnLows: 0, fightCrests: 0, maxChain: 0, echo: 0, dmgMul: E.levelMods(run.level).dmg, pearlsWon: 0,
+      turnCrests: 0, turnLows: 0, fightCrests: 0, maxChain: 0, maxLowChain: 0, echo: 0, dmgMul: E.levelMods(run.level).dmg, pearlsWon: 0,
     };
     run.combat = c;
     run.screen = 'combat';
@@ -582,8 +582,6 @@
 
   function onTideTurn(run, c) {
     if (E.has(run, 'tidebell')) { fx(c, { t: 'ks', k: 'tidebell' }); drawCards(run, c, 1); }
-    const mem = c.player.st.r_tidalmemory || 0;
-    if (mem) c.light += mem;
   }
 
   /* Wave damage (Crests and similar): not an attack, but Soaked targets take 50% more. */
@@ -603,28 +601,45 @@
     fx(c, { t: 'pearls', n });
   }
 
+  /* Fight-end bonus Pearls for chains: Tidal Fury (2+ Crests in a turn) and Deep Ebb (2+ Low Waters). */
+  E.chainBonus = (chain) => (chain >= 2 ? 6 * chain : 0);
+  /* The bonus a new best chain earns, for the moment it happens (0 when it isn't a new best or nothing pays). */
+  function newChainBonus(run, c, chain, best) {
+    if (chain < 2 || chain <= best || run.tutorial || c.kind === 'boss') return 0;
+    return E.chainBonus(chain);
+  }
+
   /* Crest: the wave breaks. Each extra Crest in the same turn hits 3 harder. */
   function crest(run, c) {
     if (c.won || c.lost) return;
     c.turnCrests++;
     c.fightCrests++;
+    const fury = newChainBonus(run, c, c.turnCrests, c.maxChain);
     c.maxChain = Math.max(c.maxChain, c.turnCrests);
     run.stats.maxChain = Math.max(run.stats.maxChain || 0, c.turnCrests);
     const dmg = E.crestDamage(run, c, c.turnCrests);
     run.stats.crests++;
-    fx(c, { t: 'crest', n: dmg, chain: c.turnCrests });
+    fx(c, { t: 'crest', n: dmg, chain: c.turnCrests, fury });
     E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, dmg), null, false));
     if (E.has(run, 'pearlstrand')) { fx(c, { t: 'ks', k: 'pearlstrand' }); gainPearls(run, c, 3); }
+    const mem = c.player.st.r_tidalmemory || 0;
+    if (mem) { c.light += mem; fx(c, { t: 'light', n: mem }); }
     c.tide = TIDE_MID;
     onTideTurn(run, c);
   }
-  /* Low Water: the sea pulls back. Each extra Low Water in the same turn gives 3 more Ward. */
+  /* Low Water: the sea pulls back and strands the enemies. They lose all their Ward, and you gain 1 Light. */
   function lowWater(run, c) {
     if (c.won || c.lost) return;
     c.turnLows++;
+    const ebb = newChainBonus(run, c, c.turnLows, c.maxLowChain || 0);
+    c.maxLowChain = Math.max(c.maxLowChain || 0, c.turnLows);
     run.stats.lows++;
-    fx(c, { t: 'low', chain: c.turnLows });
-    gainWard(c, c.player, 6 + 3 * (c.turnLows - 1) + (E.has(run, 'kelpbracelet') ? 5 : 0));
+    run.stats.maxLowChain = Math.max(run.stats.maxLowChain || 0, c.turnLows);
+    const stripped = [];
+    E.alive(c).forEach((e) => { if (e.ward > 0) { stripped.push({ who: e.uid, n: e.ward }); e.ward = 0; } });
+    c.light += 1;
+    fx(c, { t: 'low', chain: c.turnLows, stripped, light: 1, ebb });
+    if (E.has(run, 'kelpbracelet')) { fx(c, { t: 'ks', k: 'kelpbracelet' }); gainWard(c, c.player, 8); }
     const abyss = (c.player.st.r_abyss || 0) + (E.has(run, 'anchor') ? 4 : 0);
     if (E.has(run, 'anchor')) fx(c, { t: 'ks', k: 'anchor' });
     if (abyss) E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, abyss), null, false));
@@ -808,7 +823,9 @@
       damage += Math.max(0, e.hp) - Math.max(0, e2.hp);
       if (e2.dead && !e.dead) kills++;
     });
-    return { crests: c2.turnCrests - c.turnCrests, lows: c2.turnLows - c.turnLows, chain: c2.turnCrests, kills, won: c2.won, damage };
+    // Ward the play's Low Waters would strip (after the card's own hit has worn some of it down)
+    const stripped = (c2.fx || []).reduce((a, f) => a + (f.t === 'low' ? f.stripped.reduce((x, s) => x + s.n, 0) : 0), 0);
+    return { crests: c2.turnCrests - c.turnCrests, lows: c2.turnLows - c.turnLows, chain: c2.turnCrests, kills, won: c2.won, damage, stripped };
   };
 
   E.useTonic = function (run, slot, targetUid) {
@@ -1025,7 +1042,8 @@
     const bonuses = [];
     if (!c.flags.hpLost) bonuses.push({ name: 'Flawless', desc: 'Won without losing HP', pearls: elite ? 20 : 12 });
     if (c.turn <= (elite ? 4 : 3)) bonuses.push({ name: 'Swift', desc: `Won on turn ${c.turn}`, pearls: elite ? 12 : 8 });
-    if (c.maxChain >= 2) bonuses.push({ name: 'Tidal Fury', desc: `${c.maxChain} Crests in a single turn`, pearls: 6 * c.maxChain });
+    if (c.maxChain >= 2) bonuses.push({ name: 'Tidal Fury', desc: `${c.maxChain} Crests in a single turn`, pearls: E.chainBonus(c.maxChain) });
+    if ((c.maxLowChain || 0) >= 2) bonuses.push({ name: 'Deep Ebb', desc: `${c.maxLowChain} Low Waters in a single turn`, pearls: E.chainBonus(c.maxLowChain) });
     bonuses.forEach((b) => { pearls += b.pearls; });
     run.stats.bonuses = (run.stats.bonuses || 0) + bonuses.length;
     run.pearls += pearls;
@@ -1057,7 +1075,7 @@
   /* Score for the end screen. */
   E.score = function (run, won) {
     const st = run.stats;
-    let s = run.floor * 40 + (st.kills || 0) * 12 + st.elites * 80 + st.crests * 6 + (st.maxChain || 0) * 30 + (st.bonuses || 0) * 15;
+    let s = run.floor * 40 + (st.kills || 0) * 12 + st.elites * 80 + st.crests * 6 + (st.maxChain || 0) * 30 + (st.lows || 0) * 6 + (st.maxLowChain || 0) * 30 + (st.bonuses || 0) * 15;
     if (won) s += 600 + run.hp * 5;
     return Math.round(s * (1 + 0.25 * (run.level || 0)));
   };

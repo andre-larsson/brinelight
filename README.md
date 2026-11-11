@@ -36,11 +36,11 @@ The menu (top right) has the tutorial, How to Play, sound effects on/off, music 
 **The Tide** is the game's central mechanic. It's a gauge from 0 to 6 that starts every fight at 3.
 - **Surge** raises it and **Ebb** lowers it.
 - At 6 the wave **Crests**: it deals 6 damage to every enemy, then the Tide resets to 3.
-- At 0 you hit **Low Water**: you gain 6 Ward, then the Tide resets to 3.
+- At 0 you hit **Low Water**: the sea pulls back and strands the enemies. They lose all their Ward, and you gain 1 Light. Then the Tide resets to 3.
 - **Extra Surge or Ebb carries over.** It keeps flowing from 3, so Surge 6 from Tide 3 Crests twice.
 - **Chains:**
   - Every extra Crest in the same turn hits 3 harder (6, 9, 12, 15...).
-  - Every extra Low Water gives 3 more Ward.
+  - Every Low Water gives 1 Light, so a turn that reaches it twice gets 2 back.
   - Saving up Surges for one big turn is the core skill.
 - Your starting keepsake, the Brass Tide-Bell, draws a card whenever you Crest or hit Low Water.
 - Some cards scale with the Tide (Undercurrent, Tsunami, Lighthouse Beam) or with chains (Toppled Tower costs 1 less per Crest this turn).
@@ -74,7 +74,10 @@ After each fight you get Pearls, maybe a tonic, and a choice of 3 cards. Reward 
 Fights also pay bonus Pearls for:
 - **Flawless:** no HP lost.
 - **Swift:** won within 3 turns (4 for elites).
-- **Tidal Fury:** 2 or more Crests in one turn.
+- **Tidal Fury:** 2 or more Crests in one turn (6 Pearls per Crest in the chain).
+- **Deep Ebb:** 2 or more Low Waters in one turn (6 Pearls per Low Water in the chain).
+
+Both are announced the moment you earn them. The score counts Crests and Low Waters, and the best chain of each, the same way.
 
 **Depths and score.** Every run ends with a score, and your best is kept. Beating the boss unlocks the next starting depth:
 - Shallows → Dark Water → Riptide → The Abyss.
@@ -89,7 +92,8 @@ Fights also pay bonus Pearls for:
   - There are also 3 status cards that enemies add to your deck, and 1 curse.
   - The cards support several builds:
     - Crest chaining (Storm Surge, Siren's Echo, Toppled Tower, Maelstrom, Spindrift).
-    - Low Water and Ward (Breakwater, Abyssal Pull, Deep Guard).
+    - Low Water tempo: Ebb to strip enemy Ward and win back Light (Riptide Cut, Bilge Pump, Depth Charge, Abyssal Pull).
+    - Ward (Sea Wall, Deep Guard, Breakwater).
     - Brine (Brine Bloom, Brine Spear, Salt Ward).
     - Might multi-hits.
 - **13 enemies:**

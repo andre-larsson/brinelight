@@ -148,6 +148,13 @@
       kill: () => { noise(0.35, 0.3, 2400, 'bandpass', 300, 0, 0.7); tone(330, 0.25, 'triangle', 0.08, 660); },
       echo: () => { tone(660, 0.4, 'sine', 0.07); tone(660, 0.4, 'sine', 0.04, null, 0.18); tone(990, 0.5, 'sine', 0.03, null, 0.3); },
       pearl: () => { tone(1568, 0.09, 'sine', 0.05); tone(2093, 0.16, 'sine', 0.045, null, 0.08); },
+      // a chain bonus (Tidal Fury rising, Deep Ebb falling), then a glint of Pearls
+      fury: (down) => {
+        (down ? [784, 587, 392, 294] : [523, 659, 784, 1046]).forEach((f, i) => tone(f, 0.55, 'triangle', 0.08, null, i * 0.09));
+        tone(2093, 0.25, 'sine', 0.04, null, 0.42); tone(2637, 0.3, 'sine', 0.03, null, 0.5);
+      },
+      strand: () => { noise(0.22, 0.18, 2600, 'bandpass', 700); tone(520, 0.28, 'triangle', 0.06, 190); },
+      lightgain: () => { tone(880, 0.18, 'sine', 0.06, 1320); tone(1760, 0.22, 'sine', 0.025, null, 0.08); },
       phase: () => { tone(98, 2.5, 'sawtooth', 0.12, 49); noise(1.6, 0.3, 200, 'lowpass', 60); tone(196, 2.4, 'sine', 0.18); },
       danger: () => { tone(220, 0.18, 'square', 0.03); tone(208, 0.18, 'square', 0.03, null, 0.2); },
     };
@@ -574,9 +581,9 @@
       case 'tide': return `<ul class="help-list">
         <li>A gauge from <b>0 to 6</b>. It starts every fight at 3 and stays put between turns.</li>
         <li><b>Surge</b> raises it. <b>Ebb</b> lowers it.</li>
-        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Low Water</b> at 0: gain 6 Ward. Either way the Tide resets to 3.</li>
+        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Low Water</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Tide resets to 3.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
-        <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Each extra Low Water gives 3 more Ward. Save Surge for one big turn.</li>
+        <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Low Water gives 1 Light. Save Surge for one big turn.</li>
         <li>Your <b>Tide-Bell</b> draws a card on every Crest and Low Water.</li>
         <li>Badges on your cards say what a card would do right now: ${['CREST', 'LETHAL', 'VICTORY', 'LOW WATER', 'ECHO'].map((b) => `<span class="c-badge ${b.split(' ')[0].toLowerCase()}">${b}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
@@ -592,7 +599,7 @@
         [`${NODE_ICON.treasure} Wreck`, 'Pearls, and 1 of 3 keepsakes.'],
       ])}<ul class="help-list">
         <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
-        <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads) and <b>Tidal Fury</b> (2+ Crests in a turn).</li>
+        <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>Deep Ebb</b> (2+ Low Waters in a turn).</li>
         <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
       </ul>`;
@@ -1066,9 +1073,11 @@
         for (let k = 1; k <= p.crests; k++) hits.push(E.crestDamage(run, c, c.turnCrests + k));
         hint = `<div class="tb-hint">Crest${p.crests > 1 ? ' x' + p.crests : ''}! ${hits.join(' + ')} damage to all</div>`;
       } else if (p && p.lows) {
-        const ward = [];
-        for (let k = 1; k <= p.lows; k++) ward.push(6 + 3 * (c.turnLows + k - 1) + (E.has(run, 'kelpbracelet') ? 5 : 0));
-        hint = `<div class="tb-hint">Low Water${p.lows > 1 ? ' x' + p.lows : ''}! +${ward.join(' + ')} Ward</div>`;
+        // the card's own hit lands first, so name the Ward it would strip only if some is left to strip
+        const parts = [`+${p.lows} Light`];
+        if (p.stripped) parts.unshift('Enemy Ward gone');
+        if (E.has(run, 'kelpbracelet')) parts.push(`+${8 * p.lows} Ward`);
+        hint = `<div class="tb-hint">Low Water${p.lows > 1 ? ' x' + p.lows : ''}! ${parts.join(', ')}</div>`;
       }
     }
     tb.setAttribute('aria-label', `Tide ${c.tide} of 6`);
@@ -1296,6 +1305,11 @@
         hint.style.transform = 'none';
         hint.style.left = boxOnRight ? '0' : 'auto';
         hint.style.right = boxOnRight ? 'auto' : '0';
+        // still under the box (a long hint on a narrow bar): lift it clear of the box's top edge
+        const a2 = hint.getBoundingClientRect();
+        if (a2.right > b.left && a2.left < b.right && a2.bottom > b.top && a2.top < b.bottom) {
+          hint.style.top = (parseFloat(getComputedStyle(hint).top) - (a2.bottom - b.top) - 6) + 'px';
+        }
       }
     }
   }
@@ -1503,6 +1517,9 @@
     d.style.left = (r.left + r.width / 2 + (Math.random() * 40 - 20)) + 'px';
     d.style.top = (r.top + r.height * 0.4 + (Math.random() * 20 - 10)) + 'px';
     fxLayer.appendChild(d);
+    // keep it on screen (the Light orb sits at the left edge)
+    const half = d.offsetWidth * 0.6; // centred, and it pops to 115% size
+    d.style.left = Math.max(6 + half, Math.min(innerWidth - 6 - half, parseFloat(d.style.left))) + 'px';
     setTimeout(() => d.remove(), 1200);
   }
   function anim(el, cls, ms) {
@@ -1543,6 +1560,10 @@
     d.style.transform = `translate(-50%,-50%) rotate(${-40 + Math.random() * 30}deg)`;
     fxLayer.appendChild(d);
     setTimeout(() => d.remove(), 350);
+  }
+  /* The chain bonus, shown inside the Crest / Low Water text the moment it is earned (paid after the fight). */
+  function chainRibbon(name, pearls) {
+    return `<div class="chain-ribbon"><b>&#9733; ${name}</b><em>${ICON.pearl}+${pearls} Pearls</em></div>`;
   }
   function banner(text, cls) {
     const f = $('#field');
@@ -1635,27 +1656,52 @@
             const w = document.createElement('div'); w.className = 'crest-wave chain-' + Math.min(chain, 4); field.appendChild(w);
             const t = document.createElement('div');
             t.className = 'crest-text chain-' + Math.min(chain, 4);
-            t.innerHTML = `<span>CREST${chain > 1 ? ' <b>x' + chain + '</b>' : ''}!</span><small>${f.n} to all</small>`;
+            t.innerHTML = `<span>CREST${chain > 1 ? ' <b>x' + chain + '</b>' : ''}!</span><small>${f.n} to all</small>${f.fury ? chainRibbon('Tidal Fury', f.fury) : ''}`;
+            if (f.fury) { t.classList.add('fury'); anim(field, 'fury-flash', 900); }
             field.appendChild(t);
-            setTimeout(() => { w.remove(); t.remove(); }, 1400);
+            setTimeout(() => { w.remove(); t.remove(); }, f.fury ? 2100 : 1400);
             anim(field, chain > 1 ? 'impact' : 'shake', 420);
           }
           sfx('crest');
           if (chain > 1) sfx('chain', chain);
-          await wait(380 + Math.min(chain, 4) * 60);
+          if (f.fury) setTimeout(() => sfx('fury'), 160);
+          await wait(380 + Math.min(chain, 4) * 60 + (f.fury ? 420 : 0));
           break;
         }
         case 'low': {
           const field = $('#field');
+          const stripped = f.stripped || [];
           if (field) {
             field.classList.add('drain');
             field.style.setProperty('--tide', 0);
             $$('.crest-text', field).forEach((x) => x.remove());
-            const t = document.createElement('div'); t.className = 'crest-text low'; t.innerHTML = `<span>LOW WATER${(f.chain || 1) > 1 ? ' <b>x' + f.chain + '</b>' : ''}</span>`; field.appendChild(t);
-            setTimeout(() => { t.remove(); field.classList.remove('drain'); }, 1300);
+            const what = [stripped.length ? 'Enemy Ward gone' : '', f.light ? `+${f.light} Light` : ''].filter(Boolean).join(' · ');
+            const t = document.createElement('div');
+            t.className = 'crest-text low' + (f.ebb ? ' fury' : '');
+            t.innerHTML = `<span>LOW WATER${(f.chain || 1) > 1 ? ' <b>x' + f.chain + '</b>' : ''}</span>${what ? `<small>${what}</small>` : ''}${f.ebb ? chainRibbon('Deep Ebb', f.ebb) : ''}`;
+            field.appendChild(t);
+            if (f.ebb) anim(field, 'fury-flash', 900);
+            setTimeout(() => { t.remove(); field.classList.remove('drain'); }, f.ebb ? 2100 : 1500);
           }
           sfx('low');
-          await wait(420);
+          // stranded: each enemy's Ward badge cracks and falls away
+          stripped.forEach((x) => {
+            const el = unitEl(x.who);
+            const unit = el && el.closest('.unit');
+            const badge = unit && $('.ward-badge', unit);
+            if (badge) badge.classList.add('shatter');
+            if (unit) $('.hpbar', unit).classList.remove('warded');
+            floatAt(el, `-${x.n} Ward`, 'ward-lost');
+          });
+          if (stripped.length) sfx('strand');
+          if (f.light) {
+            const o = $('#orb');
+            anim(o, 'gain', 700);
+            floatAt(o, `+${f.light} Light`, 'light-gain');
+            setTimeout(() => sfx('lightgain'), 120);
+          }
+          if (f.ebb) setTimeout(() => sfx('fury', true), 160);
+          await wait(460 + (stripped.length ? 160 : 0) + (f.ebb ? 420 : 0));
           break;
         }
         case 'beam': {
@@ -1716,7 +1762,7 @@
         case 'shuffle': anim($('#pile-draw'), 'pulse', 500); break;
         case 'addcards': toast(`${f.n} ${BL.CARDS[f.id].name} shuffled into your draw pile`); break;
         case 'turn': banner(c.turn === 1 ? 'Your Turn' : `Turn ${c.turn}`); sfx('turn'); break;
-        case 'light': { const o = $('#orb'); anim(o, 'pulse', 500); break; }
+        case 'light': { const o = $('#orb'); anim(o, 'gain', 700); if (f.n) floatAt(o, `+${f.n} Light`, 'light-gain'); break; }
         case 'ks': { const m = $(`.hud .medal[data-k="${f.k}"]`, screenEl); anim(m, 'flash', 900); break; }
         case 'tide': sfx('tide'); break;
       }
@@ -2063,7 +2109,7 @@
     const fin = run.final;
     const stats = [
       ['Depth reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights won', st.fights], ['Dreads slain', st.elites], ['Biggest Crest chain', st.maxChain || 0],
-      ['Damage dealt', st.dmgDealt], ['Crests', st.crests], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
+      ['Damage dealt', st.dmgDealt], ['Crests / Low Waters', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}</div>
       ${fin.unlocked ? `<div class="unlock-box">New depth unlocked: <b>${fin.unlocked}</b>. Choose it when you start your next descent.</div>` : ''}`;

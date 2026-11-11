@@ -50,7 +50,7 @@ test('the keeper starts with 70 HP, 3 Light and the 10-card starting deck', () =
 
 /* ---------- Light ---------- */
 test('you get 3 Light each turn, and each card costs the Light in its corner', () => {
-  const { run, c } = fight(['kelp'], { hand: ['jab', 'brace', 'depthcharge', 'riptide'] });
+  const { run, c } = fight(['kelp'], { hand: ['jab', 'brace', 'depthcharge', 'riptide'], tide: 6 - 1 }); // Ebb 3 + 1 stays above Low Water
   tough(c);
   assert.equal(c.light, 3);
   assert.ok(play(run, 'jab'));
@@ -213,12 +213,24 @@ test('at 6 the wave Crests: 6 damage to every enemy, then the Tide resets to 3',
   assert.deepEqual(c.enemies.map((e) => 500 - e.hp), [5 + 6, 6, 6]);
 });
 
-test('at 0 you hit Low Water: gain 6 Ward, then the Tide resets to 3', () => {
-  const { run, c } = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: [] });
+test('at 0 you hit Low Water: enemies lose all their Ward and you gain 1 Light, then the Tide resets to 3', () => {
+  const { run, c } = fight(['kelp', 'crab'], { hand: ['slack'], tide: 2, keepsakes: [] });
+  c.enemies[0].ward = 9;
+  c.enemies[1].ward = 4;
   play(run, 'slack');
   assert.equal(c.tide, 3);
-  assert.equal(c.player.ward, 5 + 6);
   assert.equal(c.turnLows, 1);
+  assert.deepEqual(c.enemies.map((e) => e.ward), [0, 0], 'stranded: every enemy loses its Ward');
+  assert.equal(c.light, 3 - 1 + 1, 'Slack Water cost 1, Low Water gave 1 back');
+  assert.equal(c.player.ward, 5, 'only the card\'s own Ward: Low Water gives none');
+});
+
+test('Low Water strips enemy Ward before its own damage lands (Drowned Anchor, Abyssal Pull)', () => {
+  const { run, c } = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: ['anchor'] });
+  tough(c);
+  c.enemies[0].ward = 9;
+  play(run, 'slack');
+  assert.equal(500 - c.enemies[0].hp, 4, 'the Anchor\'s 4 damage is not blocked');
 });
 
 test('extra Surge carries over: Surge 6 from Tide 3 Crests twice', () => {
@@ -237,7 +249,7 @@ test('extra Ebb carries over too: Ebb 2 from Tide 1 reaches Low Water and keeps 
   assert.equal(c.tide, 2);
 });
 
-test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12) and each extra Low Water gives 3 more Ward (6, 9)', () => {
+test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12); every Low Water gives 1 Light', () => {
   const { run, c } = fight(['kelp'], { hand: ['stormsurge', 'tidereading'], keepsakes: [] });
   tough(c);
   const e = c.enemies[0];
@@ -249,10 +261,12 @@ test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12) and each extra
   assert.equal(c.maxChain, 3);
   const r2 = fight(['kelp'], { hand: ['bilgepump', 'bilgepump'], tide: 2, keepsakes: [] });
   play(r2.run, 'bilgepump');
-  assert.equal(r2.c.player.ward, 6);
+  assert.equal(r2.c.light, 3 - 1 + 1);
   r2.c.tide = 2;
   play(r2.run, 'bilgepump');
-  assert.equal(r2.c.player.ward, 6 + 9);
+  assert.equal(r2.c.light, 3 - 2 + 2);
+  assert.equal(r2.c.maxLowChain, 2);
+  assert.equal(r2.c.player.ward, 0);
 });
 
 test('chains start over each turn', () => {
@@ -292,7 +306,7 @@ test('cards that scale with the Tide: Undercurrent, Tsunami, Lighthouse Beam, To
   play(f.run, 'tsunami');
   assert.deepEqual(f.c.enemies.map((e) => 500 - e.hp), [12, 12]);
   assert.equal(f.c.turnLows, 1, 'Tsunami drains to Low Water');
-  assert.equal(f.c.player.ward, 6);
+  assert.equal(f.c.light, 3 - 2 + 1);
 
   f = fight(['kelp'], { hand: ['beam'], tide: 4 });
   tough(f.c);
@@ -519,6 +533,41 @@ test('after a fight: Pearls, an optional tonic and a choice of 3 cards you can s
   assert.equal(run.deck.length, n, 'skipping adds nothing');
 });
 
+test('Deep Ebb: 2 or more Low Waters in one turn pays bonus Pearls like Tidal Fury (6 per Low Water in the chain)', () => {
+  const { run, c } = fight(['kelp'], { hand: ['bilgepump', 'bilgepump'], tide: 2, keepsakes: [] });
+  play(run, 'bilgepump');
+  c.tide = 2;
+  play(run, 'bilgepump');
+  c.enemies[0].dead = true;
+  c.won = true;
+  E.finishCombat(run);
+  const b = run.rewards.bonuses.find((x) => x.name === 'Deep Ebb');
+  assert.ok(b, 'Deep Ebb is paid');
+  assert.equal(b.pearls, 12);
+  const f = fight(['kelp'], { hand: ['stormsurge'], keepsakes: [] });
+  f.c.enemies[0].hp = 30;
+  play(f.run, 'stormsurge');
+  assert.equal(f.c.maxChain, 2);
+  f.c.enemies[0].dead = true;
+  f.c.won = true;
+  E.finishCombat(f.run);
+  assert.equal(f.run.rewards.bonuses.find((x) => x.name === 'Tidal Fury').pearls, 12, 'the same rate as Tidal Fury');
+});
+
+test('a new best chain is announced with the bonus it earns, except where no Pearls are paid', () => {
+  const { run, c } = fight(['kelp'], { hand: ['stormsurge', 'tidereading'], keepsakes: [] });
+  tough(c);
+  play(run, 'stormsurge');
+  assert.deepEqual(c.fx.filter((f) => f.t === 'crest').map((f) => f.fury), [0, 12]);
+  c.tide = 5;
+  play(run, 'tidereading');
+  assert.equal(c.fx.filter((f) => f.t === 'crest').pop().fury, 18, 'chain 3 raises it to 18');
+  const boss = fight(['bell'], { hand: ['stormsurge'], keepsakes: [], kind: 'boss' });
+  tough(boss.c);
+  play(boss.run, 'stormsurge');
+  assert.ok(boss.c.fx.filter((f) => f.t === 'crest').every((f) => !f.fury), 'the boss fight pays no bonus Pearls');
+});
+
 test('bonus Pearls: Flawless, Swift (3 turns, 4 for elites) and Tidal Fury', () => {
   const { run, c } = fight(['kelp'], { hand: ['stormsurge'], keepsakes: [] });
   c.enemies[0].hp = 30;
@@ -605,6 +654,28 @@ test('Wrecks: a chest of Pearls and a choice of 1 of 3 keepsakes', () => {
   assert.ok(!E.has(run, run.treasure.choices[0]), 'only one');
 });
 
+test('Kelp Bracelet: Low Water gives 8 Ward. Tidal Memory: each Crest gives 1 Light. Spring Tide: Low Water, then Crest', () => {
+  let f = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: ['kelpbracelet'] });
+  play(f.run, 'slack');
+  assert.equal(f.c.player.ward, 5 + 8);
+
+  f = fight(['kelp'], { hand: ['tidereading', 'slack'], tide: 5, keepsakes: [] });
+  tough(f.c);
+  f.c.player.st.r_tidalmemory = 1;
+  play(f.run, 'tidereading');
+  assert.equal(f.c.light, 3 + 1, 'Crest: +1');
+  f.c.tide = 2;
+  play(f.run, 'slack');
+  assert.equal(f.c.light, 3 + 1 - 1 + 1, 'Low Water: only its own +1');
+
+  f = fight(['kelp'], { hand: ['springtide'], keepsakes: [] });
+  tough(f.c);
+  f.c.enemies[0].ward = 10;
+  play(f.run, 'springtide');
+  assert.equal(500 - f.c.enemies[0].hp, 6, 'the Crest lands in full on a stranded enemy');
+  assert.equal(f.c.light, 3 - 1 + 1);
+});
+
 /* ---------- Depths and score ---------- */
 test('deeper starting depths: tougher enemies and a higher score multiplier', () => {
   const hpAt = (lv) => { const r = E.newRun(11, lv); E.startCombat(r, 'easy', ['kelp']); return r.combat.enemies[0]; };
@@ -620,6 +691,17 @@ test('deeper starting depths: tougher enemies and a higher score multiplier', ()
   run0.floor = run2.floor = 5;
   assert.equal(E.score(run2, false), Math.round(E.score(run0, false) * 1.5));
   assert.deepEqual(E.LEVELS.map((l) => l.name), ['Shallows', 'Dark Water', 'Riptide', 'The Abyss']);
+});
+
+test('the score counts Low Waters and the best Low Water chain the same as Crests', () => {
+  const run = E.newRun(1, 0);
+  const s0 = E.score(run, false);
+  run.stats.crests = 3; run.stats.maxChain = 2;
+  const sc = E.score(run, false);
+  run.stats.crests = 0; run.stats.maxChain = 0;
+  run.stats.lows = 3; run.stats.maxLowChain = 2;
+  assert.equal(E.score(run, false), sc);
+  assert.equal(sc - s0, 3 * 6 + 2 * 30);
 });
 
 /* ---------- Content (README counts) ---------- */
