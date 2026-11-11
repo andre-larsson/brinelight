@@ -309,8 +309,9 @@
     const plain = d.text(E.vals(card), { d: (n) => n, tide: null }).replace(/<[^>]+>/g, '');
     const found = [];
     (plain.match(KW_RE) || []).forEach((k) => { if (found.indexOf(k) < 0) found.push(k); });
-    if (found.indexOf('Surge') >= 0 && found.indexOf('Crest') < 0) found.push('Crest');
-    if (found.indexOf('Ebb') >= 0 && found.indexOf('Low Water') < 0) found.push('Low Water');
+    // each end of the Tide right after the word that reaches it
+    if (found.indexOf('Surge') >= 0 && found.indexOf('Crest') < 0) found.splice(found.indexOf('Surge') + 1, 0, 'Crest');
+    if (found.indexOf('Ebb') >= 0 && found.indexOf('Low Water') < 0) found.splice(found.indexOf('Ebb') + 1, 0, 'Low Water');
     if (d.type === 'rite') found.unshift('Rite');
     return found.filter((k) => BL.KEYWORDS[k] && k !== 'Light' && k !== 'Tide');
   }
@@ -435,8 +436,26 @@
     return `${E.cardName(card)}, ${TYPE_LABEL[d.type]}${cost != null ? ', costs ' + cost : ''}. ${t}`;
   }
   function staticCard(card, extra, attrs) {
-    return `<div class="${cardClass(card)} static ${extra || ''}" ${attrs || ''} aria-label="${cardLabel(card).replace(/"/g, '&quot;')}">${cardInner(card, false)}</div>`;
+    return `<div class="${cardClass(card)} static ${extra || ''}" ${attrs || ''} data-kws="${keywordsOf(card).join('|')}" aria-label="${cardLabel(card).replace(/"/g, '&quot;')}">${cardInner(card, false)}</div>`;
   }
+  /* The keywords on a set of cards to choose from (reward, shop, event picks), explained once each.
+     In a fight the same lines show next to a raised card. Pointing at or focusing a card lights its own. */
+  function keywordLegend(cards) {
+    const seen = [];
+    cards.forEach((card) => keywordsOf(card).forEach((k) => { if (seen.indexOf(k) < 0) seen.push(k); }));
+    if (!seen.length) return '';
+    return `<dl class="kw-legend" aria-label="Keywords on these cards">${seen.map((k) => `<div data-kw="${k}"><dt class="kw ${kwClass(k)}">${k}</dt><dd>${BL.KEYWORDS[k]}</dd></div>`).join('')}</dl>`;
+  }
+  function lightLegend(card) {
+    const scope = card && card.closest('.scene-inner, .modal');
+    $$('.kw-legend').forEach((lg) => {
+      const kws = scope && scope.contains(lg) ? card.dataset.kws.split('|') : null;
+      lg.classList.toggle('focus', !!kws);
+      $$('[data-kw]', lg).forEach((row) => row.classList.toggle('on', !!kws && kws.indexOf(row.dataset.kw) >= 0));
+    });
+  }
+  document.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') lightLegend(e.target.closest('.card.static[data-kws]')); });
+  document.addEventListener('focusin', (e) => { if (e.target.closest) lightLegend(e.target.closest('.card.static[data-kws]')); });
   const pseudo = (id, up) => ({ uid: -1, id, up: up ? 1 : 0 });
   function sortDeck(cards) {
     const order = { attack: 0, skill: 1, rite: 2, status: 3, curse: 4 };
@@ -541,7 +560,7 @@
   }
 
   function showCardChoice(ids, title, onDone) {
-    const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" data-act="choosecard" data-id="${id}" data-i="${i}"`)).join('')}</div>`;
+    const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" data-act="choosecard" data-id="${id}" data-i="${i}"`)).join('')}</div>${keywordLegend(ids.map((id) => pseudo(id)))}`;
     ui.cardChoiceDone = onDone;
     openOverlay(modal(title, body, '<button class="btn" data-act="choosecard" data-id="">Skip</button>', ''), { locked: true });
   }
@@ -1874,7 +1893,7 @@
       <h1>Victory</h1>
       ${summary}
       ${ksPanel}
-      <section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div></section>
+      <section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${keywordLegend(rw.cards.map((rc) => pseudo(rc.id, rc.up)))}</section>
       ${extras.length ? `<div class="reward-list">${extras.join('')}</div>` : ''}
       <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
@@ -1923,7 +1942,7 @@
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner">
       <div class="trader"><img src="img/units/trader.webp" alt="Barnaby the hermit crab trader"><div class="speech"><b>Barnaby's Drifting Emporium</b><br>${line}</div>
         <button class="btn small" data-act="tomap" style="align-self:flex-start">Leave</button></div>
-      <div class="panel"><h3>Cards</h3><div class="shop-grid">${cards}</div></div>
+      <div class="panel"><h3>Cards</h3><div class="shop-grid">${cards}</div>${keywordLegend(s.cards.map((it) => pseudo(it.id)))}</div>
       <div class="panel"><h3>Keepsakes, tonics and services</h3><div class="shop-row">${ks}${ts}${remove}</div></div>
       <button class="btn primary" data-act="tomap">Leave the shop</button>
     </div></div></div></div>`;

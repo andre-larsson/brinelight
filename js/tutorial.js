@@ -279,9 +279,10 @@
       { id: 'elite', when: (r) => (r.screen === 'map' && !!document.querySelector('.node.avail.t-elite')) || (r.screen === 'combat' && r.combat.kind === 'elite'),
         anchor: () => document.querySelector('.node.avail.t-elite') || document.querySelector('.unit.enemy .sprite'),
         html: () => 'A <b>Dread</b> is an elite: tougher than a skirmish. Beat it to choose 1 of 2 <b>keepsakes</b>.' },
-      { id: 'reward', when: (r) => r.screen === 'reward' && !r.rewards.cardTaken, anchor: '.reward-cards',
-        html: () => 'Add <b>1 card</b> to your deck, or skip. A smaller deck draws its best cards more often.' },
-      { id: 'shop', when: (r) => r.screen === 'shop', anchor: '.shop-grid',
+      // above the cards, so the keyword legend under them stays readable
+      { id: 'reward', when: (r) => r.screen === 'reward' && !r.rewards.cardTaken, anchor: '.reward-cards', side: 'above',
+        html: () => 'Add <b>1 card</b> to your deck, or skip. A smaller deck draws its best cards more often. Keywords are explained below the cards.' },
+      { id: 'shop', when: (r) => r.screen === 'shop', anchor: '.shop-grid', side: 'above',
         html: () => '<b>Barnaby</b> sells cards, keepsakes and tonics for Pearls. Scrubbing away a weak card makes your best ones come up more often.' },
       { id: 'rest', when: (r) => r.screen === 'rest' && !r.restDone, anchor: '.choice-list',
         html: () => '<b>Rest</b> heals 30% of your max HP. Or <b>refit</b>: upgrade one card for the rest of the run.' },
@@ -338,7 +339,7 @@
         if (!ok || !anchorEl(h.anchor)) continue;
         seenHints.push(h.id);
         store.set(KEY_HINTS, JSON.stringify(seenHints));
-        show({ kind: 'hint', id: h.id, screen: r.screen, anchor: h.anchor, html: () => `<div class="cm-text">${h.html()}</div><div class="cm-foot"><button class="btn small" data-act="hintok">Got it</button></div>` });
+        show({ kind: 'hint', id: h.id, screen: r.screen, anchor: h.anchor, side: h.side, html: () => `<div class="cm-text">${h.html()}</div><div class="cm-foot"><button class="btn small" data-act="hintok">Got it</button></div>` });
         return;
       }
     }
