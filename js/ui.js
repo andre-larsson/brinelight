@@ -811,10 +811,12 @@
   /* ----- Map ----- */
   function renderMap() {
     const m = run.map;
+    // the descent runs downward: the first stops are at the top and the boss is at the bottom
     const rowH = innerWidth < 600 ? 74 : 84;
-    const top = 140;
-    const H = top + m.rows * rowH + 70;
-    const yOf = (n) => (n.type === 'boss' ? 64 : top + (m.rows - 1 - n.row) * rowH + rowH / 2 + n.jy * rowH * 0.4);
+    const pad = 10;
+    const bossY = pad + m.rows * rowH + 76;
+    const H = bossY + 140; // the boss's name under it, then room above the legend
+    const yOf = (n) => (n.type === 'boss' ? bossY : pad + n.row * rowH + rowH / 2 + n.jy * rowH * 0.4);
     const avail = E.availableNodes(run);
     const availKey = new Set(avail.map((n) => n.row + ',' + n.col));
     const visited = new Set(run.visited || []);
@@ -848,7 +850,7 @@
     };
     all.forEach((n) => { nodes += nodeHTML(n); });
     nodes += nodeHTML(m.boss);
-    nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${64 + 50}px">The Drowned Bellwether</div>`;
+    nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${bossY + 50}px">The Drowned Bellwether</div>`;
     const legend = ['fight', 'elite', 'event', 'rest', 'shop', 'treasure'].map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
     const sub = !run.pos ? 'Choose where to begin your descent.' : avail.length ? 'Choose your next stop.' : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
@@ -860,7 +862,8 @@
     const focusRow = avail.length ? avail[0] : run.pos ? E.nodeAt(run, run.pos) : null;
     if (sc && focusRow) {
       sc.style.scrollBehavior = 'auto';
-      sc.scrollTop = Math.max(0, yOf(focusRow) - sc.clientHeight * 0.55 + 40);
+      // the route ahead is below, so keep the stops to choose near the top, with the row just left in view above them
+      sc.scrollTop = Math.max(0, yOf(focusRow) - Math.min(rowH * 1.5, sc.clientHeight * 0.35));
       sc.style.scrollBehavior = '';
     }
     const first = $('.node.avail', screenEl);

@@ -275,7 +275,7 @@
     const KW_TEXT = (k) => BL.KEYWORDS[k];
     const HINTS = [
       { id: 'map', when: (r) => r.screen === 'map', anchor: '.node.avail',
-        html: () => 'Choose your route. <b>Lit stops</b> are where you can go next, and the legend names every icon. The boss waits at the top.' },
+        html: () => 'Choose your route. <b>Lit stops</b> are where you can go next, and the legend names every icon. The boss waits at the bottom, deepest down.' },
       { id: 'elite', when: (r) => (r.screen === 'map' && !!document.querySelector('.node.avail.t-elite')) || (r.screen === 'combat' && r.combat.kind === 'elite'),
         anchor: () => document.querySelector('.node.avail.t-elite') || document.querySelector('.unit.enemy .sprite'),
         html: () => 'A <b>Dread</b> is an elite: tougher than a skirmish. Beat it to choose 1 of 2 <b>keepsakes</b>.' },

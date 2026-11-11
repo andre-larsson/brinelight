@@ -18,6 +18,7 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 - Turning down a reward adds to the final score (2026-11-11): skipping a card, leaving a tonic when a slot is free, or an event's Leave or Decline. Each one is worth 20 (`E.DECLINE_SCORE`), a provisional number: about a Flawless bonus (15) and below a floor (40). A player who skips every card gets roughly 200 over a run, a third of the win bonus. The random keepsake fallback doesn't count.
 - The flooded-hold dive (Wreck of the Gilded Gull) paid 90 Pearls or cost 12 HP, half and half. That is the same 45 Pearls on average as the safe salvage, minus 6 HP, so it was never the better pick (the user's point). It now pays 150 (a rare card or a keepsake at the shop): 75 Pearls on average for 6 HP, about the Glimmering Pool's sure rate of 30 Pearls for 5 HP. Healthy players should dive and hurt ones should salvage.
 - Barnacle Growth now says what it does, on the card, in the event option, in How to Play and in the README. It used to say only "A curse that clings to your deck".
+- The map runs downward (2026-11-11): the first stops are at the top and the boss is at the bottom, so the route reads as a descent. When choosing a stop, the map scrolls so those stops are near the top with the row just left above them, and the route ahead is below. The map hint says "The boss waits at the bottom, deepest down."
 
 ## Provisional calls (made without the user; each can be judged and undone on its own)
 
