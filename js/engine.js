@@ -507,6 +507,7 @@
     if (!tgt || tgt.dead || c.won || c.lost) return 0;
     amount = Math.max(0, Math.floor(amount));
     const isPlayer = tgt === c.player;
+    if (isPlayer && run.debugGod) amount = 0; // debug mode (js/debug.js): the keeper takes no damage
     const blocked = Math.min(tgt.ward, amount);
     tgt.ward -= blocked;
     const loss = amount - blocked;
@@ -556,6 +557,7 @@
   }
 
   function loseHpDirect(run, c, tgt, n) {
+    if (tgt === c.player && run.debugGod) return;
     if (n <= 0) return;
     if (tgt === c.player) {
       run.hp -= n;
@@ -1133,7 +1135,7 @@
      { salvage, earned, owned: [gear ids], packed: [gear ids], ach: [achievement ids] }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.capacity = (level) => 3 + (level || 0);
+  E.capacity = (level) => 1 + (level || 0);
   E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], packed: [], ach: [] });
   E.hasGear = (run, id) => !!run.gear && run.gear.indexOf(id) >= 0;
   E.gearWeight = (ids) => ids.reduce((w, id) => w + (BL.GEAR[id] ? BL.GEAR[id].weight : 0), 0);

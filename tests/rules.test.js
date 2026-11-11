@@ -894,3 +894,18 @@ test('save and continue: a run reloaded from its save plays out exactly like one
     }
   }
 });
+
+test('debug god mode (js/debug.js): the keeper loses no HP to attacks or Brine; enemies are unaffected', () => {
+  const { run, c } = fight(['kelp']);
+  run.debugGod = true;
+  const hp = run.hp;
+  c.player.st.brine = 5;
+  E.endTurn(run);
+  assert.equal(run.hp, hp);
+  assert.ok(!c.lost);
+  // the same turn without it costs HP
+  const ctl = fight(['kelp']);
+  ctl.c.player.st.brine = 5;
+  E.endTurn(ctl.run);
+  assert.ok(ctl.run.hp < hp, `without god mode: ${ctl.run.hp} < ${hp}`);
+});

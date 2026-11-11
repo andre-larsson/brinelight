@@ -3,7 +3,7 @@
    - desktop 1280x800 with the mouse (clicks, a drag) and the keyboard
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
-   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop]
+   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|debug]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
 'use strict';
 const path = require('path');
@@ -316,13 +316,17 @@ async function workshopScenario(page, base, name, size) {
   await page.click('[data-act="newrun"]');
   await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the pack before a dive');
   await checkPage(page, name + ' pack');
+  if ((await stored()).packed.join() !== 'cork') failures.push(`${name}: the first purchase wasn't packed, or the second was`);
+  // the Shallows hold 1: the Flood Chart doesn't fit until the Cork Vest comes out
+  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="floodchart"]');
+  if ((await stored()).packed.join() !== 'cork') failures.push(`${name}: packed past the Shallows' capacity`);
   await clickIf(page, '#overlay [data-act="packtoggle"][data-g="cork"]');
-  if ((await stored()).packed.join() !== 'floodchart') failures.push(`${name}: unpacking the Cork Vest didn't stick`);
-  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="cork"]');
+  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="floodchart"]');
+  if ((await stored()).packed.join() !== 'floodchart') failures.push(`${name}: swapping the Cork Vest for the Flood Chart didn't stick`);
   await clickIf(page, '#overlay [data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after Dive');
   const gear = await page.eval('window.Brinelight.run.gear.join()');
-  if (gear !== 'floodchart,cork') failures.push(`${name}: the run took gear "${gear}"`);
+  if (gear !== 'floodchart') failures.push(`${name}: the run took gear "${gear}"`);
   if (!(await page.eval(`!!document.querySelector('.hud .gear-pack')`))) failures.push(`${name}: no packed gear in the HUD`);
   // the first fight starts one Tide higher
   await dismissHints(page);
@@ -353,6 +357,71 @@ async function workshopScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="confirmabandon"]');
   if ((await stored()).salvage !== before) failures.push(`${name}: abandoning a run changed the Salvage`);
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
+/* Debug mode: off by default, on with ?debug, and its cheats work and mark the run. */
+async function debugScenario(page, base) {
+  log('debug mode: 1280x800');
+  await page.viewport(1280, 800);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=5555');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.best.v1', '777'); })()`);
+  await page.goto(base + '?seed=5555');
+  if (await page.eval(`!!document.querySelector('.dbg-tab')`)) failures.push('debug: the DEBUG tab shows without ?debug');
+  await page.goto(base + '?seed=5555&debug');
+  await inject(page);
+  await page.click('.dbg-tab');
+  await sleep(150);
+  await clickIf(page, '#overlay [data-dbg="salvage"]');
+  await clickIf(page, '#overlay [data-dbg="allgear"]');
+  await clickIf(page, '#overlay [data-dbg="depths"]');
+  const m = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
+  if (m.salvage !== 100 || m.owned.length !== Object.keys(await page.eval('window.BL.GEAR')).length) failures.push(`debug: Salvage and gear cheats stored ${JSON.stringify(m)}`);
+  await clickIf(page, '#overlay [data-act="close"]');
+  // a run: god mode holds HP through an enemy turn, the Tide can be set, and Win the fight leads to the rewards
+  await page.click('[data-act="newrun"]');
+  await clickIf(page, '#overlay [data-act="startlevel"][data-lv="0"]');
+  await clickIf(page, '#overlay [data-act="dive"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map in debug mode');
+  await dismissHints(page);
+  await page.click('[data-act="node"]');
+  await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop');
+  if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
+  await waitIdle(page);
+  await dismissHints(page);
+  await page.key('`');
+  await sleep(150);
+  await clickIf(page, '#overlay [data-dbg="god"]');
+  await clickIf(page, '#overlay [data-dbg="tide"][data-n="5"]');
+  if ((await page.eval('window.Brinelight.run.combat.tide')) !== 5) failures.push('debug: setting the Tide did nothing');
+  await clickIf(page, '#overlay [data-act="close"]');
+  const hp = await page.eval('window.Brinelight.run.hp');
+  await page.click('#btn-end');
+  await waitIdle(page);
+  if ((await page.eval('window.Brinelight.run.hp')) !== hp) failures.push('debug: god mode let damage through');
+  await dismissHints(page);
+  await page.key('`');
+  await sleep(150);
+  await clickIf(page, '#overlay [data-dbg="win"]');
+  await page.waitFor('window.Brinelight.run.screen === "reward"', 6000, 'rewards after Win the fight');
+  // lose the next fight: a cheated run keeps no best score
+  await page.eval(`(() => { const B = window.Brinelight; B.E.backToMap(B.run); B.render(); })()`);
+  await page.key('`');
+  await sleep(150);
+  await clickIf(page, '#overlay [data-dbg="go"][data-type="elite"]');
+  await waitIdle(page);
+  await dismissHints(page);
+  await page.key('`');
+  await sleep(150);
+  await clickIf(page, '#overlay [data-dbg="lose"]');
+  await page.waitFor('window.Brinelight.run.screen === "defeat"', 6000, 'defeat after Lose the fight');
+  await sleep(300);
+  if ((await page.eval(`localStorage.getItem('brinelight.best.v1')`)) !== '777') failures.push('debug: a cheated run changed the best score');
+  if (!(await page.eval(`/Debug run/.test(document.body.innerText)`))) failures.push('debug: the end screen does not say it was a debug run');
+  // ?debug=0 turns it off again
+  await page.goto(base + '?debug=0');
+  if (await page.eval(`!!document.querySelector('.dbg-tab')`)) failures.push('debug: ?debug=0 did not turn it off');
+  if (page.errors.length) failures.push('debug: page errors:\n    ' + page.errors.join('\n    '));
 }
 
 /* The guided first fight, start to finish, with one input method. */
@@ -474,6 +543,7 @@ async function tutorialMidRun(page, base) {
     if (!ONLY || ONLY === 'desktop') await scenario(page, base, 'desktop', { w: 1280, h: 800 }, { seed: 1111, drag: true, keyboardTurns: true });
     if (!ONLY || ONLY === 'desktop') await summonDeathCheck(page, base);
     if (!ONLY || ONLY === 'phone') await scenario(page, base, 'phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 2222, drag: true });
+    if (!ONLY || ONLY === 'debug') await debugScenario(page, base);
     if (!ONLY || ONLY === 'workshop') {
       await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });
       await workshopScenario(page, base, 'workshop phone', { w: 390, h: 844, mobile: true, touch: true });

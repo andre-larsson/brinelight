@@ -979,3 +979,16 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .chip img.salv { width: 24px; height: 24px; }
 .ws-btn img.salv { width: 24px; height: 24px; }
 .salvage-box img.salv { width: 40px; height: 40px; }
+
+/* ---------- Debug mode (js/debug.js, on with ?debug) ---------- */
+.dbg-tab { position: fixed; left: 0; top: 28%; z-index: 450; padding: 10px 5px; border: 1px solid rgba(255, 120, 120, .6); border-left: 0; border-radius: 0 8px 8px 0;
+  background: rgba(60, 10, 14, .85); color: #ffc9c9; font: 800 12px/1 var(--sans); letter-spacing: .12em; writing-mode: vertical-rl; cursor: pointer; opacity: .75; }
+.dbg-tab:hover, .dbg-tab:focus-visible { opacity: 1; }
+.dbg-modal { width: min(640px, 100%); }
+.dbg-sec + .dbg-sec { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(201, 162, 74, .2); }
+.dbg-sec h3 { margin: 0 0 8px; font-size: 16px; color: #f3dfb2; }
+.dbg-sec h3 small { display: block; margin-top: 2px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.dbg-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dbg-pair { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; color: #d6e3e0; font-size: 14px; }
+.dbg-sel { min-height: 36px; max-width: 190px; border-radius: 8px; border: 1px solid rgba(201, 162, 74, .45); background: #0b1f2c; color: #e6dcc6; font: 14px var(--sans); }
+.dbg-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); }

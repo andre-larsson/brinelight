@@ -618,7 +618,7 @@
         <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
-        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on ${MT.item.toLowerCase()} that lasts across runs. Achievements unlock more. Before a dive you pack it: the Shallows hold ${pips(3)}, and each deeper depth ${pips(1)} more.</li>
+        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on ${MT.item.toLowerCase()} that lasts across runs. Achievements unlock more. Before a dive you pack it: the Shallows hold ${pips(E.capacity(0))}, and each deeper depth ${pips(1)} more.</li>
       </ul>`;
       case 'controls': return dl([
         ['Mouse', 'Click a card, then click an enemy (or the card again). Or drag a card onto an enemy, or up into the sea. Hover anything for details.'],
@@ -850,7 +850,7 @@
       const attrs = !owned && open ? ` tabindex="0" role="button" data-act="gearbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
       return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small>${foot}</div>`;
     }).join('');
-    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Before each dive you pack it: the Shallows hold ${pips(3)} and every deeper depth holds ${pips(1)} more.</p>
+    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Before each dive you pack it: the Shallows hold ${pips(E.capacity(0))} and every deeper depth holds ${pips(1)} more.</p>
       <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div><div class="shop-row">${tiles}</div>`;
     openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
@@ -2205,9 +2205,10 @@
       const score = E.score(run, win);
       const best = getNum(BEST_KEY);
       const fin = { score, best, newBest: score > best, unlocked: null, salvage: 0 };
+      if (run.cheated) fin.newBest = false; // a run with debug cheats keeps no best score and unlocks no depth
       if (fin.newBest) setNum(BEST_KEY, score);
       if (!run.tutorial) { checkUnlocks(true); fin.salvage = E.earnSalvage(meta, score); saveMeta(); }
-      if (win) {
+      if (win && !run.cheated) {
         const ml = getNum(LEVEL_KEY);
         if ((run.level || 0) >= ml && ml < E.LEVELS.length - 1) { setNum(LEVEL_KEY, ml + 1); fin.unlocked = E.LEVELS[ml + 1].name; }
       }
@@ -2218,7 +2219,7 @@
       ['Depth reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights / Dreads won', `${st.fights} / ${st.elites}`], ['Rewards declined', st.declined ? `${st.declined} (+${E.declinePoints(st)})` : 0], ['Biggest Crest chain', st.maxChain || 0],
       ['Damage dealt', st.dmgDealt], ['Crests / Low Waters', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
-    const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}</div>
+    const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score or depth unlock</small>' : ''}</div>
       ${fin.unlocked ? `<div class="unlock-box">New depth unlocked: <b>${fin.unlocked}</b>. Choose it when you start your next descent.</div>` : ''}
       ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b> for the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.gearFor(a).map((id) => `<b>${BL.GEAR[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
@@ -2627,5 +2628,7 @@
   render();
 
   // exposed for debugging and the UI tests
-  window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; }, get meta() { return meta; } };
+  window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; }, get meta() { return meta; },
+    // for js/debug.js
+    save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat, setMaxLevel: (n) => setNum(LEVEL_KEY, n), get maxLevel() { return getNum(LEVEL_KEY); } };
 })();

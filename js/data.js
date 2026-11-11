@@ -669,7 +669,7 @@
   /* ------------------------------------------------------------------ *
    *  WORKSHOP (permanent progression between runs)
    *  Every finished run turns its score into Salvage. Salvage buys gear in the Workshop, and gear
-   *  stays bought. Before a dive you pack gear up to the depth's capacity (Shallows 3, +1 per depth).
+   *  stays bought. Before a dive you pack gear up to the depth's capacity (Shallows 1, +1 per depth).
    *  Some gear is locked until an achievement. The names are working names, kept here so they are
    *  easy to change.
    * ------------------------------------------------------------------ */

@@ -24,8 +24,8 @@ test('a finished run earns 1 Salvage per 50 score, rounded down', () => {
   assert.equal(meta.earned, 40);
 });
 
-test('capacity follows the depth of the dive: Shallows 3, then 1 more per depth', () => {
-  assert.deepEqual([0, 1, 2, 3].map(E.capacity), [3, 4, 5, 6]);
+test('capacity follows the depth of the dive: Shallows 1, then 1 more per depth', () => {
+  assert.deepEqual([0, 1, 2, 3].map(E.capacity), [1, 2, 3, 4]);
 });
 
 test('gear costs Salvage, is bought once, and locked gear waits for its achievement', () => {
@@ -49,25 +49,29 @@ test('gear costs Salvage, is bought once, and locked gear waits for its achievem
 test('packing: only owned gear, and never more weight than the depth holds', () => {
   const meta = metaWith({ owned: ['cork', 'flask', 'purse', 'whetstone'] });
   assert.equal(E.togglePack(meta, 'gorget', 0), false, 'not owned');
-  assert.equal(E.togglePack(meta, 'whetstone', 0), true);
+  assert.equal(E.togglePack(meta, 'whetstone', 0), false, 'Whetstone takes 2; the Shallows hold 1');
   assert.equal(E.togglePack(meta, 'cork', 0), true);
-  assert.equal(E.gearWeight(meta.packed), 3);
-  assert.equal(E.togglePack(meta, 'flask', 0), false, 'Shallows holds 3');
-  assert.equal(E.togglePack(meta, 'flask', 1), true, 'Dark Water holds 4');
-  assert.equal(E.togglePack(meta, 'cork', 1), true, 'unpacking always works');
-  assert.deepEqual(meta.packed, ['whetstone', 'flask']);
+  assert.equal(E.togglePack(meta, 'flask', 0), false, 'the Shallows hold 1');
+  assert.equal(E.togglePack(meta, 'flask', 1), true, 'Dark Water holds 2');
+  assert.equal(E.togglePack(meta, 'whetstone', 2), false, 'Riptide holds 3: 1 + 1 + 2 is too much');
+  assert.equal(E.togglePack(meta, 'cork', 2), true, 'unpacking always works');
+  assert.equal(E.togglePack(meta, 'whetstone', 2), true);
+  assert.deepEqual(meta.packed, ['flask', 'whetstone']);
   // a pack made for a deeper dive is trimmed, in order, for a shallower one
-  assert.deepEqual(E.fitGear(['whetstone', 'cork', 'flask', 'purse'], 0), ['whetstone', 'cork']);
-  assert.deepEqual(E.fitGear(['cork', 'whetstone', 'flask'], 0), ['cork', 'whetstone']);
+  assert.deepEqual(E.fitGear(['whetstone', 'cork', 'flask', 'purse'], 2), ['whetstone', 'cork']);
+  assert.deepEqual(E.fitGear(['whetstone', 'cork', 'flask'], 0), ['cork']);
+  assert.deepEqual(E.fitGear(['cork', 'whetstone', 'flask'], 1), ['cork', 'flask']);
   assert.deepEqual(E.fitGear(['cork', 'nope', 'cork'], 0), ['cork']);
   assert.deepEqual(E.fitGear(['cork', 'flask'], 0, ['flask']), ['flask'], 'unowned gear is dropped');
   // the run itself enforces the capacity too
-  assert.deepEqual(E.newRun(5, 0, ['whetstone', 'cork', 'stormlens']).gear, ['whetstone', 'cork']);
+  assert.deepEqual(E.newRun(5, 0, ['whetstone', 'cork', 'stormlens']).gear, ['cork']);
+  assert.deepEqual(E.newRun(5, 3, ['whetstone', 'cork', 'stormlens', 'flask']).gear, ['whetstone', 'cork', 'stormlens']);
 });
 
 test('gear changes nothing about the map, and the same seed with the same gear gives the same run', () => {
-  const plain = E.newRun(42, 0);
-  const geared = E.newRun(42, 0, ['flask', 'cork', 'purse']);
+  const plain = E.newRun(42, 2);
+  const geared = E.newRun(42, 2, ['flask', 'cork', 'purse']);
+  assert.equal(geared.gear.length, 3);
   assert.equal(snapshot(plain.map), snapshot(geared.map));
   const a = E.newRun(42, 1, ['flask', 'gorget', 'floodchart']);
   const b = E.newRun(42, 1, ['flask', 'gorget', 'floodchart']);
@@ -76,14 +80,14 @@ test('gear changes nothing about the map, and the same seed with the same gear g
 });
 
 test('start-of-run gear: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask a tonic, Whetstone upgrades Rising Swell', () => {
-  const base = E.newRun(7, 0);
-  const run = E.newRun(7, 0, ['cork', 'purse', 'flask']);
+  const base = E.newRun(7, 2);
+  const run = E.newRun(7, 2, ['cork', 'purse', 'flask']);
   assert.equal(run.maxHp, base.maxHp + 5);
   assert.equal(run.hp, base.hp + 5);
   assert.equal(run.pearls, base.pearls + 30);
   assert.ok(BL.TONICS[run.tonics[0]], 'a tonic in the first slot');
   assert.deepEqual(base.tonics, [null, null, null]);
-  const ws = E.newRun(7, 0, ['whetstone']);
+  const ws = E.newRun(7, 1, ['whetstone']);
   ws.deck.forEach((card) => assert.equal(card.up, card.id === 'swell' ? 1 : 0, card.id));
 });
 

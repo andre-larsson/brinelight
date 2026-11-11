@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.7.0';
+  BL.VERSION = '0.8.0';
   BL.CHANGELOG = [
+    { v: '0.8.0', date: '2026-11-11', items: [
+      'Packing is a harder choice: the Shallows hold 1 space of gear, Dark Water 2, Riptide 3 and the Abyss 4. It was 3 to 6.',
+      'Debug mode for testing: add ?debug to the address. A run that uses a cheat keeps no best score and unlocks no depth.',
+    ] },
     { v: '0.7.0', date: '2026-11-11', items: [
       'The Workshop: every finished run turns its score into Salvage. Spend it on gear that lasts across runs.',
       'Pack gear before each dive. The Shallows hold 3 spaces and each deeper depth 1 more, so you choose what to bring.',

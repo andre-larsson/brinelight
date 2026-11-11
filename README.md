@@ -15,6 +15,8 @@ It's plain HTML, CSS and JavaScript, with no build step and no dependencies.
 - **Static server (recommended):** from this folder run `npm start` (or `python3 -m http.server 8000`), then open <http://localhost:8000>.
 - **No server:** open `index.html` directly in a browser.
 
+**Debug mode (for testing):** add `?debug` to the address. A DEBUG tab appears at the left edge, and the `` ` `` key opens the same panel. It can add Salvage and gear, unlock achievements and depths, reset progress, give Pearls, cards, keepsakes and tonics, turn on god mode, set the Tide, win or lose a fight, and visit any kind of stop. A run where you use a cheat keeps no best score and unlocks no depth. Add `?debug=0` to turn the mode off, or use the panel.
+
 Progress is saved automatically in your browser, at the start of every turn and between map stops. **Continue** on the title screen resumes the run. To replay a specific map and card sequence, add `?seed=12345` to the URL before starting a new run.
 
 ## Controls
@@ -92,7 +94,7 @@ Both are announced the moment you earn them. The score counts Crests and Low Wat
 
 **The Workshop (lasts across runs).** Every finished run turns its score into **Salvage**: 1 for every 50 points. Abandoning a run earns nothing.
 - Spend Salvage in the Workshop on the title screen. **Gear** you buy is yours for good.
-- Before each dive you **pack** gear. Each piece takes 1 or 2 spaces. The Shallows hold 3 spaces, and each deeper depth holds 1 more (Dark Water 4, Riptide 5, The Abyss 6). The game remembers your choice.
+- Before each dive you **pack** gear. Each piece takes 1 or 2 spaces. The Shallows hold 1 space, and each deeper depth holds 1 more (Dark Water 2, Riptide 3, The Abyss 4). The game remembers your choice.
 - Some gear is locked until an **achievement**, such as Crest three times in one turn or defeat a Dread with 12 or fewer cards in your deck. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
 - Gear never changes the map: the same seed gives the same map with any gear.
 
