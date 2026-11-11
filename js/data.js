@@ -594,7 +594,7 @@
         { label: 'Offer blood', desc: 'Lose 7 HP. Upgrade 2 random cards.',
           act: (r, E) => { E.loseHp(r, 7); const n = E.upgradeRandom(r, 2); return { text: n ? `The water warms. ${n} of your cards feel sharper.` : 'The goddess has nothing left to teach you.' }; } },
         { label: 'Offer pearls', desc: 'Pay 35 Pearls. Remove a card from your deck.', cond: (r) => r.pearls >= 35 || 'Not enough Pearls',
-          act: (r) => { r.pearls -= 35; return { text: 'The pearls sink into the stone. Choose something to let go of.', next: { pick: 'remove' } }; } },
+          act: (r) => { r.pearls -= 35; return { text: 'The pearls sink into the stone, and the goddess waits for you to let something go.', next: { pick: 'remove' } }; } },
         { label: 'Leave', desc: 'Swim on.', act: () => ({ text: 'You leave the goddess to her waiting.' }) },
       ],
     },
@@ -630,7 +630,7 @@
       options: [
         { label: 'Drink', desc: 'Heal 20 HP.', act: (r, E) => { const h = E.heal(r, 20); return { text: `Warmth spreads through you. Healed ${h} HP.` }; } },
         { label: 'Bathe your gear', desc: 'Upgrade a card of your choice.', cond: (r, E) => E.upgradeable(r).length > 0 || 'Nothing to upgrade',
-          act: () => ({ text: 'Choose a card to dip into the glow.', next: { pick: 'upgrade' } }) },
+          act: () => ({ text: 'You lower your gear into the warm, glowing water.', next: { pick: 'upgrade' } }) },
         { label: 'Gaze at your reflection', desc: 'Lose 5 HP. Duplicate a card in your deck.', cond: (r) => r.deck.some((c) => BL.CARDS[c.id].type !== 'curse') || 'No cards to copy',
           act: (r, E) => { E.loseHp(r, 5); return { text: 'Your reflection reaches up out of the water, holding a card of its own.', next: { pick: 'duplicate' } }; } },
         { label: 'Harvest glowing pearls', desc: 'Lose 5 HP. Gain 30 Pearls.', act: (r, E) => { E.loseHp(r, 5); r.pearls += 30; return { text: 'The pearls bite back, but they are yours.' }; } },

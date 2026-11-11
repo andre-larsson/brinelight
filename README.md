@@ -46,7 +46,7 @@ The menu (top right) has the tutorial, How to Play, sound effects on/off, music 
 - Some cards scale with the Tide (Undercurrent, Tsunami, Lighthouse Beam) or with chains (Toppled Tower costs 1 less per Crest this turn).
 
 **Feedback while you play.**
-- Cards in your hand show a live badge for what they would do right now: **CREST x2**, **LETHAL**, **VICTORY**, **LOW WATER** or **ECHO**. The game works this out by simulating the play.
+- Cards in your hand show a live badge for what they would do right now: **CREST x2**, **LETHAL**, **VICTORY**, **LOW WATER** or **ECHO**. The game works this out by simulating the play. The number on **CREST** is how many Crests that card makes.
 - Selecting a card previews its effect on the Tide gauge, along with a glossary of its keywords.
 - End Turn lights up when you have nothing left to play.
 

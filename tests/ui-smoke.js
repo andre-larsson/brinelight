@@ -146,6 +146,7 @@ async function handleOverlay(page) {
     if (!open) return;
     if (await clickIf(page, '#overlay [data-act="choosecard"][data-i]')) continue;
     if (await clickIf(page, '#overlay [data-act="deckconfirm"]')) continue;
+    if (await clickIf(page, '#overlay [data-act="buyconfirm"]')) continue;
     if (await clickIf(page, '#overlay [data-act="deckpick"]')) continue;
     if (await clickIf(page, '#overlay [data-act="close"]')) continue;
     throw new Error('stuck on an overlay: ' + (await page.eval(`document.getElementById('overlay').innerText.slice(0, 120)`)));
@@ -200,7 +201,14 @@ async function afterStop(page, label) {
       if (!(await clickIf(page, '[data-act="rest"]'))) await clickIf(page, '[data-act="tomap"]');
       else await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'shop') {
-      await clickIf(page, '[data-act="buy"][data-kind="cards"]');
+      // buying asks first; confirm it, and check the shop kept its scroll position
+      if (await clickIf(page, '[data-act="buy"][data-kind="cards"]')) {
+        const y0 = await page.eval(`document.querySelector('.scene').scrollTop`);
+        await handleOverlay(page);
+        if (await page.eval(`!!document.querySelector('#overlay:not([hidden])')`)) failures.push(`${label}: the shop's buy confirmation did not close`);
+        const y1 = await page.eval(`document.querySelector('.scene') ? document.querySelector('.scene').scrollTop : -1`);
+        if (Math.abs(y1 - y0) > 2) failures.push(`${label}: the shop scrolled from ${y0} to ${y1} after a purchase`);
+      }
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'treasure') {
       await clickIf(page, '[data-act="opentreasure"]');

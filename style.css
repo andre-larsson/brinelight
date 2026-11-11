@@ -131,8 +131,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
     linear-gradient(180deg, #0a2232, #071722 70%, #06121c);
 }
 .map-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; }
-.map-header { position: sticky; top: 0; z-index: 3; text-align: center; padding: 10px 12px 8px; background: linear-gradient(180deg, rgba(6, 18, 28, .92), rgba(6, 18, 28, 0)); pointer-events: none; }
-.map-header h2 { font-size: 20px; color: #f1dfb6; }
+/* sticky over the scrolling map: solid behind the text, fading out only below it, so nodes never show through the words */
+.map-header { position: sticky; top: 0; z-index: 3; text-align: center; padding: 10px 12px 22px; background: linear-gradient(180deg, #08202e, #071c29 calc(100% - 20px), rgba(7, 28, 41, 0)); pointer-events: none; }.map-header h2 { font-size: 20px; color: #f1dfb6; }
 .map-header p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
 .map { position: relative; margin: 0 auto; width: min(560px, 100%); }
 .map svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -167,7 +167,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 }
 .map-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .map-legend svg { width: 16px; height: 16px; }
-.map-boss-label { position: absolute; transform: translate(-50%, 0); font-family: var(--serif); color: #f1d08a; font-size: 14px; white-space: nowrap; text-shadow: 0 2px 6px #000; }
+.map-boss-label { position: absolute; transform: translate(-50%, 0); font-family: var(--serif); color: #f1d08a; font-size: 14px; white-space: nowrap; text-shadow: 0 2px 6px #000; pointer-events: none; }
+.map-boss-label.avail { color: #ffe2a8; font-size: 16px; font-weight: 700; }
 
 /* ---------- Combat ---------- */
 .combat-screen .run-body { display: flex; flex-direction: column; }
@@ -248,7 +249,11 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   animation: intentFloat 2.4s ease-in-out infinite;
 }
 .intent svg { width: 24px; height: 24px; }
-.intent svg + svg { width: 18px; height: 18px; opacity: .85; }
+.intent svg + svg, .intent span + svg, .intent i + svg { width: 18px; height: 18px; opacity: .85; }
+.intent span + svg, .intent i + svg { margin-left: 3px; }
+.intent .i-ward { display: inline-flex; align-items: center; gap: 2px; font-style: normal; color: #a9dcff; }
+.intent span + .i-ward { margin-left: 7px; }
+.intent .i-ward svg { width: 1em; height: 1em; }
 .intent.attack { color: #ffc2b4; border-color: rgba(255, 110, 90, .85); background: rgba(48, 10, 8, .9); }
 .intent.defend { color: #a9dcff; }
 .intent.buff { color: #ffd479; }
@@ -288,6 +293,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   animation: banner 1.1s ease forwards;
 }
 .banner.enemy { color: #ffb6a8; text-shadow: 0 0 18px rgba(255, 90, 70, .5), 0 3px 10px #000; }
+.banner.stacked { top: 56%; }
 @keyframes banner { 0% { opacity: 0; transform: translate(-50%, -50%) scaleY(.4); } 18% { opacity: 1; transform: translate(-50%, -50%) scaleY(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
 .crest-wave { position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
 .crest-wave::before {
@@ -381,6 +387,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   position: absolute; left: 0; top: 0; width: var(--cw); height: calc(var(--cw) * 1.4); font-size: calc(var(--cw) / 10);
   transform-origin: 50% 100%; transition: transform .22s cubic-bezier(.2, .8, .3, 1), opacity .2s; cursor: pointer; touch-action: none;
   will-change: transform;
+  /* the cost coin's font size; the name starts just right of the coin, whatever size it is drawn at */
+  --coin: calc(var(--cw) * .12);
 }
 .card.static { position: relative; cursor: default; }
 .card .frame {
@@ -397,17 +405,19 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .card.r-uncommon .c-art { box-shadow: 0 0 0 .14em #5cc0dd; }
 .card.r-rare .c-art { box-shadow: 0 0 0 .14em #f0c050, 0 0 .6em rgba(240, 192, 80, .5); }
 .c-name {
-  position: absolute; top: .42em; left: 2.05em; right: .35em; height: 1.4em; display: flex; align-items: center; justify-content: center;
+  position: absolute; top: .42em; left: calc(var(--coin) * 2.25 + 1px); right: .35em; height: 1.4em; display: flex; align-items: center; justify-content: center;
   font-family: var(--serif); font-weight: 700; font-size: .95em; color: #f4ead2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .01em;
 }
-.c-name span { overflow: hidden; text-overflow: ellipsis; }
+.c-name span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.c-name.long { font-size: .8em; }
+.card:has(.c-cost.none) .c-name { left: .35em; }
 .card.up .c-name { color: var(--good); }
 .card.r-rare .c-name { color: #ffd77a; }
 .card.r-rare.up .c-name { color: #b8f5a2; }
 .c-cost {
   position: absolute; left: .15em; top: .15em; width: 2.1em; height: 2.1em; border-radius: 50%; display: grid; place-items: center; z-index: 2;
   background: radial-gradient(circle at 40% 35%, #fff0c8, #f3a432 55%, #8a4d0a); border: .12em solid #fff1cf;
-  color: #2a1503; font-weight: 900; font-size: 1.2em; font-family: var(--serif); box-shadow: 0 .1em .3em rgba(0, 0, 0, .6);
+  color: #2a1503; font-weight: 900; font-size: var(--coin); font-family: var(--serif); box-shadow: 0 .1em .3em rgba(0, 0, 0, .6);
 }
 .c-cost.changed { color: #0d4a1b; }
 .c-cost.none { display: none; }
@@ -476,6 +486,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 
 /* ---------- Toast ---------- */
 #toast { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 700; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#toast.low { top: auto; bottom: calc(64px + env(safe-area-inset-bottom)); }
 .toast-msg { background: rgba(5, 15, 24, .94); border: 1px solid rgba(255, 184, 77, .5); color: #ffe8c2; padding: 7px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; animation: toast 2.2s ease forwards; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
 @keyframes toast { 0% { opacity: 0; transform: translateY(-8px); } 10% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
 
@@ -525,16 +536,17 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .card-row { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
 .card-row .card.static { --cw: clamp(118px, 26vw, 168px); }
 .choice-list { display: flex; flex-direction: column; gap: 10px; width: min(560px, 100%); }
-.choice {
+/* event and rest choices; cards you can pick also carry .choice, so these leave cards alone */
+.choice:not(.card) {
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 12px 16px; border-radius: 12px; cursor: pointer; min-height: 56px;
   background: linear-gradient(180deg, rgba(25, 62, 82, .95), rgba(12, 34, 48, .95)); border: 1px solid rgba(201, 162, 74, .5); color: var(--text);
   transition: transform .12s, filter .12s;
 }
-.choice:hover { filter: brightness(1.15); transform: translateX(3px); }
-.choice b { font-size: 16px; color: #ffe2a8; }
-.choice span { font-size: 14px; color: #cfe0dc; }
-.choice[disabled] { opacity: .45; cursor: not-allowed; transform: none; filter: none; }
-.choice .reason { color: var(--bad); font-size: 12.5px; }
+.choice:not(.card):hover { filter: brightness(1.15); transform: translateX(3px); }
+.choice:not(.card) b { font-size: 16px; color: #ffe2a8; }
+.choice:not(.card) span { font-size: 14px; color: #cfe0dc; }
+.choice:not(.card)[disabled] { opacity: .45; cursor: not-allowed; transform: none; filter: none; }
+.choice:not(.card) .reason { color: var(--bad); font-size: 12.5px; }
 .event-art { width: min(640px, 100%); aspect-ratio: 3/2; border-radius: 14px; background: center/cover no-repeat; border: 1px solid rgba(201, 162, 74, .45); box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
 .shop-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px 12px; }
 .shop-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -551,6 +563,28 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .shop-tile b { font-size: 14px; color: #f3dfb2; }
 .shop-tile small { font-size: 12px; color: var(--muted); line-height: 1.3; }
 .shop-tile.sold { opacity: .35; pointer-events: none; }
+.shop-tile.chosen { cursor: default; border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber), 0 0 18px rgba(255, 184, 77, .45); }
+.shop-tile.chosen .medal, .shop-tile.dim .medal { cursor: default; }
+.shop-tile.dim { cursor: default; opacity: .4; }
+.reward-summary .incl { align-self: center; font-size: 14px; color: var(--muted); }
+.scene .lead.outcome { font-family: var(--sans); font-size: 16px; font-weight: 700; color: #ffe2a8; }
+/* shop: what you are about to buy */
+.buy-item { display: flex; align-items: center; gap: 14px; text-align: left; }
+.buy-item .medal { width: 64px; height: 64px; flex: 0 0 auto; cursor: default; }
+.buy-item b { font-size: 17px; color: #f3dfb2; }
+.buy-item p { margin: 4px 0 0; font-size: 15px; color: #d6e3e0; line-height: 1.4; }
+.buy-left { margin: 12px 0 0; text-align: center; font-size: 14px; color: var(--muted); }
+/* scene screens that still scroll say so */
+.scroll-cue {
+  position: absolute; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6;
+  display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 4px 10px 4px 14px; border-radius: 18px; cursor: pointer;
+  background: rgba(5, 15, 24, .94); border: 1px solid rgba(255, 184, 77, .65); color: #ffe2a8; font-size: 14px; font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .6); animation: cueBob 1.6s ease-in-out infinite;
+}
+.scroll-cue[hidden] { display: none; }
+.scroll-cue svg { width: 18px; height: 18px; }
+@keyframes cueBob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 3px); } }
+@media (prefers-reduced-motion: reduce) { .scroll-cue { animation: none; } }
 .trader { display: flex; align-items: flex-end; gap: 12px; text-align: left; width: 100%; }
 .trader img { width: clamp(110px, 22vw, 200px); filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .6)); }
 .speech { position: relative; flex: 1; background: rgba(240, 228, 200, .95); color: #2c2214; border-radius: 14px; padding: 10px 14px; font-family: var(--serif); font-size: 15.5px; line-height: 1.45; margin-bottom: 20px; }
@@ -714,6 +748,11 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .coachmark[data-side="below"] .cm-arrow { top: -8px; box-shadow: -2px -2px 0 0 #ffd68a; }
 .coachmark .cm-arrow[hidden], .coachmark[data-side="none"] .cm-arrow { display: none; }
 .cm-body { position: relative; }
+.cm-aside { display: block; margin-top: 6px; font-size: 15px; color: #4d3d22; }
+.cm-note { margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: #fbe1b0; border: 1px solid #e0a64a; color: #5a2c00; font-size: 15px; font-weight: 700; }
+.coachmark.nudge { animation: cmNudge .35s ease; }
+@keyframes cmNudge { 20% { translate: -6px 0; } 50% { translate: 6px 0; } 80% { translate: -3px 0; } }
+@media (prefers-reduced-motion: reduce) { .coachmark.nudge { animation: none; } }
 .cm-keys { display: block; margin-top: 4px; font-size: 14px; color: #6b5a3c; }
 .cm-foot { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .cm-step { font-size: 13px; font-weight: 700; color: #7c6a48; }
@@ -758,6 +797,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .small-cards .hand .card .c-art { height: 4.4em; }
 .small-cards .hand .card .c-text { top: 6.6em; }
 .small-cards .hand .card:not(:last-child):not(.selected) .c-text { right: calc(var(--cover, 0px) + .3em); }
+/* larger cards in a crowded hand: the same, so the next card never sits on top of the rules text */
+.hand.crowded .card:not(:last-child):not(.selected):not(.lifted) .c-text { right: calc(var(--cover, 0px) + .3em); }
 .small-cards .hand .card:not(:last-child):not(.selected) .c-name { right: calc(var(--cover, 0px) + .1em); justify-content: flex-start; }
 
 /* short fields (landscape phones): smaller sprites so intents, HP and statuses all fit */
@@ -794,6 +835,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .reward-main { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 8px 16px; border-radius: 16px; background: rgba(6, 20, 30, .75); border: 1px solid rgba(255, 184, 77, .45); }
 .reward-main h2 { font-size: 22px; color: #ffe6b0; }
 .reward-main .card-row .card.static { --cw: clamp(128px, 28vw, 172px); }
+.reward-main .card-row { padding-top: 8px; } /* room for a focused or chosen card's lift below the heading */
 .reward-item b { font-size: 16px; }
 .reward-item small { font-size: 14px; }
 .btn.wide { min-width: min(280px, 100%); }
@@ -815,24 +857,23 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 }
 
 /* rest, events, end */
-.choice b { font-size: 17px; }
-.choice span { font-size: 15px; }
+.choice:not(.card) b { font-size: 17px; }
+.choice:not(.card) span { font-size: 15px; }
 .stats span { font-size: 13px; }
-.reward-item small, .choice .reason { font-size: 14px; }
+.reward-item small, .choice:not(.card) .reason { font-size: 14px; }
 .node.lbl-l .node-label { left: 0; transform: none; }
 .node.lbl-r .node-label { left: auto; right: 0; transform: none; }
 /* readable minimums: the type pill repeats the border colour, so hand cards drop it; elsewhere it gets a floor */
 .hand .card .c-type { display: none; }
 .card.static .c-type { font-size: max(12px, .62em); padding: .05em .7em; }
-.small-cards .hand .card .c-cost { font-size: 15px; }
+.small-cards .hand .card { --coin: 15px; }
 .sale-tag { font-size: 12px; }
 /* the raised card is scaled up 1.6x on phones, so smaller CSS text still reads at 15-17px and long rules fit */
 .small-cards .hand .card.selected { --card-text: 11px; --card-text-long: 9.5px; }
 .small-cards .hand .card.selected .c-art { height: 3.8em; }
 .small-cards .hand .card.selected .c-text { top: 6em; }
 @media (max-height: 500px) and (min-width: 601px) {
-  .hand .card .c-cost { font-size: 14px; }
-  .hand .card { --card-text: 12px; --card-text-long: 12px; }
+  .hand .card { --coin: 14px; --card-text: 12px; --card-text-long: 12px; }
 }
 .card.static .c-type { top: calc(var(--cw) * .685 - 14px); }
 .map-header h2, .map-header p { text-shadow: 0 2px 6px #000, 0 0 12px #06121c; }

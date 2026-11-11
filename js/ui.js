@@ -71,6 +71,7 @@
     echo: svg('<path d="M4 12a8 8 0 0 1 8-8M20 12a8 8 0 0 1-8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M8 12a4 4 0 0 1 4-4M16 12a4 4 0 0 1-4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6"/>'),
     music: svg('<path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="17.5" cy="16" r="2.8"/>'),
     close: svg('<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
+    chevron: svg('<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
   const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss };
   const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', boss: 'Boss' };
@@ -291,6 +292,8 @@
     const d = document.createElement('div');
     d.className = 'toast-msg';
     d.textContent = msg;
+    // fights keep messages up top; other screens have their title there, so messages go to the bottom
+    toastEl.classList.toggle('low', !(run && run.screen === 'combat'));
     toastEl.appendChild(d);
     while (toastEl.children.length > 3) toastEl.firstChild.remove();
     setTimeout(() => d.remove(), 2300);
@@ -415,8 +418,9 @@
     const text = markKeywords(d.text(E.vals(card), inCombat ? combatFmt(target) : plainFmt));
     const baseCost = d.cost;
     const long = text.replace(/<[^>]+>/g, '').length > 58;
+    const name = E.cardName(card);
     return `<div class="frame"><div class="c-art" style="background-image:url(img/cards/${d.art}.webp)"></div>` +
-      `<div class="c-name"><span>${E.cardName(card)}</span></div><div class="c-type">${TYPE_LABEL[d.type]}</div>` +
+      `<div class="c-name${name.length >= 14 ? ' long' : ''}"><span>${name}</span></div><div class="c-type">${TYPE_LABEL[d.type]}</div>` +
       `<div class="c-text${long ? ' long' : ''}"><div>${text}</div></div></div>` +
       `<div class="c-cost${cost == null ? ' none' : ''}${cost != null && cost < baseCost ? ' changed' : ''}">${cost == null ? '' : cost}</div>`;
   }
@@ -555,7 +559,7 @@
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Each extra Low Water gives 3 more Ward. Save Surge for one big turn.</li>
         <li>Your <b>Tide-Bell</b> draws a card on every Crest and Low Water.</li>
-        <li>Badges on your cards say what a card would do right now: ${['CREST', 'LETHAL', 'VICTORY', 'LOW WATER', 'ECHO'].map((b) => `<span class="c-badge ${b.split(' ')[0].toLowerCase()}">${b}</span>`).join(' ')}</li>
+        <li>Badges on your cards say what a card would do right now: ${['CREST', 'LETHAL', 'VICTORY', 'LOW WATER', 'ECHO'].map((b) => `<span class="c-badge ${b.split(' ')[0].toLowerCase()}">${b}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
       case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
@@ -664,7 +668,51 @@
    * ================================================================== */
   function render() {
     renderScreen();
+    fitScene();
     if (Teach) Teach.checkHints();
+  }
+  /* Re-render the same screen and keep its scroll position (shop purchases). */
+  function renderKeepScroll() {
+    const sc = $('.scene', screenEl);
+    const y = sc ? sc.scrollTop : 0;
+    render();
+    const sc2 = $('.scene', screenEl);
+    if (sc2) { sc2.scrollTop = y; updateScrollCue(sc2); }
+  }
+  /* Scene screens (events, the Wreck, rewards, the shop): shrink a tall picture so the choices
+     under it fit on screen, and show a "More below" cue whenever the screen still scrolls. */
+  function fitScene() {
+    const sc = $('.scene', screenEl);
+    if (!sc) return;
+    const art = $('.event-art, .chest', sc);
+    if (art) {
+      art.style.height = '';
+      const over = sc.scrollHeight - sc.clientHeight;
+      if (over > 0) {
+        const h = art.getBoundingClientRect().height;
+        const min = Math.min(h, innerHeight < 560 ? 90 : 130);
+        art.style.height = Math.max(min, Math.floor(h - over - 2)) + 'px';
+      }
+    }
+    if (!sc._cue) { sc._cue = true; sc.addEventListener('scroll', () => updateScrollCue(sc), { passive: true }); }
+    updateScrollCue(sc);
+  }
+  function updateScrollCue(sc) {
+    const body = sc.parentElement;
+    if (!body) return;
+    let cue = $('.scroll-cue', body);
+    const more = sc.scrollHeight - sc.clientHeight - sc.scrollTop > 16;
+    if (!cue && more) {
+      cue = document.createElement('button');
+      cue.type = 'button';
+      cue.className = 'scroll-cue';
+      cue.tabIndex = -1;
+      cue.setAttribute('aria-hidden', 'true');
+      cue.innerHTML = `More below ${ICON.chevron}`;
+      cue.addEventListener('click', () => sc.scrollBy({ top: sc.clientHeight * 0.7, behavior: 'smooth' }));
+      body.appendChild(cue);
+    }
+    if (cue) cue.hidden = !more;
   }
   function renderScreen() {
     hideTip();
@@ -765,13 +813,15 @@
       const label = NODE_NAME[n.type];
       if (isAvail) {
         const idx = avail.findIndex((a) => a.row === n.row && a.col === n.col);
-        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}">${NODE_ICON[n.type]}<span class="node-label">${SHORT_NAME[n.type]}</span></button>`;
+        // the boss already has its name under it, so it gets no second label
+        const lbl = n.type === 'boss' ? '' : `<span class="node-label">${SHORT_NAME[n.type]}</span>`;
+        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}">${NODE_ICON[n.type]}${lbl}</button>`;
       }
       return `<div class="${cls}" style="${style}" data-tip="node:${n.type}" aria-hidden="true">${NODE_ICON[n.type]}</div>`;
     };
     all.forEach((n) => { nodes += nodeHTML(n); });
     nodes += nodeHTML(m.boss);
-    nodes += `<div class="map-boss-label" style="left:50%;top:${64 + 50}px">The Drowned Bellwether</div>`;
+    nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${64 + 50}px">The Drowned Bellwether</div>`;
     const legend = ['fight', 'elite', 'event', 'rest', 'shop', 'treasure'].map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
     const sub = !run.pos ? 'Choose where to begin your descent.' : avail.length ? 'Choose your next stop.' : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
@@ -852,14 +902,14 @@
     if (!info) return '';
     const k = info.kinds;
     const main = k.indexOf('attack') >= 0 ? 'attack' : k[0] || 'buff';
-    let icons = '';
-    if (k.indexOf('attack') >= 0) icons += ICON.attack;
-    if (k.indexOf('defend') >= 0) icons += ICON.defend;
-    if (k.indexOf('buff') >= 0) icons += ICON.buff;
-    if (k.indexOf('debuff') >= 0) icons += ICON.debuff;
-    if (k.indexOf('summon') >= 0) icons += ICON.summon;
-    const num = info.dmg ? `<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>` : '';
-    return `<div class="intent ${main}" data-tip="intent:${e.uid}">${icons}${num}</div>`;
+    // each part with a number shows it next to its icon: attack 3, Ward 4
+    let parts = '';
+    if (k.indexOf('attack') >= 0) parts += `${ICON.attack}<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>`;
+    if (k.indexOf('defend') >= 0) parts += `<i class="i-ward">${ICON.defend}${info.ward ? `<span>${info.ward}</span>` : ''}</i>`;
+    if (k.indexOf('buff') >= 0) parts += ICON.buff;
+    if (k.indexOf('debuff') >= 0) parts += ICON.debuff;
+    if (k.indexOf('summon') >= 0) parts += ICON.summon;
+    return `<div class="intent ${main}" data-tip="intent:${e.uid}">${parts}</div>`;
   }
 
   function updateUnitInfo(el, hp, max, ward, o, who) {
@@ -986,9 +1036,22 @@
       if (preview != null && i === preview && preview !== c.tide) cls.push('preview');
       segs += `<div class="${cls.join(' ')}">${i}</div>`;
     }
+    // what the selected card's Crests or Low Water would really do, chain bonuses included
     let hint = '';
-    if (preview === 6) hint = '<div class="tb-hint">Crest! 6 damage to all</div>';
-    else if (preview === 0) hint = '<div class="tb-hint">Low Water! +6 Ward</div>';
+    if (selCard && (preview === 6 || preview === 0)) {
+      const al = E.alive(c);
+      const tgt = E.needsTarget(selCard) ? (ui.target || (al[0] && al[0].uid)) : null;
+      const p = E.preview(run, selCard.uid, tgt);
+      if (p && p.crests) {
+        const hits = [];
+        for (let k = 1; k <= p.crests; k++) hits.push(E.crestDamage(run, c, c.turnCrests + k));
+        hint = `<div class="tb-hint">Crest${p.crests > 1 ? ' x' + p.crests : ''}! ${hits.join(' + ')} damage to all</div>`;
+      } else if (p && p.lows) {
+        const ward = [];
+        for (let k = 1; k <= p.lows; k++) ward.push(6 + 3 * (c.turnLows + k - 1) + (E.has(run, 'kelpbracelet') ? 5 : 0));
+        hint = `<div class="tb-hint">Low Water${p.lows > 1 ? ' x' + p.lows : ''}! +${ward.join(' + ')} Ward</div>`;
+      }
+    }
     tb.setAttribute('aria-label', `Tide ${c.tide} of 6`);
     tb.innerHTML = `<span class="tb-label low" data-tip="kw:Low Water">Low<span class="long"> Water</span></span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
@@ -1055,7 +1118,8 @@
     if (p) {
       if (p.won) b.push('<span class="c-badge victory">VICTORY</span>');
       else if (p.kills) b.push(`<span class="c-badge lethal">LETHAL${p.kills > 1 ? ' x' + p.kills : ''}</span>`);
-      if (p.crests) b.push(`<span class="c-badge crest">CREST${p.chain > 1 ? ' x' + p.chain : ''}</span>`);
+      // the number is how many Crests this card makes, not where it falls in the turn's chain
+      if (p.crests) b.push(`<span class="c-badge crest">CREST${p.crests > 1 ? ' x' + p.crests : ''}</span>`);
       else if (p.lows) b.push('<span class="c-badge low">LOW WATER</span>');
     }
     const d = BL.CARDS[card.id];
@@ -1125,16 +1189,23 @@
     const step = n > 1 ? Math.min(cw * 1.04, (W - cw) / (n - 1)) : 0;
     const total = cw + step * (n - 1);
     const x0 = (W - total) / 2;
-    // how much of each card the next one covers: small cards wrap their text inside the visible part
-    h.style.setProperty('--cover', Math.max(0, Math.round(cw - step)) + 'px');
+    const mobile = innerWidth <= 760;
+    // a crowded desktop hand gets a flatter fan, so neighbours tilt into each other's text less
+    const crowded = !mobile && (n >= 7 || step < cw * 0.95);
+    const rotK = mobile ? Math.min(2, 12 / n) : crowded ? Math.min(1.5, 12 / n) : Math.min(3.5, 22 / n);
+    const yK = mobile ? Math.min(1.6, 10 / n) : crowded ? Math.min(1.5, 10 / n) : Math.min(2.6, 16 / n);
+    // how much of each card the next one covers (overlap plus the tilt between neighbours):
+    // card text wraps inside the visible part
+    const cover = Math.max(0, Math.round(cw - step + ch * Math.sin(rotK * Math.PI / 180) * 0.5));
+    h.style.setProperty('--cover', cover + 'px');
+    h.classList.toggle('crowded', cover > 2);
     const fUid = ui.sel != null ? ui.sel : ui.hover;
     const f = els.findIndex((el) => +el.dataset.uid === fUid);
     const hr = h.getBoundingClientRect();
-    const mobile = innerWidth <= 760;
     els.forEach((el, i) => {
       const off = i - (n - 1) / 2;
-      let rot = n > 1 ? off * (mobile ? Math.min(2, 12 / n) : Math.min(3.5, 22 / n)) : 0;
-      let y = off * off * (mobile ? Math.min(1.6, 10 / n) : Math.min(2.6, 16 / n));
+      let rot = n > 1 ? off * rotK : 0;
+      let y = off * off * yK;
       let x = x0 + i * step;
       let s = 1;
       let z = i + 1;
@@ -1156,6 +1227,7 @@
       }
       el.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${s})`;
       el.style.zIndex = z;
+      el.classList.toggle('lifted', i === f);
       el._lay = { x, y, s };
     });
   }
@@ -1196,6 +1268,17 @@
     // keep inside the screen vertically
     const gr = g.getBoundingClientRect();
     if (gr.bottom > innerHeight - 6) g.style.top = Math.max(56, innerHeight - 6 - gr.height) + 'px';
+    // the Tide bar's Crest / Low Water hint slides to the end of the bar this box is not covering
+    const hint = $('#tidebar .tb-hint');
+    if (hint) {
+      const a = hint.getBoundingClientRect(), b = g.getBoundingClientRect();
+      if (a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom) {
+        const boxOnRight = b.left + b.width / 2 > a.left + a.width / 2;
+        hint.style.transform = 'none';
+        hint.style.left = boxOnRight ? '0' : 'auto';
+        hint.style.right = boxOnRight ? 'auto' : '0';
+      }
+    }
   }
 
   function renderHandHint() {
@@ -1271,7 +1354,7 @@
     const targetId = tgt ? tgt.id : (card && E.needsTarget(card) && E.alive(c).length === 1 ? E.alive(c)[0].id : null);
     if (Teach.active) {
       const ok = Teach.allows('play', cardId, targetId);
-      if (ok !== true) { toast(ok); ui.sel = null; ui.target = null; updateCombat(); return; }
+      if (ok !== true) { if (!Teach.nudge(ok)) toast(ok); ui.sel = null; ui.target = null; updateCombat(); return; }
     }
     const el = handCardEl(uid);
     const targetEl = targetUid ? $(`.unit[data-uid="${targetUid}"] .sprite`, screenEl) : null;
@@ -1281,6 +1364,9 @@
     ui.sel = null; ui.target = null; ui.hover = null;
     renderGlossary();
     renderHandHint();
+    // drop the selected card's Crest / Low Water preview; the Tide itself updates after the wave plays out
+    $$('#tidebar .tb-hint', screenEl).forEach((x) => x.remove());
+    $$('#tidebar .tb-seg.preview', screenEl).forEach((x) => x.classList.remove('preview'));
     if (el) flyTo(el, targetEl || $('#field'), 0.45, true);
     await processFx();
     ui.busy = false;
@@ -1323,7 +1409,7 @@
     if (!c || ui.busy || c.phase !== 'player') return;
     if (Teach.active) {
       const ok = Teach.allows('endturn');
-      if (ok !== true) { toast(ok); return; }
+      if (ok !== true) { if (!Teach.nudge(ok)) toast(ok); return; }
       Teach.onEndTurn();
     }
     ui.busy = true;
@@ -1362,7 +1448,7 @@
       return;
     }
     if (ui.busy) return;
-    if (Teach.active) { toast(Teach.allows('tonic')); return; }
+    if (Teach.active) { const why = Teach.allows('tonic'); if (!Teach.nudge(why)) toast(why); return; }
     if (td.target === 'enemy' && !targetUid) {
       const al = E.alive(c);
       if (al.length === 1) targetUid = al[0].uid;
@@ -1445,6 +1531,8 @@
     $$('.banner', f).forEach((b) => b.remove());
     const b = document.createElement('div');
     b.className = 'banner ' + (cls || '');
+    // a Crest or Low Water is still on screen (Moon Pull at the start of a turn, a phase change mid-wave): sit below it
+    if ($('.crest-text', f)) b.classList.add('stacked');
     b.textContent = text;
     f.appendChild(b);
     setTimeout(() => b.remove(), 1200);
@@ -1747,12 +1835,24 @@
   function clearArrow() { const a = $('#arrow'); if (a) a.remove(); }
 
   /* ----- Reward ----- */
+  /* Keepsake tiles to pick from. Once one is taken they stay where they are: the pick lit, the rest dimmed. */
+  function ksTiles(ids, taken, act) {
+    return ids.map((id) => {
+      const K = BL.KEEPSAKES[id];
+      const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><small>${K.desc}</small>`;
+      if (taken) return `<div class="shop-tile ${id === taken ? 'chosen' : 'dim'}"${id === taken ? ' aria-label="Taken: ' + K.name + '"' : ''}>${art}</div>`;
+      return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="${act}" data-k="${id}">${art}</div>`;
+    }).join('');
+  }
+
   function renderReward() {
     const rw = run.rewards;
+    // the Pearl total already includes the bonuses, so they read as part of it rather than on top of it
     const bonusChips = (rw.bonuses || []).map((b) => `<span class="chip bonus" title="${b.desc}">&#9733; ${b.name} +${b.pearls}</span>`).join('');
-    const summary = `<div class="reward-summary"><span class="chip pearls">${ICON.pearl}<b>+${rw.pearls}</b> Pearls</span>${bonusChips}</div>`;
+    const summary = `<div class="reward-summary"><span class="chip pearls">${ICON.pearl}<b>+${rw.pearls}</b> Pearls</span>${bonusChips ? `<span class="incl">including</span>${bonusChips}` : ''}</div>`;
+    const ksChoices = rw.keepsakeChoices && rw.keepsakeChoices.length ? rw.keepsakeChoices : null;
     const extras = [];
-    if (rw.keepsake) {
+    if (rw.keepsake && !ksChoices) {
       const k = BL.KEEPSAKES[rw.keepsake];
       extras.push(`<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>${k.name}</b><small>${k.desc}</small></div></div>`);
     }
@@ -1762,11 +1862,8 @@
       extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}</small></div>
         ${rw.tonicTaken ? '<span class="muted">Taken</span>' : `<button class="btn small" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : ''}>${full ? 'Slots full' : 'Take'}</button>`}</div>`);
     }
-    const ksPanel = rw.keepsakeChoices && rw.keepsakeChoices.length && !rw.keepsake
-      ? `<div class="panel"><h3>Choose a keepsake</h3><div class="shop-row">${rw.keepsakeChoices.map((k) => {
-        const K = BL.KEEPSAKES[k];
-        return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="rewardks" data-k="${k}"><span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><small>${K.desc}</small></div>`;
-      }).join('')}</div></div>` : '';
+    // the panel stays after the pick (chosen tile lit, the other dimmed) so nothing below it jumps up under the pointer
+    const ksPanel = ksChoices ? `<div class="panel"><h3>${rw.keepsake ? 'Keepsake taken' : 'Choose a keepsake'}</h3><div class="shop-row">${ksTiles(ksChoices, rw.keepsake, 'rewardks')}</div></div>` : '';
     const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : ''}`,
       (rw.cardTaken ? '' : `tabindex="0" role="button" data-act="rewardcard" data-i="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
     const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
@@ -1843,7 +1940,7 @@
         return `<button class="choice" data-act="evopt" data-i="${i}" ${ok === true ? '' : 'disabled'}><b>${o.label}</b><span>${o.desc}</span>${ok === true ? '' : `<span class="reason">${ok}</span>`}</button>`;
       }).join('')}</div>`;
     } else {
-      body = `<p class="lead">${st.text}</p><button class="btn primary" data-act="evcontinue" autofocus>Continue</button>`;
+      body = `<p class="lead">${st.text}</p>${st.outcome ? `<p class="lead outcome">${st.outcome}</p>` : ''}<button class="btn primary" data-act="evcontinue" autofocus>Continue</button>`;
     }
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="event-art" style="background-image:url(img/scenes/${ev.art}.webp)"></div>
@@ -1859,20 +1956,25 @@
   function resolveEventNext() {
     const st = run.event;
     const next = st.next;
-    const done = () => { st.resolved = true; save(); updateHud(); };
+    // the result screen then says what happened, under the event's own text
+    const done = (outcome) => { st.resolved = true; if (outcome) st.outcome = outcome; save(); render(); };
+    const nameOf = (uid) => { const c = run.deck.find((x) => x.uid === uid); return c ? E.cardName(c) : 'The card'; };
     if (next.pick === 'remove') {
       if (!run.deck.length) return done();
       ui.allowCancelPick = false;
-      showDeck('remove', (uid) => { E.removeCard(run, uid); toast('Card removed'); done(); });
+      showDeck('remove', (uid) => { const n = nameOf(uid); E.removeCard(run, uid); done(`${n} is gone from your deck.`); });
     } else if (next.pick === 'duplicate') {
       ui.allowCancelPick = false;
-      showDeck('duplicate', (uid) => { E.duplicateCard(run, uid); toast('Card duplicated'); done(); });
+      showDeck('duplicate', (uid) => { const n = nameOf(uid); E.duplicateCard(run, uid); done(`A second ${n} joins your deck.`); });
     } else if (next.pick === 'upgrade') {
       if (!E.upgradeable(run).length) return done();
       ui.allowCancelPick = false;
-      showDeck('upgrade', (uid) => { E.upgradeCard(run, uid); toast('Card upgraded'); done(); });
+      showDeck('upgrade', (uid) => { const n = nameOf(uid); E.upgradeCard(run, uid); done(`${n} is now ${nameOf(uid)}.`); });
     } else if (next.cards) {
-      showCardChoice(next.cards, 'Choose a card', (id) => { if (id) { E.addCard(run, id); toast(`${BL.CARDS[id].name} added to your deck`); } done(); });
+      showCardChoice(next.cards, 'Choose a card', (id) => {
+        if (id) E.addCard(run, id);
+        done(id ? `${BL.CARDS[id].name} joins your deck.` : 'You leave the cards where they are.');
+      });
     } else if (next.fight) {
       st.resolved = true;
       // fight starts when the player presses Continue
@@ -1903,15 +2005,15 @@
       body = `<p class="lead">A sea chest, half buried, banded in iron gone green. Something inside is still glowing.</p><button class="btn primary" data-act="opentreasure" autofocus>Pry it open</button>`;
     } else {
       const k = t.keepsake ? BL.KEEPSAKES[t.keepsake] : null;
-      const choices = !k && t.choices && t.choices.length
-        ? `<div class="panel"><h3>Three keepsakes glint in the chest. Take one</h3><div class="shop-row">${t.choices.map((id) => {
-          const K = BL.KEEPSAKES[id];
-          return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="treasureks" data-k="${id}"><span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><small>${K.desc}</small></div>`;
-        }).join('')}</div></div>` : '';
+      const hasChoices = t.choices && t.choices.length;
+      // like the Dread reward: the chest stays open where it was after the pick
+      const choices = hasChoices
+        ? `<div class="panel"><h3>${k ? 'You take the ' + k.name + '.' : 'Three keepsakes glint in the chest. Take one.'}</h3><div class="shop-row">${ksTiles(t.choices, t.keepsake, 'treasureks')}</div></div>` : '';
+      const picking = hasChoices && !k;
       body = `<div class="reward-list">
         <div class="reward-item done"><span class="medal" style="display:grid;place-items:center">${ICON.pearl}</span><div class="grow"><b>${t.pearls} Pearls</b></div></div>
-        ${k ? `<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>` : ''}
-      </div>${choices}<button class="btn ${choices ? '' : 'primary'}" data-act="tomap" ${choices ? '' : 'autofocus'}>${choices ? 'Leave them' : 'Continue'}</button>`;
+        ${k && !hasChoices ? `<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>` : ''}
+      </div>${choices}<button class="btn ${picking ? '' : 'primary'}" data-act="tomap" ${picking ? '' : 'autofocus'}>${picking ? 'Leave them' : 'Continue'}</button>`;
     }
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="chest" style="background-image:url(img/scenes/treasure.webp)"></div>
@@ -1950,7 +2052,8 @@
     const text = win
       ? 'The Bellwether cracks and falls silent. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up through the dark water, and by dawn the great light of Saltmere is turning again.'
       : 'The cold closes over your lantern. Somewhere above, the lighthouse stays dark a little longer. But keepers are stubborn, and the sea gives back what it takes, eventually.';
-    screenEl.innerHTML = `<div class="run-screen"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : 'bg_boss'}.webp)"><div class="scene-inner" style="padding-top:8vh">
+    // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
+    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : 'bg_boss'}.webp)"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
       ${scoreHTML}
       <div class="stats">${stats}</div>
@@ -2025,8 +2128,8 @@
         const uid = ui.pending;
         if (!m || uid == null) break;
         if (m.mode === 'shopremove') {
-          if (E.buyRemoval(run, uid)) { sfx('coin'); toast('Card removed'); }
-          closeOverlay(true); save(); render();
+          if (E.buyRemoval(run, uid)) sfx('coin'); // the Scrub tile now reads "Done"
+          closeOverlay(true); save(); renderKeepScroll();
         } else {
           closeOverlay(true);
           if (m.onPick) m.onPick(uid);
@@ -2063,15 +2166,14 @@
         const i = t.dataset.i === '' ? null : +t.dataset.i;
         const rc = i == null ? null : run.rewards.cards[i];
         E.takeRewardCard(run, i);
-        if (rc) { sfx('select'); toast(`${BL.CARDS[rc.id].name}${rc.up ? '+' : ''} added to your deck`); }
+        if (rc) sfx('select'); // the heading changes to "Added to your deck" and the card lights up, so no toast
         save();
         render();
         break;
       }
       case 'rewardks': {
         E.takeRewardKeepsake(run, t.dataset.k);
-        sfx('coin');
-        toast(`${BL.KEEPSAKES[t.dataset.k].name} is yours`);
+        sfx('coin'); // the panel says "Keepsake taken" with the pick lit, so no toast
         save();
         render();
         break;
@@ -2106,18 +2208,30 @@
         });
         break;
       case 'buy': {
+        // check first, then confirm: a stray click should not spend Pearls
         const kind = t.dataset.kind, i = +t.dataset.i;
         const it = run.shop[kind][i];
         if (!it || it.sold) break;
         const p = E.price(run, it.base);
         if (run.pearls < p) { toast('Not enough Pearls'); break; }
         if (kind === 'tonics' && run.tonics.indexOf(null) < 0) { toast('Your tonic slots are full'); break; }
-        if (E.buy(run, kind, i)) {
-          sfx('coin');
-          const name = kind === 'cards' ? BL.CARDS[it.id].name : kind === 'keepsakes' ? BL.KEEPSAKES[it.id].name : BL.TONICS[it.id].name;
-          toast(`Bought ${name}`);
+        const def = kind === 'cards' ? BL.CARDS[it.id] : kind === 'keepsakes' ? BL.KEEPSAKES[it.id] : BL.TONICS[it.id];
+        const what = kind === 'cards'
+          ? `<div class="compare">${staticCard(pseudo(it.id))}</div>`
+          : `<div class="buy-item"><span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><div><b>${kind === 'tonics' ? 'Tonic: ' : ''}${def.name}</b><p>${def.desc}</p></div></div>`;
+        const left = `<p class="buy-left">You have ${run.pearls} Pearls; ${run.pearls - p} left after this.</p>`;
+        openOverlay(modal(`Buy ${def.name} for ${p} Pearls?`, what + left,
+          `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="buyconfirm" data-kind="${kind}" data-i="${i}" autofocus>Buy</button>`, 'narrow'));
+        break;
+      }
+      case 'buyconfirm': {
+        const kind = t.dataset.kind, i = +t.dataset.i;
+        const it = run.shop[kind][i];
+        closeOverlay(true);
+        if (it && E.buy(run, kind, i)) {
+          sfx('coin'); // the item now reads "Sold" and the Pearl count drops, so no toast over the shop
           save();
-          render();
+          renderKeepScroll();
         }
         break;
       }
@@ -2283,6 +2397,7 @@
     computeSizes();
     if (run && run.screen === 'map') renderMap();
     if (run && run.combat) renderGlossary();
+    fitScene();
   });
   window.addEventListener('beforeunload', () => save());
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });

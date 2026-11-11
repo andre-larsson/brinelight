@@ -979,7 +979,7 @@
     const c = run.combat;
     const m = BL.ENEMIES[e.id].moves[e.intent];
     if (!m) return null;
-    const info = { name: m.name, kinds: [], dmg: 0, hits: 0, parts: [] };
+    const info = { name: m.name, kinds: [], dmg: 0, hits: 0, ward: m.ward || 0, parts: [] };
     if (m.dmg) {
       const base = Math.round((typeof m.dmg === 'function' ? m.dmg(e) : m.dmg) * (c.dmgMul || 1));
       info.dmg = attackValue(e, c.player, base);

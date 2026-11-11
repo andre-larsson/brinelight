@@ -141,18 +141,23 @@
         html: () => 'That cost <b>1 Light</b> (the number on the card). You get <b>3 Light</b> each turn.' },
       { id: 'intent', info: true, anchor: () => enemySel('tut_mite', '.intent'), side: 'below',
         html: () => 'The <b>intent</b> above an enemy is its next move. Both will attack: 4 and 3.' },
-      playStep('ward', 'brace', null,
-        () => `<b>Block it:</b> play <b>Brace</b> for 5 <b>Ward</b>. Ward stops damage until your next turn.`),
-      playStep('attack2', 'jab', 'tut_crab',
-        () => `Last Light: hit the <b>Brine Crab</b> with a <b>Harpoon Jab</b>.`),
+      // Harpoon Jab now shows LETHAL on the mite; say why the tutorial leaves it for the wave
+      Object.assign(playStep('ward', 'brace', null,
+        () => `<b>Block it:</b> play <b>Brace</b> for 5 <b>Ward</b>. Ward stops damage until your next turn.`,
+        () => '<span class="cm-aside">The <b>LETHAL</b> tag says a Jab would finish the mite. Leave it: a wave will sweep it away soon.</span>'),
+      { why: { card: 'block the hits first' } }),
+      Object.assign(playStep('attack2', 'jab', 'tut_crab',
+        () => `Last Light: hit the <b>Brine Crab</b> with a <b>Harpoon Jab</b>. The mite can wait for the wave.`),
+      { why: { target: 'the mite can wait for the wave' } }),
       { id: 'end', endTurn: true, anchor: '#btn-end',
         html: () => `Out of Light: ${tapLow()} <b>End Turn</b>. Unplayed cards go to the discard pile; next turn you draw 5 new ones.${kbd('Or press E')}` },
       { id: 'enemyward', info: true, anchor: () => enemySel('tut_crab', '.ward-badge') || enemySel('tut_crab', '.hpbar'), side: 'below',
         html: () => 'The crab hardened: <b>4 Ward</b>. Enemy Ward blocks your hits too.' },
       { id: 'tide', info: true, anchor: '#tidebar', side: 'above',
         html: () => 'This is the <b>Tide</b>, 0 to 6, starting at 3. <b>Surge</b> raises it; <b>Ebb</b> lowers it.' },
-      playStep('surge', 'swell', 'tut_crab',
+      Object.assign(playStep('surge', 'swell', 'tut_crab',
         () => `Play <b>Rising Swell</b> on the crab: 5 damage and <b>Surge 2</b>.`),
+      { why: { card: 'its Surge sets up the wave', target: 'the wave will take the mite' } }),
       playStep('crest', 'shellup', null,
         () => 'At 6 the wave <b>Crests</b>: 6 damage to <b>every</b> enemy. Play <b>Shell Up</b> (Surge 1).'),
       playStep('ebb', 'slack', null,
@@ -167,19 +172,31 @@
         () => '<b>+6 Ward!</b> Now the payoff: extra Surge <b>carries over</b>, and each extra Crest in a turn hits 3 harder. Play <b>Storm Surge</b> (Surge 6) to Crest twice.'),
     ];
 
-    const tut = { active: false, i: 0, resume: false };
+    const tut = { active: false, i: 0, resume: false, note: null };
 
     function stepHTML(s) {
       const body = s.html();
       const n = `<span class="cm-step">${tut.i + 1}/${STEPS.length}</span>`;
       const skip = '<button class="cm-skip" data-act="tutskip">Skip tutorial</button>';
       const next = s.info ? '<button class="btn small primary" data-act="tutnext">Next</button>' : '';
-      return `<div class="cm-text">${body}</div><div class="cm-foot">${n}${skip}${next}</div>`;
+      const note = tut.note ? `<div class="cm-note" role="status">${tut.note}</div>` : '';
+      return `<div class="cm-text">${body}</div>${note}<div class="cm-foot">${n}${skip}${next}</div>`;
     }
     function showStep() {
       const s = STEPS[tut.i];
       if (!s) return;
+      tut.note = null;
       show({ kind: 'tutorial', id: s.id, anchor: s.anchor, side: s.side, html: () => stepHTML(s) });
+    }
+    /* A blocked action explains itself inside the bubble the player is already reading. */
+    function nudge(msg) {
+      if (!tut.active || !shown || shown.kind !== 'tutorial' || !msg) return false;
+      tut.note = msg;
+      place();
+      box.classList.remove('nudge');
+      void box.offsetWidth;
+      box.classList.add('nudge');
+      return true;
     }
 
     function startTutorial() {
@@ -217,8 +234,9 @@
       if (action === 'play') {
         if (s.info) return 'Press Next first';
         if (s.endTurn) return 'End your turn now';
-        if (cardId !== s.play.card) return `Play ${BL.CARDS[s.play.card].name} this time`;
-        if (s.play.target && targetId !== s.play.target) return `Aim at the ${NAMES[s.play.target]}`;
+        const why = s.why || {};
+        if (cardId !== s.play.card) return `Play ${BL.CARDS[s.play.card].name} this time${why.card ? ': ' + why.card : ''}.`;
+        if (s.play.target && targetId !== s.play.target) return `Aim at the ${NAMES[s.play.target]}${why.target ? ': ' + why.target : ''}.`;
         return true;
       }
       if (action === 'tonic') return 'Not in the tutorial';
@@ -330,7 +348,7 @@
       get resume() { return tut.resume; },
       status: () => store.get(KEY_TUTORIAL),
       setStatus: (v) => store.set(KEY_TUTORIAL, v),
-      startTutorial, endTutorial, next, allows, onPlayed, onEndTurn, onVictory, onKey,
+      startTutorial, endTutorial, next, allows, nudge, onPlayed, onEndTurn, onVictory, onKey,
       checkHints, closeHint, hide, refresh: place,
       hintShowing: () => !!(shown && shown.kind === 'hint'),
       stepId: () => (tut.active && STEPS[tut.i] ? STEPS[tut.i].id : null),

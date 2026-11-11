@@ -170,6 +170,28 @@ test('the intent number is the damage the enemy deals when it acts (all enemies,
   }
 });
 
+test('an intent that guards shows the Ward the enemy gains when it acts', () => {
+  let guarded = 0;
+  for (const id of ['crab', 'eel', 'sailor', 'mite']) {
+    for (let seed = 1; seed <= 6; seed++) {
+      const { run, c } = fight([id], { seed, deck: ['brace', 'brace', 'brace', 'brace', 'brace'], keepsakes: [] });
+      const e = c.enemies[0];
+      e.hp = e.maxHp = 999;
+      for (let turn = 0; turn < 6; turn++) {
+        run.hp = run.maxHp = 9999;
+        const info = E.intentInfo(run, e);
+        if (!info.kinds.includes('defend')) { E.endTurn(run); c.fx.length = 0; continue; }
+        e.ward = 0;
+        E.endTurn(run);
+        c.fx.length = 0;
+        assert.equal(e.ward, info.ward, `${id} seed ${seed}: ${info.name} showed ${info.ward} Ward`);
+        guarded++;
+      }
+    }
+  }
+  assert.ok(guarded > 10, 'enough guarding moves were checked');
+});
+
 /* ---------- The Tide ---------- */
 test('the Tide starts every fight at 3; Surge raises it and Ebb lowers it', () => {
   const { run, c } = fight(['kelp'], { hand: ['swell', 'slack'] });
@@ -434,6 +456,19 @@ test('card badges come from simulating the play, and match what really happens',
   play(run, 'stormsurge');
   assert.equal(c.turnCrests, 2);
   assert.ok(c.won, 'two Crests (6 + 9) beat 5 and 15 HP');
+});
+
+test('the number on a CREST badge is how many Crests that card makes, not the chain so far', () => {
+  const { run, c } = fight(['kelp'], { hand: ['swell', 'swell', 'stormsurge'], tide: 4, keepsakes: [] });
+  tough(c);
+  play(run, 'swell');
+  assert.equal(c.turnCrests, 1, 'the first Rising Swell Crests');
+  c.tide = 4;
+  const p = E.preview(run, cardIn(c, 'swell').uid, c.enemies[0].uid);
+  assert.equal(p.crests, 1, 'the second one makes one Crest: the badge says CREST');
+  assert.equal(p.chain, 2, 'even though it would be the 2nd Crest this turn');
+  c.tide = 3;
+  assert.equal(E.preview(run, cardIn(c, 'stormsurge').uid).crests, 2, 'Surge 6 from 3 makes two: CREST x2');
 });
 
 /* ---------- Bosses and elites ---------- */
