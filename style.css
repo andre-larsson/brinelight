@@ -102,10 +102,12 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .tonic-slot.selected { border-color: var(--amber); box-shadow: 0 0 10px var(--amber); }
 
 /* ---------- Title ---------- */
+/* auto margins on the logo and the foot centre the content when it fits and let it scroll from the top when it doesn't */
 .title-screen {
-  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: #06121c url(img/bg/bg_title.webp) center/cover no-repeat; text-align: center; padding: 24px;
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; overflow-y: auto;
+  background: #06121c url(img/bg/bg_title.webp) center/cover no-repeat; text-align: center; padding: 24px 24px 12px;
 }
+.title-screen .logo { margin-top: auto; }
 .title-screen::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(5, 15, 24, .15), rgba(5, 15, 24, .85) 75%); }
 .title-screen > * { position: relative; }
 .logo {
@@ -115,7 +117,28 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .tagline { margin: 14px auto 30px; max-width: 34em; font-family: var(--serif); font-size: clamp(15px, 2.1vw, 19px); color: #cfe4e2; line-height: 1.5; text-shadow: 0 2px 8px #000; }
 .title-buttons { display: flex; flex-direction: column; gap: 12px; width: min(300px, 86vw); }
 .title-buttons .btn { font-size: 18px; min-height: 52px; }
-.title-foot { position: absolute; bottom: 14px; left: 0; right: 0; font-size: 13px; color: rgba(212, 236, 232, .65); }
+.title-foot { margin-top: auto; padding-top: 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px; font-size: 13px; color: rgba(212, 236, 232, .65); }
+.title-foot > span { text-wrap: balance; }
+.title-version { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 12px; border-radius: 18px; border: 1px solid rgba(212, 236, 232, .25);
+  background: rgba(5, 15, 24, .55); color: #d4ece8; font: inherit; font-size: 13px; cursor: pointer; }
+.title-version:hover, .title-version:focus-visible { border-color: rgba(255, 184, 77, .7); color: #ffe9bd; }
+.new-pill { padding: 1px 7px; border-radius: 9px; background: #f2c46b; color: #2a1504; font-size: 12px; font-weight: 800; letter-spacing: .03em; }
+/* landscape phones: a smaller logo, and Tutorial / How to Play side by side */
+@media (max-height: 500px) {
+  .title-screen { padding-top: 12px; }
+  .title-screen .logo { font-size: clamp(36px, 7vw, 60px); }
+  .title-screen .tagline { margin: 8px auto 14px; font-size: 15px; }
+  .title-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: min(460px, 86vw); }
+  .title-buttons .btn { min-height: 44px; font-size: 16px; }
+  .title-buttons .btn:not(.ghost) { grid-column: 1 / -1; }
+  .title-best { margin-top: 10px; }
+  .title-foot { padding-top: 10px; }
+}
+/* What's new */
+.changelog h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; font-size: 18px; color: #f3dfb2; }
+.changelog h3 small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.changelog section + section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(201, 162, 74, .18); }
+.menu-version { margin: 12px 0 0; text-align: center; }
 .title-corner { position: absolute; top: 12px; right: 12px; }
 
 /* ---------- Layout for run screens ---------- */

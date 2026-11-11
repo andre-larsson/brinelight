@@ -23,6 +23,7 @@
   let prefs = { sound: true, music: true, fast: false };
   const BEST_KEY = 'brinelight.best.v1';
   const LEVEL_KEY = 'brinelight.maxlevel.v1';
+  const VERSION_KEY = 'brinelight.version.v1'; // the last version whose What's new the player has seen
   const getNum = (k) => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
   const setNum = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* ignore */ } };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { /* ignore */ }
@@ -569,7 +570,7 @@
   function showCardChoice(ids, title, onDone) {
     const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" data-act="choosecard" data-id="${id}" data-i="${i}"`)).join('')}</div>${keywordLegend(ids.map((id) => pseudo(id)))}`;
     ui.cardChoiceDone = onDone;
-    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">Skip (+${E.DECLINE_SCORE} score)</button>`, ''), { locked: true });
+    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">Skip (+${E.DECLINE_SCORE.eventCard} score)</button>`, ''), { locked: true });
   }
 
   /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
@@ -601,7 +602,7 @@
         <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>Deep Ebb</b> (2+ Low Waters in a turn).</li>
         <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
-        <li>Turning down a reward adds ${E.DECLINE_SCORE} to your final score: skipping a card, leaving a tonic when you have a free slot, or choosing an event's Leave.</li>
+        <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
       </ul>`;
       case 'controls': return dl([
@@ -638,7 +639,8 @@
       <button class="choice" data-act="togglefast"><b>Fast animations: ${prefs.fast ? 'On' : 'Off'}</b><span>Halves the waits between actions.</span></button>
       ${run && !run.tutorial ? '<button class="choice" data-act="totitle"><b>Save and quit to title</b><span>Your run is saved; continue it from the title screen.</span></button>' : ''}
       ${run && !run.tutorial ? '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>' : ''}
-    </div>`;
+    </div>
+    <p class="menu-version"><button class="title-version" data-act="changelog">Brinelight v${BL.VERSION} &middot; What's new</button></p>`;
     openOverlay(modal('Menu', body, null, 'narrow'));
   }
 
@@ -775,10 +777,33 @@
         <button class="btn ghost" data-act="help">How to Play</button>
       </div>
       ${getNum(BEST_KEY) ? `<div class="title-best">Best score ${getNum(BEST_KEY)}${getNum(LEVEL_KEY) ? ` &middot; ${E.LEVELS[getNum(LEVEL_KEY)].name} unlocked` : ''}</div>` : ''}
-      <div class="title-foot">A roguelike deckbuilder &middot; mouse, touch or keyboard</div>
+      <div class="title-foot"><span>A roguelike deckbuilder &middot; mouse, touch or keyboard</span>
+        <button class="title-version" data-act="changelog">v${BL.VERSION} &middot; What's new${versionIsNew() ? ' <span class="new-pill">New</span>' : ''}</button></div>
     </div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+  }
+
+  /* What's new: marked New for a returning player until they open it. A first visit has nothing new to see. */
+  function versionIsNew() {
+    try {
+      const seen = localStorage.getItem(VERSION_KEY);
+      if (seen === BL.VERSION) return false;
+      if (seen) return true;
+      const played = [BEST_KEY, SAVE_KEY, 'brinelight.tutorial.v1', 'brinelight.hints.v1'].some((k) => localStorage.getItem(k) != null);
+      if (!played) localStorage.setItem(VERSION_KEY, BL.VERSION);
+      return played;
+    } catch (e) { return false; }
+  }
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fmtDate = (d) => { const [y, m, day] = d.split('-'); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
+  function showChangelog() {
+    try { localStorage.setItem(VERSION_KEY, BL.VERSION); } catch (e) { /* ignore */ }
+    const pill = $('.title-version .new-pill', screenEl);
+    if (pill) pill.remove();
+    const body = `<div class="changelog">${BL.CHANGELOG.map((rel) => `<section><h3>v${rel.v} <small>${fmtDate(rel.date)}</small></h3>
+      <ul class="help-list">${rel.items.map((it) => `<li>${it}</li>`).join('')}</ul></section>`).join('')}</div>`;
+    openOverlay(modal("What's new", body, '<button class="btn primary" data-act="close" autofocus>Close</button>', 'help-modal'));
   }
 
   function chooseLevelThenStart() {
@@ -1928,7 +1953,7 @@
     if (rw.tonic) {
       const tn = BL.TONICS[rw.tonic];
       const full = run.tonics.indexOf(null) < 0;
-      extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}${!rw.tonicTaken && !full ? ` <span class="muted">Leave it for +${E.DECLINE_SCORE} score.</span>` : ''}</small></div>
+      extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}${!rw.tonicTaken && !full ? ` <span class="muted">Leave it for +${E.DECLINE_SCORE.tonic} score.</span>` : ''}</small></div>
         ${rw.tonicTaken ? '<span class="muted">Taken</span>' : `<button class="btn small" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : ''}>${full ? 'Slots full' : 'Take'}</button>`}</div>`);
     }
     // the panel stays after the pick (chosen tile lit, the other dimmed) so nothing below it jumps up under the pointer
@@ -1938,7 +1963,7 @@
     const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
     // a keepsake on offer must be taken before moving on
     const buttons = !rw.cardTaken
-      ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card (+${E.DECLINE_SCORE} score)</button>`
+      ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card (+${E.DECLINE_SCORE[E.skipCardKind(rw)]} score)</button>`
       : ksChoices && !rw.keepsake
         ? '<button class="btn primary wide" disabled>Choose a keepsake to continue</button>'
         : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
@@ -2009,7 +2034,7 @@
     if (st.stage === 'choose') {
       body = `<div class="choice-list">${ev.options.map((o, i) => {
         const ok = E.optionAvailable(run, o);
-        return `<button class="choice" data-act="evopt" data-i="${i}" ${ok === true ? '' : 'disabled'}><b>${o.label}</b><span>${o.desc}${o.decline ? ` +${E.DECLINE_SCORE} score.` : ''}</span>${ok === true ? '' : `<span class="reason">${ok}</span>`}</button>`;
+        return `<button class="choice" data-act="evopt" data-i="${i}" ${ok === true ? '' : 'disabled'}><b>${o.label}</b><span>${o.desc}${o.decline ? ` +${E.DECLINE_SCORE.event} score.` : ''}</span>${ok === true ? '' : `<span class="reason">${ok}</span>`}</button>`;
       }).join('')}</div>`;
     } else {
       body = `<p class="lead">${st.text}</p>${st.outcome ? `<p class="lead outcome">${st.outcome}</p>` : ''}<button class="btn primary" data-act="evcontinue" autofocus>Continue</button>`;
@@ -2115,7 +2140,7 @@
     }
     const fin = run.final;
     const stats = [
-      ['Depth reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights / Dreads won', `${st.fights} / ${st.elites}`], ['Rewards declined', st.declined || 0], ['Biggest Crest chain', st.maxChain || 0],
+      ['Depth reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights / Dreads won', `${st.fights} / ${st.elites}`], ['Rewards declined', st.declined ? `${st.declined} (+${E.declinePoints(st)})` : 0], ['Biggest Crest chain', st.maxChain || 0],
       ['Damage dealt', st.dmgDealt], ['Crests / Low Waters', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}</div>
@@ -2177,6 +2202,7 @@
       case 'startlevel': closeOverlay(true); startNewRun(+t.dataset.lv); break;
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
+      case 'changelog': showChangelog(); break;
       case 'helptab': ui.helpTab = t.dataset.tab; $('.help', overlayEl).outerHTML = helpHTML(ui.helpTab); { const b = $(`.tab[data-tab="${ui.helpTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'menu': showMenu(); break;
       case 'togglesound': prefs.sound = !prefs.sound; savePrefs(); showMenu(); break;

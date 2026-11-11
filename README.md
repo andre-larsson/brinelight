@@ -73,7 +73,10 @@ You must take one of the offered keepsakes before you move on.
 
 After each fight you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded, and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
 
-Turning down a reward adds 20 to your final score. That counts skipping a card (after a fight or in an event), leaving a tonic behind when you have a free slot, and choosing an event's Leave or Decline.
+Turning down a reward adds to your final score:
+- **+50** for skipping a card (after a fight or in an event), or choosing an event's Leave or Decline.
+- **+80** for skipping the card after a Dread.
+- **+20** for leaving a tonic behind when you have a free slot.
 
 Fights also pay bonus Pearls for:
 - **Flawless:** no HP lost.

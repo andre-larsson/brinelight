@@ -88,7 +88,7 @@
       nextUid: 1, floor: 0, pos: null, screen: 'map',
       combat: null, rewards: null, shop: null, event: null, treasure: null,
       removeCost: 75, seenEvents: [], lastEnc: [], normalFights: 0,
-      stats: { fights: 0, elites: 0, cardsPlayed: 0, dmgDealt: 0, dmgTaken: 0, crests: 0, lows: 0, maxChain: 0, maxLowChain: 0, kills: 0, bonuses: 0, declined: 0, elapsed: 0, lastTick: Date.now() },
+      stats: { fights: 0, elites: 0, cardsPlayed: 0, dmgDealt: 0, dmgTaken: 0, crests: 0, lows: 0, maxChain: 0, maxLowChain: 0, kills: 0, bonuses: 0, declined: 0, declineScore: 0, elapsed: 0, lastTick: Date.now() },
       log: [],
     };
     BL.STARTER_DECK.forEach((id) => run.deck.push(E.newCard(run, id)));
@@ -235,7 +235,7 @@
     };
     const auto = pick(run.rewards, run.rewards && run.rewards.keepsakeChoices) || pick(run.treasure, run.treasure && run.treasure.choices);
     const rw = run.rewards;
-    if (rw && rw.tonic && !rw.tonicTaken && run.tonics.indexOf(null) >= 0) E.decline(run);
+    if (rw && rw.tonic && !rw.tonicTaken && run.tonics.indexOf(null) >= 0) E.decline(run, 'tonic');
     run.screen = 'map';
     run.combat = null;
     run.rewards = null;
@@ -418,7 +418,7 @@
     const opt = ev.options[i];
     if (E.optionAvailable(run, opt) !== true) return null;
     const res = opt.act(run, E) || {};
-    if (opt.decline) E.decline(run);
+    if (opt.decline) E.decline(run, 'event');
     run.event.stage = 'result';
     run.event.text = res.text || '';
     run.event.next = res.next || null;
@@ -1064,7 +1064,7 @@
     run.pearls += pearls;
     const upChance = elite ? 0.3 : 0.15 + 0.02 * run.floor;
     const cards = E.rewardCards(run, elite ? 'elite' : 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
-    const rw = { pearls, bonuses, cards, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
+    const rw = { pearls, bonuses, cards, elite, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
     if (R.chance(elite ? 0.6 : 0.4)) rw.tonic = E.randomTonic(run);
     if (elite) rw.keepsakeChoices = E.keepsakeChoices(run, 2);
     run.rewards = rw;
@@ -1079,16 +1079,25 @@
     rw.cardTakenIdx = i == null ? -1 : i;
     const pick = i == null ? null : rw.cards[i];
     if (pick) E.addCard(run, pick.id, pick.up);
-    else E.decline(run);
+    else E.decline(run, E.skipCardKind(rw));
   };
   /* A card picked from an event's choice of cards; null skips it. */
   E.takeEventCard = function (run, id) {
     if (id) E.addCard(run, id);
-    else E.decline(run);
+    else E.decline(run, 'eventCard');
   };
-  /* Turning down a reward (a card, a tonic with a free slot, an event's Leave) adds to the final score. */
-  E.DECLINE_SCORE = 20;
-  E.decline = function (run) { run.stats.declined = (run.stats.declined || 0) + 1; };
+  /* Turning down a reward adds to the final score, more for a bigger reward: a fight's card, a Dread's
+     card, an event's card pick, an event's Leave / Decline, a tonic left behind with a free slot. */
+  E.DECLINE_SCORE = { card: 50, eliteCard: 80, eventCard: 50, event: 50, tonic: 20 };
+  /* Saves from before the tiers counted 20 a decline and kept only the count. */
+  E.declinePoints = (st) => (st.declineScore != null ? st.declineScore : (st.declined || 0) * 20);
+  E.decline = function (run, kind) {
+    const st = run.stats;
+    st.declineScore = E.declinePoints(st) + (E.DECLINE_SCORE[kind] || 0);
+    st.declined = (st.declined || 0) + 1;
+  };
+  /* A Dread's reward has keepsakes on offer (older saves have no elite flag). */
+  E.skipCardKind = (rw) => ((rw && (rw.elite != null ? rw.elite : rw.keepsakeChoices && rw.keepsakeChoices.length > 0)) ? 'eliteCard' : 'card');
   E.takeRewardKeepsake = function (run, k) {
     const rw = run.rewards;
     if (!rw || rw.keepsake || rw.keepsakeChoices.indexOf(k) < 0) return;
@@ -1099,7 +1108,7 @@
   /* Score for the end screen. */
   E.score = function (run, won) {
     const st = run.stats;
-    let s = run.floor * 40 + (st.kills || 0) * 12 + st.elites * 80 + st.crests * 6 + (st.maxChain || 0) * 30 + (st.lows || 0) * 6 + (st.maxLowChain || 0) * 30 + (st.bonuses || 0) * 15 + (st.declined || 0) * E.DECLINE_SCORE;
+    let s = run.floor * 40 + (st.kills || 0) * 12 + st.elites * 80 + st.crests * 6 + (st.maxChain || 0) * 30 + (st.lows || 0) * 6 + (st.maxLowChain || 0) * 30 + (st.bonuses || 0) * 15 + E.declinePoints(st);
     if (won) s += 600 + run.hp * 5;
     return Math.round(s * (1 + 0.25 * (run.level || 0)));
   };

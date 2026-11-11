@@ -738,14 +738,22 @@ test('deeper starting depths: tougher enemies and a higher score multiplier', ()
   assert.deepEqual(E.LEVELS.map((l) => l.name), ['Shallows', 'Dark Water', 'Riptide', 'The Abyss']);
 });
 
-test('turning down a reward adds 20 to the score: a skipped card, a tonic left with a free slot, an event Leave', () => {
-  const won = (seed, o) => { const f = fight(['kelp'], Object.assign({ seed }, o)); f.c.enemies[0].dead = true; f.c.won = true; E.finishCombat(f.run); return f.run; };
+test('turning down a reward adds to the score: 50 for a card or an event Leave, 80 for a Dread card, 20 for a tonic left with a free slot', () => {
+  const won = (seed, o, enc) => { const f = fight(enc || ['kelp'], Object.assign({ seed }, o)); f.c.enemies.forEach((e) => { e.dead = true; }); f.c.won = true; E.finishCombat(f.run); return f.run; };
+  assert.deepEqual(E.DECLINE_SCORE, { card: 50, eliteCard: 80, eventCard: 50, event: 50, tonic: 20 });
   // skip the reward card
   let run = won(1);
   const s0 = E.score(run, false);
   E.takeRewardCard(run, null);
   assert.equal(run.stats.declined, 1);
-  assert.equal(E.score(run, false), s0 + 20);
+  assert.equal(E.score(run, false), s0 + 50);
+  // a Dread's card is worth more to turn down
+  run = won(1, { kind: 'elite' }, ['hulk']);
+  assert.equal(run.rewards.elite, true);
+  assert.equal(E.skipCardKind(run.rewards), 'eliteCard');
+  const e0 = E.score(run, false);
+  E.takeRewardCard(run, null);
+  assert.equal(E.score(run, false), e0 + 80);
   // taking a card is not a decline
   run = won(1);
   E.takeRewardCard(run, 0);
@@ -753,8 +761,10 @@ test('turning down a reward adds 20 to the score: a skipped card, a tonic left w
   // a reward tonic left behind counts only with a free slot
   run = won(1);
   run.rewards.tonic = 'shell';
+  const t0 = E.score(run, false);
   E.backToMap(run);
   assert.equal(run.stats.declined, 1, 'left with a free slot');
+  assert.equal(E.score(run, false), t0 + 20);
   run = won(1);
   run.rewards.tonic = 'shell';
   run.tonics = ['shell', 'shell', 'shell'];
@@ -765,7 +775,7 @@ test('turning down a reward adds 20 to the score: a skipped card, a tonic left w
   E.takeRewardTonic(run);
   E.backToMap(run);
   assert.equal(run.stats.declined, 0, 'taken');
-  // an event's Leave / Decline counts; its other options don't
+  // an event's Leave / Decline counts 50; its other options don't
   for (const ev of BL.EVENTS) {
     ev.options.forEach((opt, i) => {
       const r = E.newRun(3);
@@ -774,16 +784,33 @@ test('turning down a reward adds 20 to the score: a skipped card, a tonic left w
       if (E.chooseEventOption(r, i) === null) return;
       const isLeave = /^(Leave|Decline)$/.test(opt.label);
       assert.equal(r.stats.declined, isLeave ? 1 : 0, `${ev.id}: ${opt.label}`);
+      assert.equal(E.declinePoints(r.stats), isLeave ? 50 : 0, `${ev.id}: ${opt.label}`);
     });
   }
-  // skipping an event's card pick counts too
+  // skipping an event's card pick counts 50 too
   run = E.newRun(3);
   E.takeEventCard(run, null);
   assert.equal(run.stats.declined, 1);
+  assert.equal(E.declinePoints(run.stats), 50);
   const n = run.deck.length;
   E.takeEventCard(run, 'jab');
   assert.equal(run.stats.declined, 1);
   assert.equal(run.deck.length, n + 1);
+});
+
+test('a save from before the decline tiers keeps 20 a decline for what it already declined', () => {
+  const run = E.newRun(3);
+  run.stats.declined = 3;
+  delete run.stats.declineScore;
+  assert.equal(E.declinePoints(run.stats), 60);
+  const s0 = E.score(run, false);
+  E.takeEventCard(run, null);
+  assert.equal(run.stats.declined, 4);
+  assert.equal(E.declinePoints(run.stats), 110);
+  assert.equal(E.score(run, false), s0 + 50);
+  // a reward saved without the elite flag still counts as a Dread's when it offers keepsakes
+  assert.equal(E.skipCardKind({ keepsakeChoices: ['anchor', 'moonshard'] }), 'eliteCard');
+  assert.equal(E.skipCardKind({ keepsakeChoices: [] }), 'card');
 });
 
 test('Wreck of the Gilded Gull: the dive pays 150 Pearls or costs 12 HP, about half the time each; the cabin adds Barnacle Growth, which stays until removed', () => {
