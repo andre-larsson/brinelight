@@ -992,3 +992,8 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .dbg-pair { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; color: #d6e3e0; font-size: 14px; }
 .dbg-sel { min-height: 36px; max-width: 190px; border-radius: 8px; border: 1px solid rgba(201, 162, 74, .45); background: #0b1f2c; color: #e6dcc6; font: 14px var(--sans); }
 .dbg-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+.pips .ob { color: #ff8a8a; }
+.pack-meter.over b { color: #ffb3bd; }
+.ob-line { margin: 0 0 12px; text-align: center; font-size: 15px; color: #ffc9c9; }
+.ob-line b { color: #ff9a9a; }
+.pack-tile.heavy .g-state { color: #ffb3bd; }

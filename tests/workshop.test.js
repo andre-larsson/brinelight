@@ -46,26 +46,49 @@ test('gear costs Salvage, is bought once, and locked gear waits for its achievem
   Object.keys(BL.ACHIEVEMENTS).forEach((a) => assert.ok(E.gearFor(a).length > 0, a));
 });
 
-test('packing: only owned gear, and never more weight than the depth holds', () => {
+test('packing: only owned gear, up to the capacity plus 2 spaces of overburden', () => {
+  assert.equal(E.OVERBURDEN_MAX, 2);
+  assert.deepEqual([0, 1, 2, 3].map(E.packLimit), [3, 4, 5, 6]);
   const meta = metaWith({ owned: ['cork', 'flask', 'purse', 'whetstone'] });
   assert.equal(E.togglePack(meta, 'gorget', 0), false, 'not owned');
-  assert.equal(E.togglePack(meta, 'whetstone', 0), false, 'Whetstone takes 2; the Shallows hold 1');
   assert.equal(E.togglePack(meta, 'cork', 0), true);
-  assert.equal(E.togglePack(meta, 'flask', 0), false, 'the Shallows hold 1');
-  assert.equal(E.togglePack(meta, 'flask', 1), true, 'Dark Water holds 2');
-  assert.equal(E.togglePack(meta, 'whetstone', 2), false, 'Riptide holds 3: 1 + 1 + 2 is too much');
-  assert.equal(E.togglePack(meta, 'cork', 2), true, 'unpacking always works');
-  assert.equal(E.togglePack(meta, 'whetstone', 2), true);
-  assert.deepEqual(meta.packed, ['flask', 'whetstone']);
-  // a pack made for a deeper dive is trimmed, in order, for a shallower one
-  assert.deepEqual(E.fitGear(['whetstone', 'cork', 'flask', 'purse'], 2), ['whetstone', 'cork']);
-  assert.deepEqual(E.fitGear(['whetstone', 'cork', 'flask'], 0), ['cork']);
-  assert.deepEqual(E.fitGear(['cork', 'whetstone', 'flask'], 1), ['cork', 'flask']);
+  assert.equal(E.overburden(meta.packed, 0), 0);
+  assert.equal(E.togglePack(meta, 'whetstone', 0), true, 'the Shallows hold 1, and 2 more as overburden');
+  assert.equal(E.overburden(meta.packed, 0), 2);
+  assert.equal(E.togglePack(meta, 'flask', 0), false, 'past the limit');
+  assert.equal(E.togglePack(meta, 'flask', 1), true, 'Dark Water holds 2, so 4 with overburden');
+  assert.equal(E.overburden(meta.packed, 1), 2);
+  assert.equal(E.togglePack(meta, 'whetstone', 1), true, 'unpacking always works');
+  assert.deepEqual(meta.packed, ['cork', 'flask']);
+  // a pack made for a deeper dive is trimmed, in order, to the limit of a shallower one
+  assert.deepEqual(E.fitGear(['whetstone', 'cork', 'flask', 'purse'], 0), ['whetstone', 'cork']);
+  assert.deepEqual(E.fitGear(['cork', 'flask', 'purse', 'gorget'], 0), ['cork', 'flask', 'purse']);
   assert.deepEqual(E.fitGear(['cork', 'nope', 'cork'], 0), ['cork']);
   assert.deepEqual(E.fitGear(['cork', 'flask'], 0, ['flask']), ['flask'], 'unowned gear is dropped');
-  // the run itself enforces the capacity too
-  assert.deepEqual(E.newRun(5, 0, ['whetstone', 'cork', 'stormlens']).gear, ['cork']);
-  assert.deepEqual(E.newRun(5, 3, ['whetstone', 'cork', 'stormlens', 'flask']).gear, ['whetstone', 'cork', 'stormlens']);
+  // the run itself enforces the limit too
+  assert.deepEqual(E.newRun(5, 0, ['whetstone', 'cork', 'stormlens']).gear, ['whetstone', 'cork']);
+});
+
+test('overburdened: each space past the capacity costs 4 Max HP for the dive', () => {
+  assert.equal(E.OVERBURDEN_HP, 4);
+  const base = E.newRun(5, 0);
+  const fits = E.newRun(5, 0, ['gorget']);
+  assert.equal(fits.overburden, 0);
+  assert.equal(fits.maxHp, base.maxHp);
+  const one = E.newRun(5, 0, ['gorget', 'stormlens']);
+  assert.equal(one.overburden, 1);
+  assert.equal(one.maxHp, base.maxHp - E.OVERBURDEN_HP);
+  assert.equal(one.hp, one.maxHp, 'you start at full health');
+  const two = E.newRun(5, 0, ['whetstone', 'gorget']);
+  assert.equal(two.overburden, 2);
+  assert.equal(two.maxHp, base.maxHp - 2 * E.OVERBURDEN_HP);
+  // Cork Vest still adds its 5 on top
+  const cork = E.newRun(5, 0, ['gorget', 'cork']);
+  assert.equal(cork.maxHp, base.maxHp - E.OVERBURDEN_HP + 5);
+  // deeper depths hold more, so the same pack is no burden there
+  assert.equal(E.newRun(5, 1, ['gorget', 'stormlens']).overburden, 0);
+  // rests heal a share of the (lower) Max HP
+  assert.ok(E.restAmount(one) <= E.restAmount(base));
 });
 
 test('gear changes nothing about the map, and the same seed with the same gear gives the same run', () => {

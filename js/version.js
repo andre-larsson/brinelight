@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.8.0';
+  BL.VERSION = '0.9.0';
   BL.CHANGELOG = [
+    { v: '0.9.0', date: '2026-11-11', items: [
+      'Overburdened: you can pack up to 2 spaces more than a depth holds. Each extra space costs 4 Max HP for that dive.',
+    ] },
     { v: '0.8.0', date: '2026-11-11', items: [
       'Packing is a harder choice: the Shallows hold 1 space of gear, Dark Water 2, Riptide 3 and the Abyss 4. It was 3 to 6.',
       'Debug mode for testing: add ?debug to the address. A run that uses a cheat keeps no best score and unlocks no depth.',

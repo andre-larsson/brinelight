@@ -128,7 +128,7 @@ Provisional calls (each can be undone on its own):
 - **Capacity follows the depth of this dive**: before each dive you pack gear up to `E.capacity(level)`, which is 1 + depth (Shallows 1, Dark Water 2, Riptide 3, The Abyss 4). Each piece weighs 1 or 2. (v0.8.0: the user found 3 in the Shallows too generous; it was 3 + depth in v0.7.0.)
 - **Packing must be a hard decision, with no best pack** (the user, 2026-11-11). Keep the pieces within a narrow band of power, and make them suit different plans, so the right pack depends on the build.
 - **Prices stay as they are for now** (the user).
-- **Overburdened (idea from the user, not built):** you may pack past the capacity, but each extra space brings a penalty that offsets the benefit. Prototype numbers are under "Bot measurements"; the user chooses the penalty.
+- **Overburdened (v0.9.0):** you may pack up to 2 spaces past the capacity (`E.OVERBURDEN_MAX`). The user chose a Max HP cost for each extra space; the amount, **4** (`E.OVERBURDEN_HP`), was set from the bot (below). It lowers Max HP for the dive, so rests heal a little less too. The pack screen shows the cost of each extra piece before you pack it and the total once you're over. The limit of 2 is provisional.
 - Deck changes: both heirlooms and pool unlocks (not built yet).
 
 **Built:** 9 pieces of gear and 6 achievements (`BL.GEAR`, `BL.ACHIEVEMENTS` and `BL.META_TEXT` for the working names, all in js/data.js). Rules are in the engine (`E.newRun(seed, level, gear)`, `E.applyGear`, `E.fitGear`, `E.togglePack`, `E.buyGear`, `E.unlockAchievements`) and tested in `tests/workshop.test.js`.
@@ -173,6 +173,18 @@ v0.8.0, capacity 1 + depth. **Is there a best pack?** In the Shallows, no: every
 | lose 2 HP at the start of each fight | 27.7% | 26.2% |
 
 "Offsets the benefit" means one space over should come out about where packing within capacity does (29.5%). The draw penalty lands there exactly at 1 over, but 2 over still pays. The other three make overpacking a small loss for the bot. They'd suit a player whose extra piece fits their build better than average.
+
+**Sizing the Max HP cost** (the user picked Max HP). The test above overpacked with Cork Vest, whose +5 Max HP cancels the cost, so it was redone without HP gear. Packs within capacity average 28.7% (Shell Gorget 29.5, Storm Lens 29.4, Flood Chart 28.5, Cork Vest 28.2, Ebb Chart 27.8). Packs with extra spaces, averaged over 6 packs at 1 over and 2 at 2 over:
+
+| Max HP per extra space | 1 over | 2 over |
+|---|---|---|
+| 0 | 33.0% | 37.3% |
+| 3 | 29.7% | 29.8% |
+| **4 (shipped)** | **28.2%** | **27.9%** |
+| 5 | 27.1% | 25.5% |
+| 6 | 26.2% | 22.4% |
+
+At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell Gorget + Storm Lens 31.4%); a poor pair costs (Shell Gorget + Ebb Chart 26.4%). At 6 it is a clear loss, especially at 2 over.
 
 **Art:** 10 gear icons (the 9 pieces plus Salvage), generated with Codex from `assets-src/wanted-images.tsv`. That file also holds the style preamble. `tools/cut-icon.py` crops each to the object and saves a 160 px WebP in `img/icons/g_*.webp`. The full-size PNGs in `assets-src/gear/` are git-ignored, because they are about 2 MB each; Codex also keeps copies in `~/.codex/generated_images/`. Nothing is queued.
 

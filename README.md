@@ -95,6 +95,7 @@ Both are announced the moment you earn them. The score counts Crests and Low Wat
 **The Workshop (lasts across runs).** Every finished run turns its score into **Salvage**: 1 for every 50 points. Abandoning a run earns nothing.
 - Spend Salvage in the Workshop on the title screen. **Gear** you buy is yours for good.
 - Before each dive you **pack** gear. Each piece takes 1 or 2 spaces. The Shallows hold 1 space, and each deeper depth holds 1 more (Dark Water 2, Riptide 3, The Abyss 4). The game remembers your choice.
+- You can **overburden** yourself by up to 2 spaces. Each extra space costs 4 Max HP for that dive, which also makes rests heal a little less.
 - Some gear is locked until an **achievement**, such as Crest three times in one turn or defeat a Dread with 12 or fewer cards in your deck. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
 - Gear never changes the map: the same seed gives the same map with any gear.
 

@@ -317,12 +317,13 @@ async function workshopScenario(page, base, name, size) {
   await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the pack before a dive');
   await checkPage(page, name + ' pack');
   if ((await stored()).packed.join() !== 'cork') failures.push(`${name}: the first purchase wasn't packed, or the second was`);
-  // the Shallows hold 1: the Flood Chart doesn't fit until the Cork Vest comes out
+  // the Shallows hold 1: packing the Flood Chart too overburdens you, and the pack says what it costs
   await clickIf(page, '#overlay [data-act="packtoggle"][data-g="floodchart"]');
-  if ((await stored()).packed.join() !== 'cork') failures.push(`${name}: packed past the Shallows' capacity`);
+  if ((await stored()).packed.join() !== 'cork,floodchart') failures.push(`${name}: couldn't overburden the pack`);
+  if (!(await page.eval(`/Overburdened by 1 space/.test(document.querySelector('#overlay').innerText)`))) failures.push(`${name}: the pack doesn't warn about overburden`);
+  await checkPage(page, name + ' overburdened pack');
   await clickIf(page, '#overlay [data-act="packtoggle"][data-g="cork"]');
-  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="floodchart"]');
-  if ((await stored()).packed.join() !== 'floodchart') failures.push(`${name}: swapping the Cork Vest for the Flood Chart didn't stick`);
+  if ((await stored()).packed.join() !== 'floodchart') failures.push(`${name}: unpacking the Cork Vest didn't stick`);
   await clickIf(page, '#overlay [data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after Dive');
   const gear = await page.eval('window.Brinelight.run.gear.join()');

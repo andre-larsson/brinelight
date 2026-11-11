@@ -350,7 +350,7 @@
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
       case 'floor': return `<b>Depth ${run.floor} of ${E.MAP_ROWS + 1}</b><br>The Drowned Bellwether waits at depth ${E.MAP_ROWS + 1}.`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b><br>${k.desc}`; }
-      case 'gear': return `<b>${MT.item} you packed</b>${(run.gear || []).map((id) => `<div class="tip-row"><b>${BL.GEAR[id].name}:</b> ${BL.GEAR[id].desc}</div>`).join('')}`;
+      case 'gear': return `<b>${MT.item} you packed</b>${(run.gear || []).map((id) => `<div class="tip-row"><b>${BL.GEAR[id].name}:</b> ${BL.GEAR[id].desc}</div>`).join('')}${run.overburden ? `<div class="tip-row"><b>Overburdened:</b> &minus;${run.overburden * E.OVERBURDEN_HP} Max HP this dive.</div>` : ''}`;
       case 'tonic': {
         const t = run.tonics[+parts[1]];
         if (!t) return '<b>Empty tonic slot</b><br>Tonics are found after fights and sold by Barnaby.';
@@ -618,7 +618,7 @@
         <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
-        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on ${MT.item.toLowerCase()} that lasts across runs. Achievements unlock more. Before a dive you pack it: the Shallows hold ${pips(E.capacity(0))}, and each deeper depth ${pips(1)} more.</li>
+        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on ${MT.item.toLowerCase()} that lasts across runs. Achievements unlock more. Before a dive you pack it: the Shallows hold ${pips(E.capacity(0))}, and each deeper depth ${pips(1)} more. Up to ${E.OVERBURDEN_MAX} spaces more are allowed, at ${E.OVERBURDEN_HP} Max HP each for the dive.</li>
       </ul>`;
       case 'controls': return dl([
         ['Mouse', 'Click a card, then click an enemy (or the card again). Or drag a card onto an enemy, or up into the sea. Hover anything for details.'],
@@ -850,7 +850,7 @@
       const attrs = !owned && open ? ` tabindex="0" role="button" data-act="gearbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
       return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small>${foot}</div>`;
     }).join('');
-    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Before each dive you pack it: the Shallows hold ${pips(E.capacity(0))} and every deeper depth holds ${pips(1)} more.</p>
+    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Before each dive you pack it: the Shallows hold ${pips(E.capacity(0))} and every deeper depth holds ${pips(1)} more. You can overburden yourself by up to ${E.OVERBURDEN_MAX} spaces, at ${E.OVERBURDEN_HP} Max HP each.</p>
       <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div><div class="shop-row">${tiles}</div>`;
     openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
@@ -864,14 +864,21 @@
     meta.packed = E.fitGear(meta.packed, level, meta.owned);
     const cap = E.capacity(level);
     const used = E.gearWeight(meta.packed);
+    const over = E.overburden(meta.packed, level);
     const tiles = meta.owned.filter((id) => BL.GEAR[id]).map((id) => {
       const g = BL.GEAR[id];
       const on = meta.packed.indexOf(id) >= 0;
-      const fits = on || used + g.weight <= cap;
-      return `<div class="shop-tile gear-tile pack-tile${on ? ' chosen' : ''}${fits ? '' : ' nofit'}" tabindex="0" role="button" aria-pressed="${on}" data-act="packtoggle" data-g="${id}" data-lv="${level}">${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small><span class="g-state">${on ? 'Packed' : fits ? 'Not packed' : 'No room'}</span></div>`;
+      const fits = on || used + g.weight <= E.packLimit(level);
+      const heavy = !on && fits && used + g.weight > cap;
+      const cost = E.OVERBURDEN_HP * (Math.max(0, used + g.weight - cap) - over);
+      const state = on ? 'Packed' : !fits ? 'No room' : heavy ? `Overburdens you: &minus;${cost} Max HP` : 'Not packed';
+      return `<div class="shop-tile gear-tile pack-tile${on ? ' chosen' : ''}${fits ? '' : ' nofit'}${heavy ? ' heavy' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="packtoggle" data-g="${id}" data-lv="${level}">${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small><span class="g-state">${state}</span></div>`;
     }).join('');
-    const body = `<div class="pack-meter"><span>${MT.pack}</span>${pips(used, cap)}<b>${used} / ${cap}</b></div>
-      <p class="ws-lead">Deeper depths hold more. Your choice is remembered for the next dive.</p><div class="shop-row">${tiles}</div>`;
+    const meter = `<span class="pips" aria-hidden="true">${'&#9670;'.repeat(Math.min(used, cap))}${'&#9671;'.repeat(Math.max(0, cap - used))}<span class="ob">${'&#9670;'.repeat(over)}</span></span>`;
+    const note = over
+      ? `<p class="ob-line">Overburdened by ${over} ${over === 1 ? 'space' : 'spaces'}: <b>&minus;${E.OVERBURDEN_HP * over} Max HP</b> for this dive.</p>`
+      : `<p class="ws-lead">You can pack up to ${E.OVERBURDEN_MAX} spaces more, but each one costs ${E.OVERBURDEN_HP} Max HP for the dive. Deeper depths hold more. Your choice is remembered.</p>`;
+    const body = `<div class="pack-meter${over ? ' over' : ''}"><span>${MT.pack}</span>${meter}<b>${used} / ${cap}</b></div>${note}<div class="shop-row">${tiles}</div>`;
     openOverlay(modal(`${MT.pack} for ${levelName(level)}`, body,
       `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" data-lv="${level}" autofocus>Dive</button>`, 'workshop-modal'));
   }

@@ -1136,6 +1136,11 @@
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
   E.capacity = (level) => 1 + (level || 0);
+  /* Overburdened: you may pack up to OVERBURDEN_MAX spaces past the capacity; each one costs Max HP for the run. */
+  E.OVERBURDEN_MAX = 2;
+  E.OVERBURDEN_HP = 4; // bot: about break-even on average, so overpacking pays only when the extra piece suits the plan
+  E.packLimit = (level) => E.capacity(level) + E.OVERBURDEN_MAX;
+  E.overburden = (ids, level) => Math.max(0, E.gearWeight(ids) - E.capacity(level));
   E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], packed: [], ach: [] });
   E.hasGear = (run, id) => !!run.gear && run.gear.indexOf(id) >= 0;
   E.gearWeight = (ids) => ids.reduce((w, id) => w + (BL.GEAR[id] ? BL.GEAR[id].weight : 0), 0);
@@ -1147,29 +1152,31 @@
     meta.owned.push(id);
     return true;
   };
-  /* Known gear, once each, in order, while it fits the capacity. */
+  /* Known gear, once each, in order, while it fits the pack's limit (the capacity plus the overburden allowance). */
   E.fitGear = function (ids, level, owned) {
     const out = [];
     let w = 0;
     (ids || []).forEach((id) => {
       const g = BL.GEAR[id];
-      if (!g || out.indexOf(id) >= 0 || (owned && owned.indexOf(id) < 0) || w + g.weight > E.capacity(level)) return;
+      if (!g || out.indexOf(id) >= 0 || (owned && owned.indexOf(id) < 0) || w + g.weight > E.packLimit(level)) return;
       out.push(id);
       w += g.weight;
     });
     return out;
   };
-  /* Pack or unpack one piece of owned gear for a dive at `level`. Returns false if it doesn't fit. */
+  /* Pack or unpack one piece of owned gear for a dive at `level`. Returns false past the pack's limit. */
   E.togglePack = function (meta, id, level) {
     const i = meta.packed.indexOf(id);
     if (i >= 0) { meta.packed.splice(i, 1); return true; }
-    if (meta.owned.indexOf(id) < 0 || !BL.GEAR[id] || E.gearWeight(meta.packed) + BL.GEAR[id].weight > E.capacity(level)) return false;
+    if (meta.owned.indexOf(id) < 0 || !BL.GEAR[id] || E.gearWeight(meta.packed) + BL.GEAR[id].weight > E.packLimit(level)) return false;
     meta.packed.push(id);
     return true;
   };
   /* Start-of-run gear effects. The rest are checked where they apply (fights, Crests, the shop). */
   E.applyGear = function (run, ids) {
     run.gear = E.fitGear(ids, run.level);
+    run.overburden = E.overburden(run.gear, run.level);
+    if (run.overburden) { run.maxHp -= E.OVERBURDEN_HP * run.overburden; run.hp = Math.min(run.hp, run.maxHp); }
     if (E.hasGear(run, 'cork')) { run.maxHp += 5; run.hp += 5; }
     if (E.hasGear(run, 'purse')) run.pearls += 30;
     if (E.hasGear(run, 'whetstone')) run.deck.forEach((card) => { if (card.id === 'swell') card.up = 1; });
