@@ -139,6 +139,24 @@ Provisional calls (each can be undone on its own):
 
 **Open (the user, 2026-11-11): gear and keepsakes feel too alike**, for example Coin Purse and Shell Gorget. Five of the 9 pieces are weaker copies of keepsakes: Storm Lens of Tidewatch, Flood Chart of Moon Shard, Cork Vest of Scallop Charm, Shell Gorget of Barnacle Plate, Coin Purse of Pearl Earring. Proposed: separate them by how they work, not by name or frame. The options are tools you use (recharging each fight or dive), worn kit in body slots, tool cards in the deck, or expedition gear that acts on the map. Waiting for the user to choose.
 
+**Direction from the user (2026-11-11), not built yet:**
+- Gear becomes **worn kit in body slots**, and the items get remade.
+- **Keepsakes** stay, as small trinkets with strong magical effects.
+- You can't carry more than a set number of keepsakes without a strong penalty. This replaces gear overburden.
+- **Magic capacity** grows at deeper levels. The user's analogy: warm air holds more water before it condenses.
+- A lore overhaul comes later.
+
+Bot check for a keepsake limit (no overloading; at the limit the bot keeps the better one by the starter ranking). The Tide-Bell counts:
+
+| Depth | No limit | Limit 1 | Limit 2 | Limit 3 | Limit 4 |
+|---|---|---|---|---|---|
+| Shallows | 24.2% | 16.8% | 22.1% | 23.6% | |
+| Dark Water | 13.5% | 9.1% | 11.1% | | |
+| Riptide | 5.7% | | | 5.0% | |
+| The Abyss | 1.6% | | | | 1.6% |
+
+A bot run sees about 2 keepsakes plus the Tide-Bell, so it holds 2.6 to 2.9 at the end. A limit of 1 + depth binds hard only in the Shallows and Dark Water.
+
 **Provisional calls (each can be undone on its own):**
 1. **Prices** 8 to 35 Salvage, about 210 in all (the user: keep them). That's about 7 runs for a player who scores ~1600 (32 Salvage a run) and about 11 for the bot (18.5 a run). The cheapest piece (Coin Purse, 8) can be bought after almost any first run.
 2. **Whetstone** upgrades only Rising Swell, at weight 2. Upgrading Slack Water too took the bot from 24% to 43%, far beyond anything else.
