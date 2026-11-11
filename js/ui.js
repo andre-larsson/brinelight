@@ -592,11 +592,11 @@
         <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
-        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and you choose 1 of 2 keepsakes after.'],
+        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and you choose 1 of 2 keepsakes after (one at random if you don\'t choose).'],
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
         [`${NODE_ICON.rest} Cove`, 'Rest to heal 30% of your max HP, or upgrade a card.'],
-        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and 1 of 3 keepsakes.'],
+        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and 1 of 3 keepsakes (one at random if you don\'t choose).'],
       ])}<ul class="help-list">
         <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>Deep Ebb</b> (2+ Low Waters in a turn).</li>
@@ -1933,7 +1933,7 @@
       (rw.cardTaken ? '' : `tabindex="0" role="button" data-act="rewardcard" data-i="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
     const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
     const buttons = rw.cardTaken
-      ? '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>'
+      ? `<button class="btn primary wide" data-act="tomap" autofocus>${ksChoices && !rw.keepsake ? 'Continue (random keepsake)' : 'Continue'}</button>`
       : '<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card</button>';
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner reward-screen">
       <h1>Victory</h1>
@@ -2078,7 +2078,7 @@
       body = `<div class="reward-list">
         <div class="reward-item done"><span class="medal" style="display:grid;place-items:center">${ICON.pearl}</span><div class="grow"><b>${t.pearls} Pearls</b></div></div>
         ${k && !hasChoices ? `<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>` : ''}
-      </div>${choices}<button class="btn ${picking ? '' : 'primary'}" data-act="tomap" ${picking ? '' : 'autofocus'}>${picking ? 'Leave them' : 'Continue'}</button>`;
+      </div>${choices}<button class="btn ${picking ? '' : 'primary'}" data-act="tomap" ${picking ? '' : 'autofocus'}>${picking ? 'Take one at random' : 'Continue'}</button>`;
     }
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="chest" style="background-image:url(img/scenes/treasure.webp)"></div>
@@ -2251,7 +2251,14 @@
         break;
       }
       case 'taketonic': if (E.takeRewardTonic(run)) { sfx('tonic'); save(); render(); } break;
-      case 'tomap': E.backToMap(run); save(); render(); break;
+      case 'tomap': {
+        // leaving a keepsake pick unchosen takes one of them at random; say which, since the pick screen is gone
+        const auto = E.backToMap(run);
+        save();
+        render();
+        if (auto) { sfx('coin'); toast(`Taken at random: ${BL.KEEPSAKES[auto].name}`); }
+        break;
+      }
       case 'rest': {
         const h = E.rest(run);
         run.restMsg = `You sleep beside the lantern and wake mended. Healed ${h} HP.`;

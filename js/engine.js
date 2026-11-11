@@ -222,13 +222,24 @@
     }
   };
 
+  /* Leaving a keepsake pick (Dread reward, opened Wreck) without choosing takes one of the
+     offered keepsakes at random. Returns its id, or null. */
   E.backToMap = function (run) {
+    const pick = (src, list) => {
+      if (!src || src.keepsake || !list || !list.length) return null;
+      const k = makeR(run).pick(list);
+      src.keepsake = k;
+      E.gainKeepsake(run, k);
+      return k;
+    };
+    const auto = pick(run.rewards, run.rewards && run.rewards.keepsakeChoices) || pick(run.treasure, run.treasure && run.treasure.choices);
     run.screen = 'map';
     run.combat = null;
     run.rewards = null;
     run.event = null;
     run.shop = null;
     run.treasure = null;
+    return auto;
   };
 
   /* ---------------- Rewards & pools ---------------- */

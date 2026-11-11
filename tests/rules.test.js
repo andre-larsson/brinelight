@@ -654,6 +654,51 @@ test('Wrecks: a chest of Pearls and a choice of 1 of 3 keepsakes', () => {
   assert.ok(!E.has(run, run.treasure.choices[0]), 'only one');
 });
 
+test('leaving a keepsake pick without choosing gives one of the offered keepsakes at random', () => {
+  // Wreck
+  const seen = new Set();
+  for (let seed = 1; seed <= 40; seed++) {
+    const run = E.newRun(seed);
+    E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
+    E.openTreasure(run);
+    const choices = run.treasure.choices.slice();
+    const before = run.keepsakes.length;
+    const k = E.backToMap(run);
+    assert.ok(choices.includes(k), 'one of the offered ones');
+    assert.ok(E.has(run, k));
+    assert.equal(run.keepsakes.length, before + 1, 'exactly one');
+    seen.add(choices.indexOf(k));
+  }
+  assert.equal(seen.size, 3, 'any of the three can come up');
+
+  // a pick already made is kept, nothing extra
+  const run = E.newRun(4);
+  E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
+  E.openTreasure(run);
+  E.takeTreasureKeepsake(run, run.treasure.choices[2]);
+  const n = run.keepsakes.length;
+  assert.equal(E.backToMap(run), null);
+  assert.equal(run.keepsakes.length, n);
+
+  // Dread reward
+  const f = fight(['kelp'], { kind: 'elite' });
+  f.c.enemies[0].dead = true;
+  f.c.won = true;
+  E.finishCombat(f.run);
+  const offered = f.run.rewards.keepsakeChoices.slice();
+  const k = E.backToMap(f.run);
+  assert.ok(offered.includes(k) && E.has(f.run, k));
+
+  // a normal fight offers no keepsake, so none is given
+  const g = fight(['kelp']);
+  g.c.enemies[0].dead = true;
+  g.c.won = true;
+  E.finishCombat(g.run);
+  const m = g.run.keepsakes.length;
+  assert.equal(E.backToMap(g.run), null);
+  assert.equal(g.run.keepsakes.length, m);
+});
+
 test('Kelp Bracelet: Low Water gives 8 Ward. Tidal Memory: each Crest gives 1 Light. Spring Tide: Low Water, then Crest', () => {
   let f = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: ['kelpbracelet'] });
   play(f.run, 'slack');

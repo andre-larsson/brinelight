@@ -14,6 +14,7 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 - Add a guided first fight (tutorial).
 - Do a layout and text-size pass.
 - Add rule tests and a UI smoke test so later changes are safe.
+- A keepsake pick (Dread reward, Wreck) left without a choice gives one of the offered keepsakes at random. Before, you got nothing. (2026-11-11. The user said "tonic"; there is no tonic choice in the game, so I read it as the keepsake picks.)
 
 ## Provisional calls (made without the user; each can be judged and undone on its own)
 

@@ -69,6 +69,8 @@ The menu (top right) has the tutorial, How to Play, sound effects on/off, music 
 - **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card.
 - **Wrecks:** a chest of pearls where you pick 1 of 3 keepsakes.
 
+If you leave a keepsake pick without choosing, you get one of the offered keepsakes at random.
+
 After each fight you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded, and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
 
 Fights also pay bonus Pearls for:
