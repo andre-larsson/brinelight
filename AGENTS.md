@@ -3,6 +3,7 @@
 <INSTRUCTIONS>
 - Primary goal: Brinelight, a single-player roguelike deckbuilder for the browser (plain HTML, CSS and JavaScript, no dependencies, no build step).
 - Repository: GitHub Pages project site, published at `https://andre-larsson.github.io/brinelight/` by `.github/workflows/pages.yml` on push to `main`.
+- Git: commit straight to `main`; don't make feature branches. Pushing to `main` deploys the site, so push only when asked.
 - Run locally: `npm start` (serves http://localhost:8000) or `node tools/serve.js <port>`. Opening `index.html` from disk also works.
 - Build: `npm run build` copies only what the page loads (`index.html`, `style.css`, `js/`, `img/`) into `_site/` and fails if a referenced file is missing. The Pages workflow runs the rule tests, then this.
 - Tests: `npm test` runs the Node rule tests (`tests/*.test.js`, no browser, about a second). `npm run test:ui` plays the game through the real UI in headless Chrome (desktop mouse and keyboard, phone touch, the tutorial three ways) and fails on any JS error; it needs Chrome and takes about 5 minutes. Add `--root DIR --path /brinelight/` to test a built copy under a sub-path.
