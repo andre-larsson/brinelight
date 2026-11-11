@@ -25,6 +25,90 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 - Barnacle Growth now says what it does, on the card, in the event option, in How to Play and in the README. It used to say only "A curse that clings to your deck".
 - The map runs downward (2026-11-11): the first stops are at the top and the boss is at the bottom, so the route reads as a descent. When choosing a stop, the map scrolls so those stops are near the top with the row just left above them, and the route ahead is below. The map hint says "The boss waits at the bottom, deepest down."
 
+## Paused plan and open questions (2026-11-12)
+
+The user paused the design work here. Nothing in this section is built. Names and numbers stay open until the final version. Start the next session with this section, then WORLD.md.
+
+**Where things stand.**
+- The live build is v0.9.0: the Workshop, 9 pieces of gear, 6 achievements, overburden and debug mode. It was pushed on 2026-11-12.
+- The next big change is the item rework below (plans 1 and 2). It replaces the current gear, the pack capacity and the gear overburden.
+- The expedition direction (top of "Decisions the user made") came after the item plan was written. It answers some of the questions below and changes others. The notes say where.
+
+### Plan 1: worn kit in body slots (chosen by the user, 2026-11-11)
+
+- Gear becomes worn kit. There are four slots: Head, Hands, Body and Belt. Each slot holds one item and is always open. The pack capacity and gear overburden go away.
+- **One rule:** kit changes Wren herself: her HP, her starter cards, what she carries. It never changes the sea (the Tide, Crests, enemies). Keepsake magic does that.
+- Example items. This is a sketch the user hasn't agreed to:
+
+| Slot | Example items |
+|---|---|
+| Head | Diving Helmet (Soaked wears off 1 turn sooner on you), Lantern Hood (draw 1 more card on your first turn) |
+| Hands | Honed Harpoon (Harpoon Jabs +2 damage), Barbed Harpoon (Jabs apply 1 Brine), Padded Mitts (Brace +2 Ward) |
+| Body | Cork Vest (+5 Max HP), Shell Gorget remade as armour (the first hit each fight deals 4 less) |
+| Belt | Spare Flask (+1 tonic slot), Coin Purse, Merchant's Astrolabe (moved from keepsakes) |
+
+- Flood Chart, Ebb Chart and Storm Lens change the Tide or Crests and copy keepsakes, so they would be dropped (question 4).
+- The Workshop, Salvage, prices and achievements stay. About half of the icons can be reused.
+- **Expedition direction:** WORLD.md says Wren packs once on shore and keeps that pack for the whole expedition. The diving suit takes a worn slot from the first band on. It does nothing in fights, and Wren needs it for the final depth (question 6).
+
+### Plan 2: a keepsake limit, "magic capacity" (the user's idea, 2026-11-11)
+
+- Keepsakes stay small trinkets with strong magic. Carrying more than the capacity brings a strong penalty. This replaces gear overburden.
+- Capacity grows deeper down. The user's analogy is warm air, which holds more water before it condenses. WORLD.md has it in the fiction: closer to the bell, the water left behind holds more before it condenses into a keepsake.
+- The bot measurements are in the table under "Direction from the user" in "The Workshop".
+- **The critique sent to the user, not answered yet:**
+  1. **Deeper capacity is barely felt.** A run finds about 2 keepsakes besides the Tide-Bell, so a capacity of 3 or 4 rarely limits anything. There are two fixes: offer more keepsakes deeper down, or let capacity grow within a run as Wren descends. The expedition direction favours the second fix.
+  2. **With one slot, the best keepsake is the obvious pick.** Barnacle Plate alone gives 57.5% as the starter. Whale Tooth (36.8%) and Drowned Anchor (35.2%) are also strong. They need rebalancing first, because the user wants no single best choice.
+  3. **The money keepsakes would never earn a slot.** Pearl Earring, Merchant's Astrolabe, Pearl Strand and Spare Lantern aren't magic anyway. Move them into kit.
+  4. **The Tide-Bell fills the only Shallows slot from the start.** Either it doesn't count toward capacity, or it becomes kit.
+  5. **Keepsake picks must become optional again.** With a limit, a forced pick (v0.5.0) makes no sense. The choices would be to leave it (for a score bonus), swap one out, or carry it overloaded.
+  6. **The penalty must be strong and visible, and it must fit the story.** These are the candidates for each keepsake over capacity. Size them with the bot, as with overburden:
+     - **Seep** (my favourite): an unplayable card joins the deck and clogs draws. It leaves when you're back within capacity.
+     - **The deep notices you:** enemies get +15% HP.
+     - **Soaked:** start each fight Soaked for 1 turn.
+     - **Max HP loss,** like the current overburden.
+
+### Open questions for the user
+
+1. **Should magic capacity grow by dive depth, within the run as Wren descends, or both?** There are no deeper starts in the expedition direction, so "within the expedition" is the likely answer. Still open: the numbers, and what happens to keepsakes when Wren goes home. WORLD.md leaves open how things brought home are kept.
+2. **Which overload penalties should be prototyped?** The candidates are Seep, enemy HP, Soaked and Max HP (critique point 6).
+3. **Should the Tide-Bell become kit (Hands?), or a keepsake that doesn't count toward capacity?**
+4. **Can these changes go ahead?**
+   - Move the money keepsakes into kit.
+   - Drop Flood Chart, Ebb Chart and Storm Lens.
+   - Rebalance Barnacle Plate, Whale Tooth and Drowned Anchor.
+5. **Should v0.9.0 get a git tag before the rework,** so the old and new versions can be compared side by side?
+6. **Which slot does the diving suit take, and does it push out the item in that slot?** This question is new, from WORLD.md.
+
+### Later slices of meta-progression (planned 2026-11-11)
+
+- Starting keepsakes, after the first Shallows win.
+- Heirloom starter cards and reward-pool unlocks, after Dark Water.
+- Bounties, after Riptide. This is the big unlock.
+- Tide Marks are a candidate for another big unlock.
+- With the expedition direction, "after Dark Water" means the first time you clear Dark Water on an expedition.
+
+### The user's new ideas (2026-11-12; saved, not designed)
+
+- **Currents** are game modifiers. Each one makes the game harder and raises the score, so it raises Salvage too.
+  - The Tide that moves on its own can be one current. The user rejected it as a base rule (see "Low Water rework"), but it is fine as an opt-in challenge.
+  - **Why currents:**
+    - Workshop prices rise as the game goes on.
+    - Plain early runs pay little to a player who has progressed far. That player should still earn useful Salvage from them.
+    - With currents, early runs pay again but are much harder. Early bands keep their challenge, and the player still gets objectively stronger.
+  - Currents aren't unlocked from the start.
+  - Currents must work with the difficulty and score that grow with depth, or replace depth levels. **The user decides which.**
+  - **How the expedition direction affects currents:**
+    - There are no deeper starts, so depth levels no longer set the difficulty. Depth becomes progress within one expedition.
+    - Currents could take over the job of setting difficulty, like the ascension levels in other roguelikes.
+    - Still open:
+      - Does each current add a fixed score multiplier?
+      - Does that stack with the band's multiplier?
+      - How much harder is "much harder"? Measure it with the bot.
+- **More levels**: more bands or depths.
+- **More characters**: unlockable keepers. WORLD.md has the open question about other keepers.
+- **A lore overhaul** comes later. WORLD.md has started it.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -95,7 +179,7 @@ Provisional calls (each can be undone on its own):
 - **Keyword legend on card choices.** Rewards, the shop and event card picks list every keyword on the offered cards, once each. Pointing at or focusing a card lights its own entries. The reward and shop first-time hints now sit above the cards so they don't cover the legend.
 
 **Rejected in discussion (don't re-propose without new reasons):**
-- A Tide that moves on its own each turn. It locks players into following the flow.
+- A Tide that moves on its own each turn. It locks players into following the flow. (2026-11-12: the user would accept it as an opt-in "current", a harder mode that scores more. It is still rejected as a base rule. See "Paused plan and open questions".)
 - Random Surge/Ebb on attack and Ward cards. It breaks plans and the previews.
 - Enemy Tide weaknesses or strengths that favour one end. They force a strategy. If enemy Tide traits come back, use ones that disrupt both ends equally (like the Siren's Lullaby), or small one-sided bonuses, never immunities.
 
