@@ -227,6 +227,17 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
 3. **The keepsake cabinet.** Keepsakes from a won run are kept, and you bring them within your Hold. New ones are lost on defeat.
 4. **The expedition:** bands, going home after a boss, and currents.
 
+**Belt (2026-11-12):**
+- The user asked whether "the Belt holds one item" meant one potion. It doesn't: tonics keep their 3 slots, and the Belt holds one piece of kit.
+- The user then pointed out that an earring or an astrolabe isn't belt gear.
+- **Proposal:** kit is mundane gear. Jewelry and curios would blur kit with keepsakes again, so the moved keepsakes are remade as things hung at the waist. Their effects stay the same:
+  - Pearl Earring → Gleaner's Pouch
+  - Merchant's Astrolabe → Pearl Scales (honest weights, so Barnaby, who won't haggle, can't overcharge)
+  - Pearl Strand → Gleaning Net (catches the pearls a breaking wave shakes loose)
+  - Spare Lantern, Coin Purse, Spare Flask and Barnaby's Marker already fit.
+- This needs 3 new icons.
+- **Still open:** does the Belt hold 1 item, 2 items, or tonics only?
+
 ### Later slices of meta-progression (planned 2026-11-11)
 
 - Starting keepsakes, after the first Shallows win.
