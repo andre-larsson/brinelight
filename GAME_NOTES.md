@@ -237,6 +237,11 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
   - Spare Lantern, Coin Purse, Spare Flask and Barnaby's Marker already fit.
 - This needs 3 new icons.
 - **Decided (2026-11-12):** the slot holds **two items**. It needs a name that says it holds things, rather than being a belt. Suggested: **Satchel** (my pick), Pouches, or Ditty Bag, a sailor's small bag for tools and odds and ends. The name isn't chosen yet.
+- **Decided (2026-11-12): two different spaces, a Pocket and a Ditty Bag.** A ditty bag is a sailor's small drawstring bag for a sewing kit, small tools and odds and ends. It is a second container, not a strap.
+- **Proposed split:**
+  - **Pocket:** coins and tokens. Coin Purse, Gleaner's Pouch, Barnaby's Marker.
+  - **Ditty Bag:** small tools and supplies. Spare Flask, Pearl Scales, Gleaning Net, and Spare Wick, renamed from Spare Lantern because a lantern doesn't fit in a ditty bag. Its art file is already `k_sparewick`.
+  - With named spaces, "Satchel" is no longer needed. The kit becomes Harpoon, Bell, Coat, Pocket and Ditty Bag.
 
 ### Later slices of meta-progression (planned 2026-11-11)
 
