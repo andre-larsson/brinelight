@@ -103,6 +103,44 @@ The user paused the design work here. Nothing in this section is built. Names an
 - **Question 5:** yes. The local tag `v0.9.0` is on 483d635, the build that went live on 2026-11-12. It isn't pushed.
 - **Question 6:** the suit replaces the item in its slot. Which slot it takes is postponed until the final depth exists.
 
+**Decided (2026-11-12, second round):**
+- **The penalty is Seep.**
+- **No pips.** The user finds them too close to Hollow Knight. Keepsake costs use larger, more granular numbers instead.
+- **Seep comes in steps.** Each threshold past capacity adds 1 more Seep card.
+- **Keepsakes are kept between expeditions**, as the name says. New keepsakes found on an expedition are lost if Wren is defeated.
+
+**Seep measured** (bot, 1000 seeds; N unplayable Seep cards shuffled into the draw pile at the start of every fight; scratch `seep.js`):
+
+| Seep per fight | 0 | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|---|
+| Shallows | 24.2% | 18.8% | 13.9% | 11.7% | 7.6% |
+| Dark Water | 13.5% | 8.9% | 7.1% | 5.4% | 3.9% |
+
+One Seep costs about 5 points in the Shallows, roughly the worth of a mid keepsake such as Kelp Bracelet or Angler's Lure.
+
+**Proposal sent, not agreed (working names "Charge" and "Hold"):**
+- **Charge** is roughly the keepsake's bot value in win-rate points:
+
+| Charge | Keepsake |
+|---|---|
+| 15 | Whale Tooth |
+| 13 | Drowned Anchor |
+| 12 | Storm Bottle, Conch of Echoes |
+| 10 | Whispering Conch |
+| 8 | Scallop Charm |
+| 7 | Tidewatch |
+| 6 | Kelp Bracelet |
+| 5 | Angler's Lure |
+| 4 | Moon Shard, Gull Feather, Coral Branch, Salted Hook |
+
+  Coral Branch and Salted Hook are raised above their bot value, because the bot doesn't build decks around them. Barnacle Plate is nerfed first, then priced.
+- **Hold** is 10 in the Shallows and +5 per band (15, 20, 25).
+- **1 Seep for each started 5 points over the Hold.** Because the Hold grows by 5 per band, each band down removes exactly one Seep. Going over is about break-even for the bot.
+- **Open:**
+  - Does every keepsake Wren carries count toward the Hold, or only the ones she equips?
+  - Can she drop a keepsake during an expedition?
+  - An idea: a Belt kit item, a sealed jar, that carries 1 keepsake without its Charge counting, and without its effect.
+
 ### Later slices of meta-progression (planned 2026-11-11)
 
 - Starting keepsakes, after the first Shallows win.
