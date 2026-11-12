@@ -236,7 +236,7 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
   - Pearl Strand → Gleaning Net (catches the pearls a breaking wave shakes loose)
   - Spare Lantern, Coin Purse, Spare Flask and Barnaby's Marker already fit.
 - This needs 3 new icons.
-- **Still open:** does the Belt hold 1 item, 2 items, or tonics only?
+- **Decided (2026-11-12):** the slot holds **two items**. It needs a name that says it holds things, rather than being a belt. Suggested: **Satchel** (my pick), Pouches, or Ditty Bag, a sailor's small bag for tools and odds and ends. The name isn't chosen yet.
 
 ### Later slices of meta-progression (planned 2026-11-11)
 
