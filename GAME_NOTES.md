@@ -188,6 +188,45 @@ The bot favours Crests and never plans for Low Water, so it undervalues the Ebb-
 
 "The Tide settles at 4, no draw" (25.4%) is in range but changes the sea, so it's kept for later.
 
+**Decided (2026-11-12, fifth round):**
+- **The slots are Harpoon, Bell, Coat and Belt.** Boots are undecided.
+- **The four bells above are the starting set.**
+
+**Harpoons measured** (bot, Shallows, 1000 seeds; scratch `harpoon.js`). Harpoon Jab is 4 of the 10 starter cards, so any change to it compounds. Every Jab +1 damage gives 31.2%, +2 gives 38.8%, 1 Brine gives 44.0%, and 2 Brine gives 75.2%. Once-per-fight versions:
+
+| First Jab each fight… | Win rate |
+|---|---|
+| +4 damage | 25.8% |
+| **+5 damage (Honed Harpoon)** | **28.1%** |
+| +6 damage | 33.6% |
+| +8 damage | 34.9% |
+| 1 Brine | 24.9% |
+| **2 Brine (Barbed Harpoon)** | **25.6%** |
+| 3 Brine | 32.9% |
+
+The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage kills a 12-HP Barnacle Mite in one Jab.
+
+**Full kit measured** (scratch `kit.js`; Harpoon + Bell + Coat; the bot can't value the Belt):
+
+| Depth | Kit | Win rate |
+|---|---|---|
+| Shallows | empty | 24.2% |
+| Shallows | Honed Harpoon, Flood Bell, Shell Gorget | 30.2% |
+| Shallows | Honed Harpoon, Brass Tide-Bell, Shell Gorget | 32.4% |
+| Shallows | Honed Harpoon, Brass Tide-Bell, Cork Vest | 33.2% |
+| Shallows | Barbed Harpoon, Ebb Bell, Cork Vest | 34.6% |
+| Dark Water | empty | 13.5% |
+| Dark Water | Honed Harpoon, Flood Bell, Shell Gorget | 20.6% |
+
+- A full kit in the Shallows lands at 30–35%. The 1-space pack the user chose gave 28–30%, and the 3-space pack the user found too generous gave 35–42%.
+- The keepsake Hold should take some of that back, so the plan is to build the kit and the Hold close together and measure them together.
+
+**Proposed build order** (sent to the user):
+1. **Kit in slots.** This replaces the pack, capacity and overburden.
+2. **Charge, Hold and Seep** in the current one-depth game. Until the expedition exists, the Hold follows the depth level. Keepsake picks become optional again.
+3. **The keepsake cabinet.** Keepsakes from a won run are kept, and you bring them within your Hold. New ones are lost on defeat.
+4. **The expedition:** bands, going home after a boss, and currents.
+
 ### Later slices of meta-progression (planned 2026-11-11)
 
 - Starting keepsakes, after the first Shallows win.
