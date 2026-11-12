@@ -137,9 +137,23 @@ One Seep costs about 5 points in the Shallows, roughly the worth of a mid keepsa
 - **Hold** is 10 in the Shallows and +5 per band (15, 20, 25).
 - **1 Seep for each started 5 points over the Hold.** Because the Hold grows by 5 per band, each band down removes exactly one Seep. Going over is about break-even for the bot.
 - **Open:**
-  - Does every keepsake Wren carries count toward the Hold, or only the ones she equips?
   - Can she drop a keepsake during an expedition?
   - An idea: a Belt kit item, a sealed jar, that carries 1 keepsake without its Charge counting, and without its effect.
+
+**Decided (2026-11-12, third round):**
+- **Every keepsake Wren carries counts toward the Hold,** worn or not.
+- **Lore:** keepsakes "pollute" the air around them. Whether that is the air or an ether is open. A keepsake store in the lighthouse's safe room keeps their charge in, which is why many can be kept at home. The details are in WORLD.md.
+
+**Slots: under discussion.**
+- The user isn't sure about an off-hand slot. Wren always needs the bell, so a bell slot needs bell loot. The user also asked whether there should be a leg slot.
+- My proposal: one job per slot.
+  - **Harpoon:** your attacks.
+  - **Bell:** how the Tide-Bell works.
+  - **Coat:** defence.
+  - **Belt:** supplies and money.
+  - **Boots** later, unlocked by depth: the route.
+- Bells vary the bell's own rule, so they don't copy keepsakes. For example, what makes it draw, or where the Tide resets after a Crest or Low Water.
+- The alternative is a fixed bell that the Workshop upgrades.
 
 ### Later slices of meta-progression (planned 2026-11-11)
 

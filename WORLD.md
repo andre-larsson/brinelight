@@ -54,7 +54,8 @@ Every expedition starts on shore in the Shallows and can continue through every 
 - **Agreed:** After defeating a band boss, Wren can always return home safely or continue through the newly opened passage.
 - **Agreed:** Returning home ends the expedition. Wren keeps everything collected on that expedition, but depth progress resets. The next expedition begins in the Shallows.
 - **Agreed:** Continuing is the only way to reach richer finds and make progress farther down in that expedition. The expedition also ends if Wren completes the game or falls.
-- **Open:** What Wren loses if she falls, and how everything she collects on a successful return is kept or used between expeditions.
+- **Agreed:** Keepsakes are kept between expeditions, as the name says. If Wren falls, she loses the keepsakes she found on that expedition. She keeps the ones she brought from home.
+- **Open:** What else Wren loses if she falls, and how the rest of what she brings home is kept or used between expeditions.
 - **Agreed:** The pack does not grow and cannot be repacked after breaking a pin. If Wren brings the diving suit, it occupies a worn slot from the first band onward and has no effect in fights. Carrying it therefore makes every band above the last harder. She cannot enter the final depth without it.
 - **Agreed:** Wren receives the suit when she reaches the Abyss, the last walkable band. It is an old keeper's diving dress with a sealed lamp. Her open lantern establishes that the bands above the final depth contain air.
 
@@ -100,11 +101,15 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 - **In the game:** Tide, Surge, Ebb, Crest, Low Water, Ward, Brine, Soaked, Chilled, Sink, Float, Rite, Echo, Dread, and Fog already have meanings in play. Story text must use them consistently with their definitions in the README.
 - **Agreed:** Keepsakes are small trinkets with strong magical effects. Gear is worn equipment, separate from keepsakes. The suit is gear and has no magical effect.
 - **Agreed:** Closer to the bell, the water left behind holds more before it condenses into a keepsake. The drained terraces contain wet stone and pools. The charge is in the remaining water, rather than in a larger volume of seawater. What the water holds and how it becomes a keepsake are not explained.
+- **Agreed:** A keepsake gives off its charge into the air around it. The user's word is "pollutes". Whether that is the air or an ether is open. Every keepsake Wren carries counts, worn or not. Her surroundings can hold only so much charge, and they hold more closer to the bell. Past that limit, the extra charge condenses as Seep: seawater that clogs her pack. In a fight, Seep is an unplayable card.
+- **Agreed in principle:** A safe room at the lighthouse has a store for keepsakes. It keeps their charge in, so nothing around it takes Seep. That is how Wren can keep many keepsakes close together at home. Its form and name are open.
 
 ## Open questions
 
-- Does Wren die or become unconscious when she falls, and what does she lose?
-- How is everything brought home kept or used between expeditions?
+- Does Wren die or become unconscious when she falls? Besides that expedition's keepsakes, what does she lose?
+- Besides keepsakes, how is everything brought home kept or used between expeditions?
+- Does a keepsake's charge go into the air or into an ether?
+- What is the keepsake store in the lighthouse's safe room, and what is it called?
 - Does Wren receive the suit on reaching the Abyss or on clearing it? Both are stated above.
 - What does the remaining water hold, and how does it become a keepsake?
 - What is the drowned depth beyond the Abyss called?
