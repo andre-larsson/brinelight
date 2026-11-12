@@ -190,7 +190,7 @@ async function decideKeepsake(page, label, takeAct) {
   if (!(await page.eval(`!!document.querySelector('[data-act="${takeAct}"]')`))) return;
   // a keepsake on offer is taken or left before Continue is offered
   if (await page.eval(`!!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: Continue was offered before the keepsake pick was decided`);
-  if (!(await page.eval(`!!document.querySelector('.ks-pick .k-charge') && !!document.querySelector('.ks-pick .k-after')`))) failures.push(`${label}: the keepsake pick doesn't show Charge`);
+  if (!(await page.eval(`!!document.querySelector('.ks-pick .k-charge') && !!document.querySelector('.ks-pick .k-after')`))) failures.push(`${label}: the keepsake pick doesn't show Roil`);
   if (ksTurn++ % 2) await clickIf(page, '[data-act="leaveks"]');
   else await clickIf(page, `[data-act="${takeAct}"]`);
 }
@@ -246,7 +246,8 @@ async function startRun(page, base, seed) {
   await inject(page);
   await page.click('[data-act="newrun"]');
   await sleep(200);
-  // first launch offers the tutorial; this scenario skips it
+  // first launch plays the opening and offers the tutorial; this scenario skips both
+  await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
 }
@@ -297,15 +298,15 @@ async function summonDeathCheck(page, base) {
   if (page.errors.length) failures.push('summon check: page errors:\n    ' + page.errors.join('\n    '));
 }
 
-/* The Workshop: lasting state from before v0.10.0 carries over, buy kit with Salvage, wear it for a dive,
-   see it in the run with keepsake Charge, drop a keepsake, and earn Salvage and an unlock at the end. */
+/* The Workshop: lasting state from before v0.10.0 carries over, buy kit with Salvage, wear it for a descent,
+   see it in the run with keepsake Roil, drop a keepsake, and earn Salvage and an unlock at the end. */
 async function workshopScenario(page, base, name, size) {
   log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
   await page.viewport(size.w, size.h, size);
   page.errors.length = 0;
   await page.goto(base + '?seed=4444');
   // stored in the v0.9.0 shape: gear owned and packed
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true }));
     localStorage.setItem('brinelight.meta.v1', JSON.stringify({ salvage: 60, earned: 60, owned: ['purse'], packed: ['purse'], ach: ['twocrests'] })); })()`);
   await page.goto(base + '?seed=4444');
   await inject(page);
@@ -325,24 +326,24 @@ async function workshopScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="close"]');
   // New Descent opens the kit; put on the Flood Bell, take off the Cork Vest
   await page.click('[data-act="newrun"]');
-  await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the kit before a dive');
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the kit before a descent');
   await checkPage(page, name + ' kit');
   await clickIf(page, '#overlay [data-act="kitwear"][data-g="floodbell"]');
   await clickIf(page, '#overlay [data-act="kitwear"][data-g="cork"]');
   m = await stored();
   if (m.kit.bell !== 'floodbell' || m.kit.coat !== null) failures.push(`${name}: wearing kit didn't stick: ${JSON.stringify(m.kit)}`);
   await clickIf(page, '#overlay [data-act="dive"]');
-  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after Dive');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after Set out');
   const kit = await page.eval('JSON.stringify(window.Brinelight.run.kit)');
   if (kit !== JSON.stringify({ harpoon: null, bell: 'floodbell', coat: null, pocket: 'purse', ditty: null })) failures.push(`${name}: the run took kit ${kit}`);
   if (!(await page.eval(`!!document.querySelector('.hud .medal.bell') && !!document.querySelector('.hud .gear-pack')`))) failures.push(`${name}: the bell or the kit is missing from the HUD`);
   if (await page.eval('window.Brinelight.run.pearls') !== 105) failures.push(`${name}: the Coin Purse didn't add its Pearls`);
-  // keepsakes past the Hold: the HUD shows the Charge in red; drop one between fights
+  // keepsakes past the Hold: the HUD shows the Roil in red; drop one between fights
   await dismissHints(page);
   await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'whaletooth'); B.E.gainKeepsake(B.run, 'stormbottle'); B.render(); })()`);
   await dismissHints(page);
   const chip = await page.eval(`(() => { const c = document.querySelector('.hud .charge'); return c ? c.className + ' ' + c.innerText : ''; })()`);
-  if (!/over/.test(chip) || !/37\/30/.test(chip)) failures.push(`${name}: the HUD Charge reads "${chip}"`);
+  if (!/over/.test(chip) || !/37\/30/.test(chip)) failures.push(`${name}: the HUD Roil reads "${chip}"`);
   await checkPage(page, name + ' charge');
   await page.click('.hud .medal[data-k="stormbottle"]');
   await page.waitFor(`!!document.querySelector('#overlay [data-act="ksdrop"]')`, 3000, 'the keepsake opens');
@@ -356,7 +357,7 @@ async function workshopScenario(page, base, name, size) {
   await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop');
   if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
   const seep = await page.eval(`(() => { const c = window.Brinelight.run.combat; return c.hand.concat(c.draw).filter((x) => x.id === 'seep').length; })()`);
-  if (seep !== 2) failures.push(`${name}: ${seep} Seep in a fight at Charge 37 of 30`);
+  if (seep !== 2) failures.push(`${name}: ${seep} Seep in a fight at Roil 37 of 30`);
   // the run ends: Salvage from the score, and an achievement reached in it unlocks kit
   await waitIdle(page);
   await page.eval(`(() => { const B = window.Brinelight; B.run.stats.maxChain = 3; B.run.screen = 'defeat'; B.render(); })()`);
@@ -369,11 +370,10 @@ async function workshopScenario(page, base, name, size) {
   await checkPage(page, name + ' end');
   // abandoning a run earns nothing
   const before = (await stored()).salvage;
-  await page.click('[data-act="totitle"]');
-  await sleep(150);
+  await clickIf(page, '[data-act="totitle"]'); // scrolls first: on a phone the buttons sit below the fold
   await page.click('[data-act="newrun"]');
   await clickIf(page, '#overlay [data-act="dive"]');
-  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after a second Dive');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after a second Set out');
   await page.click('.hud [data-act="menu"]');
   await clickIf(page, '#overlay [data-act="abandon"]');
   await clickIf(page, '#overlay [data-act="confirmabandon"]');
@@ -387,7 +387,7 @@ async function debugScenario(page, base) {
   await page.viewport(1280, 800);
   page.errors.length = 0;
   await page.goto(base + '?seed=5555');
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.best.v1', '777'); })()`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); localStorage.setItem('brinelight.best.v1', '777'); })()`);
   await page.goto(base + '?seed=5555');
   if (await page.eval(`!!document.querySelector('.dbg-tab')`)) failures.push('debug: the DEBUG tab shows without ?debug');
   await page.goto(base + '?seed=5555&debug');
@@ -400,7 +400,7 @@ async function debugScenario(page, base) {
   const m = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
   if (m.salvage !== 100 || m.owned.length !== Object.keys(await page.eval('window.BL.KIT')).length - 1) failures.push(`debug: Salvage and kit cheats stored ${JSON.stringify(m)}`);
   await clickIf(page, '#overlay [data-act="close"]');
-  // a run: god mode holds HP through an enemy turn, the Tide can be set, and Win the fight leads to the rewards
+  // a run: god mode holds HP through an enemy turn, the Swell can be set, and Win the fight leads to the rewards
   await page.click('[data-act="newrun"]');
   await clickIf(page, '#overlay [data-act="startlevel"][data-lv="0"]');
   await clickIf(page, '#overlay [data-act="dive"]');
@@ -415,7 +415,7 @@ async function debugScenario(page, base) {
   await sleep(150);
   await clickIf(page, '#overlay [data-dbg="god"]');
   await clickIf(page, '#overlay [data-dbg="tide"][data-n="5"]');
-  if ((await page.eval('window.Brinelight.run.combat.tide')) !== 5) failures.push('debug: setting the Tide did nothing');
+  if ((await page.eval('window.Brinelight.run.combat.tide')) !== 5) failures.push('debug: setting the Swell did nothing');
   await clickIf(page, '#overlay [data-act="close"]');
   const hp = await page.eval('window.Brinelight.run.hp');
   await page.click('#btn-end');
@@ -455,9 +455,18 @@ async function tutorialScenario(page, base, name, size, input) {
   await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.best.v1', '1234'); })()`);
   await page.goto(base);
   await inject(page);
-  // first launch: New Descent offers the tutorial
+  // first launch: New Descent plays the opening, one picture at a time, then offers the tutorial
   await page.click('[data-act="newrun"]');
   await sleep(250);
+  const beats = await page.eval('window.BL.STORY.opening.length');
+  for (let i = 0; i < beats; i++) {
+    const shown = await page.eval(`(() => { const t = document.querySelector('#overlay .opening .op-text'); return t ? t.textContent : ''; })()`);
+    if (shown !== await page.eval(`window.BL.STORY.opening[${i}].text`)) failures.push(`${name}: opening part ${i + 1} shows "${shown.slice(0, 40)}"`);
+    await checkPage(page, `${name} opening ${i + 1}`);
+    if (input === 'keyboard') await page.key('Enter'); else await page.click('#overlay [data-act="opnext"]');
+    await sleep(200);
+  }
+  if (await page.eval(`!JSON.parse(localStorage.getItem('brinelight.story.v1') || '{}').opening`)) failures.push(`${name}: the opening isn't stored as seen`);
   await page.click('#overlay [data-act="tutorial"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.tutorial', 4000, 'tutorial run');
   const t0 = Date.now();
@@ -508,6 +517,7 @@ async function tutorialScenario(page, base, name, size, input) {
   await page.click('[data-act="newrun"]');
   await sleep(250);
   if (await page.eval('!!document.querySelector("#overlay [data-act=\\"tutorial\\"]")')) failures.push(`${name}: offered the tutorial again`);
+  if (await page.eval('!!document.querySelector("#overlay .opening")')) failures.push(`${name}: played the opening again`);
   await checkPage(page, name);
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
@@ -550,6 +560,64 @@ async function tutorialMidRun(page, base) {
   if (page.errors.length) failures.push('tutorial from a run: page errors:\n    ' + page.errors.join('\n    '));
 }
 
+/* Story so far: open from the first visit, with the rest locked; a fight and a fall open entries, marked New until read. */
+async function storyScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=6666');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); })()`);
+  await page.goto(base + '?seed=6666');
+  await inject(page);
+  const count = (sel) => page.eval(`document.querySelectorAll(${JSON.stringify(sel)}).length`);
+  const S = await page.eval('({ chapters: window.BL.STORY.chapters.length, notes: window.BL.STORY.notes.length, title: window.BL.STORY.title })');
+  if ((await page.eval(`document.querySelector('.tagline').textContent`)) !== S.title) failures.push(`${name}: the title line isn't the story's`);
+  if (await count('[data-act="story"] .new-pill')) failures.push(`${name}: Story so far is marked New on a first visit`);
+  await page.click('[data-act="story"]');
+  await sleep(200);
+  if ((await count('#overlay .st-ch')) !== 1 || (await count('#overlay .st-lock')) !== S.chapters - 1) failures.push(`${name}: a first visit should read chapter 1 and see the rest locked`);
+  await checkPage(page, name + ' story');
+  await page.click('#overlay [data-act="storytab"][data-tab="world"]');
+  await sleep(150);
+  if (!(await count('#overlay .help-dl dt'))) failures.push(`${name}: The world tab is empty`);
+  await checkPage(page, name + ' world');
+  await page.click('#overlay [data-act="storytab"][data-tab="notes"]');
+  await sleep(150);
+  if ((await count('#overlay .st-lock')) !== S.notes || (await count('#overlay .st-note'))) failures.push(`${name}: a first visit should have every note locked`);
+  await checkPage(page, name + ' notes');
+  // the opening plays again from chapter 1 and comes back to the story
+  await page.click('#overlay [data-act="storytab"][data-tab="story"]');
+  await sleep(150);
+  await page.click('#overlay [data-act="opening"]');
+  await sleep(200);
+  for (let i = 0; i < 4 && await count('#overlay .opening'); i++) { await page.click('#overlay [data-act="opnext"]'); await sleep(200); }
+  if (!(await count('#overlay .story'))) failures.push(`${name}: the replayed opening didn't come back to Story so far`);
+  await clickIf(page, '#overlay .modal-foot [data-act="close"]');
+  // a fight opens a note, and a fall opens chapter 2 on the end screen
+  await page.click('[data-act="newrun"]');
+  await sleep(200);
+  if (await count('#overlay .opening')) failures.push(`${name}: the opening played again after the replay`);
+  await clickIf(page, '[data-act="tutorialskip"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the story scenario');
+  await dismissHints(page);
+  await clickIf(page, '.node.avail[data-idx="0"]');
+  await sleep(600);
+  await dismissHints(page);
+  await waitIdle(page);
+  const marks = await page.eval(`JSON.parse(localStorage.getItem('brinelight.story.v1')).marks`);
+  if (!marks.some((m) => m.indexOf('en:') === 0)) failures.push(`${name}: the first fight stored no story mark (${marks})`);
+  await page.eval(`(() => { const B = window.Brinelight; B.run.hp = 0; B.run.combat.lost = true; B.onDefeat(); })()`);
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "defeat" && !!document.querySelector(".story-new")', 5000, 'the fall on the end screen');
+  await checkPage(page, name + ' defeat');
+  await page.click('.story-new');
+  await sleep(200);
+  if ((await count('#overlay .st-ch')) !== 2 || (await count('#overlay .st-ch .new-pill')) !== 1) failures.push(`${name}: the fall should open chapter 2, marked New`);
+  await clickIf(page, '#overlay .modal-foot [data-act="close"]');
+  await clickIf(page, '[data-act="totitle"]');
+  if (await count('[data-act="story"] .new-pill')) failures.push(`${name}: Story so far is still marked New after reading`);
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 (async () => {
   const server = await serve(PORT, ROOT);
   const page = await launch();
@@ -566,6 +634,10 @@ async function tutorialMidRun(page, base) {
     if (!ONLY || ONLY === 'desktop') await summonDeathCheck(page, base);
     if (!ONLY || ONLY === 'phone') await scenario(page, base, 'phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 2222, drag: true });
     if (!ONLY || ONLY === 'debug') await debugScenario(page, base);
+    if (!ONLY || ONLY === 'story') {
+      await storyScenario(page, base, 'story desktop', { w: 1280, h: 800 });
+      await storyScenario(page, base, 'story phone', { w: 390, h: 844, mobile: true, touch: true });
+    }
     if (!ONLY || ONLY === 'workshop') {
       await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });
       await workshopScenario(page, base, 'workshop phone', { w: 390, h: 844, mobile: true, touch: true });

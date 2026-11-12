@@ -58,7 +58,7 @@ function chooseCombatAction(run) {
   return { uid: playable[0].uid, target: E.needsTarget(playable[0]) ? alive[0].uid : null };
 }
 
-/* Keepsake pick: the offered keepsake worth the most, counting its Charge as its value and each Seep it
+/* Keepsake pick: the offered keepsake worth the most, counting its Roil as its value and each Seep it
    would add as -10. (One Seep alone costs the bot about 5 points, but Seep stacks badly with a
    second keepsake, so -10 picks better.) Null when none is worth taking. */
 function pickKeepsake(run, choices) {

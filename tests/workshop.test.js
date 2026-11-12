@@ -1,5 +1,5 @@
 /* Workshop and kit rules: Salvage from score, buying and wearing kit, what each piece does, the
-   achievements that unlock kit, keepsake Charge, the Hold and Seep, and carrying old saves over.
+   achievements that unlock kit, keepsake Roil, the Hold and Seep, and carrying old saves over.
    Run with: node --test tests/ */
 'use strict';
 const test = require('node:test');
@@ -106,8 +106,8 @@ test('start-of-run kit: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask 
   assert.deepEqual(base.tonics, [null, null, null]);
 });
 
-test('bells: Brass draws 1 on every Crest and Low Water; Flood 2 on a Crest only; Ebb 2 on a Low Water only; Cracked nothing on the first each turn, then 2', () => {
-  // [bell, Crest, Low Water] -> cards drawn
+test('bells: Brass draws 1 on every Crest and Strand; Flood 2 on a Crest only; Ebb 2 on a Strand only; Cracked nothing on the first each turn, then 2', () => {
+  // [bell, Crest, Strand] -> cards drawn
   const draws = (bell, first, second) => {
     const run = E.newRun(3, 0, [bell]);
     const c = fightIn(run);
@@ -214,7 +214,7 @@ test("Barnaby's Marker: the first removal at Barnaby's in a run is free and does
 });
 
 /* ---------- Achievements ---------- */
-test('achievements: double and triple Crest, double Low Water, 3 flawless fights, a Dread, a lean Dread, a Brine kill', () => {
+test('achievements: double and triple Crest, double Strand, 3 flawless fights, a Dread, a lean Dread, a Brine kill', () => {
   const run = E.newRun(9, 0);
   assert.deepEqual(E.achievementsMet(run), []);
   run.stats.maxChain = 2;
@@ -267,8 +267,8 @@ test('achievements unlock once, are kept on the run for the end screen, and neve
   assert.equal(E.bell(tut), null, 'no bell in the tutorial');
 });
 
-/* ---------- Charge, Hold and Seep ---------- */
-test('the Hold is 30 Charge in the Shallows and 5 more each depth; every 5 Charge over (or part of 5) is 1 Seep', () => {
+/* ---------- Roil, Hold and Seep ---------- */
+test('the Hold is 30 Roil in the Shallows and 5 more each depth; every 5 Roil over (or part of 5) is 1 Seep', () => {
   assert.deepEqual([0, 1, 2, 3].map(E.hold), [30, 35, 40, 45]);
   assert.deepEqual([30, 31, 35, 36, 40, 41].map((ch) => E.seepFor(ch, 0)), [0, 1, 1, 2, 2, 3]);
   assert.equal(E.seepFor(36, 1), 1, 'deeper water holds more');

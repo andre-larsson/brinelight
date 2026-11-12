@@ -154,20 +154,20 @@
       { id: 'enemyward', info: true, anchor: () => enemySel('tut_crab', '.ward-badge') || enemySel('tut_crab', '.hpbar'), side: 'below',
         html: () => 'The crab hardened: <b>4 Ward</b>. Enemy Ward blocks your hits too.' },
       { id: 'tide', info: true, anchor: '#tidebar', side: 'above',
-        html: () => 'This is the <b>Tide</b>, 0 to 6, starting at 3. <b>Surge</b> raises it; <b>Ebb</b> lowers it.' },
+        html: () => 'This is the <b>Swell</b>: the water around the enemies, 0 to 6, starting at 3. <b>Surge</b> raises it; <b>Ebb</b> lowers it.' },
       Object.assign(playStep('surge', 'swell', 'tut_crab',
         () => `Play <b>Rising Swell</b> on the crab: 5 damage and <b>Surge 2</b>.`),
       { why: { card: 'its Surge sets up the wave', target: 'the wave will take the mite' } }),
       playStep('crest', 'shellup', null,
         () => 'At 6 the wave <b>Crests</b>: 6 damage to <b>every</b> enemy. Play <b>Shell Up</b> (Surge 1).'),
       playStep('ebb', 'slack', null,
-        () => '<b>Crest!</b> The Tide resets to 3. Now play <b>Slack Water</b> (Ebb 2). At 0 you get <b>Low Water</b>: enemies lose their Ward, and you gain 1 Light.'),
+        () => '<b>Crest!</b> The Swell resets to 3. Now play <b>Slack Water</b> (Ebb 2). At 0 you <b>Strand</b> the enemies: they lose their Ward, and you gain 1 Light.'),
       { id: 'end2', endTurn: true, anchor: '#btn-end',
-        html: () => `Tide 1. It stays put between turns. ${tap()} <b>End Turn</b>.${kbd('Or press E')}` },
+        html: () => `Swell 1. It stays put between turns. ${tap()} <b>End Turn</b>.${kbd('Or press E')}` },
       { id: 'reshuffle', info: true, anchor: '#pile-draw',
         html: () => 'Your draw pile ran out, so the <b>discard pile was shuffled back in</b>.' },
       playStep('low', 'riptide', 'tut_crab',
-        () => `Play <b>Riptide Cut</b> on the crab: Ebb 1 takes the Tide to 0, <b>Low Water</b>.`),
+        () => `Play <b>Riptide Cut</b> on the crab: Ebb 1 takes the Swell to 0 and <b>Strands</b> them.`),
       playStep('payoff', 'stormsurge', null,
         () => '<b>+1 Light!</b> Now the payoff: extra Surge <b>carries over</b>, and each extra Crest in a turn hits 3 harder. Play <b>Storm Surge</b> (Surge 6) to Crest twice.'),
     ];
@@ -256,7 +256,7 @@
         <ul>
           <li><b>Attack</b> to bring enemy HP to 0, and <b>Ward</b> up against their intents.</li>
           <li>Each turn: <b>3 Light</b>, <b>5 cards</b>. The discard pile comes back when you run out.</li>
-          <li><b>Surge</b> to 6 to <b>Crest</b> (hits every enemy). <b>Ebb</b> to 0 for <b>Low Water</b> (enemies lose their Ward, +1 Light). Save Surge for one big turn: chained Crests hit harder.</li>
+          <li><b>Surge</b> to 6 to <b>Crest</b> (hits every enemy). <b>Ebb</b> to 0 to <b>Strand</b> them (enemies lose their Ward, +1 Light). Save Surge for one big turn: chained Crests hit harder.</li>
         </ul>
         <p class="muted">The full rules are in How to Play, in the menu.</p></div>`;
       const foot = (tut.resume ? '<button class="btn" data-act="tutback">Back to my run</button>' : '<button class="btn" data-act="tutback">Title screen</button>') +
@@ -280,7 +280,7 @@
         anchor: () => document.querySelector('.node.avail.t-elite') || document.querySelector('.unit.enemy .sprite'),
         html: () => 'A <b>Dread</b> is an elite: tougher than a skirmish. Beat it, and you may take 1 of 2 <b>keepsakes</b>.' },
       { id: 'charge', when: (r) => r.screen === 'map' && r.keepsakes.length > 0, anchor: '.hud .charge',
-        html: () => `Every keepsake gives off <b>Charge</b>. The water here holds ${E.hold(api.getRun().level)}. Past that, a <b>Seep</b> (an unplayable card) joins every fight. ${tap()} a keepsake between fights to drop it.` },
+        html: () => `Every keepsake stirs the aether: its <b>Roil</b>. The aether here holds ${E.hold(api.getRun().level)}. Past that it is Roiled, and a <b>Seep</b> (an unplayable card) joins every fight. ${tap()} a keepsake between fights to drop it.` },
       // above the cards, so the keyword legend under them stays readable
       { id: 'reward', when: (r) => r.screen === 'reward' && !r.rewards.cardTaken, anchor: '.reward-cards', side: 'above',
         html: () => 'Add <b>1 card</b> to your deck, or skip. A smaller deck draws its best cards more often. Keywords are explained below the cards.' },
@@ -291,7 +291,7 @@
       { id: 'tonic', when: (r) => r.tonics.some(Boolean) && (r.screen === 'combat' || r.screen === 'map'), anchor: '.hud .tonic-slot',
         html: () => `<b>Tonics</b> are one-use. ${tap()} one to drink it during your turn.` },
       { id: 'tidebell', when: (r) => r.screen === 'combat' && E.bell(r) === 'tidebell' && (r.combat.fightCrests > 0 || r.combat.turnLows > 0), anchor: '.hud .medal[data-k="bell"]',
-        html: () => 'Your <b>Brass Tide-Bell</b> draws a card every time you Crest or hit Low Water.' },
+        html: () => 'Your <b>Brass Tide-Bell</b> draws a card every time you Crest or Strand.' },
       { id: 'lethal', when: (r) => r.screen === 'combat' && !!document.querySelector('.field.danger'), anchor: '.unit.player .incoming',
         html: () => '<b>Red edges</b>: the incoming hit would knock you out. Block it, or take an attacker down.' },
     ];

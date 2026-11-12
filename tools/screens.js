@@ -57,7 +57,8 @@ const SIZES = {
       await page.eval(`(() => { try { localStorage.clear(); } catch (e) {} })()`);
       await page.goto(base + '?seed=4242');
       // review the screens themselves: mark the first-time hints and the tutorial offer as seen
-      await page.eval(`(() => { localStorage.setItem('brinelight.hints.v1', JSON.stringify(window.Brinelight.teach ? window.Brinelight.teach.hintIds() : [])); localStorage.setItem('brinelight.tutorial.v1', 'done'); })()`);
+      await page.eval(`(() => { localStorage.setItem('brinelight.hints.v1', JSON.stringify(window.Brinelight.teach ? window.Brinelight.teach.hintIds() : [])); localStorage.setItem('brinelight.tutorial.v1', 'done');
+        const en = window.BL.E.storyEntries(); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true, marks: en.map((x) => x.when).filter(Boolean), read: en.map((x) => x.id) })); })()`);
       await page.goto(base + '?seed=4242');
       await sleep(400);
       await shot(tag, '01_title');
@@ -95,7 +96,7 @@ const SIZES = {
       await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'elite', ['angler', 'angler']); B.render();`);
       await sleep(1800);
       await shot(tag, '11_elite');
-      // the Dread's reward: a keepsake pick with Charge (the run carries Whale Tooth and Drowned Anchor, over the Hold)
+      // the Dread's reward: a keepsake pick with Roil (the run carries Whale Tooth and Drowned Anchor, over the Hold)
       await setup(`const r = B.run; const c = r.combat; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); c.won = true; E.finishCombat(r); B.render();`);
       await sleep(900);
       await shot(tag, '11b_elite_reward');
@@ -111,6 +112,26 @@ const SIZES = {
       await shot(tag, '14_workshop');
       await setup(`B.closeOverlay(true); document.querySelector('[data-act="newrun"]').click();`);
       await shot(tag, '15_kit');
+      // Story so far: a player part-way in (some entries new, some locked), then the opening
+      await setup(`B.closeOverlay(true); B.story.marks = ['fell', 'won:0', 'shop', 'cove', 'keepsake', 'ev:ghost', 'en:sailor']; B.story.read = ['fall', 'barnaby', 'cove']; B.render(); document.querySelector('[data-act="story"]').click();`);
+      await shot(tag, '16_story');
+      await page.eval(`document.querySelector('[data-act="storytab"][data-tab="world"]').click()`);
+      await shot(tag, '17_story_world');
+      await page.eval(`document.querySelector('[data-act="storytab"][data-tab="notes"]').click()`);
+      await shot(tag, '18_story_notes');
+      await setup(`B.closeOverlay(true); B.showOpening(0)`);
+      await sleep(900);
+      await shot(tag, '19_opening_1');
+      await page.eval(`document.querySelector('[data-act="opnext"]').click()`);
+      await sleep(900);
+      await shot(tag, '19b_opening_2');
+      await page.eval(`document.querySelector('[data-act="opnext"]').click()`);
+      await sleep(900);
+      await shot(tag, '20_opening_3');
+      await page.eval(`document.querySelector('[data-act="opnext"]').click()`);
+      await sleep(900);
+      await shot(tag, '21_opening_4');
+      await page.eval(`document.querySelector('[data-act="opnext"]').click()`);
     }
     fs.writeFileSync(path.join(out, 'small-text.txt'), small.join('\n') + '\n');
     console.log(small.length ? `Text below ${MIN_PX}px on ${small.length} screens (see small-text.txt)` : `No text below ${MIN_PX}px`);

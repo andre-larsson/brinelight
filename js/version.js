@@ -5,8 +5,24 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.10.0';
+  BL.VERSION = '0.12.0';
   BL.CHANGELOG = [
+    { v: '0.12.0', date: '2026-11-12', items: [
+      'A new opening: four pictures tell who you are, what the bell did and why you go down. It plays once, before your first descent.',
+      'Story so far, on the title screen and in the menu. Its Story tab has six chapters: the opening, one for your first fall, and one for each depth you clear.',
+      'The world tab explains the places, people and magic in plain words, from the Lantern Heart to the aether.',
+      "Keeper's notes: 15 short notes that you find by meeting things in the Reach, such as Barnaby, the Lost Lamplighter and the Bellwether.",
+      'The title and the loss screen tell the story more plainly.',
+      'How to Play: the Keywords, map and Controls lists use larger text, and one column on phones.',
+    ] },
+    { v: '0.11.0', date: '2026-11-12', items: [
+      'New names, same rules. The Tide gauge is now the Swell: the water around the enemies. Surge, Ebb and Crest keep their names.',
+      'Low Water is now a Strand: the water pulls back and strands the enemies. The Deep Ebb bonus is now High and Dry.',
+      'Charge is now Roil. Keepsakes stir the aether around you. Up to your Hold the aether is Calm; past it the aether is Roiled and sheds Seep.',
+      'The stops down the map are landings: "Landing 3/11". Depth now means only the Shallows, Dark Water, Riptide and the Abyss.',
+      'The story is told again: the great bell rang with no hand on its rope, and the Lantern Heart went down to it, on your watch.',
+      'Wren walks the Reach with an open lantern, so the text no longer has her swimming. Only the flooded hold of the Gilded Gull is a dive.',
+    ] },
     { v: '0.10.0', date: '2026-11-12', items: [
       'Kit replaces gear: one piece each for your Harpoon, Bell, Coat, Pocket and Ditty Bag, chosen before each dive. Gear you owned carries over.',
       'The Brass Tide-Bell is your bell now. Three more bells draw differently: the Flood Bell, the Ebb Bell and the Cracked Bell.',

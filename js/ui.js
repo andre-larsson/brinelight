@@ -40,6 +40,18 @@
   } catch (e) { /* ignore */ }
   const saveMeta = () => { try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch (e) { /* ignore */ } };
   const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
+  /* Story so far: the marks the player has earned, the entries they have read, and whether the opening has played */
+  const STORY_KEY = 'brinelight.story.v1';
+  const story = { marks: [], read: [], opening: false };
+  try {
+    const st = JSON.parse(localStorage.getItem(STORY_KEY) || '{}');
+    ['marks', 'read'].forEach((k) => { if (Array.isArray(st[k])) story[k] = st[k].filter((x) => typeof x === 'string'); });
+    story.opening = !!st.opening;
+  } catch (e) { /* ignore */ }
+  const saveStory = () => { try { localStorage.setItem(STORY_KEY, JSON.stringify(story)); } catch (e) { /* ignore */ } };
+  /* depths cleared before the story existed count too: the deepest unlocked depth says which were won */
+  const storyMarks = () => { const m = story.marks.slice(); for (let i = 0; i < getNum(LEVEL_KEY); i++) if (m.indexOf('won:' + i) < 0) m.push('won:' + i); return m; };
+  const storyUnread = () => { const marks = storyMarks(); return E.storyEntries().filter((en) => en.when && E.storyOpen(en, marks) && story.read.indexOf(en.id) < 0); };
 
   const wait = (ms) => new Promise((r) => setTimeout(r, prefs.fast ? ms * 0.5 : ms));
   const isTouchUI = () => ui.lastPointer === 'touch' || ui.lastPointer === 'pen';
@@ -165,7 +177,7 @@
       kill: () => { noise(0.35, 0.3, 2400, 'bandpass', 300, 0, 0.7); tone(330, 0.25, 'triangle', 0.08, 660); },
       echo: () => { tone(660, 0.4, 'sine', 0.07); tone(660, 0.4, 'sine', 0.04, null, 0.18); tone(990, 0.5, 'sine', 0.03, null, 0.3); },
       pearl: () => { tone(1568, 0.09, 'sine', 0.05); tone(2093, 0.16, 'sine', 0.045, null, 0.08); },
-      // a chain bonus (Tidal Fury rising, Deep Ebb falling), then a glint of Pearls
+      // a chain bonus (Tidal Fury rising, High and Dry falling), then a glint of Pearls
       fury: (down) => {
         (down ? [784, 587, 392, 294] : [523, 659, 784, 1046]).forEach((f, i) => tone(f, 0.55, 'triangle', 0.08, null, i * 0.09));
         tone(2093, 0.25, 'sine', 0.04, null, 0.42); tone(2637, 0.3, 'sine', 0.03, null, 0.5);
@@ -292,7 +304,8 @@
    * ================================================================== */
   function save() {
     if (!run || run.tutorial) return; // the tutorial is never saved
-    if (run.screen === 'victory' || run.screen === 'defeat') { clearSave(); return; }
+    if (run.screen === 'victory' || run.screen === 'defeat') { clearSave(); return; } // the end screen lists its own story entries
+    noteStory().forEach((en) => toast(`New in Story so far: ${en.title}`, 3500));
     if (run.combat && (run.combat.phase !== 'player' || run.combat.won || run.combat.lost)) return;
     try {
       E.tick(run);
@@ -311,6 +324,16 @@
 
     } catch (e) { return null; }
   }
+  /* Record what this run has met and return the Story so far entries that opened. The tutorial and debug-cheated runs open nothing. */
+  function noteStory() {
+    if (!run || run.tutorial || run.cheated) return [];
+    const before = storyMarks();
+    const fresh = E.storyMarks(run).filter((m) => before.indexOf(m) < 0);
+    if (!fresh.length) return [];
+    story.marks.push(...fresh);
+    saveStory();
+    return E.storyEntries().filter((en) => en.when && fresh.indexOf(en.when) >= 0);
+  }
   function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
 
   function toast(msg, ms) {
@@ -325,7 +348,7 @@
     setTimeout(() => d.remove(), (ms || 2200) + 100);
   }
 
-  const KW_RE = /\b(Low Water|Surge|Ebb|Ward|Soaked|Chilled|Brine|Sink|Float|Might|Spines|Crest|Light|Tide|Seep)\b/g;
+  const KW_RE = /\b(Strand|Surge|Ebb|Ward|Soaked|Chilled|Brine|Sink|Float|Might|Spines|Crest|Light|Swell|Seep)\b/g;
   const kwClass = (k) => 'k-' + k.toLowerCase().replace(/\s/g, '');
   function markKeywords(text) {
     return text.replace(KW_RE, (m) => `<span class="kw ${kwClass(m)}">${m}</span>`);
@@ -335,11 +358,11 @@
     const plain = d.text(E.vals(card), { d: (n) => n, tide: null }).replace(/<[^>]+>/g, '');
     const found = [];
     (plain.match(KW_RE) || []).forEach((k) => { if (found.indexOf(k) < 0) found.push(k); });
-    // each end of the Tide right after the word that reaches it
+    // each end of the Swell right after the word that reaches it
     if (found.indexOf('Surge') >= 0 && found.indexOf('Crest') < 0) found.splice(found.indexOf('Surge') + 1, 0, 'Crest');
-    if (found.indexOf('Ebb') >= 0 && found.indexOf('Low Water') < 0) found.splice(found.indexOf('Ebb') + 1, 0, 'Low Water');
+    if (found.indexOf('Ebb') >= 0 && found.indexOf('Strand') < 0) found.splice(found.indexOf('Ebb') + 1, 0, 'Strand');
     if (d.type === 'rite') found.unshift('Rite');
-    return found.filter((k) => BL.KEYWORDS[k] && k !== 'Light' && k !== 'Tide');
+    return found.filter((k) => BL.KEYWORDS[k] && k !== 'Light' && k !== 'Swell');
   }
 
   function statusTip(o, key) {
@@ -353,14 +376,14 @@
     switch (parts[0]) {
       case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
-      case 'floor': return `<b>Depth ${run.floor} of ${E.MAP_ROWS + 1}</b><br>The Drowned Bellwether waits at depth ${E.MAP_ROWS + 1}.`;
-      case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Charge ${k.charge}</span><br>${k.desc}`; }
+      case 'floor': return `<b>Landing ${run.floor} of ${E.MAP_ROWS + 1}</b><br>The Drowned Bellwether waits on the last landing.`;
+      case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}`; }
       case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
       case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
       case 'charge': {
         const ch = E.charge(run), h = E.hold(run.level), sp = E.seepCount(run);
-        return `<b>Charge ${ch} of ${h}</b><br>Your keepsakes give off ${ch} Charge. The water in ${levelName(run.level)} holds ${h}, and deeper water holds more.` +
-          `<div class="tip-row">${sp ? `<b>${sp} Seep</b> joins each fight: an unplayable card for every ${E.SEEP_STEP} Charge over, or part of ${E.SEEP_STEP}.` : `Past ${h}, every ${E.SEEP_STEP} Charge over (or part of ${E.SEEP_STEP}) adds a <b>Seep</b> to each fight: an unplayable card.`}</div>` +
+        return `<b>Roil ${ch} of ${h}</b><br>Your keepsakes stir the aether: ${ch} Roil. The aether in ${levelName(run.level)} holds ${h}, and more at deeper depths. It is <b>${sp ? 'Roiled' : 'Calm'}</b>.` +
+          `<div class="tip-row">${sp ? `<b>${sp} Seep</b> joins each fight: an unplayable card for every ${E.SEEP_STEP} Roil over, or part of ${E.SEEP_STEP}.` : `Past ${h} the aether is Roiled: every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) adds a <b>Seep</b> to each fight, an unplayable card.`}</div>` +
           '<div class="tip-row">Tap a keepsake between fights to drop it.</div>';
       }
       case 'tonic': {
@@ -369,7 +392,7 @@
         return `<b>${BL.TONICS[t].name}</b><br>${BL.TONICS[t].desc}<br><span class="muted">Click to use.</span>`;
       }
       case 'light': return `<b>Light: ${c ? c.light : 0}</b><br>${BL.KEYWORDS.Light}`;
-      case 'tide': return `<b>Tide: ${c ? c.tide : 3}</b><br>${BL.KEYWORDS.Tide}<div class="tip-row"><b>Crest</b> (at 6): ${BL.KEYWORDS.Crest.split(': ')[1] || BL.KEYWORDS.Crest}</div><div class="tip-row"><b>Low Water</b> (at 0): ${BL.KEYWORDS['Low Water'].split(': ')[1] || BL.KEYWORDS['Low Water']}</div>`;
+      case 'tide': return `<b>Swell: ${c ? c.tide : 3}</b><br>${BL.KEYWORDS.Swell}<div class="tip-row"><b>Crest</b> (at 6): ${BL.KEYWORDS.Crest.split(': ')[1] || BL.KEYWORDS.Crest}</div><div class="tip-row"><b>Strand</b> (at 0): ${BL.KEYWORDS.Strand.split(': ')[1] || BL.KEYWORDS.Strand}</div>`;
       case 'kw': return `<b>${parts[1]}</b><br>${BL.KEYWORDS[parts[1]]}`;
       case 'st': {
         const o = parts[1] === 'p' ? c.player : E.enemyByUid(c, parts[1]);
@@ -601,19 +624,19 @@
   }
 
   /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
-  const HELP_TABS = [['basics', 'Basics'], ['tide', 'The Tide'], ['keywords', 'Keywords'], ['map', 'The map'], ['controls', 'Controls']];
+  const HELP_TABS = [['basics', 'Basics'], ['tide', 'The Swell'], ['keywords', 'Keywords'], ['map', 'The map'], ['controls', 'Controls']];
   function helpSection(tab) {
     const kbd = (k) => `<span class="kbd">${k}</span>`;
     const dl = (rows) => `<dl class="help-dl">${rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`;
     switch (tab) {
       case 'tide': return `<ul class="help-list">
-        <li>A gauge from <b>0 to 6</b>. It starts every fight at 3 and stays put between turns.</li>
+        <li>The <b>Swell</b> is the water around the enemies: a gauge from <b>0 to 6</b>. It starts every fight at 3 and stays put between turns.</li>
         <li><b>Surge</b> raises it. <b>Ebb</b> lowers it.</li>
-        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Low Water</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Tide resets to 3.</li>
+        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Strand</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Swell resets to 3.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
-        <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Low Water gives 1 Light. Save Surge for one big turn.</li>
-        <li>Your <b>bell</b> draws when you Crest or reach Low Water. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} draw differently.</li>
-        <li>Badges on your cards say what a card would do right now: ${['CREST', 'LETHAL', 'VICTORY', 'LOW WATER', 'ECHO'].map((b) => `<span class="c-badge ${b.split(' ')[0].toLowerCase()}">${b}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
+        <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Strand gives 1 Light. Save Surge for one big turn.</li>
+        <li>Your <b>bell</b> draws when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} draw differently.</li>
+        <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
       case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
@@ -627,12 +650,12 @@
         [`${NODE_ICON.treasure} Wreck`, 'Pearls, and you may take 1 of 3 keepsakes.'],
       ])}<ul class="help-list">
         <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
-        <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>Deep Ebb</b> (2+ Low Waters in a turn).</li>
-        <li><b>Keepsakes</b> last the whole run, and each gives off <b>Charge</b>. The water holds ${E.hold(0)} Charge in the Shallows and ${E.HOLD_STEP} more at each deeper depth: your <b>Hold</b>. Past it, every ${E.SEEP_STEP} Charge over (or part of ${E.SEEP_STEP}) shuffles a <b>Seep</b> into your draw pile at the start of each fight: an unplayable card, gone after the fight. You can drop a keepsake between fights.</li>
+        <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
+        <li><b>Keepsakes</b> last the whole run, and each stirs the aether around you: its <b>Roil</b>. The aether holds ${E.hold(0)} Roil in the Shallows and ${E.HOLD_STEP} more at each deeper depth: your <b>Hold</b>. Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>: every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) shuffles a <b>Seep</b> into your draw pile at the start of each fight: an unplayable card, gone after the fight. You can drop a keepsake between fights.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
-        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on <b>${MT.item.toLowerCase()}</b> that lasts across runs: one piece each for your ${BL.KIT_PLACES.map((pl) => pl.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}. Achievements unlock more. Choose what to wear before each dive.</li>
+        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on <b>${MT.item.toLowerCase()}</b> that lasts across runs: one piece each for your ${BL.KIT_PLACES.map((pl) => pl.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}. Achievements unlock more. Choose what to wear before each descent.</li>
       </ul>`;
       case 'controls': return dl([
         ['Mouse', 'Click a card, then click an enemy (or the card again). Or drag a card onto an enemy, or up into the sea. Hover anything for details.'],
@@ -662,6 +685,7 @@
     const body = `<div class="choice-list" style="margin:0 auto">
       <button class="choice" data-act="close"><b>Resume</b><span>Back to the deep.</span></button>
       <button class="choice" data-act="help"><b>How to Play</b><span>Rules, controls and glossary.</span></button>
+      <button class="choice" data-act="story"><b>Story so far</b><span>The story, the world and your keeper's notes.</span></button>
       ${run && run.tutorial ? '<button class="choice" data-act="tutskip"><b>Leave the tutorial</b><span>You can replay it from the menu or the title screen.</span></button>' : '<button class="choice" data-act="tutorial"><b>Tutorial</b><span>A guided fight that teaches the basics.' + (run ? ' Your run is saved and waits for you.' : '') + '</span></button>'}
       <button class="choice" data-act="togglesound"><b>Sound effects: ${prefs.sound ? 'On' : 'Off'}</b><span>Synthesized hits, waves and bells.</span></button>
       <button class="choice" data-act="togglemusic"><b>Music: ${prefs.music ? 'On' : 'Off'}</b><span>A quiet generative score over the sound of the sea.</span></button>
@@ -673,15 +697,15 @@
     openOverlay(modal('Menu', body, null, 'narrow'));
   }
 
-  const seepToast = (n) => toast(`${n} Seep in your draw pile: your keepsakes give off more Charge than the water here holds`, 3200);
-  /* A keepsake, between fights: what it does, its Charge, and a way to drop it. */
+  const seepToast = (n) => toast(`${n} Seep in your draw pile: your keepsakes carry more Roil than the aether here holds`, 3200);
+  /* A keepsake, between fights: what it does, its Roil, and a way to drop it. */
   function showKeepsake(k) {
     const K = BL.KEEPSAKES[k];
     if (!K) return;
     const ch = E.charge(run), h = E.hold(run.level), sp = E.seepCount(run);
     const without = E.seepFor(ch - K.charge, run.level);
     const body = `<div style="display:flex;gap:14px;align-items:center"><div class="medal" style="width:72px;height:72px;flex:0 0 auto"><img src="img/icons/${K.art}.webp" alt=""></div><p style="margin:0;font-size:16px">${K.desc}</p></div>
-      <p class="buy-left">Charge ${K.charge}. You carry ${ch} of your Hold of ${h}${sp ? `: <b>${sp} Seep</b> in each fight` : ''}.${sp ? ` Without it: ${without ? without + ' Seep' : 'no Seep'}.` : ''}</p>
+      <p class="buy-left">Roil ${K.charge}. You carry ${ch} of your Hold of ${h}${sp ? `: <b>${sp} Seep</b> in each fight` : ''}.${sp ? ` Without it: ${without ? without + ' Seep' : 'no Seep'}.` : ''}</p>
       <p class="buy-left muted">Dropping it is for good${k === 'biscuit' ? ', and its 10 Max HP go with it' : ''}.</p>`;
     openOverlay(modal(K.name, body, `<button class="btn" data-act="ksdrop" data-k="${k}">Drop it</button><button class="btn primary" data-act="close" autofocus>Keep it</button>`, 'narrow'));
   }
@@ -702,7 +726,7 @@
    *  HUD
    * ================================================================== */
   function hudHTML() {
-    const ks = run.keepsakes.map((k) => `<button class="medal" data-tip="ks:${k}" data-act="ks" data-k="${k}" aria-label="${BL.KEEPSAKES[k].name}, Charge ${BL.KEEPSAKES[k].charge}: ${BL.KEEPSAKES[k].desc}"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></button>`).join('');
+    const ks = run.keepsakes.map((k) => `<button class="medal" data-tip="ks:${k}" data-act="ks" data-k="${k}" aria-label="${BL.KEEPSAKES[k].name}, Roil ${BL.KEEPSAKES[k].charge}: ${BL.KEEPSAKES[k].desc}"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></button>`).join('');
     const bell = E.bell(run) ? BL.KIT[E.bell(run)] : null;
     const kitIds = E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell');
     const ch = E.charge(run), hold = E.hold(run.level), seep = E.seepCount(run);
@@ -712,11 +736,11 @@
     return `<header class="hud${run.screen === 'combat' ? ' in-combat' : ''}">
       <div class="stat hp" data-tip="hp" aria-label="Health">${ICON.heart}<span>${run.hp}/${run.maxHp}</span></div>
       <div class="stat pearls" data-tip="pearls" aria-label="Pearls">${ICON.pearl}<span>${run.pearls}</span></div>
-      <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Depth </span>${run.floor}/${E.MAP_ROWS + 1}</span></div>
+      <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Landing </span>${run.floor}/${E.MAP_ROWS + 1}</span></div>
       <div class="hud-break"></div>
       ${bell ? `<button class="medal gear bell" data-tip="bell" data-act="kitinfo" data-k="bell" aria-label="${bell.name}: ${bell.desc}"><img src="img/icons/${bell.art}.webp" alt=""></button>` : ''}
       ${kitIds.length ? `<button class="medal gear-pack" data-tip="kit" data-act="kitinfo" aria-label="${MT.item}: ${kitIds.map((id) => BL.KIT[id].name).join(', ')}">${ICON.pack}<span class="n">${kitIds.length}</span></button>` : ''}
-      ${run.keepsakes.length ? `<button class="charge${seep ? ' over' : ''}" data-tip="charge" data-act="kitinfo" aria-label="Charge ${ch} of ${hold}${seep ? `, ${seep} Seep each fight` : ''}">${ICON.charge}<span>${ch}/${hold}</span></button>` : ''}
+      ${run.keepsakes.length ? `<button class="charge${seep ? ' over' : ''}" data-tip="charge" data-act="kitinfo" aria-label="Roil ${ch} of ${hold}${seep ? `, ${seep} Seep each fight` : ''}">${ICON.charge}<span>${ch}/${hold}</span></button>` : ''}
       <div class="keepsakes">${ks}</div>
       <div class="tonics">${ts}</div>
       <button class="icon-btn" data-act="deck" aria-label="View deck (D)" title="Deck (D)">${ICON.deck}</button>
@@ -817,11 +841,12 @@
     screenEl.innerHTML = `<div class="title-screen">
       <div class="title-corner"><button class="icon-btn" data-act="menu" aria-label="Settings">${ICON.menu}</button></div>
       <div class="logo">BRINELIGHT</div>
-      <p class="tagline">The lighthouse has gone dark. Something below the waves rang a bell, and the Lantern Heart sank with the tide. Take your harpoon and go down after it.</p>
+      <p class="tagline">${BL.STORY.title}</p>
       <div class="title-buttons">
-        ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (Depth ${saved.floor})</button>` : ''}
+        ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (Landing ${saved.floor})</button>` : ''}
         <button class="btn ${saved ? '' : 'primary'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
         ${workshopOpen() ? `<button class="btn ghost ws-btn" data-act="workshop" aria-label="${MT.shop}: ${meta.salvage} ${MT.currency}">${ICON.salvage}${MT.shop} <small>${meta.salvage}</small></button>` : ''}
+        <button class="btn ghost${workshopOpen() ? '' : ' span'}" data-act="story">Story so far${storyUnread().length ? ' <span class="new-pill">New</span>' : ''}</button>
         <button class="btn ghost" data-act="tutorial">Tutorial</button>
         <button class="btn ghost" data-act="help">How to Play</button>
       </div>
@@ -831,6 +856,72 @@
     </div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+  }
+
+  /* Story so far: the story in chapters, a glossary of the world, and notes found by meeting things.
+     Content and unlock marks are in BL.STORY (js/data.js). Entries opened since the last visit are marked New. */
+  const STORY_TABS = [['story', 'Story'], ['world', 'The world'], ['notes', "Keeper's notes"]];
+  const storyTabOf = (id) => (BL.STORY.chapters.some((c) => c.id === id) ? 'story' : 'notes');
+  function storySection(tab) {
+    const S = BL.STORY, marks = storyMarks(), fresh = ui.storyFresh || [];
+    const pill = (en) => (fresh.indexOf(en.id) >= 0 ? ' <span class="new-pill">New</span>' : '');
+    const locked = (label, en) => `<div class="st-lock">${ICON.lock}<span><b>${label}</b> ${en.lock}</span></div>`;
+    if (tab === 'world') {
+      return S.world.map((g) => `<h3 class="st-group">${g.group}</h3><dl class="help-dl">${g.items.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`).join('');
+    }
+    if (tab === 'notes') {
+      const found = S.notes.filter((n) => E.storyOpen(n, marks)).length;
+      return `<p class="st-count"><b>${found} of ${S.notes.length}</b> found. You write a note when you first meet something in the Reach.</p>` + S.notes.map((n) => (E.storyOpen(n, marks)
+        ? `<section class="st-note">${n.art ? `<img src="img/${n.art}.webp" alt="">` : ''}<div><h3>${n.title}${pill(n)}</h3><p>${n.text}</p></div></section>`
+        : locked('Not found yet.', n))).join('');
+    }
+    return S.chapters.map((ch, i) => {
+      if (!E.storyOpen(ch, marks)) return locked(`Chapter ${i + 1}: ${ch.title}.`, ch);
+      const paras = ch.opening ? S.opening.map((b) => b.text) : ch.text;
+      return `<section class="st-ch"><h3><small>Chapter ${i + 1}</small>${ch.title}${pill(ch)}</h3>${paras.map((t) => `<p>${t}</p>`).join('')}${ch.opening ? '<button class="btn small" data-act="opening">Play the opening again</button>' : ''}</section>`;
+    }).join('');
+  }
+  function storyHTML(tab) {
+    const fresh = ui.storyFresh || [];
+    const tabs = STORY_TABS.map(([id, name]) => {
+      const n = fresh.filter((f) => storyTabOf(f) === id).length;
+      return `<button class="tab${id === tab ? ' on' : ''}" data-act="storytab" data-tab="${id}" aria-pressed="${id === tab}">${name}${n ? ` <span class="new-pill">${n}</span>` : ''}</button>`;
+    }).join('');
+    return `<div class="story"><div class="tabs" role="group" aria-label="Sections">${tabs}</div><div class="help-sec">${storySection(tab)}</div></div>`;
+  }
+  function showStory(tab) {
+    const unread = storyUnread().map((en) => en.id);
+    if (unread.length || !ui.storyFresh) ui.storyFresh = unread;
+    if (unread.length) { story.read.push(...unread); saveStory(); }
+    ui.storyTab = tab || (unread.length ? storyTabOf(unread[0]) : ui.storyTab) || 'story';
+    const pill = $('[data-act="story"] .new-pill', screenEl);
+    if (pill) pill.remove();
+    openOverlay(modal('Story so far', storyHTML(ui.storyTab), '<button class="btn primary" data-act="close" autofocus>Close</button>', 'help-modal'), { onClose: () => { ui.storyFresh = null; } });
+  }
+
+  /* The opening: four pictures with a few lines each. It plays once, before the first descent; Story so far replays it. */
+  function showOpening(i, done, replay) {
+    const beats = BL.STORY.opening, b = beats[i], last = i === beats.length - 1;
+    if (i === 0) {
+      ui.opening = { done: done || null, replay: !!replay };
+      beats.forEach((x) => { new Image().src = `img/${x.art}.webp`; });
+    }
+    openOverlay(`<div class="opening" role="dialog" aria-modal="true" aria-label="The story, part ${i + 1} of ${beats.length}">
+      <div class="op-art" style="background-image:url(img/${b.art}.webp);--pos:${b.pos};--wpos:${b.wide || b.pos};--wz:${b.zoom || 1}"></div>
+      ${b.fig ? `<img class="op-fig" src="img/${b.fig}.webp" alt="">` : ''}
+      <div class="op-inner"><p class="op-text">${b.text}</p>
+        <div class="op-foot"><span class="op-dots" aria-hidden="true">${beats.map((x, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</span>
+          ${last ? '' : '<button class="btn ghost" data-act="opskip">Skip</button>'}
+          <button class="btn primary" data-act="opnext" data-i="${i}" autofocus>${!last ? 'Next' : ui.opening.replay ? 'Back to the story' : 'Go down'}</button></div>
+      </div></div>`, { locked: true });
+    if (b.sfx) sfx(b.sfx);
+  }
+  function endOpening() {
+    const o = ui.opening || {};
+    ui.opening = null;
+    if (!story.opening) { story.opening = true; saveStory(); }
+    closeOverlay(true);
+    if (o.done) o.done();
   }
 
   /* What's new: marked New for a returning player until they open it. A first visit has nothing new to see. */
@@ -863,7 +954,7 @@
     openOverlay(modal('Choose your depth', body, null, 'narrow'));
   }
 
-  /* ----- Workshop: kit bought with Salvage, chosen before a dive ----- */
+  /* ----- Workshop: kit bought with Salvage, chosen before a descent ----- */
   const levelName = (lv) => { const n = E.LEVELS[lv].name; return n === 'Shallows' ? 'the Shallows' : n.replace(/^The /, 'the '); };
   const gearArt = (g) => `<span class="medal gear"><img src="img/icons/${g.art}.webp" alt=""></span>`;
   const workshopOpen = () => meta.earned > 0 || meta.owned.length > 0;
@@ -882,12 +973,12 @@
       return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small>${foot}</div>`;
     };
     const groups = BL.KIT_PLACES.map((pl) => `<h3 class="ws-place">${pl.name} <small>${pl.desc}</small></h3><div class="shop-row">${kitIn(pl.id).filter((id) => !BL.KIT[id].starter).map(tile).join('')}</div>`).join('');
-    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. You wear one piece in each place, and choose before each dive.</p>
+    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. You wear one piece in each place, and choose before each descent.</p>
       <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${groups}`;
     openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
 
-  /* Before a dive: choose what to wear, one piece in each place. Skipped while nothing is owned. */
+  /* Before a descent: choose what to wear, one piece in each place. Skipped while nothing is owned. */
   function prepareDive(level) {
     if (!meta.owned.length) return startNewRun(level, meta.kit);
     showKit(level);
@@ -904,9 +995,9 @@
       }).join('');
       return `<h3 class="ws-place">${pl.name}</h3><div class="shop-row">${tiles}</div>`;
     }).join('');
-    const body = `<p class="ws-lead">One piece in each place. Your choice is remembered. Keepsakes: the water in ${levelName(level)} holds <b>${E.hold(level)} Charge</b>.</p>${rows}`;
+    const body = `<p class="ws-lead">One piece in each place. Your choice is remembered. Keepsakes: the aether in ${levelName(level)} holds <b>${E.hold(level)} Roil</b>.</p>${rows}`;
     openOverlay(modal(`${MT.item} for ${levelName(level)}`, body,
-      `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" data-lv="${level}" autofocus>Dive</button>`, 'workshop-modal'));
+      `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" data-lv="${level}" autofocus>Set out</button>`, 'workshop-modal'));
   }
 
   /* Achievements reached in this run unlock kit at once, so they're kept even if the run is abandoned. */
@@ -929,10 +1020,11 @@
     sfx('bell');
   }
 
-  /* New Descent: the first time, offer the guided fight first. */
+  /* New Descent: the first time, the opening plays, then the guided fight is offered. */
   function beginNewRun() {
+    if (!story.opening) return showOpening(0, beginNewRun);
     if (!Teach.status()) {
-      openOverlay(modal('First dive?', '<p class="lead-sm">A short guided fight teaches the basics: health, Ward, Light, and the Tide. About 2 minutes.</p>',
+      openOverlay(modal('First descent?', '<p class="lead-sm">A short guided fight teaches the basics: health, Ward, Light, and the Swell. About 2 minutes.</p>',
         '<button class="btn" data-act="tutorialskip">Skip, start the run</button><button class="btn primary" data-act="tutorial" autofocus>Play the tutorial</button>', 'narrow'));
       return;
     }
@@ -1198,7 +1290,7 @@
       if (preview != null && i === preview && preview !== c.tide) cls.push('preview');
       segs += `<div class="${cls.join(' ')}">${i}</div>`;
     }
-    // what the selected card's Crests or Low Water would really do, chain bonuses included
+    // what the selected card's Crests or Strand would really do, chain bonuses included
     let hint = '';
     if (selCard && (preview === 6 || preview === 0)) {
       const al = E.alive(c);
@@ -1213,11 +1305,11 @@
         const parts = [`+${p.lows} Light`];
         if (p.stripped) parts.unshift('Enemy Ward gone');
         if (E.has(run, 'kelpbracelet')) parts.push(`+${8 * p.lows} Ward`);
-        hint = `<div class="tb-hint">Low Water${p.lows > 1 ? ' x' + p.lows : ''}! ${parts.join(', ')}</div>`;
+        hint = `<div class="tb-hint">Strand${p.lows > 1 ? ' x' + p.lows : ''}! ${parts.join(', ')}</div>`;
       }
     }
-    tb.setAttribute('aria-label', `Tide ${c.tide} of 6`);
-    tb.innerHTML = `<span class="tb-label low" data-tip="kw:Low Water">Low<span class="long"> Water</span></span>
+    tb.setAttribute('aria-label', `Swell ${c.tide} of 6`);
+    tb.innerHTML = `<span class="tb-label low" data-tip="kw:Strand">Strand</span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
       <span class="tb-label crest" data-tip="kw:Crest">Crest</span>`;
   }
@@ -1284,7 +1376,7 @@
       else if (p.kills) b.push(`<span class="c-badge lethal">LETHAL${p.kills > 1 ? ' x' + p.kills : ''}</span>`);
       // the number is how many Crests this card makes, not where it falls in the turn's chain
       if (p.crests) b.push(`<span class="c-badge crest">CREST${p.crests > 1 ? ' x' + p.crests : ''}</span>`);
-      else if (p.lows) b.push('<span class="c-badge low">LOW WATER</span>');
+      else if (p.lows) b.push('<span class="c-badge low">STRAND</span>');
     }
     const d = BL.CARDS[card.id];
     if (c.echo > 0 && !d.givesEcho && d.type !== 'status' && d.type !== 'curse' && b.length < 2) b.push('<span class="c-badge echo">ECHO</span>');
@@ -1432,7 +1524,7 @@
     // keep inside the screen vertically
     const gr = g.getBoundingClientRect();
     if (gr.bottom > innerHeight - 6) g.style.top = Math.max(56, innerHeight - 6 - gr.height) + 'px';
-    // the Tide bar's Crest / Low Water hint slides to the end of the bar this box is not covering
+    // the Swell bar's Crest / Strand hint slides to the end of the bar this box is not covering
     const hint = $('#tidebar .tb-hint');
     if (hint) {
       const a = hint.getBoundingClientRect(), b = g.getBoundingClientRect();
@@ -1533,7 +1625,7 @@
     ui.sel = null; ui.target = null; ui.hover = null;
     renderGlossary();
     renderHandHint();
-    // drop the selected card's Crest / Low Water preview; the Tide itself updates after the wave plays out
+    // drop the selected card's Crest / Strand preview; the Swell itself updates after the wave plays out
     $$('#tidebar .tb-hint', screenEl).forEach((x) => x.remove());
     $$('#tidebar .tb-seg.preview', screenEl).forEach((x) => x.classList.remove('preview'));
     if (el) flyTo(el, targetEl || $('#field'), 0.45, true);
@@ -1698,7 +1790,7 @@
     fxLayer.appendChild(d);
     setTimeout(() => d.remove(), 350);
   }
-  /* The chain bonus, shown inside the Crest / Low Water text the moment it is earned (paid after the fight). */
+  /* The chain bonus, shown inside the Crest / Strand text the moment it is earned (paid after the fight). */
   function chainRibbon(name, pearls) {
     return `<div class="chain-ribbon"><b>&#9733; ${name}</b><em>${ICON.pearl}+${pearls} Pearls</em></div>`;
   }
@@ -1708,7 +1800,7 @@
     $$('.banner', f).forEach((b) => b.remove());
     const b = document.createElement('div');
     b.className = 'banner ' + (cls || '');
-    // a Crest or Low Water is still on screen (Moon Pull at the start of a turn, a phase change mid-wave): sit below it
+    // a Crest or Strand is still on screen (Moon Pull at the start of a turn, a phase change mid-wave): sit below it
     if ($('.crest-text', f)) b.classList.add('stacked');
     b.textContent = text;
     f.appendChild(b);
@@ -1815,7 +1907,7 @@
             const what = [stripped.length ? 'Enemy Ward gone' : '', f.light ? `+${f.light} Light` : ''].filter(Boolean).join(' · ');
             const t = document.createElement('div');
             t.className = 'crest-text low' + (f.ebb ? ' fury' : '');
-            t.innerHTML = `<span>LOW WATER${(f.chain || 1) > 1 ? ' <b>x' + f.chain + '</b>' : ''}</span>${what ? `<small>${what}</small>` : ''}${f.ebb ? chainRibbon('Deep Ebb', f.ebb) : ''}`;
+            t.innerHTML = `<span>STRAND${(f.chain || 1) > 1 ? ' <b>x' + f.chain + '</b>' : ''}</span>${what ? `<small>${what}</small>` : ''}${f.ebb ? chainRibbon('High and Dry', f.ebb) : ''}`;
             field.appendChild(t);
             if (f.ebb) anim(field, 'fury-flash', 900);
             setTimeout(() => { t.remove(); field.classList.remove('drain'); }, f.ebb ? 2100 : 1500);
@@ -2039,7 +2131,7 @@
 
   /* ----- Reward ----- */
   /* Keepsake tiles to pick from. Once one is taken they stay where they are: the pick lit, the rest dimmed. */
-  /* What carrying one more keepsake would do to your Charge: "Then 34/30, 1 Seep". */
+  /* What carrying one more keepsake would do to your Roil: "Then 34/30, 1 Seep". */
   function chargeAfter(id) {
     const ch = E.charge(run, id), h = E.hold(run.level), s0 = E.seepCount(run), s1 = E.seepCount(run, id);
     return `<span class="k-after${s1 > s0 ? ' over' : ''}">Then ${ch}/${h}${s1 ? `, ${s1} Seep` : ''}</span>`;
@@ -2047,9 +2139,9 @@
   function ksTiles(ids, taken, act, left) {
     return ids.map((id) => {
       const K = BL.KEEPSAKES[id];
-      const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Charge ${K.charge}</span><small>${K.desc}</small>`;
+      const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>`;
       if (taken || left) return `<div class="shop-tile ${id === taken ? 'chosen' : 'dim'}"${id === taken ? ' aria-label="Taken: ' + K.name + '"' : ''}>${art}</div>`;
-      return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="${act}" data-k="${id}" aria-label="${K.name}, Charge ${K.charge}">${art}${chargeAfter(id)}</div>`;
+      return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="${act}" data-k="${id}" aria-label="${K.name}, Roil ${K.charge}">${art}${chargeAfter(id)}</div>`;
     }).join('');
   }
   const leaveKsBtn = () => `<button class="btn ghost small leave-ks" data-act="leaveks">Leave them (+${E.DECLINE_SCORE.keepsake} score)</button>`;
@@ -2125,7 +2217,7 @@
         ${staticCard(pseudo(it.id), 'choice', it.sold ? '' : `tabindex="0" role="button" data-act="buy" data-kind="cards" data-i="${i}"`)}
         <div>${priceTag(it.base)} ${it.sale ? '<span class="sale-tag">SALE</span>' : ''}</div></div>`).join('');
     const tile = (kind, it, i, def) => `<div class="shop-tile${it.sold ? ' sold' : ''}" tabindex="0" role="button" data-act="buy" data-kind="${kind}" data-i="${i}" aria-label="Buy ${def.name}">
-        <span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><b>${def.name}</b>${kind === 'keepsakes' ? `<span class="k-charge">Charge ${def.charge}</span>` : ''}<small>${def.desc}</small>${it.sold ? '<span class="muted">Sold</span>' : priceTag(it.base)}${kind === 'keepsakes' && !it.sold ? chargeAfter(it.id) : ''}</div>`;
+        <span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><b>${def.name}</b>${kind === 'keepsakes' ? `<span class="k-charge">Roil ${def.charge}</span>` : ''}<small>${def.desc}</small>${it.sold ? '<span class="muted">Sold</span>' : priceTag(it.base)}${kind === 'keepsakes' && !it.sold ? chargeAfter(it.id) : ''}</div>`;
     const ks = s.keepsakes.map((it, i) => tile('keepsakes', it, i, BL.KEEPSAKES[it.id])).join('');
     const ts = s.tonics.map((it, i) => tile('tonics', it, i, BL.TONICS[it.id])).join('');
     const rp = E.removePrice(run);
@@ -2254,27 +2346,29 @@
         const ml = getNum(LEVEL_KEY);
         if ((run.level || 0) >= ml && ml < E.LEVELS.length - 1) { setNum(LEVEL_KEY, ml + 1); fin.unlocked = E.LEVELS[ml + 1].name; }
       }
+      fin.story = noteStory().map((en) => en.title);
       run.final = fin;
     }
     const fin = run.final;
     const stats = [
-      ['Depth reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights / Dreads won', `${st.fights} / ${st.elites}`], ['Rewards declined', st.declined ? `${st.declined} (+${E.declinePoints(st)})` : 0], ['Biggest Crest chain', st.maxChain || 0],
-      ['Damage dealt', st.dmgDealt], ['Crests / Low Waters', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
+      ['Landing reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights / Dreads won', `${st.fights} / ${st.elites}`], ['Rewards declined', st.declined ? `${st.declined} (+${E.declinePoints(st)})` : 0], ['Biggest Crest chain', st.maxChain || 0],
+      ['Damage dealt', st.dmgDealt], ['Crests / Strands', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score or depth unlock</small>' : ''}</div>
       ${fin.unlocked ? `<div class="unlock-box">New depth unlocked: <b>${fin.unlocked}</b>. Choose it when you start your next descent.</div>` : ''}
       ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b> for the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
+      ${fin.story && fin.story.length ? `<button class="unlock-box story-new" data-act="story">New in Story so far: ${fin.story.map((t) => `<b>${t}</b>`).join(', ')}. <u>Read it</u></button>` : ''}
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? 'The Lantern Heart rises' : 'The tide takes you';
     const text = win
-      ? 'The Bellwether cracks and falls silent. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up through the dark water, and by dawn the great light of Saltmere is turning again.'
-      : 'The cold closes over your lantern. Somewhere above, the lighthouse stays dark a little longer. But keepers are stubborn, and the sea gives back what it takes, eventually.';
+      ? 'The Bellwether cracks and falls silent, and the sea it held lets go. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up the dripping stairs, and by dawn the great light of Saltmere is turning again.'
+      : 'The cold water closes over your lantern, and you go under. The sea carries you back to shore, alive. The lighthouse is still dark, and the water has risen a little higher toward the town.';
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
     screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : 'bg_boss'}.webp)"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
       ${scoreHTML}
       <div class="stats">${stats}</div>
-      <div class="row-buttons"><button class="btn primary" data-act="newrun" autofocus>${win ? 'Dive again' : 'Try again'}</button><button class="btn" data-act="totitle">Title screen</button></div>
+      <div class="row-buttons"><button class="btn primary" data-act="newrun" autofocus>${win ? 'Go down again' : 'Try again'}</button><button class="btn" data-act="totitle">Title screen</button></div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
@@ -2353,6 +2447,11 @@
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
       case 'changelog': showChangelog(); break;
+      case 'story': showStory(); break;
+      case 'storytab': ui.storyTab = t.dataset.tab; $('.story', overlayEl).outerHTML = storyHTML(ui.storyTab); $('.modal-body', overlayEl).scrollTop = 0; { const b = $(`.tab[data-tab="${ui.storyTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
+      case 'opening': closeOverlay(true); showOpening(0, () => showStory('story'), true); break;
+      case 'opnext': if (+t.dataset.i + 1 < BL.STORY.opening.length) { sfx('select'); showOpening(+t.dataset.i + 1); } else endOpening(); break;
+      case 'opskip': endOpening(); break;
       case 'helptab': ui.helpTab = t.dataset.tab; $('.help', overlayEl).outerHTML = helpHTML(ui.helpTab); { const b = $(`.tab[data-tab="${ui.helpTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'menu': showMenu(); break;
       case 'togglesound': prefs.sound = !prefs.sound; savePrefs(); showMenu(); break;
@@ -2488,7 +2587,7 @@
         let left = `<p class="buy-left">You have ${run.pearls} Pearls; ${run.pearls - p} left after this.</p>`;
         if (kind === 'keepsakes') {
           const ch = E.charge(run, it.id), h = E.hold(run.level), sp = E.seepCount(run, it.id);
-          left += `<p class="buy-left">Charge ${def.charge}: you'd carry ${ch} of your Hold of ${h}${sp ? `, so <b>${sp} Seep</b> would join each fight` : ''}.</p>`;
+          left += `<p class="buy-left">Roil ${def.charge}: you'd carry ${ch} of your Hold of ${h}${sp ? `, so <b>${sp} Seep</b> would join each fight` : ''}.</p>`;
         }
         openOverlay(modal(`Buy ${def.name} for ${p} Pearls?`, what + left,
           `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="buyconfirm" data-kind="${kind}" data-i="${i}" autofocus>Buy</button>`, 'narrow'));
@@ -2687,5 +2786,6 @@
   // exposed for debugging and the UI tests
   window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; }, get meta() { return meta; },
     // for js/debug.js
-    save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat, setMaxLevel: (n) => setNum(LEVEL_KEY, n), get maxLevel() { return getNum(LEVEL_KEY); } };
+    save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat, setMaxLevel: (n) => setNum(LEVEL_KEY, n), get maxLevel() { return getNum(LEVEL_KEY); },
+    story, saveStory, showStory, showOpening };
 })();

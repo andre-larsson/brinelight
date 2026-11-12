@@ -55,7 +55,7 @@ test('the keeper starts with 70 HP, 3 Light and the 10-card starting deck', () =
 
 /* ---------- Light ---------- */
 test('you get 3 Light each turn, and each card costs the Light in its corner', () => {
-  const { run, c } = fight(['kelp'], { hand: ['jab', 'brace', 'depthcharge', 'riptide'], tide: 6 - 1 }); // Ebb 3 + 1 stays above Low Water
+  const { run, c } = fight(['kelp'], { hand: ['jab', 'brace', 'depthcharge', 'riptide'], tide: 6 - 1 }); // Ebb 3 + 1 stays above a Strand
   tough(c);
   assert.equal(c.light, 3);
   assert.ok(play(run, 'jab'));
@@ -197,8 +197,8 @@ test('an intent that guards shows the Ward the enemy gains when it acts', () => 
   assert.ok(guarded > 10, 'enough guarding moves were checked');
 });
 
-/* ---------- The Tide ---------- */
-test('the Tide starts every fight at 3; Surge raises it and Ebb lowers it', () => {
+/* ---------- The Swell (tide in the code) ---------- */
+test('the Swell starts every fight at 3; Surge raises it and Ebb lowers it', () => {
   const { run, c } = fight(['kelp'], { hand: ['swell', 'slack'] });
   tough(c);
   assert.equal(c.tide, 3);
@@ -208,7 +208,7 @@ test('the Tide starts every fight at 3; Surge raises it and Ebb lowers it', () =
   assert.equal(c.tide, 3);
 });
 
-test('at 6 the wave Crests: 6 damage to every enemy, then the Tide resets to 3', () => {
+test('at 6 the wave Crests: 6 damage to every enemy, then the Swell resets to 3', () => {
   const { run, c } = fight(['kelp', 'crab', 'mite'], { hand: ['swell'], tide: 4, keepsakes: [] });
   tough(c);
   const target = c.enemies[0];
@@ -218,7 +218,7 @@ test('at 6 the wave Crests: 6 damage to every enemy, then the Tide resets to 3',
   assert.deepEqual(c.enemies.map((e) => 500 - e.hp), [5 + 6, 6, 6]);
 });
 
-test('at 0 you hit Low Water: enemies lose all their Ward and you gain 1 Light, then the Tide resets to 3', () => {
+test('at 0 you Strand the enemies: they lose all their Ward and you gain 1 Light, then the Swell resets to 3', () => {
   const { run, c } = fight(['kelp', 'crab'], { hand: ['slack'], tide: 2, keepsakes: [] });
   c.enemies[0].ward = 9;
   c.enemies[1].ward = 4;
@@ -226,11 +226,11 @@ test('at 0 you hit Low Water: enemies lose all their Ward and you gain 1 Light, 
   assert.equal(c.tide, 3);
   assert.equal(c.turnLows, 1);
   assert.deepEqual(c.enemies.map((e) => e.ward), [0, 0], 'stranded: every enemy loses its Ward');
-  assert.equal(c.light, 3 - 1 + 1, 'Slack Water cost 1, Low Water gave 1 back');
-  assert.equal(c.player.ward, 5, 'only the card\'s own Ward: Low Water gives none');
+  assert.equal(c.light, 3 - 1 + 1, 'Slack Water cost 1, the Strand gave 1 back');
+  assert.equal(c.player.ward, 5, 'only the card\'s own Ward: a Strand gives none');
 });
 
-test('Low Water strips enemy Ward before its own damage lands (Drowned Anchor, Abyssal Pull)', () => {
+test('a Strand strips enemy Ward before its own damage lands (Drowned Anchor, Abyssal Pull)', () => {
   const { run, c } = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: ['anchor'] });
   tough(c);
   c.enemies[0].ward = 9;
@@ -238,7 +238,7 @@ test('Low Water strips enemy Ward before its own damage lands (Drowned Anchor, A
   assert.equal(500 - c.enemies[0].hp, 4, 'the Anchor\'s 4 damage is not blocked');
 });
 
-test('extra Surge carries over: Surge 6 from Tide 3 Crests twice', () => {
+test('extra Surge carries over: Surge 6 from Swell 3 Crests twice', () => {
   const { run, c } = fight(['kelp', 'crab'], { hand: ['stormsurge'], keepsakes: [] });
   tough(c);
   play(run, 'stormsurge');
@@ -247,14 +247,14 @@ test('extra Surge carries over: Surge 6 from Tide 3 Crests twice', () => {
   assert.deepEqual(c.enemies.map((e) => 500 - e.hp), [6 + 9, 6 + 9]);
 });
 
-test('extra Ebb carries over too: Ebb 2 from Tide 1 reaches Low Water and keeps falling from 3', () => {
+test('extra Ebb carries over too: Ebb 2 from Swell 1 Strands and keeps falling from 3', () => {
   const { run, c } = fight(['kelp'], { hand: ['slack'], tide: 1, keepsakes: [] });
   play(run, 'slack');
   assert.equal(c.turnLows, 1);
   assert.equal(c.tide, 2);
 });
 
-test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12); every Low Water gives 1 Light', () => {
+test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12); every Strand gives 1 Light', () => {
   const { run, c } = fight(['kelp'], { hand: ['stormsurge', 'tidereading'], keepsakes: [] });
   tough(c);
   const e = c.enemies[0];
@@ -288,7 +288,7 @@ test('chains start over each turn', () => {
   assert.equal(hp - e.hp, 6);
 });
 
-test('the Brass Tide-Bell (the starting bell) draws a card whenever you Crest or hit Low Water', () => {
+test('the Brass Tide-Bell (the starting bell) draws a card whenever you Crest or Strand', () => {
   const { run, c } = fight(['kelp'], { hand: ['swell', 'slack'] });
   tough(c);
   c.tide = 4;
@@ -300,7 +300,7 @@ test('the Brass Tide-Bell (the starting bell) draws a card whenever you Crest or
   assert.equal(c.hand.length, n - 2 + 2);
 });
 
-test('cards that scale with the Tide: Undercurrent, Tsunami, Lighthouse Beam, Toppled Tower', () => {
+test('cards that scale with the Swell: Undercurrent, Tsunami, Lighthouse Beam, Toppled Tower', () => {
   let f = fight(['kelp'], { hand: ['undercurrent'], tide: 5 });
   tough(f.c);
   play(f.run, 'undercurrent', f.c.enemies[0]);
@@ -310,7 +310,7 @@ test('cards that scale with the Tide: Undercurrent, Tsunami, Lighthouse Beam, To
   tough(f.c);
   play(f.run, 'tsunami');
   assert.deepEqual(f.c.enemies.map((e) => 500 - e.hp), [12, 12]);
-  assert.equal(f.c.turnLows, 1, 'Tsunami drains to Low Water');
+  assert.equal(f.c.turnLows, 1, 'Tsunami ends in a Strand');
   assert.equal(f.c.light, 3 - 2 + 1);
 
   f = fight(['kelp'], { hand: ['beam'], tide: 4 });
@@ -507,7 +507,7 @@ test('the Bellwether calls a shoal of Bell Minnows at half health, and the shoal
   assert.equal(E.alive(c).length, 0);
 });
 
-test('Hollow Siren: the lullaby calms your Tide back to 3', () => {
+test('Hollow Siren: the lullaby flattens your Swell back to 3', () => {
   const { run, c } = fight(['siren'], { kind: 'elite' });
   c.enemies[0].intent = 'lullaby';
   c.tide = 5;
@@ -538,7 +538,7 @@ test('after a fight: Pearls, an optional tonic and a choice of 3 cards you can s
   assert.equal(run.deck.length, n, 'skipping adds nothing');
 });
 
-test('Deep Ebb: 2 or more Low Waters in one turn pays bonus Pearls like Tidal Fury (6 per Low Water in the chain)', () => {
+test('High and Dry: 2 or more Strands in one turn pays bonus Pearls like Tidal Fury (6 per Strand in the chain)', () => {
   const { run, c } = fight(['kelp'], { hand: ['bilgepump', 'bilgepump'], tide: 2, keepsakes: [] });
   play(run, 'bilgepump');
   c.tide = 2;
@@ -546,8 +546,8 @@ test('Deep Ebb: 2 or more Low Waters in one turn pays bonus Pearls like Tidal Fu
   c.enemies[0].dead = true;
   c.won = true;
   E.finishCombat(run);
-  const b = run.rewards.bonuses.find((x) => x.name === 'Deep Ebb');
-  assert.ok(b, 'Deep Ebb is paid');
+  const b = run.rewards.bonuses.find((x) => x.name === 'High and Dry');
+  assert.ok(b, 'High and Dry is paid');
   assert.equal(b.pearls, 12);
   const f = fight(['kelp'], { hand: ['stormsurge'], keepsakes: [] });
   f.c.enemies[0].hp = 30;
@@ -696,7 +696,7 @@ test('a keepsake pick is optional: take one, or leave them for +80 score; a pick
   assert.equal(f.run.stats.declined, d0);
 });
 
-test('Kelp Bracelet: Low Water gives 8 Ward. Tidal Memory: each Crest gives 1 Light. Spring Tide: Low Water, then Crest', () => {
+test('Kelp Bracelet: a Strand gives 8 Ward. Tidal Memory: each Crest gives 1 Light. Spring Tide: Strand, then Crest', () => {
   let f = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: ['kelpbracelet'] });
   play(f.run, 'slack');
   assert.equal(f.c.player.ward, 5 + 8);
@@ -708,7 +708,7 @@ test('Kelp Bracelet: Low Water gives 8 Ward. Tidal Memory: each Crest gives 1 Li
   assert.equal(f.c.light, 3 + 1, 'Crest: +1');
   f.c.tide = 2;
   play(f.run, 'slack');
-  assert.equal(f.c.light, 3 + 1 - 1 + 1, 'Low Water: only its own +1');
+  assert.equal(f.c.light, 3 + 1 - 1 + 1, 'the Strand: only its own +1');
 
   f = fight(['kelp'], { hand: ['springtide'], keepsakes: [] });
   tough(f.c);
@@ -839,7 +839,7 @@ test('Wreck of the Gilded Gull: the dive pays 150 Pearls or costs 12 HP, about h
   assert.ok(!r.deck.some((c) => c.id === 'barnacles'), 'gone once removed');
 });
 
-test('the score counts Low Waters and the best Low Water chain the same as Crests', () => {
+test('the score counts Strands and the best Strand chain the same as Crests', () => {
   const run = E.newRun(1, 0);
   const s0 = E.score(run, false);
   run.stats.crests = 3; run.stats.maxChain = 2;
@@ -860,9 +860,27 @@ test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 
   assert.equal(cards.filter((c) => c.type === 'curse').length, 1);
   assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 13);
   assert.equal(Object.keys(BL.KEEPSAKES).length, 14);
-  Object.values(BL.KEEPSAKES).forEach((k) => assert.ok(k.charge > 0, k.name + ' has a Charge'));
+  Object.values(BL.KEEPSAKES).forEach((k) => assert.ok(k.charge > 0, k.name + ' has a Roil'));
   assert.equal(Object.keys(BL.TONICS).length, 7);
   assert.equal(BL.EVENTS.length, 7);
+});
+
+test('the fight words are Swell, Surge, Ebb, Crest and Strand, and a keepsake has Roil: no card, keepsake, kit, status or achievement text uses the old words', () => {
+  ['Swell', 'Surge', 'Ebb', 'Crest', 'Strand', 'Roil', 'Hold', 'Seep'].forEach((k) => assert.ok(BL.KEYWORDS[k], k + ' is in the glossary'));
+  ['Tide', 'Low Water', 'Charge'].forEach((k) => assert.ok(!BL.KEYWORDS[k], k + ' is gone from the glossary'));
+  const fmt = { d: (n) => n, tide: null, ward: null };
+  const texts = [].concat(
+    Object.values(BL.CARDS).map((c) => c.text(Object.assign({}, c.v), fmt)),
+    Object.values(BL.KEYWORDS),
+    Object.values(BL.STATUSES).map((s) => s.desc(1)),
+    Object.values(BL.KEEPSAKES).map((k) => k.desc),
+    Object.values(BL.KIT).map((k) => k.desc),
+    BL.KIT_PLACES.map((p) => p.desc),
+    Object.values(BL.TONICS).map((t) => t.desc),
+    Object.values(BL.ACHIEVEMENTS).map((a) => a.name + '. ' + a.desc),
+  );
+  // the Brass Tide-Bell keeps its name; a card name such as Spring Tide is not rules text
+  texts.forEach((t) => assert.ok(!/Low Water|\bCharge\b|\bTide\b(?!-Bell)/.test(t), 'an old word in: ' + t));
 });
 
 /* ---------- Determinism, save and continue ---------- */

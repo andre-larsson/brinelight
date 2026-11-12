@@ -84,15 +84,16 @@
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
   E.bell = (run) => (run.kit && run.kit.bell) || null;
 
-  /* ---------------- Charge, Hold and Seep ----------------
-     Every keepsake has a Charge. The water around you can hold so much (the Hold, more at deeper depths);
-     past it, every 5 Charge over (or part of 5) adds 1 Seep to the draw pile at the start of each fight. */
+  /* ---------------- Roil, Hold and Seep ----------------
+     Every keepsake has a Roil (`charge` in the code and in saves). The aether around you can hold so much
+     (the Hold, more at deeper depths) and stay Calm. Past it the aether is Roiled: every 5 Roil over (or
+     part of 5) adds 1 Seep to the draw pile at the start of each fight. */
   E.HOLD_BASE = 30;
   E.HOLD_STEP = 5; // more Hold for each deeper depth
-  E.SEEP_STEP = 5; // Charge over the Hold for each Seep
+  E.SEEP_STEP = 5; // Roil over the Hold for each Seep
   E.hold = (level) => E.HOLD_BASE + E.HOLD_STEP * (level || 0);
   E.chargeOf = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].charge) || 0;
-  /* The Charge you carry, optionally with one more keepsake (to show what taking it would do). */
+  /* The Roil you carry, optionally with one more keepsake (to show what taking it would do). */
   E.charge = (run, extra) => run.keepsakes.reduce((a, k) => a + E.chargeOf(k), 0) + (extra ? E.chargeOf(extra) : 0);
   E.seepFor = (charge, level) => { const over = charge - E.hold(level); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
   E.seepCount = (run, extra) => (run.tutorial ? 0 : E.seepFor(E.charge(run, extra), run.level));
@@ -294,7 +295,7 @@
     run.keepsakes.push(k);
     if (k === 'biscuit') { run.maxHp += 10; run.hp += 10; }
   };
-  /* Drop a keepsake for good, between fights, to bring your Charge down. Scallop Charm takes its 10 Max HP with it. */
+  /* Drop a keepsake for good, between fights, to bring your Roil down. Scallop Charm takes its 10 Max HP with it. */
   E.dropKeepsake = function (run, k) {
     const i = run.keepsakes.indexOf(k);
     if (i < 0 || run.screen === 'combat') return false;
@@ -516,7 +517,7 @@
     run.combat = c;
     run.screen = 'combat';
     const pile = run.deck.map((card) => ({ uid: card.uid, id: card.id, up: card.up }));
-    // Seep: Charge carried past the Hold, for this fight only (it never joins the deck)
+    // Seep: Roil carried past the Hold, for this fight only (it never joins the deck)
     const seep = E.seepCount(run);
     for (let i = 0; i < seep; i++) pile.push(E.newCard(run, 'seep'));
     if (seep) c.seep = seep;
@@ -646,13 +647,14 @@
     }
   }
 
-  /* The bell in your kit draws when you Crest or reach Low Water (kind: 'crest' or 'low'). */
+  /* The bell in your kit draws when you Crest or Strand (kind: 'crest' or 'low'; the code calls a Strand
+     a low or lowWater, and the Swell the tide). */
   E.bellDraw = function (bell, kind, chain) {
     switch (bell) {
       case 'tidebell': return 1;
       case 'floodbell': return kind === 'crest' ? 2 : 0;
       case 'ebbbell': return kind === 'low' ? 2 : 0;
-      case 'crackedbell': return chain >= 2 ? 2 : 0; // chain: Crests and Low Waters so far this turn
+      case 'crackedbell': return chain >= 2 ? 2 : 0; // chain: Crests and Strands so far this turn
       default: return 0;
     }
   };
@@ -680,7 +682,7 @@
     fx(c, { t: 'pearls', n });
   }
 
-  /* Fight-end bonus Pearls for chains: Tidal Fury (2+ Crests in a turn) and Deep Ebb (2+ Low Waters). */
+  /* Fight-end bonus Pearls for chains: Tidal Fury (2+ Crests in a turn) and High and Dry (2+ Strands). */
   E.chainBonus = (chain) => (chain >= 2 ? 6 * chain : 0);
   /* The bonus a new best chain earns, for the moment it happens (0 when it isn't a new best or nothing pays). */
   function newChainBonus(run, c, chain, best) {
@@ -706,7 +708,7 @@
     c.tide = TIDE_MID;
     onTideTurn(run, c, 'crest');
   }
-  /* Low Water: the sea pulls back and strands the enemies. They lose all their Ward, and you gain 1 Light. */
+  /* Strand: the water pulls back and strands the enemies. They lose all their Ward, and you gain 1 Light. */
   function lowWater(run, c) {
     if (c.won || c.lost) return;
     c.turnLows++;
@@ -894,7 +896,7 @@
   };
 
   /* What playing a card would do right now, worked out by playing it on a copy of the state.
-     The UI uses it for the CREST / LETHAL / VICTORY / LOW WATER badges. Pass `json` (the run
+     The UI uses it for the CREST / LETHAL / VICTORY / STRAND badges. Pass `json` (the run
      serialized with map/shop/event/rewards/treasure dropped) to reuse one copy for many previews. */
   E.previewJSON = (run) => JSON.stringify(Object.assign({}, run, { map: null, shop: null, event: null, rewards: null, treasure: null, log: [] }), (k, v) => (k === 'fx' ? [] : v));
   E.preview = function (run, uid, targetUid, json) {
@@ -911,7 +913,7 @@
       damage += Math.max(0, e.hp) - Math.max(0, e2.hp);
       if (e2.dead && !e.dead) kills++;
     });
-    // Ward the play's Low Waters would strip (after the card's own hit has worn some of it down)
+    // Ward the play's Strands would strip (after the card's own hit has worn some of it down)
     const stripped = (c2.fx || []).reduce((a, f) => a + (f.t === 'low' ? f.stripped.reduce((x, s) => x + s.n, 0) : 0), 0);
     return { crests: c2.turnCrests - c.turnCrests, lows: c2.turnLows - c.turnLows, chain: c2.turnCrests, kills, won: c2.won, damage, stripped };
   };
@@ -1105,8 +1107,8 @@
       info.kinds.push('debuff');
       info.parts.push(`Shuffle ${m.addCards.n} ${BL.CARDS[m.addCards.id].name} into your draw pile`);
     }
-    if (m.tide) { info.kinds.push('debuff'); info.parts.push(m.tide < 0 ? `Drag your Tide down by ${-m.tide}` : `Raise your Tide by ${m.tide}`); }
-    if (m.tideSet != null) { info.kinds.push('debuff'); info.parts.push(`Calm your Tide back to ${m.tideSet}`); }
+    if (m.tide) { info.kinds.push('debuff'); info.parts.push(m.tide < 0 ? `Drag your Swell down by ${-m.tide}` : `Raise your Swell by ${m.tide}`); }
+    if (m.tideSet != null) { info.kinds.push('debuff'); info.parts.push(`Flatten your Swell back to ${m.tideSet}`); }
     if (m.summon) { info.kinds.push('summon'); info.parts.push('Call for help'); }
     return info;
   };
@@ -1133,7 +1135,7 @@
     if (!c.flags.hpLost) bonuses.push({ name: 'Flawless', desc: 'Won without losing HP', pearls: elite ? 20 : 12 });
     if (c.turn <= (elite ? 4 : 3)) bonuses.push({ name: 'Swift', desc: `Won on turn ${c.turn}`, pearls: elite ? 12 : 8 });
     if (c.maxChain >= 2) bonuses.push({ name: 'Tidal Fury', desc: `${c.maxChain} Crests in a single turn`, pearls: E.chainBonus(c.maxChain) });
-    if ((c.maxLowChain || 0) >= 2) bonuses.push({ name: 'Deep Ebb', desc: `${c.maxLowChain} Low Waters in a single turn`, pearls: E.chainBonus(c.maxLowChain) });
+    if ((c.maxLowChain || 0) >= 2) bonuses.push({ name: 'High and Dry', desc: `${c.maxLowChain} Strands in a single turn`, pearls: E.chainBonus(c.maxLowChain) });
     bonuses.forEach((b) => { pearls += b.pearls; });
     run.stats.bonuses = (run.stats.bonuses || 0) + bonuses.length;
     run.pearls += pearls;
@@ -1280,6 +1282,30 @@
     meta.earned += n;
     return n;
   };
+
+  /* ---------------- Story so far ----------------
+     Marks are what the player has met. An entry in BL.STORY with `when` opens once its mark is earned.
+     E.storyMarks reads them off the run as it stands, so the UI calls it whenever the run changes. */
+  E.storyMarks = function (run) {
+    const m = [];
+    if (!run || run.tutorial) return m;
+    (run.seenEvents || []).forEach((id) => m.push('ev:' + id));
+    if (run.screen === 'shop') m.push('shop');
+    if (run.screen === 'rest') m.push('cove');
+    if (run.screen === 'treasure') m.push('wreck');
+    if (run.screen === 'defeat') m.push('fell');
+    if (run.screen === 'victory') m.push('won:' + (run.level || 0));
+    if (run.combat) {
+      if (run.combat.kind === 'boss') m.push('boss');
+      run.combat.enemies.forEach((e) => { if (m.indexOf('en:' + e.id) < 0) m.push('en:' + e.id); });
+    }
+    if (run.keepsakes.length) m.push('keepsake');
+    if (E.seepCount(run) > 0) m.push('roiled');
+    return m;
+  };
+  E.storyOpen = (entry, marks) => !entry.when || marks.indexOf(entry.when) >= 0;
+  /* every entry that can be locked: chapters, then notes */
+  E.storyEntries = () => BL.STORY.chapters.concat(BL.STORY.notes);
 
   BL.E = E;
 })();

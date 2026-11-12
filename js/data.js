@@ -7,7 +7,7 @@
    *  CARDS
    *  text(v, k): v = numbers (base or upgraded), k = formatter
    *    k.d(n)   -> attack damage as shown in combat (Might / Chilled / Soaked applied)
-   *    k.tide   -> current Tide in combat, or null outside combat
+   *    k.tide   -> current Swell in combat (the code calls it tide), or null outside combat
    *  play(A, v, target): A = combat API (see engine.js)
    * ------------------------------------------------------------------ */
   const CARDS = {};
@@ -103,14 +103,14 @@
     v: { base: 3, per: 2 }, up: { base: 4, per: 3 }, art: 'c_undercurrent',
     text: (v, k) => {
       const now = k.tide == null ? '' : ` <span class="calc">(${k.d(v.base + v.per * k.tide)})</span>`;
-      return `Deal ${v.base} damage, +${v.per} for each Tide.${now}`;
+      return `Deal ${v.base} damage, +${v.per} for each Swell.${now}`;
     },
     play: (A, v, t) => A.hit(t, v.base + v.per * A.tide()),
   });
   card('deepguard', {
     name: 'Deep Guard', type: 'skill', rarity: 'common', cost: 1, target: 'none',
     v: { ward: 6, bonus: 5 }, up: { ward: 8, bonus: 7 }, art: 'c_deepguard',
-    text: (v) => `Gain ${v.ward} Ward. If Tide is 2 or lower, gain ${v.bonus} more.`,
+    text: (v) => `Gain ${v.ward} Ward. If the Swell is 2 or lower, gain ${v.bonus} more.`,
     play: (A, v) => A.ward(v.ward + (A.tide() <= 2 ? v.bonus : 0)),
   });
   card('oarflurry', {
@@ -136,7 +136,7 @@
   card('ebbflow', {
     name: 'Ebb and Flow', type: 'skill', rarity: 'uncommon', cost: 0, target: 'none',
     v: { shift: 2, draw: 1 }, up: { shift: 3 }, art: 'c_ebbflow',
-    text: (v) => `If Tide is 3 or higher, Surge ${v.shift}. Otherwise, Ebb ${v.shift}. Draw ${v.draw} card.`,
+    text: (v) => `If the Swell is 3 or higher, Surge ${v.shift}. Otherwise, Ebb ${v.shift}. Draw ${v.draw} card.`,
     play: (A, v) => { if (A.tide() >= 3) A.surge(v.shift); else A.ebb(v.shift); A.draw(v.draw); },
   });
   card('moonpull', {
@@ -190,7 +190,7 @@
   card('abyssalpull', {
     name: 'Abyssal Pull', type: 'rite', rarity: 'uncommon', cost: 1, target: 'none',
     v: { n: 5 }, up: { n: 8 }, art: 'c_abyssalpull',
-    text: (v) => `Whenever you reach Low Water, deal ${v.n} damage to ALL enemies.`,
+    text: (v) => `Whenever you Strand, deal ${v.n} damage to ALL enemies.`,
     play: (A, v) => A.rite('r_abyss', v.n),
   });
   card('depthcharge', {
@@ -246,7 +246,7 @@
   card('beam', {
     name: 'Lighthouse Beam', type: 'rite', rarity: 'rare', cost: 2, target: 'none',
     v: { per: 3 }, up: { per: 4 }, art: 'c_beam',
-    text: (v) => `At the end of your turn, deal ${v.per} damage for each Tide to a random enemy.`,
+    text: (v) => `At the end of your turn, deal ${v.per} damage for each Swell to a random enemy.`,
     play: (A, v) => A.rite('r_beam', v.per),
   });
   card('tsunami', {
@@ -254,7 +254,7 @@
     v: { per: 3 }, up: { per: 4 }, art: 'c_tsunami',
     text: (v, k) => {
       const now = k.tide == null ? '' : ` <span class="calc">(${v.per * k.tide} each)</span>`;
-      return `Deal ${v.per} damage to ALL enemies for each Tide, then drain to Low Water.${now}`;
+      return `Deal ${v.per} damage to ALL enemies for each Swell, then Strand.${now}`;
     },
     play: (A, v) => { A.wave(v.per * A.tide()); A.drain(); },
   });
@@ -279,7 +279,7 @@
   card('springtide', {
     name: 'Spring Tide', type: 'skill', rarity: 'rare', cost: 1, target: 'none', sink: true,
     v: {}, up: { cost: 0 }, art: 'c_springtide',
-    text: () => `Reach Low Water, then Crest. Sink.`,
+    text: () => `Strand, then Crest. Sink.`,
     play: (A) => { A.lowWater(); A.crest(); },
   });
 
@@ -305,7 +305,7 @@
     v: {}, art: 'c_barnacles',
     text: () => `Unplayable. Stays in your deck until you remove it.`,
   });
-  /* Seep: Charge carried past your Hold condenses into seawater. Shuffled into the draw pile at the
+  /* Seep: Roil carried past your Hold leaves the aether Roiled, and it sheds seawater. Shuffled into the draw pile at the
      start of each fight (never into the deck), so it is gone after the fight. */
   card('seep', {
     name: 'Seep', type: 'status', rarity: 'special', cost: null, target: 'none', unplayable: true,
@@ -327,11 +327,11 @@
   BL.KEYWORDS = {
     Light: 'Spent to play cards. You refill to 3 Light at the start of each turn.',
     Ward: 'Blocks incoming damage. Ward washes away at the start of your next turn.',
-    Surge: 'Raise the Tide. At 6 you Crest; any extra keeps rising from 3, so a big Surge can Crest twice.',
-    Ebb: 'Lower the Tide. At 0 you reach Low Water; any extra keeps falling from 3.',
-    Tide: 'The sea level, from 0 to 6. It starts each fight at 3.',
-    Crest: 'The wave breaks: deal 6 damage to ALL enemies, +3 for every earlier Crest this turn. Then the Tide resets to 3.',
-    'Low Water': 'The sea pulls back: enemies lose all their Ward, and you gain 1 Light. Then the Tide resets to 3.',
+    Surge: 'Raise the Swell. At 6 you Crest; any extra keeps rising from 3, so a big Surge can Crest twice.',
+    Ebb: 'Lower the Swell. At 0 you Strand the enemies; any extra keeps falling from 3.',
+    Swell: 'The water around the enemies, from 0 to 6. It starts each fight at 3.',
+    Crest: 'The wave breaks: deal 6 damage to ALL enemies, +3 for every earlier Crest this turn. Then the Swell resets to 3.',
+    Strand: 'The water pulls back and strands the enemies: they lose all their Ward, and you gain 1 Light. Then the Swell resets to 3.',
     Sink: 'After you play it, this card is gone for the rest of the fight.',
     Float: 'Stays in your hand at the end of your turn.',
     Rite: 'Rites stay in effect for the rest of the fight once played.',
@@ -341,9 +341,9 @@
     Soaked: 'Takes 50% more damage from attacks and Crests. Wears off by 1 each turn.',
     Chilled: 'Deals 25% less attack damage. Wears off by 1 each turn.',
     Brine: 'Loses that much HP at the start of its turn, then Brine drops by 1.',
-    Charge: 'How much magic a keepsake gives off. Every keepsake you carry counts.',
-    Hold: 'How much Charge the water around you can hold. Deeper depths hold more.',
-    Seep: 'Charge you carry past your Hold condenses into Seep: an unplayable card shuffled into your draw pile at the start of each fight, 1 for every 5 Charge over (or part of 5). It is gone after the fight.',
+    Roil: 'How much a keepsake stirs the aether around it. Every keepsake you carry counts.',
+    Hold: 'How much Roil the aether around you holds while it stays Calm. Deeper depths hold more.',
+    Seep: 'Roil you carry past your Hold leaves the aether Roiled, and it sheds Seep: an unplayable card shuffled into your draw pile at the start of each fight, 1 for every 5 Roil over (or part of 5). It is gone after the fight.',
   };
 
   /* ------------------------------------------------------------------ *
@@ -359,8 +359,8 @@
     r_tidalmemory: { name: 'Tidal Memory', kind: 'rite', icon: 'shell', desc: (n) => `Whenever you Crest, gain ${n} Light.` },
     r_maelstrom: { name: 'Maelstrom', kind: 'rite', icon: 'vortex', desc: (n) => `Crests deal ${n + 1}x damage.` },
     r_spindrift: { name: 'Spindrift', kind: 'rite', icon: 'wave', desc: (n) => `Whenever you Surge, deal ${n} damage to a random enemy.` },
-    r_abyss: { name: 'Abyssal Pull', kind: 'rite', icon: 'anchor', desc: (n) => `Whenever you reach Low Water, deal ${n} damage to ALL enemies.` },
-    r_beam: { name: 'Lighthouse Beam', kind: 'rite', icon: 'beam', desc: (n) => `At the end of your turn, deal ${n} damage per Tide to a random enemy.` },
+    r_abyss: { name: 'Abyssal Pull', kind: 'rite', icon: 'anchor', desc: (n) => `Whenever you Strand, deal ${n} damage to ALL enemies.` },
+    r_beam: { name: 'Lighthouse Beam', kind: 'rite', icon: 'beam', desc: (n) => `At the end of your turn, deal ${n} damage per Swell to a random enemy.` },
     grief: { name: 'Twin Bond', kind: 'buff', icon: 'bond', desc: () => `When its twin dies, it gains 4 Might.` },
   };
 
@@ -554,15 +554,15 @@
   /* ------------------------------------------------------------------ *
    *  KEEPSAKES (relics)
    * ------------------------------------------------------------------ */
-  /* Every keepsake has a Charge. Carrying more Charge than your Hold adds Seep to each fight (see
-     E.seepCount). Charge is roughly what the keepsake is worth to the bot in win-rate points.
+  /* Every keepsake has a Roil (`charge` in the code). Carrying more Roil than your Hold adds Seep to each
+     fight (see E.seepCount). Roil is roughly what the keepsake is worth to the bot in win-rate points.
      The Brass Tide-Bell and the money keepsakes moved to the kit in v0.10.0 (BL.KIT). */
   BL.KEEPSAKES = {
     whaletooth: { name: 'Whale Tooth', art: 'k_whaletooth', charge: 19, desc: 'Start each fight with 1 Might.' },
     barnacleplate: { name: 'Barnacle Plate', art: 'k_barnacleplate', charge: 14, spines: 1, desc: 'Start each fight with Spines 1: every attack on you takes 1 damage back.' },
     tidewatch: { name: 'Tidewatch', art: 'k_tidewatch', charge: 12, desc: 'Your Crests deal 4 more damage.' },
-    moonshard: { name: 'Moon Shard', art: 'k_moonshard', charge: 8, desc: 'Start each fight at Tide 5.' },
-    kelpbracelet: { name: 'Kelp Bracelet', art: 'k_kelpbracelet', charge: 11, desc: 'Whenever you reach Low Water, gain 8 Ward.' },
+    moonshard: { name: 'Moon Shard', art: 'k_moonshard', charge: 8, desc: 'Start each fight at Swell 5.' },
+    kelpbracelet: { name: 'Kelp Bracelet', art: 'k_kelpbracelet', charge: 11, desc: 'Whenever you Strand, gain 8 Ward.' },
     gullfeather: { name: 'Gull Feather', art: 'k_gullfeather', charge: 8, desc: 'Draw 2 extra cards on your first turn of each fight.' },
     biscuit: { name: 'Scallop Charm', art: 'k_biscuit', charge: 12, desc: 'While you carry it, your Max HP is 10 higher. Heals 10 when you pick it up.' },
     stormbottle: { name: 'Storm Bottle', art: 'k_stormbottle', charge: 18, desc: 'Every 3rd turn of a fight, gain 1 extra Light.' },
@@ -571,7 +571,7 @@
     inksac: { name: "Angler's Lure", art: 'k_inksac', charge: 10, desc: 'The first time you lose HP in a fight, apply 2 Chilled to ALL enemies.' },
     saltedhook: { name: 'Salted Hook', art: 'k_saltedhook', charge: 7, desc: 'Whenever you apply Brine, apply 1 more.' },
     echoconch: { name: 'Conch of Echoes', art: 'k_echoconch', charge: 17, desc: 'The first card you play in each fight is played twice.' },
-    anchor: { name: 'Drowned Anchor', art: 'k_anchor', charge: 18, desc: 'Low Water also deals 4 damage to ALL enemies.' },
+    anchor: { name: 'Drowned Anchor', art: 'k_anchor', charge: 18, desc: 'A Strand also deals 4 damage to ALL enemies.' },
   };
   /* Keepsakes from before v0.10.0 that are kit now: a saved run carries them over as kit (E.migrateRun). */
   BL.RETIRED_KEEPSAKES = { tidebell: 'tidebell', pearlearring: 'pouch', doubloon: 'scales', pearlstrand: 'net', sparewick: 'wick' };
@@ -605,22 +605,22 @@
           act: (r, E) => { E.loseHp(r, 7); const n = E.upgradeRandom(r, 2); return { text: n ? `The water warms. ${n} of your cards feel sharper.` : 'The goddess has nothing left to teach you.' }; } },
         { label: 'Offer pearls', desc: 'Pay 35 Pearls. Remove a card from your deck.', cond: (r) => r.pearls >= 35 || 'Not enough Pearls',
           act: (r) => { r.pearls -= 35; return { text: 'The pearls sink into the stone, and the goddess waits for you to let something go.', next: { pick: 'remove' } }; } },
-        { label: 'Leave', desc: 'Swim on.', decline: true, act: () => ({ text: 'You leave the goddess to her waiting.' }) },
+        { label: 'Leave', desc: 'Walk on.', decline: true, act: () => ({ text: 'You leave the goddess to her waiting.' }) },
       ],
     },
     {
       id: 'wreck', title: 'Wreck of the Gilded Gull', art: 'ev_wreck',
-      text: "A merchant ship lies split on the seabed. The captain's cabin is sealed and something glints inside; the cargo hold gapes open.",
+      text: "A merchant ship lies split in a basin the tide has left. The captain's cabin is sealed and something glints inside. Crates lie spilled across the rock, and the hold below is still flooded.",
       options: [
         { label: "Pry open the captain's cabin", desc: 'Gain a random keepsake. Gain the curse Barnacle Growth: an unplayable card that stays in your deck until you remove it.',
           act: (r, E) => { const k = E.gainRandomKeepsake(r); E.addCard(r, 'barnacles'); return { text: k ? `You find the ${BL.KEEPSAKES[k].name}, but barnacles creep onto your hands as you leave.` : 'The cabin is empty, and barnacles creep onto your hands.' }; } },
         { label: 'Salvage the cargo', desc: 'Gain 45 Pearls.', act: (r) => { r.pearls += 45; return { text: 'Water-swollen crates, but a pouch of pearls is still dry inside one of them.' }; } },
         { label: 'Dive into the flooded hold', desc: 'A gamble. Half the time: 150 Pearls. Otherwise something in the dark bites for 12 HP.',
           act: (r, E) => {
-            if (E.makeR(r).chance(0.5)) { r.pearls += 150; return { text: 'Your lantern finds a strongbox wedged under the stairs. It is heavy with pearls. (+150 Pearls)' }; }
+            if (E.makeR(r).chance(0.5)) { r.pearls += 150; return { text: 'Your hands find a strongbox wedged under the stairs. It is heavy with pearls. (+150 Pearls)' }; }
             E.loseHp(r, 12); return { text: 'Something long and cold uncoils in the dark and bites before you can kick away. (-12 HP)' };
           } },
-        { label: 'Leave', desc: 'Let the dead keep their things.', decline: true, act: () => ({ text: 'You swim past the wreck.' }) },
+        { label: 'Leave', desc: 'Let the dead keep their things.', decline: true, act: () => ({ text: 'You walk on past the wreck.' }) },
       ],
     },
     {
@@ -648,10 +648,10 @@
     },
     {
       id: 'ghost', title: 'The Lost Lamplighter', art: 'ev_ghost',
-      text: 'A drowned lamplighter waits on a submerged stair, holding a lantern that has not burned in a hundred years.',
+      text: "A drowned lamplighter waits on a dripping stair, holding a keeper's lantern that has not burned in a hundred years.",
       options: [
         { label: 'Share your light', desc: 'Lose 6 HP. Choose 1 of 3 uncommon cards.',
-          act: (r, E) => { E.loseHp(r, 6); return { text: 'His lantern flickers to life. In gratitude he shows you an old trick.', next: { cards: E.randomCards(r, 'uncommon', 3) } }; } },
+          act: (r, E) => { E.loseHp(r, 6); return { text: "His lantern flickers to life. In gratitude he shows you an old keeper's trick.", next: { cards: E.randomCards(r, 'uncommon', 3) } }; } },
         { label: 'Ask for guidance', desc: 'Remove a card from your deck.', act: () => ({ text: '"Carry less," he says. "The deep is kind to the light."', next: { pick: 'remove' } }) },
         { label: 'Leave', desc: 'Leave him be.', decline: true, act: () => ({ text: 'He bows as you pass.' }) },
       ],
@@ -687,7 +687,7 @@
   /* Where kit goes. The Bell always holds a bell; the others can be empty. */
   BL.KIT_PLACES = [
     { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.' },
-    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you draw when you Crest or reach Low Water.' },
+    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you draw when you Crest or Strand.' },
     { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.' },
     { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.' },
     { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.' },
@@ -695,10 +695,10 @@
   BL.KIT = {
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
-    tidebell: { place: 'bell', name: 'Brass Tide-Bell', art: 'k_tidebell', price: 0, starter: true, desc: 'Whenever you Crest or reach Low Water, draw 1 card.' },
-    floodbell: { place: 'bell', name: 'Flood Bell', art: 'g_floodbell', price: 20, unlock: 'twocrests', desc: 'Whenever you Crest, draw 2 cards. Low Water draws nothing.' },
-    ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you reach Low Water, draw 2 cards. Crests draw nothing.' },
-    crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Low Water each turn draws nothing. Every one after it draws 2 cards.' },
+    tidebell: { place: 'bell', name: 'Brass Tide-Bell', art: 'k_tidebell', price: 0, starter: true, desc: 'Whenever you Crest or Strand, draw 1 card.' },
+    floodbell: { place: 'bell', name: 'Flood Bell', art: 'g_floodbell', price: 20, unlock: 'twocrests', desc: 'Whenever you Crest, draw 2 cards. A Strand draws nothing.' },
+    ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you Strand, draw 2 cards. Crests draw nothing.' },
+    crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Strand each turn draws nothing. Every one after it draws 2 cards.' },
     cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
     gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', price: 25, unlock: 'untouched', desc: 'Start each fight with 4 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
@@ -709,12 +709,118 @@
     net: { place: 'ditty', name: 'Gleaning Net', art: 'g_net', price: 10, desc: 'Gain 3 Pearls whenever you Crest.' },
     wick: { place: 'ditty', name: 'Spare Wick', art: 'g_wick', price: 12, desc: 'Resting heals 10 more HP.' },
   };
+  /* Story so far (title screen and menu): the opening, chapters, the world glossary and the keeper's notes.
+     `when` is a mark the player has to earn (E.storyMarks in js/engine.js); an entry without it is always open.
+     `lock` is what a locked entry shows. Art paths are under img/. An opening picture is placed by `pos` on tall screens,
+     and by `wide` and `zoom` on wide ones. WORLD.md has to agree with all of this. */
+  BL.STORY = {
+    title: 'An enchanted bell, sunk under the cliffs, has stolen the fire from your lighthouse, and it is pulling the sea up toward the town. You are the last keeper. Go down and take the fire back.',
+    opening: [
+      { art: 'bg/bg_title', pos: '22% top', wide: '22% top', zoom: 1.3,
+        text: 'You are Wren, the lighthouse keeper of Saltmere, a harbour town on a rocky coast. The lighthouse burns a magic fire called the Lantern Heart. While it burns, ships find their way past the rocks.' },
+      { art: 'bg/bg_title', pos: '72% bottom', wide: '70% bottom', zoom: 1.5,
+        text: 'In the sea-caves under the cliffs hangs an enchanted bell, the Bellwether. Keepers sank it there long ago to hold the sea back. Nobody has tended it for a hundred years.' },
+      { art: 'bg/bg_boss', pos: 'center', sfx: 'bell',
+        text: 'Tonight the bell rang by itself. Its magic pulled the Lantern Heart out of the lighthouse and down into the caves. Now the bell is flooding the caves and lifting the sea toward the town, a little higher with every tide.' },
+      { art: 'scenes/rest', pos: 'center', wide: 'left center', zoom: 1.6, fig: 'units/keeper',
+        text: 'Your lantern holds the last of that fire. Your hand-bell moves water the way the great bell does. Take both, and your harpoon. Go down through the caves, fight what lives there, and bring the Lantern Heart home.' },
+    ],
+    chapters: [
+      { id: 'night', title: 'The night the light went out', opening: true },
+      { id: 'fall', title: 'The sea gives you back', when: 'fell', lock: 'Fall in the Reach.', text: [
+        'The cold water closed over your lantern, and you went under. You woke on the shingle below the lighthouse, alive, with your harpoon beside you. Your lantern had burned down to an ember, but it was still alight.',
+        'The water the bell holds keeps everything it takes. The open sea does not. It carries the drowned back to shore, and it carried you. The keepsakes you found in the caves are gone: the bell called them back.',
+        'The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again.',
+      ] },
+      { id: 'home', title: 'The Heart comes home', when: 'won:0', lock: 'Clear the Shallows.', text: [
+        'On the last landing the Bellwether cracked and fell silent, and the water it was holding ran out of the caves. The Lantern Heart was still burning in the broken bronze. You carried it up the stairs, and by dawn the great light of Saltmere was turning again.',
+        'It did not last. Before the next tide a bell was ringing below again, from deeper down. The fire answered it and went back, and the caves filled behind you.',
+        'The keepers\' charts show stairs that go on below the Shallows, into a depth they called Dark Water.',
+      ] },
+      { id: 'sunk', title: 'Why the bell was sunk', when: 'won:1', lock: 'Clear Dark Water.', text: [
+        'Below Dark Water the stairs are older, and keepers cut them. The keepers made the Bellwether too. A hand-bell like yours moves the water in a pool. They cast a bell big enough to move the sea, and sank it under the cliffs to hold the water off their low stairs and their quay.',
+        'A bell that size has to be tended. Keepers walked down to it at the lowest tides of the year. The last one to go was a lamplighter, a hundred years ago. He drowned on the low stair, and nobody went down after him.',
+      ] },
+      { id: 'followed', title: 'Why the fire followed', when: 'won:2', lock: 'Clear Riptide.', text: [
+        'Every keeper\'s hand-bell is tuned to the Bellwether, and every keeper\'s lantern is lit from the Lantern Heart. The great bell leads and the small ones follow. That is what a bellwether is: the sheep that wears the bell, and the flock walks behind it.',
+        'Nobody rang it that night. The tide swings its clapper, and its ringing holds the tide, so it cannot stop by itself. For a hundred years nobody has gone down to still it, and it has rung a little louder every year.',
+        'When it rang loud enough, the Lantern Heart did what a keeper\'s light does. It answered the lead bell and went down.',
+      ] },
+      { id: 'belfry', title: 'Under the last stair', when: 'won:3', lock: 'Clear the Abyss.', text: [
+        'The Abyss is the last hall you can walk. Under it there is one more chamber, and its floor is below the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
+        'The Belfry is full of water and it does not drain. An open lantern cannot go there. On the wall of the hall above it hangs an old keeper\'s diving dress, with a sealed lamp on its helmet.',
+        'That is as far as the story goes for now.',
+      ] },
+    ],
+    world: [
+      { group: 'Places', items: [
+        ['Saltmere', 'A harbour town on a rocky headland. Its lighthouse warns ships off the rocks.'],
+        ['The lighthouse', 'It stands above the town, and you keep it. Its lamp burns the Lantern Heart.'],
+        ['The Drowned Reach', 'The sea-caves, stairs and rock terraces under the cliffs, below the lighthouse. The Bellwether keeps them flooded.'],
+        ['Depths', 'The Reach goes down in four depths: the Shallows, Dark Water, Riptide and the Abyss. Each is harder than the one above it.'],
+        ['Landings', 'The stops on the way down through a depth. The Bellwether waits on the last one.'],
+      ] },
+      { group: 'People', items: [
+        ['Wren', 'You. The last lighthouse keeper of Saltmere.'],
+        ['Keepers', 'The people who tend the light and the bell. A keeper carries a lantern lit from the Lantern Heart and a hand-bell tuned to the Bellwether.'],
+        ['Barnaby', 'A hermit crab who keeps a shop in his shell. He sells cards, keepsakes and tonics for pearls.'],
+      ] },
+      { group: 'Light and bell', items: [
+        ['The Lantern Heart', 'The magic fire that burns in the lighthouse lamp. Every keeper\'s lantern is lit from it.'],
+        ['Light', 'The fire in your lantern. You spend it to play cards, and it comes back at the start of each turn.'],
+        ['The Bellwether', 'An enchanted bronze bell. Its ringing holds seawater in place. Keepers sank it under the cliffs long ago to hold the sea back, and now it rings by itself.'],
+        ['Tide-bell', 'Your hand-bell. Ring it and the water near you moves. Keepers call it a tide-bell because it is tuned to the Bellwether, the bell that holds the tide.'],
+        ['The Swell', 'The water around the enemies in a fight. You stand on stone and they stand in the wash. Surge raises the water until a wave breaks on them: a Crest. Ebb pulls it away until they are left on bare rock: a Strand.'],
+      ] },
+      { group: 'Magic in the water', items: [
+        ['Brinelight', 'The glow in the water of the Reach. It is light from the Lantern Heart that has soaked into the seawater the bell holds.'],
+        ['Keepsakes', 'Lost things that have lain in brinelight until they took on a magic of their own. The deeper they lay, the stronger they are.'],
+        ['The aether', 'The unseen stuff that carries magic, the way air carries sound. Every keepsake stirs it. Roil is how much.'],
+        ['Calm and Roiled', 'The aether around you can take a certain amount of Roil: your Hold. Up to that it is Calm. Past it the aether is Roiled, and seawater comes out of it into your pack. That water is Seep.'],
+        ['Pearls', 'Money in the Reach. You find them after fights and in wrecks.'],
+        ['Tonics', 'Brews in small bottles. Each works once.'],
+      ] },
+    ],
+    notes: [
+      { id: 'barnaby', title: 'Barnaby', when: 'shop', lock: 'Found at a shop.', art: 'units/trader',
+        text: 'Barnaby is a hermit crab, and his shell is both his house and his shop: Barnaby\'s Drifting Emporium. He says everything in it came down with a wreck, and that it still works, mostly. He trades fairly and will not haggle. He also asks that you do not bite.' },
+      { id: 'cove', title: 'Sheltered Coves', when: 'cove', lock: 'Found at a Cove.', art: 'scenes/rest',
+        text: 'Here and there the caves have a dry hollow above the reach of the tide. Somebody has left a blanket, a kettle and a coil of rope in each one. The bell\'s water cannot reach you there, and a lantern burns steadily.' },
+      { id: 'chest', title: 'Sea chests', when: 'wreck', lock: 'Found at a Wreck.', art: 'scenes/treasure',
+        text: 'On an ordinary coast the sea breaks a wreck up and washes the pieces ashore. The water the bell holds keeps everything it takes. Chests lie where they sank, and what is inside has soaked in brinelight for years. That is why it glows.' },
+      { id: 'keepsake', title: 'How a keepsake is made', when: 'keepsake', lock: 'Carry a keepsake.',
+        text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not.' },
+      { id: 'seep', title: 'Seep', when: 'roiled', lock: 'Carry more Roil than your Hold.',
+        text: 'One keepsake stirs the aether a little. Many together stir it more than it can take, and seawater starts to bead on your gear and soak into your pack. Keepers call that Seep. Drop a keepsake, or go deeper: near the bell the aether holds more.' },
+      { id: 'kelp', title: 'The old coast', when: 'ev:ambush', lock: 'Found in the Fog.', art: 'scenes/ev_ambush',
+        text: 'Not everything in the Reach serves the bell. Crabs, eels, gulls and kelp lived on this coast long before it rang by itself. The flooding gave them more room, and they guard what they find in it.' },
+      { id: 'deckhand', title: 'Drowned Deckhands', when: 'en:sailor', lock: 'Found in a fight.', art: 'units/sailor',
+        text: 'The open sea carries the drowned back to shore. The water the bell holds does not. The crews of its wrecks are still down there, and they still work their watch.' },
+      { id: 'siren', title: 'The Hollow Siren', when: 'en:siren', lock: 'Found at a Dread.', art: 'units/siren',
+        text: 'She sings one flat note, and the water goes flat with it. While she sings, your Swell is dragged back to the middle, and no wave can build.' },
+      { id: 'lamplighter', title: 'The Lost Lamplighter', when: 'ev:ghost', lock: 'Found in the Fog.', art: 'scenes/ev_ghost',
+        text: 'He was the last keeper who went down to tend the bell. He drowned on the low stair a hundred years ago, and he has waited there since with a lantern that went out when he did. A keeper can light another lantern from their own, but it takes something out of the one who gives. That is why sharing your light hurts.' },
+      { id: 'goddess', title: 'The forgotten goddess', when: 'ev:shrine', lock: 'Found in the Fog.', art: 'scenes/ev_shrine',
+        text: 'Nobody in Saltmere remembers her name, or who built her altar. Her stone hands are still held out, and they are empty. She still answers an offering: the water around the altar turns warm.' },
+      { id: 'witch', title: 'The Tide-Witch', when: 'ev:witch', lock: 'Found in the Fog.', art: 'scenes/ev_witch',
+        text: 'She lives in a hut on stilts and wears a shawl of fishing net. Her brews cost pearls. Her rare lessons cost more: she takes years off your life, and that is why your Max HP drops.' },
+      { id: 'gull', title: 'The Gilded Gull', when: 'ev:wreck', lock: 'Found in the Fog.', art: 'scenes/ev_wreck',
+        text: 'A merchant ship, split open in a rock basin. Her captain\'s cabin is still sealed and her hold is still flooded. Something long and cold has made the hold its home.' },
+      { id: 'pool', title: 'The Glimmering Pool', when: 'ev:pool', lock: 'Found in the Fog.', art: 'scenes/ev_pool',
+        text: 'The turquoise glow in the pool is brinelight. There is so much of it here that the water is warm, and the light seems to listen. It mends wounds and sharpens gear. It has also given the pearls in the pool a bite.' },
+      { id: 'bottle', title: 'The message in the bottle', when: 'ev:bottle', lock: 'Found in the Fog.', art: 'scenes/ev_bottle',
+        text: 'A sailor wrote down what he knew about fighting at sea, corked the note in a bottle and threw it over the side. The open sea would have carried it to a beach. The bell\'s water kept it here, and the glass has started to glow.' },
+      { id: 'bellwether', title: 'The Bellwether, up close', when: 'boss', lock: 'Found on the last landing.', art: 'units/bell',
+        text: 'A hundred years under the sea have changed the bell. Coral and weed grow on its bronze, and something with one eye and many arms has grown into it. When the bronze cracks, a shoal of Bell Minnows comes to its call.' },
+    ],
+  };
+
   /* Gear from before v0.10.0 that became kit (or went away): owned pieces carry over (E.migrateMeta). */
   BL.OLD_GEAR = { floodchart: 'floodbell', ebbchart: 'ebbbell', stormlens: 'crackedbell', whetstone: 'honed', purse: 'purse', cork: 'cork', flask: 'flask', gorget: 'gorget', marker: 'marker' };
   /* Achievements unlock kit. met(run) is checked after every fight and at the end of a run (never in the tutorial). */
   BL.ACHIEVEMENTS = {
     twocrests: { name: 'Double Crest', desc: 'Crest twice in one turn.', met: (r) => (r.stats.maxChain || 0) >= 2 },
-    twolows: { name: 'Double Low Water', desc: 'Reach Low Water twice in one turn.', met: (r) => (r.stats.maxLowChain || 0) >= 2 },
+    twolows: { name: 'Double Strand', desc: 'Strand twice in one turn.', met: (r) => (r.stats.maxLowChain || 0) >= 2 },
     threecrests: { name: 'Triple Crest', desc: 'Crest three times in one turn.', met: (r) => (r.stats.maxChain || 0) >= 3 },
     untouched: { name: 'Untouched', desc: 'Win 3 fights in one run without losing HP.', met: (r) => (r.stats.flawless || 0) >= 3 },
     dreadhunter: { name: 'Dread Hunter', desc: 'Defeat a Dread.', met: (r) => (r.stats.elites || 0) >= 1 },

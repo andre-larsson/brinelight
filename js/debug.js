@@ -38,10 +38,10 @@
     const fighting = c && !c.won && !c.lost && c.phase === 'player' && !b.ui.busy;
     const sec = (title, inner) => `<section class="dbg-sec"><h3>${title}</h3><div class="dbg-row">${inner}</div></section>`;
     let html = sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · depth ${b.maxLevel}</small>`,
-      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('depths', 'Unlock all depths') +
+      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('depths', 'Unlock all depths') + btn('allstory', 'Unlock all story') +
       btn('resetmeta', 'Reset Workshop') + btn('resetall', 'Reset everything'));
     if (live) {
-      html += sec(`This run <small>seed ${run.seed} · depth ${run.floor}${run.cheated ? ' · cheated' : ''}</small>`,
+      html += sec(`This run <small>seed ${run.seed} · landing ${run.floor}${run.cheated ? ' · cheated' : ''}</small>`,
         btn('pearls', '+100 Pearls') + btn('heal', 'Heal to full') + btn('maxhp', '+10 Max HP') +
         btn('god', `God mode: ${run.debugGod ? 'On' : 'Off'}`) +
         `<span class="dbg-pair">${select('card', sorted(BL.CARDS))}${btn('addcard', 'Add card')}</span>` +
@@ -52,7 +52,7 @@
     }
     if (fighting) {
       html += sec('This fight', btn('win', 'Win the fight') + btn('lose', 'Lose the fight') + btn('light', '+3 Light') + btn('draw', 'Draw 3') +
-        '<span class="dbg-pair">Tide ' + [0, 1, 2, 3, 4, 5, 6].map((n) => btn('tide', String(n), ` data-n="${n}"`)).join('') + '</span>');
+        '<span class="dbg-pair">Swell ' + [0, 1, 2, 3, 4, 5, 6].map((n) => btn('tide', String(n), ` data-n="${n}"`)).join('') + '</span>');
     }
     return html + `<p class="dbg-note">Cheats mark the run: it keeps no best score and unlocks no depth. Press <span class="kbd">\`</span> to open this panel.</p>`;
   }
@@ -78,9 +78,10 @@
       case 'allach': Object.keys(BL.ACHIEVEMENTS).forEach((a) => { if (meta.ach.indexOf(a) < 0) meta.ach.push(a); }); b.saveMeta(); return reopen();
       case 'allkit': Object.keys(BL.KIT).forEach((g) => { if (!BL.KIT[g].starter && meta.owned.indexOf(g) < 0) meta.owned.push(g); }); b.saveMeta(); return reopen();
       case 'depths': b.setMaxLevel(b.E.LEVELS.length - 1); return reopen();
+      case 'allstory': b.E.storyEntries().forEach((en) => { if (en.when && b.story.marks.indexOf(en.when) < 0) b.story.marks.push(en.when); }); b.saveStory(); return reopen();
       case 'resetmeta': Object.assign(meta, b.E.newMeta()); b.saveMeta(); return reopen();
       case 'resetall':
-        if (!window.confirm('Erase all Brinelight progress in this browser (save, best score, depths, Workshop, tutorial, hints)? Debug mode stays on.')) return;
+        if (!window.confirm('Erase all Brinelight progress in this browser (save, best score, depths, Workshop, story, tutorial, hints)? Debug mode stays on.')) return;
         try { Object.keys(localStorage).filter((k) => k.indexOf('brinelight.') === 0 && k !== KEY).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* ignore */ }
         location.href = location.pathname;
         return;

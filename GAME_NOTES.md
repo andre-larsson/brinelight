@@ -30,7 +30,7 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 The user paused the design work here. Nothing in this section is built. Names and numbers stay open until the final version. Start the next session with this section, then WORLD.md.
 
 **Where things stand.**
-- The live build is v0.9.0: the Workshop, 9 pieces of gear, 6 achievements, overburden and debug mode. It was pushed on 2026-11-12.
+- The live build is v0.12.0, pushed on 2026-11-12: the lore and names pass (v0.11.0), then the opening and Story so far (v0.12.0). The two went out in one commit, so v0.11.0 was never live on its own. Before it the live build was v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
 - The next big change is the item rework below (plans 1 and 2). It replaces the current gear, the pack capacity and the gear overburden.
 - The expedition direction (top of "Decisions the user made") came after the item plan was written. It answers some of the questions below and changes others. The notes say where.
 
@@ -270,11 +270,60 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
       - How much harder is "much harder"? Measure it with the bot.
 - **More levels**: more bands or depths.
 - **More characters**: unlockable keepers. WORLD.md has the open question about other keepers.
-- **A lore overhaul** comes later. WORLD.md has started it.
+- **A lore overhaul:** done in v0.11.0 for the story and the names. See "Lore and names (v0.11.0)".
 - **Art and sound to match the new lore (2026-11-12; planned, not built):**
   - Update the art that tells the old story.
   - Add sound effects, for example for a bell that changes the water.
-- **Rename the fight's Tide words (2026-11-12; planned, not built).** Tide, Surge and Ebb no longer fit the lore. In a fight, Wren works the water around her: she raises waves, gathers and pins water, and pushes water masses. A Crest collapses a water mass onto the enemies. Low Water is a small local drought that strands them. The tide that rises and falls across the whole coast is a different thing. The new words should keep the two apart. No names are proposed yet. The names touch cards, How to Play, the tutorial, the README and the tests.
+- **Rename the fight's Tide words: built in v0.11.0.** The gauge is the Swell and Low Water is a Strand. See "Lore and names (v0.11.0)".
+
+### Lore and names (v0.11.0, 2026-11-12)
+
+The user handed the world-building and lore to the agent ("it is yours to adapt and change as required"), chose the Roil words and the Lazaret, and said to implement the rest. WORLD.md holds the full story. Rules and balance did not change.
+
+**Chosen by the user:** the aether, Roil (was Charge), Calm and Roiled for its two states, and the Lazaret for the keepsake store room. The user dropped Even because it can be misread.
+
+**The agent's calls (each can be undone on its own):**
+1. **Tide → Swell** for the fight gauge. Surge, Ebb and Crest keep their names. The coast keeps the word "tide".
+2. **Low Water → Strand.** The chain bonus Deep Ebb is now High and Dry. The achievement is Double Strand.
+3. **Depth 3/11 → Landing 3/11** for the map row. "Depth" now means only the Shallows, Dark Water, Riptide and the Abyss.
+4. **The story:** the Bellwether is the keepers' own great bell, nobody rang it, the Heart followed it down, and the light went out on Wren's watch. The title, win and loss texts and the README intro say so.
+5. **Walking text:** "Swim on", "seabed", "submerged stair", "Dive", "Dive again" and "First dive?" are gone. The button before a run says "Set out". Only the Gilded Gull's flooded hold is a dive.
+6. **"aether" is lower-case** in game text, like "the sea". Roil, Hold, Seep, Calm and Roiled are capitalised.
+7. **Names that keep "tide":** the Brass Tide-Bell, Tide Reading, Spring Tide, Tidal Memory, Tidewatch, Tidal Fury and Slack Water.
+8. **Not in the game yet, WORLD.md only:** the Belfry (the last depth), the Lazaret, the pins, falling without dying, the suit found on first clearing the Abyss, and the later keepers.
+
+**The code keeps the old names:** `tide`, `low` and `lowWater`, `charge`, `floor`, the `dive` action, and the `charge` hint id. Saved runs and seen hints carry over unchanged.
+
+**A new rule test** fails if card, keepsake, kit, status, tonic or achievement text uses Tide (other than Tide-Bell), Low Water or Charge.
+
+**Still to do:**
+- The Wreck painting shows the Gilded Gull fully underwater, and the title art shows a sea, not stairs. Art and sound for the new lore are still planned.
+- The tide bar and the keepsake chip have no new art or sound.
+- Sent but not chosen, for later: names for Roil (Strain, Pressure, Fret, Wake), for the store (the Salt Cellar, the Lamp Room), and for the aether's states (Fair and Foul, Quiet and Unquiet).
+
+### The opening and Story so far (v0.12.0, 2026-11-12)
+
+The user asked for a title story that is more engaging and higher in stakes, then for one that is "less cryptic, more concrete" and does not assume the player knows the world. They chose the title line and the four-part opening, and proposed the rest: more story unlocked as levels are added, reached from a "story so far" button on the title screen, with a glossary, explanations of concepts and tidbits about the world.
+
+**Chosen by the user:** the title line, the opening text, and the idea and name of Story so far.
+
+**The agent's calls (each can be undone on its own):**
+1. **The opening is four full-screen pictures** with Next and Skip. It plays once, before the first descent, ahead of the tutorial offer. It reuses the title, boss and Cove paintings and the keeper sprite. The bell sound plays on "Tonight the bell rang by itself".
+2. **Story so far has three tabs:** Story (chapters), The world (glossary, always open) and Keeper's notes (15 tidbits). It is on the title screen and in the menu.
+3. **What unlocks:** chapter 2 on the first fall, chapters 3 to 6 on the first clear of each depth, and each note on first meeting its subject. Locked chapters show their title and what opens them. Locked notes show only where to find them.
+4. **New entries are announced:** a toast during a run, a button on the end screen, and a New mark on the title button and inside the screen until read.
+5. **Chapter 3 bridges the current game and the agreed story:** after a win the bell rings again from deeper down and the fire goes back to it. That is why Wren goes down again.
+6. **Chapter 6 names the Belfry and the diving dress,** and says the story stops there for now. Neither is in the game yet.
+7. **The loss screen is plainer,** and Wren's lantern now burns down to an ember when she falls. It does not go out, because it holds the last of the fire.
+8. **The title buttons sit two to a row on narrow phones,** so six buttons fit.
+9. **How to Play fix:** an old style rule kept the Keywords, map and Controls lists at 14px and two columns on phones. It is removed, so they are 16px and one column on phones.
+
+**How it is built:** the text and the unlock marks are in `BL.STORY` (js/data.js). `E.storyMarks(run)` reads marks off a run, and `E.storyOpen(entry, marks)` says whether an entry is open (js/engine.js). The UI stores marks, read entries and "opening seen" in `brinelight.story.v1`. Depths cleared before v0.12.0 count, read from the deepest unlocked depth. The tutorial and debug-cheated runs open nothing. The debug panel has "Unlock all story". `tests/story.test.js` covers the content and the marks, and the UI smoke test has a story scenario.
+
+**Still to do:**
+- The opening has no art of its own. The fourth picture puts the keeper sprite on the Cove painting.
+- "Tonight" in the opening and "by dawn" on the win screen fit one run. The planned expeditions with trips home will need different words.
+- Offered and not built: a different title line after the first win, and a count of stairs lost on the loss screen.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -618,6 +667,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - `tools/serve.js`, `tools/cdp.js`: static server and a tiny Chrome DevTools client (launches its own headless Chrome on a free port).
 - `tools/build.js`: assembles `_site/` for Pages and checks every referenced file exists.
 - `tests/workshop.test.js`: the Workshop, kit, Charge, Hold and Seep rules, and old saves carrying over. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: old lasting state carried over, buy, wear, dive, the Charge chip, dropping a keepsake, Seep in a fight, Salvage at the end, and abandoning a run earns nothing.
+- `tests/story.test.js`: the title line, the opening, and what opens each Story so far entry. `node tests/ui-smoke.js --only story` runs only the story flow in the browser. `tools/screens.js` also shoots the three Story so far tabs and the opening.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 
 ## Determinism and saves
