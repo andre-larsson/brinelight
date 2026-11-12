@@ -16,6 +16,15 @@ The code and saved games keep some older names: `tide` for the Swell, `low` and 
 
 The keeper's craft has two halves: the light and the bell. Wren plays with both. Light is what she spends on cards, and her bell moves the water. The story is what happens when the great bell takes the great light.
 
+### Environmental theme and cosmic horror (2026-11-12; agreed, not built)
+
+- **Agreed:** The underlying story is that the keepers changed the Reach to make Saltmere safer, and something has grown in the conditions they created. This is the central cause; other environmental ideas should support it without becoming several separate explanations for the crisis.
+- **Agreed:** The magical coast is a metaphor for human impact on the environment. Human progress can save lives and support livelihoods while also causing unintended, accumulating harm. The lighthouse and the keepers' tools have real benefits. Responsibility can differ between people who could not foresee the effects and people who later understood them.
+- **Agreed:** Keep the environmental meaning underneath the adventure. Show changes through places, creatures, objects and keeper records. The opening still gives Wren a concrete task: the light is gone, the water is rising, and she must bring the Heart home. Avoid moral speeches and a simple division into good nature and bad humans.
+- **Agreed:** Cosmic horror comes from the scale and nature of what has taken hold around human work. Wren can learn how to handle particular dangers while remaining unsure what the larger thing is or what it perceives. Human activity has consequences even when the thing responding has no human intention to punish anyone.
+- **Agreed:** The ending is ambiguous about what survives and what the Reach is becoming. Wren's immediate success is clear: she recovers the Heart and saves Saltmere. Useful knowledge, better equipment and adaptation can improve life afterward, even where changes to the coast last.
+- **Open:** The nature of what has grown around the bell, and how much Wren can discover about it. The exact final scene is also open. A faint light remaining in the Belfry after the Heart is removed is a candidate image, not a fixed ending.
+
 ## The situation
 
 Wren is the last lighthouse keeper of Saltmere. The lighthouse went dark on her watch. Far below, the Drowned Bellwether rang with no hand on its rope, and the Lantern Heart went down to it. Wren goes down the coast to bring it back.
@@ -51,25 +60,34 @@ The current game tells this story in a shorter shape. Every depth ends with the 
 
 - **Agreed:** Wren goes because the light went out on her watch, and because hers is the last flame lit from the Heart.
 - **Agreed:** Saltmere needs her to go. The ordinary sea gives back what it takes. Held water gives nothing back, so the wrecks, the drowned, and the Heart stay down. Each spring tide the held water stands a stair closer to the town. The game text says it more simply: the bell lifts the sea toward the town, a little higher with every tide. The rules have no countdown for this.
-- **Agreed:** Everything Wren opens closes behind her, because the Bellwether restores the water after each expedition. Only silencing the Bellwether ends it. That is why she has to reach the final depth.
+- **Agreed:** Before the Heart comes home, everything Wren opens closes behind her because the Bellwether restores the water after each expedition. Reaching the final depth and silencing it ends the immediate threat to Saltmere. The altered Reach remains after that victory; see "After the Heart comes home" below.
 - **Agreed:** Carrying a lantern lit from the Heart is what makes a keeper. Wren is the last keeper when the game starts. Later playable characters become keepers when she lights their lanterns from hers. This is how the README's "last lighthouse keeper" and the loss screen's "keepers" fit together.
 - **Agreed:** Each later keeper has something of their own under the same bell.
 - **Open:** Who the later keepers are. Three ideas: a salvor after the Gilded Gull's cargo, a fisher whose partner is among the Drowned Deckhands, and the Tide-Witch's apprentice, who wants the bell and not the Heart.
 
+### After the Heart comes home (2026-11-12; agreed direction, not built)
+
+- **Agreed:** The game should support indefinitely repeated expeditions in the same continuing world. The first full victory changes Wren's reason for returning: recovering the Heart gives way to dealing with the consequences of generations of change to the coast.
+- **Agreed:** The Heart stays home and the lighthouse stays lit. The Bellwether remains silenced; later runs do not undo that victory by repeatedly stealing the Heart or restoring the same bell. The story continues through disturbances in the altered Reach, alongside salvage and discoveries.
+- **Agreed:** Later expeditions should still have achievable ends. Local successes matter and can last while other disturbances arise. The ongoing struggle leaves room for people to improve their lives and adapt.
+- **Agreed:** Keep the descent structure usable after the ending: begin in the Shallows, cross held chambers, gather things, and choose whether to return or continue. Held water and threats can recur after the great bell falls silent. This supersedes the earlier idea that silencing it permanently ends all held water in the Reach.
+- **Open:** What restores the water and the ringers after the Bellwether is silenced, and what Wren faces in the Belfry on later expeditions. Their behaviour must support repeated play, but the larger cause can remain uncertain. Things gathering around the broken bell are a possibility, not a chosen set of enemies.
+- **Open:** The existing explanations for fresh keepsakes being called back and Bell Minnows following Roil depend on the Bellwether. How those effects continue after its defeat needs to be settled alongside the later expeditions.
+
 ## The coast and the tides
 
-Saltmere stands on a headland beside a working sea. The Drowned Reach is a series of coastal rock terraces, or bands. These are above the outside sea level, not holes in the seabed. The Bellwether is holding seawater in the inner chambers.
+Saltmere stands on a headland beside a working sea. The Drowned Reach is a series of coastal rock terraces, or bands. These are above the outside sea level, not holes in the seabed. At the start of the story, the Bellwether is holding seawater in the inner chambers.
 
 - **Agreed:** The lighthouse warns ships away from the rocks. It can do that whether or not the Reach is dry. Ordinary low tide uncovers the Shallows: rock, pools, and the sea below the cliff.
 - **Agreed:** Below the Shallows, the coast has been wet for a long time. Its old stairs, quay, wrecks, and cold-shore animals existed before the current ringing and its pins. The keepers built the stairs and the quay. The Lost Lamplighter's cold lantern belongs to that older coast.
-- **Agreed:** Each shallower band boss is a "pin", a ringer that carries out the Bellwether's work. Each pin has a bell of its own. It holds seawater in its own area, above the level reached by the ordinary tide. The water covers a stair or tunnel leading deeper. Keepers once walked these routes during the lowest spring tides. Those opportunities no longer occur.
+- **Agreed:** Each shallower band boss is a "pin", a ringer that carries out the Bellwether's work before the Heart is recovered. Each pin has a bell of its own. It holds seawater in its own area, above the level reached by the ordinary tide. The water covers a stair or tunnel leading deeper. Keepers once walked these routes during the lowest spring tides. Those opportunities no longer occur.
 - **Agreed:** A held chamber can be called a lock. A pin holds a lock shut, and breaking the pin opens it.
 - **Agreed:** Wren reaches the boss by walking and climbing along exposed paths, stairs, and ledges. She fights from stone while water surrounds parts of the area. She carries an open-flame lantern, so she cannot use the submerged passage. Waiting on shore uncovers only the Shallows.
 - **Agreed:** When Wren defeats the boss, it stops holding the water. The water drains from its area and exposes the passage down. Ordinary high tide still wets the Shallows but does not reach the inner lip. The drained area remains wet, with pools and shallow water.
 - **Agreed:** The water held in a chamber does not move because of an ordinary fight. It drains when the pin goes silent.
-- **Agreed:** Wren can always return home safely after defeating a boss. The Bellwether starts drawing water back as she retreats, but her route home remains safe.
-- **Agreed:** Returning to the lighthouse ends the expedition. Wren unloads her haul, rests, and prepares before setting out again. By then the Bellwether has restored the water in the opened areas. It calls back a surviving boss or draws a similar creature to replace it. The boss or its replacement holds water in the area again, and other sea creatures return with the water. Wren cannot make a quick visit home and resume the same expedition.
-- **Agreed:** The final chamber is the Belfry. It has no lip above the sea. Its floor is below the waterline, and its opening leads to the sea. Water is held around the Heart there. Wren enters in the diving suit, and the chamber does not drain.
+- **Agreed:** Wren can always return home safely after defeating a boss, both before and after recovering the Heart. While the Bellwether still rings, it starts drawing water back as she retreats, but her route home remains safe.
+- **Agreed:** Returning to the lighthouse ends the expedition. Wren unloads her haul, rests, and prepares before setting out again. While the Bellwether still rings, it has by then restored the water in the opened areas. It calls back a surviving boss or draws a similar creature to replace it. The boss or its replacement holds water in the area again, and other sea creatures return with the water. Wren cannot make a quick visit home and resume the same expedition. The source of the later recurrence remains open, as described above.
+- **Agreed:** The final chamber is the Belfry. It has no lip above the sea. Its floor is below the waterline, and its opening leads to the sea. Before the first full victory, water is held around the Heart there. Wren enters in the diving suit, and the chamber does not drain.
 - **Open:** Who the pins are. Three ideas: a giant hermit crab wearing a harbour bell, a rusted bell-buoy on its chain, and a drowned ringer.
 
 ### The Swell in a fight
@@ -89,9 +107,23 @@ The coast has the tide. A fight has the Swell. The two are kept apart so that Wr
 
 Every expedition starts on shore in the Shallows and can continue through every band Wren is willing to risk. Wren packs once on shore and carries the same pack throughout. Starting a new expedition at a deeper band is not possible.
 
+### Initial three-level scope (2026-11-12; agreed, not built)
+
+Plan for three levels initially. More intermediary bands can be added later. These are physical stages of one expedition, separate from the current game's four starting difficulty choices.
+
+| Level | Story role | Progression |
+|---|---|---|
+| First: the Shallows | Introduce the coast, the keepers' work and signs of change. | Its boss opens the route to the second level. |
+| Second: name open | Explore more of the altered Reach and the consequences of the bell. This is initially the last walkable band. | Clearing its boss for the first time gives Wren the diving suit. |
+| Final: the Belfry | Confront the Bellwether and recover the Heart on the first full victory. | Entry requires the suit brought from shore. Later expeditions have another final objective, still to be designed. |
+
+The suit still has to be carried home before it can be worn on a later expedition. Every attempt begins in the Shallows. If Wren packs the suit, it occupies a worn slot from the start. The second level's name, length and encounters remain open. Earlier concepts for Dark Water, Riptide and the Abyss are retained below for possible later use; they are not three additional levels in this initial scope.
+
+### Expedition rules
+
 - **Agreed:** After defeating a band boss, Wren can always return home safely or continue through the newly opened passage.
 - **Agreed:** Returning home ends the expedition. Wren keeps everything collected on that expedition, but depth progress resets. The next expedition begins in the Shallows.
-- **Agreed:** Continuing is the only way to reach richer finds and make progress farther down in that expedition. The expedition also ends if Wren completes the game or falls.
+- **Agreed:** Continuing is the only way to reach richer finds and make progress farther down in that expedition. The expedition also ends if Wren completes its final objective or falls. The first full completion recovers the Heart; later completions belong to the continuing struggle described above.
 - **Agreed:** Keepsakes are kept between expeditions, as the name says. If Wren falls, she loses the keepsakes she found on that expedition. She keeps the ones she brought from home.
 - **Agreed:** A keepsake fresh from the Reach still answers the Bellwether, so the bell calls it back when Wren falls. A night in the Lazaret makes a keepsake hers.
 - **Agreed:** A keepsake that has spent a night in the Lazaret answers its keeper. If Wren leaves it behind in the caves, it is in the Lazaret again when she gets home. Nobody has seen one travel.
@@ -99,7 +131,7 @@ Every expedition starts on shore in the Shallows and can continue through every 
 - **In the game (v0.13.0):** The Lazaret opens after the first win. A win keeps every keepsake Wren carries. Before a descent she chooses any number to bring, and each counts toward the Hold. A fall loses only the keepsakes found on that descent. The Lazaret holds one of each, and a second one becomes Salvage: the keepers break it up for its brass and bone.
 - **Open:** How the rest of what Wren brings home is kept or used between expeditions.
 - **Agreed:** The pack does not grow and cannot be repacked after breaking a pin. If Wren brings the diving suit, it occupies a worn slot from the first band onward and has no effect in fights. Carrying it therefore makes every band above the last harder. She cannot enter the Belfry without it.
-- **Agreed:** Wren finds the suit the first time she clears the Abyss, the last walkable band. She cannot put it on during that expedition, so she has to carry it home. From then on she can pack it on shore. It is an old keeper's diving dress with a sealed lamp. Her open lantern establishes that the bands above the Belfry contain air.
+- **Agreed:** Wren finds the suit the first time she clears the last walkable band, initially the second level. She cannot put it on during that expedition, so she has to carry it home. From then on she can pack it on shore. It is an old keeper's diving dress with a sealed lamp. Her open lantern establishes that the bands above the Belfry contain air.
 - **In the game:** The stops down the map are landings. The top bar reads "Landing 3/11", and the boss waits on the last landing. "Depth" means only the Shallows, Dark Water, Riptide, and the Abyss.
 - **In the game:** Going down is a descent, and Wren sets out. The game says "dive" only for the flooded hold of the Gilded Gull.
 
@@ -124,10 +156,9 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 - **In the game:** The Drowned Reach is the map of a single depth. **Agreed:** It will refer to the whole coast, crossed band by band during one expedition.
 - **In the game:** Sheltered Cove is a dry hollow above the tide line. The lantern burns steadily there, and the deep cannot reach Wren for a little while.
 - **Agreed:** The Shallows are the foreshore at ordinary low tide. They contain wet stone, pools, and the first stair. There is no sill yet.
-- **Agreed:** Dark Water is the first held chamber. Once its pin breaks, it is a dripping cave stair that Wren can wade through, and her lantern matters.
-- **Agreed:** Riptide is a cut where the current continues after the chamber drains. The opportunity to pass through it is short.
-- **Agreed:** The Abyss is the last terrace Wren can walk, a hall above the Belfry. Clearing it for the first time gives her the suit.
-- **Agreed:** The Belfry is the one drowned depth beyond the Abyss, a chamber open to the sea. The Bellwether hangs there over the Heart. The lighthouse has its light at the top of a tower, and the Reach has its bell at the bottom. Wren can enter only in the suit. A Crest there is still a wave she raises onto things in the water. The diving dress keeps it out of her helmet. A Strand there is a drop in pressure, not a dry floor.
+- **Open:** The second level's name and geography. It is initially the last walkable band above the Belfry, and its first clear gives Wren the suit.
+- **Open (later bands):** Earlier location concepts are Dark Water, a held chamber with a dripping cave stair; Riptide, a cut where the current continues after draining; and the Abyss, a hall above the Belfry. They can inform the second level or future intermediary levels. Their final placement is postponed under the three-level plan.
+- **Agreed:** The Belfry is the final drowned depth below the last walkable band, a chamber open to the sea. At the start of the story the Bellwether hangs there over the Heart. The lighthouse has its light at the top of a tower, and the Reach has its bell at the bottom. Wren can enter only in the suit. A Crest there is still a wave she raises onto things in the water. The diving dress keeps it out of her helmet. A Strand there is a drop in pressure, not a dry floor.
 - **In the game:** The Wreck of the Gilded Gull is a merchant ship that lies split in a basin the tide has left. Its cabin is sealed, crates lie spilled across the rock, and the hold below is still flooded. Wren can walk on past it. The painting still shows the wreck fully underwater.
 - **Agreed:** Wren can stand and search the cabin and cargo of the Gilded Gull. Only the flooded hold requires a dive. Pearls are found still dry, and something long and cold lives in the hold. Forcing the cabin leaves barnacles on Wren.
 - **In the game:** A treasure stop contains a different wreck: a half-buried sea chest with greened iron bands and something still glowing inside.
@@ -153,11 +184,11 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 
 ## Story so far
 
-Story so far is a screen on the title and in the menu. Its text is in `BL.STORY` in js/data.js, and everything in it is **In the game**. Later text has to agree with it.
+Story so far is a screen on the title and in the menu. Its text is in `BL.STORY` in js/data.js, and everything listed in this section is **In the game**. The existing chapters describe the current four-depth game. Their unlocks and the repeated theft of the Heart need revising when the three-level expedition and continuing story are implemented.
 
 - **Story tab:** Six chapters. Chapter 1 is the opening and is always open. The others open on the first fall and on the first clear of each depth.
   - *The sea gives you back* (first fall): Wren wakes on the shingle below the lighthouse with her lantern at an ember. The bell called back the keepsakes she found.
-  - *The Heart comes home* (Shallows): the light turns again by dawn. Before the next tide a bell rings from deeper down, the fire goes back to it, and the caves fill. This is how the current game, where every depth ends with the Bellwether, fits the agreed story.
+  - *The Heart comes home* (Shallows): the light turns again by dawn. Before the next tide a bell rings from deeper down, the fire goes back to it, and the caves fill. This currently explains why Wren goes down again after each depth's Bellwether fight. It needs revising for the target where she recovers the Heart at the end of the full expedition and it stays home.
   - *Why the bell was sunk* (Dark Water): the keepers cast the bell and sank it to hold the water off their low stairs and quay. The Lamplighter was the last to tend it.
   - *Why the fire followed* (Riptide): hand-bells are tuned to the Bellwether and lanterns are lit from the Heart. The Heart answered the lead bell.
   - *Under the last stair* (the Abyss): the Belfry lies under the Abyss and does not drain. An old keeper's diving dress hangs on the wall of the hall above it. The chapter says the story stops there for now.
@@ -167,6 +198,11 @@ Story so far is a screen on the title and in the menu. Its text is in `BL.STORY`
 
 ## Open questions
 
+- What is the second level called, and how long is each of the initial three levels?
+- What restores held water and ringers after the Bellwether is silenced, and what is the repeatable final encounter?
+- How do the recall of fresh keepsakes and Roil-following Bell Minnows work after the Bellwether's defeat?
+- What is the exact ending scene, and how much does Wren learn about what remains in the Reach?
+- How have objects soaked in brinelight for years when the Heart only descends tonight? Slow leakage from older keeper practices was suggested, but not decided.
 - What does Wren lose when she falls, besides that expedition's keepsakes?
 - Besides keepsakes, how is everything brought home kept or used between expeditions?
 - What form does the keepsake store inside the Lazaret take?

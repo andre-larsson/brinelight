@@ -10,8 +10,9 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 
 ## Decisions the user made
 
-- **Expedition and depth direction (2026-11-12; not built):** Every run starts in the Shallows and proceeds through the depths in one expedition. A band boss holds water in its own area. Defeating it drains the area and reveals a stair or tunnel down. After a boss, the player can continue or return home, ending the run with everything collected but resetting depth progress. A run also ends on completing the game or falling. Starting a new run at a deeper depth is not possible. Whether a fall is death or unconsciousness, what it costs, and how the collected items are retained between runs remain open. See WORLD.md for the story.
-- **Return after a boss (2026-11-12; not built):** Wren can always get home safely after defeating a boss. The Bellwether starts drawing water back as she retreats, without blocking her way home. Returning ends the expedition. Wren unloads, rests, and prepares, and by her next departure the Bellwether has restored the water and called back the boss or a similar replacement. There is no quick lighthouse visit that resumes the same expedition.
+- **Expedition and depth direction (2026-11-12; not built):** Every run starts in the Shallows and proceeds through the depths in one expedition. A band boss holds water in its own area. Defeating it drains the area and reveals a stair or tunnel down. After a boss, the player can continue or return home, ending the run with everything collected but resetting depth progress. A run also ends on completing its final objective or falling. Starting a new run at a deeper depth is not possible. WORLD.md establishes that Wren survives a fall and loses that expedition's fresh keepsakes; other losses remain open. The initial scope is now three levels, described below.
+- **Return after a boss (2026-11-12; not built):** Wren can always get home safely after defeating a boss. Before the Heart is recovered, the Bellwether starts drawing water back as she retreats, without blocking her way home. Returning ends the expedition. Wren unloads, rests, and prepares, and by her next departure the Bellwether has restored the water and called back the boss or a similar replacement. There is no quick lighthouse visit that resumes the same expedition. Safe return also applies after the Heart comes home; the cause of later water and boss recurrence remains open.
+- **Story direction (2026-11-12; not built):** Subtle environmental themes and cosmic horror, an ambiguous ending with a definite immediate victory, and continued expeditions in the altered Reach afterward. See "Current story and expedition scope" below and WORLD.md.
 - **Current game versus this direction:** The current game still ends a run after one boss and unlocks deeper starting depths. Existing Workshop capacity and depth unlock notes below describe the current implementation or earlier plans, not a decision to retain deeper starting depths.
 - Keep this build's rules and balance. Don't retune them. (Lifted for Low Water on 2026-11-11: see "Low Water rework".)
 - Add a guided first fight (tutorial).
@@ -25,14 +26,37 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 - Barnacle Growth now says what it does, on the card, in the event option, in How to Play and in the README. It used to say only "A curse that clings to your deck".
 - The map runs downward (2026-11-11): the first stops are at the top and the boss is at the bottom, so the route reads as a descent. When choosing a stop, the map scrolls so those stops are near the top with the row just left above them, and the route ahead is below. The map hint says "The boss waits at the bottom, deepest down."
 
-## Paused plan and open questions (2026-11-12)
+## Current story and expedition scope (2026-11-12; agreed direction, not built)
 
-The user paused the design work here. Nothing in this section is built. Names and numbers stay open until the final version. Start the next session with this section, then WORLD.md.
+Saved from the lore and replayability discussion. WORLD.md holds the target fiction. This section records scope, implementation implications and ideas that remain proposals. The current game still has single-depth runs and four starting difficulty choices; these plans have not changed its behaviour.
+
+**Agreed direction:**
+
+- The keepers changed the Reach to make Saltmere safer. Something has grown in the conditions they created. Use that one central cause to carry the environmental theme and cosmic horror. Other ideas can remain implications instead of becoming several explicit pollution plots.
+- Progress has real benefits alongside unintended consequences. Keep the lighthouse, useful equipment and the town's livelihoods worth preserving. Show the environmental meaning through discoveries and effects in the world, with a concrete adventure on the surface.
+- Wren's first full victory brings the Heart home and saves Saltmere. Leave uncertainty about what survives below and what the Reach is becoming. The exact ending image is open; light remaining in the Belfry was an example, not a fixed scene.
+- Subsequent expeditions continue in the same changed world. The lighthouse stays lit and the Bellwether stays silenced. Wren deals with continuing disturbances, salvage and discoveries. Individual successes should matter; later runs must not simply erase the first victory.
+- Initially plan only three levels: the Shallows; a second, unnamed walkable level whose first boss clear gives the diving suit; and the final drowned Belfry, which requires bringing the suit from shore. Add intermediary levels later. Dark Water, Riptide and the Abyss are earlier location concepts, not a requirement to build three more levels now.
+- Keep the existing suit rule: take it home after finding it, then carry it in a worn slot from the start of a later expedition. Keep safe return after bosses and a fresh start in the Shallows for every expedition.
+
+**Suggested first implementation, not yet a detailed design:**
+
+- Reuse combat, cards, route generation, shops, keepsakes and equipment before and after the first full victory.
+- Record the first recovery of the Heart, then change expedition introductions, outcomes and a few story entries. A simple later objective could be to quiet a disturbance in the Reach and bring useful things home.
+- Provide an appropriate repeatable final encounter after the Bellwether's defeat. One alternative encounter was suggested as a way to limit initial content work; its identity, art and mechanics remain open.
+- The main underlying work is still connecting levels into one expedition, supporting continue-or-return after a boss, banking a safe return, and enforcing the suit requirement. These are larger changes than adding story state and alternate text afterward. Save compatibility and rule/UI checks belong in that implementation.
+- Tracked rescues, permanent harbour or fishing-ground improvements, several mission types, and a town simulation are optional expansion ideas. They are not required for the initial version. Likewise, literal time loops and separate retellings were discussed as alternatives, not chosen as the explanation for later runs.
+
+**Open before implementation:** the second level's name and length; level encounters and bosses; what restores water and ringers after the Bellwether is silenced; the later final objective and encounter; and how fresh-keepsake recall and Roil-following Bell Minnows fit that later world. The larger entity and exact ending can remain ambiguous. A chronology question also remains: objects have soaked in brinelight for years although the Heart descends tonight; gradual leakage from older keeper practices is only a suggestion.
+
+## Earlier paused plan and open questions (2026-11-12)
+
+The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
 - The live build is v0.13.0, pushed on 2026-11-12: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
 - Before it came v0.12.0 (the opening and Story so far) and v0.11.0 (the lore and names pass), pushed together in one commit on the same day, and v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
-- The next big change is the item rework below (plans 1 and 2). It replaces the current gear, the pack capacity and the gear overburden.
+- The item-rework plans below (plans 1 and 2) record earlier design discussion. Kit and keepsake changes have since shipped in the versioned sections below; they do not set the next implementation priority.
 - The expedition direction (top of "Decisions the user made") came after the item plan was written. It answers some of the questions below and changes others. The notes say where.
 
 ### Plan 1: worn kit in body slots (chosen by the user, 2026-11-11)
@@ -246,6 +270,8 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
 
 ### Later slices of meta-progression (planned 2026-11-11)
 
+These are earlier expansion ideas. Their named-depth unlocks need revisiting under the initial three-level scope; they are not additional requirements for that first version.
+
 - Starting keepsakes, after the first Shallows win.
 - Heirloom starter cards and reward-pool unlocks, after Dark Water.
 - Bounties, after Riptide. This is the big unlock.
@@ -269,7 +295,7 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
       - Does each current add a fixed score multiplier?
       - Does that stack with the band's multiplier?
       - How much harder is "much harder"? Measure it with the bot.
-- **More levels**: more bands or depths.
+- **More levels**: add intermediary bands after the initial three-level version. See "Current story and expedition scope".
 - **More characters**: unlockable keepers. WORLD.md has the open question about other keepers.
 - **A lore overhaul:** done in v0.11.0 for the story and the names. See "Lore and names (v0.11.0)".
 - **Art and sound to match the new lore (2026-11-12; planned, not built):**
