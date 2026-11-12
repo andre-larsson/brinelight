@@ -5,8 +5,20 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.12.0';
+  BL.VERSION = '0.13.0';
   BL.CHANGELOG = [
+    { v: '0.13.0', date: '2026-11-12', items: [
+      'The Lazaret: the locked store room at the lighthouse. It opens after your first win, on the title screen.',
+      'When you win a run, every keepsake you carry is kept in the Lazaret for good.',
+      'Before each descent you choose which kept keepsakes to bring. You may bring any number, and each one counts toward your Hold as usual.',
+      'If you fall, you lose only the keepsakes you found on that descent. The ones in the Lazaret are never lost.',
+      'The Lazaret holds one of each keepsake. If you bring home one it already holds, it becomes Salvage: half its Roil, rounded up.',
+      'A Roiled aether now does more than Seep. Each 5 Roil past your Hold adds one thing to every fight, round a ladder of three: a Seep, then Scour (from your 4th turn of a fight, lose 1 HP each turn), then a Bell Minnow that follows you into the fight at half health.',
+      'The Roil number, keepsake picks, the shop and the screen before a descent all say what your Roil would do.',
+      'The title screen has three levels of button: Continue and New Descent, then the Workshop and the Lazaret, then Story so far, the Logbook, the Tutorial and How to Play.',
+      "The Logbook, on the title screen: descents finished, the deepest landing reached, best score, Salvage, kit, keepsakes, achievements and story entries.",
+      'Debug mode (?debug) has two new switches for playtesting: Skip fights wins every fight the moment it starts, and Cheats count as real runs lets a debug run unlock depths, story and the Lazaret.',
+    ] },
     { v: '0.12.0', date: '2026-11-12', items: [
       'A new opening: four pictures tell who you are, what the bell did and why you go down. It plays once, before your first descent.',
       'Story so far, on the title screen and in the menu. Its Story tab has six chapters: the opening, one for your first fall, and one for each depth you clear.',

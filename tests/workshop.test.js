@@ -267,40 +267,126 @@ test('achievements unlock once, are kept on the run for the end screen, and neve
   assert.equal(E.bell(tut), null, 'no bell in the tutorial');
 });
 
-/* ---------- Roil, Hold and Seep ---------- */
-test('the Hold is 30 Roil in the Shallows and 5 more each depth; every 5 Roil over (or part of 5) is 1 Seep', () => {
+/* ---------- Roil, the Hold and a Roiled aether ---------- */
+test('the Hold is 30 Roil in the Shallows and 5 more each depth; every 5 Roil over (or part of 5) is one step', () => {
   assert.deepEqual([0, 1, 2, 3].map(E.hold), [30, 35, 40, 45]);
-  assert.deepEqual([30, 31, 35, 36, 40, 41].map((ch) => E.seepFor(ch, 0)), [0, 1, 1, 2, 2, 3]);
-  assert.equal(E.seepFor(36, 1), 1, 'deeper water holds more');
+  assert.deepEqual([30, 31, 35, 36, 40, 41].map((ch) => E.roilSteps(ch, 0)), [0, 1, 1, 2, 2, 3]);
+  assert.equal(E.roilSteps(36, 1), 1, 'deeper water holds more');
   const run = E.newRun(5);
   run.keepsakes = ['whaletooth', 'stormbottle'];
   assert.equal(E.charge(run), BL.KEEPSAKES.whaletooth.charge + BL.KEEPSAKES.stormbottle.charge);
-  assert.equal(E.seepCount(run), E.seepFor(E.charge(run), 0));
+  assert.deepEqual(E.roil(run), E.roilFor(E.charge(run), 0));
   // what taking one more would do
   assert.equal(E.charge(run, 'tidewatch'), E.charge(run) + BL.KEEPSAKES.tidewatch.charge);
-  assert.equal(E.seepCount(run, 'tidewatch'), E.seepFor(E.charge(run) + BL.KEEPSAKES.tidewatch.charge, 0));
+  assert.deepEqual(E.roil(run, 'tidewatch'), E.roilFor(E.charge(run) + BL.KEEPSAKES.tidewatch.charge, 0));
+  // the tutorial is never Roiled
+  const tut = E.newTutorialRun();
+  tut.keepsakes = Object.keys(BL.KEEPSAKES);
+  assert.equal(E.roil(tut).steps, 0);
+});
+
+test('a Roiled aether climbs a ladder: a Seep, then Scour, then a Bell Minnow, then round again (2 Minnows at most)', () => {
+  const at = (steps) => { const r = E.roilFor(30 + 5 * steps, 0); return [r.seep, r.scour, r.minnows]; };
+  assert.deepEqual(E.roilFor(30, 0), { steps: 0, seep: 0, scour: 0, minnows: 0 });
+  assert.deepEqual(at(1), [1, 0, 0]);
+  assert.deepEqual(at(2), [1, 1, 0]);
+  assert.deepEqual(at(3), [1, 1, 1]);
+  assert.deepEqual(at(4), [2, 1, 1]);
+  assert.deepEqual(at(5), [2, 2, 1]);
+  assert.deepEqual(at(6), [2, 2, 2]);
+  assert.deepEqual(at(7), [3, 2, 2]);
+  assert.deepEqual(at(9), [3, 3, 2], 'never more than 2 Bell Minnows');
+  assert.equal(E.MAX_ROIL_MINNOWS, 2);
+  assert.equal(E.seepFor(50, 0), 2);
 });
 
 test('Seep: shuffled into the draw pile at the start of each fight, unplayable, and gone after the fight', () => {
   const run = E.newRun(5);
-  run.keepsakes = ['whaletooth', 'stormbottle', 'tidewatch']; // 19 + 18 + 12 = 49: 4 Seep at a Hold of 30
-  assert.equal(E.seepCount(run), 4);
+  run.keepsakes = ['whaletooth', 'stormbottle', 'tidewatch']; // 19 + 18 + 12 = 49: 4 steps past a Hold of 30
+  assert.deepEqual(E.roil(run), { steps: 4, seep: 2, scour: 1, minnows: 1 });
   const deck = run.deck.length;
   const c = fightIn(run);
   const all = c.hand.concat(c.draw);
-  assert.equal(all.length, deck + 4);
+  assert.equal(all.length, deck + 2);
   const seep = all.filter((card) => card.id === 'seep');
-  assert.equal(seep.length, 4);
-  assert.equal(c.seep, 4);
+  assert.equal(seep.length, 2);
+  assert.equal(c.seep, 2);
   assert.equal(E.playable(run, seep[0]).ok, false);
   assert.equal(run.deck.length, deck, 'never joins the deck');
   assert.ok(!run.deck.some((card) => card.id === 'seep'));
   win(run);
   assert.equal(run.deck.length, deck);
-  // within the Hold, no Seep
+  // within the Hold, nothing is added
   const light = E.newRun(5);
   light.keepsakes = ['whaletooth'];
-  assert.equal(fightIn(light).hand.concat(light.combat.draw).filter((x) => x.id === 'seep').length, 0);
+  const lc = fightIn(light);
+  assert.equal(lc.hand.concat(lc.draw).filter((x) => x.id === 'seep').length, 0);
+  assert.equal(lc.scour, undefined);
+  assert.equal(lc.enemies.length, 1);
+});
+
+test('Scour: from your 4th turn of a fight, lose that much HP at the start of each turn; Ward does not stop it', () => {
+  assert.equal(E.SCOUR_FROM_TURN, 4);
+  const quiet = (c) => c.enemies.forEach((e) => { e.intent = Object.keys(BL.ENEMIES[e.id].moves).find((k) => { const m = BL.ENEMIES[e.id].moves[k]; return !m.dmg && !m.debuff; }) || e.intent; });
+  const run = E.newRun(5);
+  run.keepsakes = ['whaletooth', 'stormbottle']; // 19 + 18 = 37: 2 steps, so 1 Seep and Scour 1
+  assert.equal(E.roil(run).scour, 1);
+  const c = fightIn(run, ['crab']);
+  tough(c);
+  assert.equal(c.scour, 1);
+  const hp = run.hp;
+  const turnEnd = () => { run.hp = hp; quiet(c); c.player.ward = 50; E.endTurn(run); return hp - run.hp; };
+  assert.equal(run.hp, hp, 'nothing on turn 1');
+  assert.equal(turnEnd(), 0, 'nothing on turn 2');
+  assert.equal(turnEnd(), 0, 'nothing on turn 3, so a Swift fight is never Scoured');
+  assert.equal(c.turn, 3);
+  assert.equal(c.flags.hpLost, false);
+  assert.equal(turnEnd(), 1, 'turn 4: 1 HP, through 50 Ward');
+  assert.equal(c.turn, 4);
+  assert.equal(c.flags.hpLost, true, 'so the fight is no longer Flawless');
+  assert.equal(turnEnd(), 1, 'and every turn after');
+  // Scour 2 takes 2 a turn
+  const two = E.newRun(5);
+  two.keepsakes = ['whaletooth', 'stormbottle', 'anchor']; // 55: 5 steps, so Scour 2
+  assert.equal(E.roil(two).scour, 2);
+  const c2 = fightIn(two, ['crab']);
+  tough(c2);
+  c2.enemies.splice(1); // leave only the crab: the Minnow would bite
+  const hp2 = two.hp;
+  [1, 2, 3].forEach(() => { quiet(c2); c2.player.ward = 50; E.endTurn(two); });
+  assert.equal(two.hp, hp2 - 2);
+  // at 1 HP it ends the run
+  two.hp = 1;
+  quiet(c2);
+  c2.player.ward = 50;
+  E.endTurn(two);
+  assert.equal(c2.lost, true);
+  assert.equal(two.hp, 0);
+});
+
+test('Bell Minnows follow a Roiled aether into every fight, after the encounter\'s own enemies', () => {
+  const calm = E.newRun(5);
+  const cc = fightIn(calm, ['crab', 'jelly'], 'hard');
+  const run = E.newRun(5);
+  run.keepsakes = ['whaletooth', 'stormbottle', 'coralcrown']; // 3 steps: 1 Bell Minnow
+  const c = fightIn(run, ['crab', 'jelly'], 'hard');
+  assert.deepEqual(c.enemies.map((e) => e.id), ['crab', 'jelly', 'minnow']);
+  assert.equal(c.roilMinnows, 1);
+  assert.equal(c.enemies[2].roil, true);
+  assert.ok(c.enemies[2].intent, 'it has an intent like any enemy');
+  // at half a Bell Minnow's health (11 to 13), rounded up
+  assert.equal(E.ROIL_MINNOW_HP, 0.5);
+  assert.ok(c.enemies[2].maxHp >= 6 && c.enemies[2].maxHp <= 7, 'half health: ' + c.enemies[2].maxHp);
+  assert.equal(c.enemies[2].hp, c.enemies[2].maxHp);
+  assert.deepEqual(cc.enemies.map((e) => e.id), ['crab', 'jelly'], 'a Calm run meets only the encounter');
+  // the fight is not won until the Minnow is dead too
+  c.enemies.slice(0, 2).forEach((e) => { e.dead = true; e.hp = 0; });
+  assert.equal(E.alive(c).length, 1);
+  // 6 steps and more: 2 Minnows, in the boss fight too
+  const six = E.newRun(5);
+  six.keepsakes = ['whaletooth', 'stormbottle', 'anchor', 'coralcrown']; // 61: 7 steps
+  assert.equal(E.roil(six).minnows, 2);
+  assert.deepEqual(fightIn(six, ['bell'], 'boss').enemies.map((e) => e.id), ['bell', 'minnow', 'minnow']);
 });
 
 test('dropping a keepsake: between fights only, for good; Scallop Charm takes its 10 Max HP with it', () => {

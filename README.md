@@ -8,7 +8,7 @@ One run is a complete demo: about 11 stops on a branching map, one on each landi
 
 **New here?** The first time you start a descent, a short opening in four pictures tells the story, and then the game offers a short guided fight (about 2 minutes) that teaches the basics and the Swell. You can skip it, and replay it any time from the title screen or the menu. After that, short hints explain new things the first time you meet them.
 
-**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, and one for each depth you clear. **The world** explains the places, people and magic. **Keeper's notes** are 15 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Bellwether, your first keepsake, and the first time you carry more Roil than your Hold. The tutorial and debug-cheated runs open nothing.
+**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, and one for each depth you clear. **The world** explains the places, people and magic. **Keeper's notes** are 16 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Bellwether, your first keepsake, the first time you carry more Roil than your Hold, and your first win in the Shallows. The tutorial and debug-cheated runs open nothing.
 
 ## Running it
 
@@ -17,7 +17,7 @@ It's plain HTML, CSS and JavaScript, with no build step and no dependencies.
 - **Static server (recommended):** from this folder run `npm start` (or `python3 -m http.server 8000`), then open <http://localhost:8000>.
 - **No server:** open `index.html` directly in a browser.
 
-**Debug mode (for testing):** add `?debug` to the address. A DEBUG tab appears at the left edge, and the `` ` `` key opens the same panel. It can add Salvage and kit, unlock achievements and depths, reset progress, give Pearls, cards, keepsakes and tonics, turn on god mode, set the Swell, win or lose a fight, and visit any kind of stop. A run where you use a cheat keeps no best score and unlocks no depth. Add `?debug=0` to turn the mode off, or use the panel.
+**Debug mode (for testing):** add `?debug` to the address. A DEBUG tab appears at the left edge, and the `` ` `` key opens the same panel. It can add Salvage and kit, unlock achievements and depths, reset progress, give Pearls, cards, keepsakes and tonics, turn on god mode, set the Swell, win or lose a fight, and visit any kind of stop. It can also fill the Lazaret. A run where you use a cheat keeps no best score, unlocks no depth, opens no story and puts nothing in the Lazaret. Two switches at the top of the panel are kept in the browser from run to run. **Skip fights** wins every fight the moment it starts, so you can walk through a whole depth in a minute or two; it waits while a hint or the panel is open. **Cheats count as real runs** stops cheats from marking the run, so a debug run unlocks depths, story and the Lazaret like a real one. Add `?debug=0` to turn the mode off, or use the panel.
 
 Progress is saved automatically in your browser, at the start of every turn and between map stops. **Continue** on the title screen resumes the run. To replay a specific map and card sequence, add `?seed=12345` to the URL before starting a new run.
 
@@ -28,6 +28,8 @@ Progress is saved automatically in your browser, at the start of every turn and 
 | **Mouse** | Click a card to raise it, then click an enemy (or click the card again for cards without a target). You can also drag a card onto an enemy, or up into the sea. | Hover anything (statuses, intents, keepsakes, the Swell gauge) for a tooltip. Click the draw or discard pile to see it. Between fights, click a keepsake to drop it. |
 | **Touch** | Tap a card to raise it and read it, then tap an enemy, or tap the card again. Dragging works too. | Tap an enemy or the keeper to see HP, intent and effects. Tap a keepsake to read it, or between fights to drop it. |
 | **Keyboard** | `1`-`9`, `0` pick a card; `←` `→` choose the target; `Enter` / `Space` / `↑` play it; `Esc` / `↓` cancel. | `E` end turn, `D` view deck, `Z` `X` `C` use tonic slots 1-3. On the map: arrow keys and `Enter` (or `1`-`9`). On reward screens: `1`-`3` pick a card. `Tab` reaches every button. |
+
+The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: descents finished, won and lost, the deepest landing reached, depths cleared, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
 
 The menu (top right) has the tutorial, How to Play, Story so far, sound effects on/off, music on/off, fast animations, save and quit, and abandon run.
 
@@ -73,11 +75,16 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card.
 - **Wrecks:** a chest of pearls where you may take 1 of 3 keepsakes.
 
-**Keepsakes, Roil and Seep.** A keepsake lasts the whole run, and it stirs the aether around you. How much is its **Roil** (shown on each keepsake). Every keepsake you carry counts.
+**Keepsakes, Roil and a Roiled aether.** A keepsake lasts the whole run, and it stirs the aether around you. How much is its **Roil** (shown on each keepsake). Every keepsake you carry counts.
 - The aether around you holds a set amount of Roil, your **Hold**: 30 in the Shallows, and 5 more at each deeper depth (Dark Water 35, Riptide 40, The Abyss 45). Up to your Hold the aether is **Calm**.
-- Past your Hold the aether is **Roiled**: every 5 Roil over (or part of 5) adds 1 **Seep** to every fight. Seep is an unplayable card shuffled into your draw pile at the start of the fight, and it's gone after the fight. It never joins your deck.
+- Past your Hold the aether is **Roiled**. Every 5 Roil over (or part of 5) is one step, and each step adds one thing to every fight. The steps go round a ladder of three:
+  - **Step 1: a Seep.** Seep is an unplayable card shuffled into your draw pile at the start of the fight, and it's gone after the fight. It never joins your deck.
+  - **Step 2: Scour 1.** From your 4th turn of a fight, you lose 1 HP at the start of each turn. Ward does not stop it. A fight won within 3 turns is never Scoured.
+  - **Step 3: a Bell Minnow.** One of the Bellwether's minnows follows you into the fight as an extra enemy, at half health.
+  - **Step 4** is a second Seep, **step 5** is Scour 2, **step 6** is a second Bell Minnow, and so on. There are never more than 2 Bell Minnows.
+- The Roil number in the top bar, every keepsake pick and the screen before a descent say what your Roil does at that moment.
 - A keepsake pick shows what taking it would do to your Roil. You can take one, or leave them.
-- Between fights you can drop a keepsake for good. Scallop Charm takes its 10 Max HP with it.
+- Between fights you can drop a keepsake for good (one you brought from the Lazaret is only out of that run). Scallop Charm takes its 10 Max HP with it.
 
 After each fight you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded, and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
 
@@ -108,6 +115,15 @@ Both are announced the moment you earn them. The score counts Crests and Strands
   - **Ditty Bag:** Spare Flask (a tonic at the start), Pearl Scales (Barnaby's prices are 25% lower), Gleaning Net (+3 Pearls whenever you Crest) or Spare Wick (rests heal 10 more HP).
 - Some kit is locked until an **achievement**, such as Crest three times in one turn or defeat an enemy with Brine. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
 - Kit never changes the map: the same seed gives the same map with any kit.
+
+**The Lazaret (lasts across runs).** The Lazaret is the locked store room at the lighthouse, where keepsakes are kept between runs. It opens after your first win, and it is on the title screen from then on.
+- When you win a run, every keepsake you carry is kept in the Lazaret for good. The win that opens it counts.
+- The Lazaret holds one of each keepsake. If you bring home one it already holds, it becomes Salvage instead: half its Roil, rounded up (a second Whale Tooth, Roil 19, gives 10).
+- Before each descent you choose which kept keepsakes to bring. You may bring any number. You carry them from the first landing, and each counts toward your Hold as usual, so bringing too many leaves the aether Roiled in every fight. The game remembers your choice.
+- If you fall, you lose the keepsakes you found on that descent. The ones in the Lazaret are never lost, whether you brought them or not.
+- If you drop a keepsake you brought, it is out of that run, and it is still in the Lazaret afterwards.
+- A run can still offer you a keepsake that is in the Lazaret, as long as you aren't carrying it.
+- Keepsakes you bring never change the map. The tutorial and abandoned runs keep nothing.
 
 ## Content
 

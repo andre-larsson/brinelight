@@ -61,9 +61,9 @@ test('every mark can be earned in the game as it is', () => {
   E.LEVELS.forEach((L, i) => assert.ok(S.chapters.some((c) => c.when === 'won:' + i), L.name));
 });
 
-test('there are six chapters and 15 notes, with a note for every Fog event, a shop, a Cove and a Wreck', () => {
+test('there are six chapters and 16 notes, with a note for every Fog event, a shop, a Cove and a Wreck', () => {
   assert.equal(S.chapters.length, 6);
-  assert.equal(S.notes.length, 15);
+  assert.equal(S.notes.length, 16);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));
   ['shop', 'cove', 'wreck', 'boss', 'keepsake', 'roiled', 'en:sailor', 'en:siren'].forEach((m) => assert.ok(whens.includes(m), m));

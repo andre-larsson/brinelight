@@ -306,7 +306,8 @@
     text: () => `Unplayable. Stays in your deck until you remove it.`,
   });
   /* Seep: Roil carried past your Hold leaves the aether Roiled, and it sheds seawater. Shuffled into the draw pile at the
-     start of each fight (never into the deck), so it is gone after the fight. */
+     start of each fight (never into the deck), so it is gone after the fight. It is the first rung of the ladder in
+     E.roilFor (js/engine.js): Seep, then Scour, then a Bell Minnow, then round again. */
   card('seep', {
     name: 'Seep', type: 'status', rarity: 'special', cost: null, target: 'none', unplayable: true,
     v: {}, art: 'c_seep',
@@ -343,7 +344,9 @@
     Brine: 'Loses that much HP at the start of its turn, then Brine drops by 1.',
     Roil: 'How much a keepsake stirs the aether around it. Every keepsake you carry counts.',
     Hold: 'How much Roil the aether around you holds while it stays Calm. Deeper depths hold more.',
-    Seep: 'Roil you carry past your Hold leaves the aether Roiled, and it sheds Seep: an unplayable card shuffled into your draw pile at the start of each fight, 1 for every 5 Roil over (or part of 5). It is gone after the fight.',
+    Seep: 'Seawater shed by a Roiled aether: an unplayable card shuffled into your draw pile at the start of each fight. It is gone after the fight.',
+    Scour: 'A Roiled aether wears at you the longer a fight lasts. Scour 1: from your 4th turn of a fight, lose 1 HP at the start of each turn. Ward does not stop it.',
+    Roiled: 'You carry more Roil than your Hold. Every 5 Roil over (or part of 5) is one step, and each step adds one thing to every fight: a Seep, then 1 Scour, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows.',
   };
 
   /* ------------------------------------------------------------------ *
@@ -759,6 +762,7 @@
         ['The Drowned Reach', 'The sea-caves, stairs and rock terraces under the cliffs, below the lighthouse. The Bellwether keeps them flooded.'],
         ['Depths', 'The Reach goes down in four depths: the Shallows, Dark Water, Riptide and the Abyss. Each is harder than the one above it.'],
         ['Landings', 'The stops on the way down through a depth. The Bellwether waits on the last one.'],
+        ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. It opens after your first win.'],
       ] },
       { group: 'People', items: [
         ['Wren', 'You. The last lighthouse keeper of Saltmere.'],
@@ -776,7 +780,7 @@
         ['Brinelight', 'The glow in the water of the Reach. It is light from the Lantern Heart that has soaked into the seawater the bell holds.'],
         ['Keepsakes', 'Lost things that have lain in brinelight until they took on a magic of their own. The deeper they lay, the stronger they are.'],
         ['The aether', 'The unseen stuff that carries magic, the way air carries sound. Every keepsake stirs it. Roil is how much.'],
-        ['Calm and Roiled', 'The aether around you can take a certain amount of Roil: your Hold. Up to that it is Calm. Past it the aether is Roiled, and seawater comes out of it into your pack. That water is Seep.'],
+        ['Calm and Roiled', 'The aether around you can take a certain amount of Roil: your Hold. Up to that it is Calm. Past it the aether is Roiled. First seawater comes out of it into your pack: Seep. Then the aether turns rough and wears at you: Scour. Then the Bellwether hears it, and a Bell Minnow comes to look.'],
         ['Pearls', 'Money in the Reach. You find them after fights and in wrecks.'],
         ['Tonics', 'Brews in small bottles. Each works once.'],
       ] },
@@ -790,8 +794,10 @@
         text: 'On an ordinary coast the sea breaks a wreck up and washes the pieces ashore. The water the bell holds keeps everything it takes. Chests lie where they sank, and what is inside has soaked in brinelight for years. That is why it glows.' },
       { id: 'keepsake', title: 'How a keepsake is made', when: 'keepsake', lock: 'Carry a keepsake.',
         text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not.' },
-      { id: 'seep', title: 'Seep', when: 'roiled', lock: 'Carry more Roil than your Hold.',
-        text: 'One keepsake stirs the aether a little. Many together stir it more than it can take, and seawater starts to bead on your gear and soak into your pack. Keepers call that Seep. Drop a keepsake, or go deeper: near the bell the aether holds more.' },
+      { id: 'seep', title: 'A Roiled aether', when: 'roiled', lock: 'Carry more Roil than your Hold.',
+        text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether drags over you like a tide over rock, and it wears you down. That is Scour. Further still, and the noise carries. The Bellwether listens for it, and sends a Bell Minnow to find what is calling. Drop a keepsake, or go deeper: near the bell the aether holds more.' },
+      { id: 'lazaret', title: 'A night in the Lazaret', when: 'won:0', lock: 'Clear the Shallows.',
+        text: 'A lazaret is a ship\'s store locker, and also a house where the sick are kept apart. The keepers\' Lazaret is a little of both. A keepsake fresh from the Reach still answers the Bellwether, and the bell calls it back if its finder falls. One night shut in the Lazaret breaks that pull. After that the keepsake answers its keeper, and it turns up in the Lazaret again even if she leaves it behind in the caves.' },
       { id: 'kelp', title: 'The old coast', when: 'ev:ambush', lock: 'Found in the Fog.', art: 'scenes/ev_ambush',
         text: 'Not everything in the Reach serves the bell. Crabs, eels, gulls and kelp lived on this coast long before it rang by itself. The flooding gave them more room, and they guard what they find in it.' },
       { id: 'deckhand', title: 'Drowned Deckhands', when: 'en:sailor', lock: 'Found in a fight.', art: 'units/sailor',

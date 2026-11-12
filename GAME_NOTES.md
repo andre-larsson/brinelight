@@ -30,7 +30,8 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 The user paused the design work here. Nothing in this section is built. Names and numbers stay open until the final version. Start the next session with this section, then WORLD.md.
 
 **Where things stand.**
-- The live build is v0.12.0, pushed on 2026-11-12: the lore and names pass (v0.11.0), then the opening and Story so far (v0.12.0). The two went out in one commit, so v0.11.0 was never live on its own. Before it the live build was v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
+- The live build is v0.13.0, pushed on 2026-11-12: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
+- Before it came v0.12.0 (the opening and Story so far) and v0.11.0 (the lore and names pass), pushed together in one commit on the same day, and v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
 - The next big change is the item rework below (plans 1 and 2). It replaces the current gear, the pack capacity and the gear overburden.
 - The expedition direction (top of "Decisions the user made") came after the item plan was written. It answers some of the questions below and changes others. The notes say where.
 
@@ -224,7 +225,7 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
 **Build order** (the user said "start building" on 2026-11-12):
 1. **Kit in slots.** This replaces the pack, capacity and overburden. **Built in v0.10.0.**
 2. **Charge, Hold and Seep** in the current one-depth game. Until the expedition exists, the Hold follows the depth level. Keepsake picks become optional again. **Built in v0.10.0.** See "Kit and keepsake Charge (v0.10.0)".
-3. **The keepsake cabinet.** Keepsakes from a won run are kept, and you bring them within your Hold. New ones are lost on defeat.
+3. **The keepsake cabinet.** Keepsakes from a won run are kept, and you bring them within your Hold. New ones are lost on defeat. **Built in v0.13.0** as the Lazaret. See "The Lazaret (v0.13.0, 2026-11-12)".
 4. **The expedition:** bands, going home after a boss, and currents.
 
 **Belt (2026-11-12):**
@@ -324,6 +325,109 @@ The user asked for a title story that is more engaging and higher in stakes, the
 - The opening has no art of its own. The fourth picture puts the keeper sprite on the Cove painting.
 - "Tonight" in the opening and "by dawn" on the win screen fit one run. The planned expeditions with trips home will need different words.
 - Offered and not built: a different title line after the first win, and a count of stairs lost on the loss screen.
+
+### The Lazaret (v0.13.0, 2026-11-12)
+
+Step 3 of the build order. The user played v0.10.0 and their recent feedback comes from that playthrough.
+
+**Chosen by the user (2026-11-12):**
+- You may bring **any number** of kept keepsakes.
+- A win keeps **every** keepsake Wren carries.
+- The Lazaret **opens after the first Shallows win**.
+- **Not decided:** the user is "not sure if we should be allowed to stack keepsakes of same type/sell them".
+
+**The agent's calls (provisional; each can be undone on its own):**
+1. **No stacking.** The Lazaret holds one of each keepsake. No keepsake effect was written to stack, and two Whale Teeth or two Storm Bottles would need new balance work.
+2. **A duplicate brought home becomes Salvage:** half its Roil, rounded up (3 to 10). At full Roil a win with two duplicates almost doubled a run's Salvage, and kit costs 8 to 35.
+3. **Nothing else can be sold.** A sold keepsake would have to be found and won again, and Salvage has few things to buy.
+4. **A run can still offer a keepsake that is at home.** Without that, the offers would shrink as the Lazaret fills.
+5. **Keepsakes in the Lazaret are never lost.** A brought keepsake that Wren drops is out of that run only. WORLD.md has the reason: a night in the Lazaret makes it answer her.
+6. **The Hold is unchanged** (30 in the Shallows, +5 per depth). The Lazaret adds choice more than power, because the Hold caps what comes along.
+7. **Depths unlocked before v0.13.0 count as the first win,** so those players find the Lazaret open and empty.
+8. **A debug-cheated win keeps nothing.** The debug panel has "Fill the Lazaret".
+9. **The title screen's smaller buttons sit two to a row at every size.** A landscape phone also puts Continue and New Descent side by side. Seven buttons did not fit in one column.
+10. **Before a descent, keepsakes come first and kit second,** because bringing too many keepsakes has a cost and the player should see it without scrolling.
+
+**Measured** (bot, 1000 seeds; the bot brings the set, then plays and picks as usual; scratch `lazaret.js`):
+
+| Brought from the Lazaret | Shallows, no kit | Shallows, full kit | Dark Water, no kit |
+|---|---|---|---|
+| nothing | 23.3% | 34.5% | 14.4% |
+| Whale Tooth + Kelp Bracelet (Roil 30) | 32.8% | 40.6% | 21.9% |
+| Storm Bottle + Tidewatch (30) | 32.2% | 39.3% | 21.8% |
+| Drowned Anchor + Scallop Charm (30) | 31.4% | 39.5% | 18.8% |
+| Whispering Conch + Scallop Charm (29) | 28.9% | 37.8% | 19.0% |
+| Conch of Echoes + Tidewatch (29) | 28.3% | 37.2% | 20.2% |
+| Barnacle Plate + Tidewatch (26) | 29.0% | 36.8% | 17.7% |
+| Moon Shard, Gull Feather, Coral Branch, Salted Hook (29) | 23.5% | 30.1% | 15.9% |
+| Whale Tooth alone (19) | 30.2% | 37.1% | 18.7% |
+| Kelp Bracelet alone (11) | 29.5% | 37.5% | 20.2% |
+| Whale Tooth + Storm Bottle (37: 2 Seep in the Shallows, 1 in Dark Water) | 27.3% | 35.7% | 22.2% |
+| Whale Tooth, Storm Bottle, Drowned Anchor (55: 5 Seep, 4 in Dark Water) | 13.9% | 20.8% | 10.5% |
+| all 14 (177) | 4.2% | 6.1% | 1.9% |
+
+- A full Hold from home is worth 5 to 10 points in the Shallows without kit and 3 to 6 with a full kit. One keepsake from home is worth 6 to 7, because the run still picks up about one more.
+- A bot that brings a full Hold takes about 0.25 keepsakes on the way, against 1.7 when it brings nothing. Found keepsakes then cost Seep, so Dreads and Wrecks pay less. **Open:** is that a good tension or a dull one? A person can drop a brought keepsake for a found one at no lasting cost.
+- Going far over the Hold is worse than bringing nothing, so "any number" is safe.
+- The four cheap keepsakes together add nothing for the bot. It does not build around Coral Branch or Salted Hook.
+
+**How it is built:** `meta.lazaret`, `meta.bring` and `meta.lazOpen` in `brinelight.meta.v1`. `E.newRun(seed, level, kit, bring)` carries the chosen keepsakes and records them in `run.brought`. `E.storeKeepsakes(meta, run)` runs on a win. `E.foundKeepsakes(run)` lists what a fall loses. `E.toggleBring`, `E.bringCharge` and `E.duplicateSalvage` do the rest. The UI has `showLazaret()`, a keepsake section in the pre-descent screen, and a box on the end screen. `tests/lazaret.test.js` covers the rules, and `node tests/ui-smoke.js --only lazaret` plays three runs through the browser.
+
+**Debug switches for playtesting (asked for by the user, 2026-11-12):** "Skip fights" wins every fight the moment it starts. "Cheats count as real runs" stops cheats from marking the run, so a skipped run can still unlock depths, story and the Lazaret. The second switch is the agent's addition: without it, a skipped run could not test the Lazaret or the story. Both are kept in `brinelight.debugopts.v1`.
+
+**Still to do:**
+- The Lazaret has no picture.
+- The stacking and selling question is the user's to settle.
+- With expeditions, "win" becomes "come home", and the Lazaret is where going home or going on starts to matter.
+
+### The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)
+
+**The user's direction (2026-11-12):** the Lazaret is "good so far", but the penalties for too much Roil "could be even more creative", with room to deepen the lore. Their example ladder: Seep first, then damage each round from unstable aether, then something more severe such as extra enemies in each fight, then one more Seep, reusing penalties. "If easy to implement."
+
+**Built:** every 5 Roil past the Hold (or part of 5) is one step, as before. The steps now go round a ladder of three (`E.roilFor`):
+
+| Step | Adds to every fight |
+|---|---|
+| 1, 4, 7... | 1 Seep (an unplayable card in the draw pile) |
+| 2, 5, 8... | 1 Scour: from the 4th turn of a fight, lose that much HP at the start of each turn. Ward does not stop it. |
+| 3, 6 | 1 Bell Minnow as an extra enemy, at half health (6 or 7 HP in the Shallows). 2 at most. |
+
+**The agent's calls (provisional; each is one constant in js/engine.js):**
+1. **Scour starts on turn 4** (`E.SCOUR_FROM_TURN`). The user said "each round". Every turn from turn 1 was far too harsh for the bot (see the table), and turn 4 means a Swift fight is never Scoured, so it pushes toward fast fights.
+2. **The Minnow arrives at half health** (`E.ROIL_MINNOW_HP = 0.5`). A full Bell Minnow cost the bot 25 points on its own.
+3. **Two Minnows at most** (`E.MAX_ROIL_MINNOWS`). The boss calls two more, and five enemies is what the phone layout was checked with.
+4. **The names:** Scour for the HP loss (a tide scours rock). The extra enemy has no keyword of its own: the text says "a Bell Minnow".
+5. **The reason in the fiction:** the Bellwether listens for Roil and sends a minnow. WORLD.md has it as Agreed.
+
+**Measured** (bot, Shallows, 1000 seeds; the penalty is forced in every fight and the bot takes every keepsake freely, so compare the rows with each other and not with other tables):
+
+| In every fight | Win rate |
+|---|---|
+| nothing | 28.9% |
+| 1 Seep / 2 / 3 / 4 Seep (the old ladder) | 22.2% / 18.9% / 13.7% / 9.4% |
+| Scour 1 from turn 1 / 2 / 3 / 4 / 5 | 8.4% / 11.1% / 13.3% / 16.4% / 19.0% |
+| Scour 2 from turn 1 / from turn 4 | 1.7% / 9.0% |
+| 1 Bell Minnow at full / 50% / 25% health / 1 HP | 4.2% / 14.6% / 18.1% / 18.7% |
+| 2 Bell Minnows at full health | 0.2% |
+| **the ladder as built, step 1 / 2 / 3 / 4 / 5 / 6** | **22.2% / 11.1% / 4.7% / 2.4% / 0.8% / 0.1%** |
+
+Real runs that bring keepsakes from the Lazaret (the bot picks as usual):
+
+| Brought | Shallows, old ladder | Shallows, new | Dark Water, new |
+|---|---|---|---|
+| nothing | 23.3% | 23.8% | 14.2% |
+| Whale Tooth + Kelp Bracelet (30, Calm) | 32.8% | 30.6% | 21.4% |
+| Whale Tooth + Storm Bottle (37) | 27.3% | 23.5% | 20.1% |
+| Whale Tooth + Storm Bottle + Coral Branch (43) | not measured | 13.2% | 14.6% |
+| Whale Tooth + Storm Bottle + Drowned Anchor (55) | 13.9% | 7.1% | 6.1% |
+
+- **The ladder is steeper than the old one from step 2 on.** Step 1 is unchanged. For the bot, step 2 is about as bad as 3 or 4 Seep were. The bot's fights are long (5 turns at the median), so Scour hurts it more than it would hurt a player who wins in 3 or 4.
+- **Even a 1 HP Minnow costs the bot 10 points,** because it spends a card on it and takes a bite first. A player with a Crest deck kills a half-health Minnow with one wave.
+- **Open for the playtest:** is step 2 too big a jump from step 1? The knobs are the three constants above.
+
+**The title screen (the user, 2026-11-12):** "New Descent being most prominent/largest" is right; other action buttons such as the Workshop should be secondary, and the story, tutorial and How to Play buttons tertiary. Built as three levels: Continue and New Descent (large, filled), the Workshop and the Lazaret (medium, outlined), and Story so far, the Logbook, the Tutorial and How to Play (small, text only).
+
+**The Logbook (the user asked for "a very simple stat screen"):** a title-screen button once there is anything to show. It lists descents finished (won and lost), the deepest landing reached, depths cleared, best score, Salvage now and earned in all, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. The name is the agent's: a lighthouse keeper keeps a logbook. `meta.record = { runs, wins, deep }` is new, so descents and the deepest landing are counted from v0.13.0; the rest is read from what was already stored. Abandoned, tutorial and debug-cheated runs are not counted.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -667,6 +771,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - `tools/serve.js`, `tools/cdp.js`: static server and a tiny Chrome DevTools client (launches its own headless Chrome on a free port).
 - `tools/build.js`: assembles `_site/` for Pages and checks every referenced file exists.
 - `tests/workshop.test.js`: the Workshop, kit, Charge, Hold and Seep rules, and old saves carrying over. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: old lasting state carried over, buy, wear, dive, the Charge chip, dropping a keepsake, Seep in a fight, Salvage at the end, and abandoning a run earns nothing.
+- `tests/lazaret.test.js`: the Lazaret rules. `node tests/ui-smoke.js --only lazaret` plays a first win, a fall and a second win in the browser.
 - `tests/story.test.js`: the title line, the opening, and what opens each Story so far entry. `node tests/ui-smoke.js --only story` runs only the story flow in the browser. `tools/screens.js` also shoots the three Story so far tabs and the opening.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 
@@ -675,7 +780,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - All game randomness goes through a mulberry32 RNG whose state lives in the run (`run.rng`), so a save restores it exactly. Same seed and same decisions give the same run; tested, including a save/reload mid-fight.
 - `Math.random` is used only for a fresh seed and in the UI (music, particles, float positions).
 - The tutorial is a separate run object (`run.tutorial`) that is never saved and never scores. A run in progress is saved before the tutorial starts and reloaded after.
-- localStorage keys: `brinelight.save.v1`, `brinelight.prefs.v1`, `brinelight.best.v1`, `brinelight.maxlevel.v1`, `brinelight.tutorial.v1`, `brinelight.hints.v1`, `brinelight.version.v1`, `brinelight.meta.v1` (`{ salvage, earned, owned, kit, ach }` since v0.10.0; the older `packed` list is converted on load), `brinelight.debug.v1`. Every project site on the Pages origin shares storage, so keep the `brinelight.` prefix on anything new.
+- localStorage keys: `brinelight.save.v1`, `brinelight.prefs.v1`, `brinelight.best.v1`, `brinelight.maxlevel.v1`, `brinelight.tutorial.v1`, `brinelight.hints.v1`, `brinelight.version.v1`, `brinelight.meta.v1` (`{ salvage, earned, owned, kit, ach }` since v0.10.0, plus `lazaret`, `bring`, `lazOpen` and `record` since v0.13.0; the older `packed` list is converted on load), `brinelight.debug.v1`, `brinelight.debugopts.v1` (the debug panel's Skip fights and Cheats count switches). Every project site on the Pages origin shares storage, so keep the `brinelight.` prefix on anything new.
 
 ## Art
 

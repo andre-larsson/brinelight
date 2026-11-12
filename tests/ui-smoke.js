@@ -3,7 +3,7 @@
    - desktop 1280x800 with the mouse (clicks, a drag) and the keyboard
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
-   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|debug]
+   Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
 'use strict';
 const path = require('path');
@@ -350,14 +350,17 @@ async function workshopScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="ksdrop"]');
   if (await page.eval('window.Brinelight.run.keepsakes.join()') !== 'whaletooth') failures.push(`${name}: dropping a keepsake didn't work`);
   if (await page.eval(`!!document.querySelector('.hud .charge.over')`)) failures.push(`${name}: still over the Hold after dropping`);
-  // the first fight: Seep joins it when over the Hold
-  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'anchor'); B.render(); })()`);
+  // the first fight, 3 steps over the Hold: a Seep, Scour 1 and a Bell Minnow join it
+  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'anchor'); B.E.gainKeepsake(B.run, 'coralcrown'); B.render(); })()`);
   await dismissHints(page);
   await page.click('[data-act="node"]');
   await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop');
   if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
   const seep = await page.eval(`(() => { const c = window.Brinelight.run.combat; return c.hand.concat(c.draw).filter((x) => x.id === 'seep').length; })()`);
-  if (seep !== 2) failures.push(`${name}: ${seep} Seep in a fight at Roil 37 of 30`);
+  if (seep !== 1) failures.push(`${name}: ${seep} Seep in a fight at Roil 43 of 30`);
+  const roiled = await page.eval(`(() => { const c = window.Brinelight.run.combat; return { scour: c.scour, minnows: c.enemies.filter((e) => e.roil && e.id === 'minnow').length, shown: document.querySelectorAll('.enemy').length, all: c.enemies.length }; })()`);
+  if (roiled.scour !== 1 || roiled.minnows !== 1 || roiled.shown !== roiled.all) failures.push(`${name}: a fight at Roil 43 of 30 should have Scour 1 and 1 Bell Minnow on the field (${JSON.stringify(roiled)})`);
+  await checkPage(page, name + ' roiled fight');
   // the run ends: Salvage from the score, and an achievement reached in it unlocks kit
   await waitIdle(page);
   await page.eval(`(() => { const B = window.Brinelight; B.run.stats.maxChain = 3; B.run.screen = 'defeat'; B.render(); })()`);
@@ -440,6 +443,38 @@ async function debugScenario(page, base) {
   await sleep(300);
   if ((await page.eval(`localStorage.getItem('brinelight.best.v1')`)) !== '777') failures.push('debug: a cheated run changed the best score');
   if (!(await page.eval(`/Debug run/.test(document.body.innerText)`))) failures.push('debug: the end screen does not say it was a debug run');
+  // Skip fights wins every fight without a click; with "Cheats count as real runs" the run is not marked
+  await page.key('`');
+  await sleep(150);
+  await clickIf(page, '#overlay [data-dbg="skip"]');
+  await sleep(100);
+  await clickIf(page, '#overlay [data-dbg="count"]');
+  await sleep(100);
+  if ((await page.eval(`localStorage.getItem('brinelight.debugopts.v1')`)) !== '{"skip":true,"count":true}') failures.push('debug: the Skip fights and Cheats count switches were not stored');
+  if (!(await page.eval(`/SKIPPING/.test(document.querySelector('.dbg-tab').textContent)`))) failures.push('debug: the DEBUG tab does not say fights are skipped');
+  await clickIf(page, '#overlay [data-act="close"]');
+  await page.click('[data-act="newrun"]');
+  await clickIf(page, '#overlay [data-act="startlevel"][data-lv="0"]');
+  await clickIf(page, '#overlay [data-act="dive"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the skipped run');
+  await dismissHints(page);
+  await page.click('[data-act="node"]');
+  await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop of the skipped run');
+  if (await page.eval('window.Brinelight.run.screen !== "combat" && window.Brinelight.run.screen !== "reward"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
+  await sleep(500);
+  await dismissHints(page);
+  await page.waitFor('window.Brinelight.run.screen === "reward"', 8000, 'Skip fights to win the first fight');
+  if (await page.eval('!!window.Brinelight.run.cheated')) failures.push('debug: with Cheats count as real runs on, the run was still marked');
+  await page.eval(`(() => { const B = window.Brinelight; B.E.backToMap(B.run); B.E.gainKeepsake(B.run, 'moonshard'); B.render(); })()`);
+  await page.key('`');
+  await sleep(150);
+  await clickIf(page, '#overlay [data-dbg="go"][data-type="boss"]');
+  await sleep(800);
+  await dismissHints(page);
+  await page.waitFor('window.Brinelight.run.screen === "victory"', 10000, 'Skip fights to win the boss');
+  await sleep(300);
+  if ((await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1')).lazaret.join(',')`)) !== 'moonshard') failures.push('debug: a counted debug win kept nothing in the Lazaret');
+  if (await page.eval(`/Debug run/.test(document.body.innerText)`)) failures.push('debug: a counted debug run is still called a debug run');
   // ?debug=0 turns it off again
   await page.goto(base + '?debug=0');
   if (await page.eval(`!!document.querySelector('.dbg-tab')`)) failures.push('debug: ?debug=0 did not turn it off');
@@ -618,6 +653,103 @@ async function storyScenario(page, base, name, size) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* The Lazaret: a first win opens it and keeps what Wren carries, she chooses what to bring, a fall loses
+   only what she found, and a keepsake the Lazaret already holds becomes Salvage. */
+async function lazaretScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=7777');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
+  await page.goto(base + '?seed=7777');
+  await inject(page);
+  const count = (sel) => page.eval(`document.querySelectorAll(${JSON.stringify(sel)}).length`);
+  const text = (sel) => page.eval(`(document.querySelector(${JSON.stringify(sel)}) || { textContent: '' }).textContent`);
+  const stored = () => page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
+  const keeps = () => page.eval('window.Brinelight.run.keepsakes.join(",")');
+  const setOut = async (what) => {
+    await clickIf(page, '[data-act="newrun"]');
+    await sleep(200);
+    await clickIf(page, '[data-act="confirmnew"]');
+    await clickIf(page, '#overlay [data-act="startlevel"][data-lv="0"]');
+    await sleep(200);
+    if (!(await count('#overlay [data-act="ksbring"]'))) failures.push(`${name}: no keepsakes to choose before ${what}`);
+  };
+  const dive = async (what) => {
+    await page.click('#overlay [data-act="dive"]');
+    await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for ' + what);
+    await dismissHints(page);
+  };
+  const end = (screen, found) => page.eval(`(() => { const B = window.Brinelight, r = B.run; ${JSON.stringify(found)}.forEach((k) => B.E.gainKeepsake(r, k)); r.combat = null; r.floor = 11; r.screen = ${JSON.stringify(screen)}; B.render(); })()`);
+
+  if (await count('[data-act="lazaret"]')) failures.push(`${name}: the Lazaret is on the title screen before the first win`);
+  // first win: the Lazaret opens and keeps both keepsakes
+  await page.click('[data-act="newrun"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the first Lazaret run');
+  await dismissHints(page);
+  await end('victory', ['moonshard', 'anchor']);
+  await sleep(200);
+  let m = await stored();
+  if (!m.lazOpen || m.lazaret.join(',') !== 'moonshard,anchor') failures.push(`${name}: the first win didn't keep both keepsakes (${JSON.stringify(m.lazaret)})`);
+  if (!/The Lazaret is open/.test(await text('.lz-box')) || !/Moon Shard/.test(await text('.lz-box'))) failures.push(`${name}: the end screen doesn't say the Lazaret opened and what it kept`);
+  await checkPage(page, name + ' first win');
+  await clickIf(page, '.lz-box');
+  await sleep(200);
+  if ((await count('#overlay [data-act="ksbring"]')) !== 2 || (await count('#overlay .lz-missing')) !== 12) failures.push(`${name}: the Lazaret should show 2 kept and 12 not brought home`);
+  await checkPage(page, name + ' lazaret');
+  await clickIf(page, '#overlay [data-act="ksbring"][data-k="anchor"]');
+  await sleep(150);
+  m = await stored();
+  if (m.bring.join(',') !== 'anchor' || (await count('#overlay .kit-tile.chosen')) !== 1) failures.push(`${name}: choosing a keepsake in the Lazaret wasn't stored or shown`);
+  await clickIf(page, '#overlay .modal-foot [data-act="close"]');
+  await clickIf(page, '[data-act="totitle"]');
+  if (!/2\/14/.test(await text('[data-act="lazaret"]'))) failures.push(`${name}: the title screen doesn't show the Lazaret with 2 of 14`);
+  // the title screen has three levels of button, and the logbook has counted the win
+  const levels = await page.eval(`({ second: document.querySelectorAll('.title-buttons .btn.second').length, third: document.querySelectorAll('.title-buttons .btn.third').length })`);
+  if (levels.second !== 2 || levels.third !== 4) failures.push(`${name}: the title screen should have 2 second-level and 4 third-level buttons (${JSON.stringify(levels)})`);
+  await page.click('[data-act="logbook"]');
+  await sleep(200);
+  if (!/1 won, 0 lost/.test(await text('#overlay .logbook')) || !/Shallows, landing 11 of 11/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first win (${await text('#overlay .logbook')})`);
+  await checkPage(page, name + ' logbook');
+  await clickIf(page, '#overlay .modal-foot [data-act="close"]');
+  // second descent: bring both, drop one on the way, then fall with two found keepsakes
+  await setOut('the second descent');
+  await checkPage(page, name + ' pack');
+  await clickIf(page, '#overlay [data-act="ksbring"][data-k="moonshard"]');
+  await sleep(150);
+  if (!/Calm/.test(await text('#overlay .lz-line'))) failures.push(`${name}: Moon Shard and Drowned Anchor (Roil 26) should be Calm in the Shallows`);
+  await dive('the second descent');
+  if ((await keeps()) !== 'anchor,moonshard' || (await count('.hud .medal[data-k="anchor"]')) !== 1) failures.push(`${name}: the run didn't start with the keepsakes brought (${await keeps()})`);
+  await clickIf(page, '.hud .medal[data-k="anchor"]');
+  await sleep(200);
+  if (!/Lazaret/.test(await text('#overlay .modal-body'))) failures.push(`${name}: a brought keepsake doesn't say it stays in the Lazaret when dropped`);
+  await clickIf(page, '#overlay [data-act="ksdrop"]');
+  await sleep(200);
+  if ((await keeps()) !== 'moonshard') failures.push(`${name}: dropping a brought keepsake didn't remove it from the run`);
+  await end('defeat', ['gullfeather', 'tidewatch']);
+  await sleep(200);
+  m = await stored();
+  if (m.lazaret.join(',') !== 'moonshard,anchor') failures.push(`${name}: a fall changed the Lazaret (${JSON.stringify(m.lazaret)})`);
+  if (!/Gull Feather/.test(await text('.lz-box.lost')) || !/safe in the Lazaret/.test(await text('.lz-box.lost'))) failures.push(`${name}: the fall doesn't list what the bell called back`);
+  await checkPage(page, name + ' fall');
+  // third descent: leave the Anchor at home, find it again and win
+  await setOut('the third descent');
+  await clickIf(page, '#overlay [data-act="ksbring"][data-k="anchor"]');
+  await sleep(150);
+  await dive('the third descent');
+  if ((await keeps()) !== 'moonshard') failures.push(`${name}: a keepsake left at home came along (${await keeps()})`);
+  const before = (await stored()).salvage;
+  await end('victory', ['anchor', 'tidewatch']);
+  await sleep(200);
+  m = await stored();
+  const score = await page.eval('window.Brinelight.run.final.salvage');
+  if (m.lazaret.join(',') !== 'moonshard,anchor,tidewatch') failures.push(`${name}: the second win should add only Tidewatch (${JSON.stringify(m.lazaret)})`);
+  if (m.salvage !== before + score + 9) failures.push(`${name}: a second Drowned Anchor should become 9 Salvage (had ${before}, run ${score}, now ${m.salvage})`);
+  if (!/already holds/.test(await text('.lz-box'))) failures.push(`${name}: the end screen doesn't say the duplicate became Salvage`);
+  await checkPage(page, name + ' second win');
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 (async () => {
   const server = await serve(PORT, ROOT);
   const page = await launch();
@@ -637,6 +769,10 @@ async function storyScenario(page, base, name, size) {
     if (!ONLY || ONLY === 'story') {
       await storyScenario(page, base, 'story desktop', { w: 1280, h: 800 });
       await storyScenario(page, base, 'story phone', { w: 390, h: 844, mobile: true, touch: true });
+    }
+    if (!ONLY || ONLY === 'lazaret') {
+      await lazaretScenario(page, base, 'lazaret desktop', { w: 1280, h: 800 });
+      await lazaretScenario(page, base, 'lazaret phone', { w: 390, h: 844, mobile: true, touch: true });
     }
     if (!ONLY || ONLY === 'workshop') {
       await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });

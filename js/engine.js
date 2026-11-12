@@ -84,19 +84,32 @@
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
   E.bell = (run) => (run.kit && run.kit.bell) || null;
 
-  /* ---------------- Roil, Hold and Seep ----------------
+  /* ---------------- Roil, Hold and what a Roiled aether does ----------------
      Every keepsake has a Roil (`charge` in the code and in saves). The aether around you can hold so much
-     (the Hold, more at deeper depths) and stay Calm. Past it the aether is Roiled: every 5 Roil over (or
-     part of 5) adds 1 Seep to the draw pile at the start of each fight. */
+     (the Hold, more at deeper depths) and stay Calm. Past it the aether is Roiled, one step for every
+     5 Roil over (or part of 5). The steps climb a ladder of three, round and round:
+       step 1, 4, 7...: one more Seep, an unplayable card in the draw pile of each fight;
+       step 2, 5, 8...: one more Scour, HP lost at the start of each of your turns from the 4th turn of a fight;
+       step 3, 6:       one more Bell Minnow joins each fight at half health, drawn by the noise (2 at most). */
   E.HOLD_BASE = 30;
   E.HOLD_STEP = 5; // more Hold for each deeper depth
-  E.SEEP_STEP = 5; // Roil over the Hold for each Seep
+  E.SEEP_STEP = 5; // Roil over the Hold for each step
+  E.MAX_ROIL_MINNOWS = 2;
+  E.SCOUR_FROM_TURN = 4; // the first turn of a fight on which Scour takes HP: a fight won in 3 turns (Swift) is never Scoured
+  E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
   E.hold = (level) => E.HOLD_BASE + E.HOLD_STEP * (level || 0);
   E.chargeOf = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].charge) || 0;
   /* The Roil you carry, optionally with one more keepsake (to show what taking it would do). */
   E.charge = (run, extra) => run.keepsakes.reduce((a, k) => a + E.chargeOf(k), 0) + (extra ? E.chargeOf(extra) : 0);
-  E.seepFor = (charge, level) => { const over = charge - E.hold(level); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
-  E.seepCount = (run, extra) => (run.tutorial ? 0 : E.seepFor(E.charge(run, extra), run.level));
+  E.roilSteps = (charge, level) => { const over = charge - E.hold(level); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
+  E.roilFor = function (charge, level) {
+    const s = E.roilSteps(charge, level);
+    return { steps: s, seep: Math.ceil(s / 3), scour: Math.floor((s + 1) / 3), minnows: Math.min(E.MAX_ROIL_MINNOWS, Math.floor(s / 3)) };
+  };
+  /* What the aether does to this run in every fight, optionally with one more keepsake. */
+  E.roil = (run, extra) => (run.tutorial ? E.roilFor(0, 0) : E.roilFor(E.charge(run, extra), run.level));
+  E.seepFor = (charge, level) => E.roilFor(charge, level).seep;
+  E.seepCount = (run, extra) => E.roil(run, extra).seep;
 
   /* ---------------- Run ---------------- */
   E.LEVELS = [
@@ -109,7 +122,7 @@
     { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1.1, dmg: 1, rest: 0.3 }, { hp: 1.15, dmg: 1.1, rest: 0.3 }, { hp: 1.2, dmg: 1.15, rest: 0.25 },
   ][lv || 0] || { hp: 1, dmg: 1, rest: 0.3 });
 
-  E.newRun = function (seed, level, kit) {
+  E.newRun = function (seed, level, kit, bring) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
       version: 2,
@@ -127,6 +140,7 @@
     BL.STARTER_DECK.forEach((id) => run.deck.push(E.newCard(run, id)));
     run.map = genMap(run);
     E.applyKit(run, kit); // after the map, so the same seed gives the same map with any kit
+    E.bringKeepsakes(run, bring); // keepsakes from the Lazaret: no randomness either
     return run;
   };
 
@@ -517,19 +531,28 @@
     run.combat = c;
     run.screen = 'combat';
     const pile = run.deck.map((card) => ({ uid: card.uid, id: card.id, up: card.up }));
-    // Seep: Roil carried past the Hold, for this fight only (it never joins the deck)
-    const seep = E.seepCount(run);
+    // Roil carried past the Hold, for this fight only. Seep never joins the deck.
+    const roil = E.roil(run);
+    const seep = roil.seep;
     for (let i = 0; i < seep; i++) pile.push(E.newCard(run, 'seep'));
     if (seep) c.seep = seep;
+    if (roil.scour) c.scour = roil.scour;
     // noShuffle (tutorial only): draw the deck in order, and refill from the discard pile in a fixed order
     if (opts && opts.noShuffle) { c.noShuffle = true; c.draw = pile.reverse(); } else c.draw = R.shuffle(pile);
     enc.forEach((id, idx) => spawnEnemy(run, c, id, idx));
+    // Bell Minnows that follow the Roil come after the encounter's own enemies
+    for (let i = 0; i < roil.minnows; i++) {
+      const e = spawnEnemy(run, c, 'minnow', enc.length + i);
+      e.roil = true;
+      e.hp = e.maxHp = Math.max(1, Math.ceil(e.maxHp * E.ROIL_MINNOW_HP));
+    }
+    if (roil.minnows) c.roilMinnows = roil.minnows;
     if (E.has(run, 'whaletooth')) c.player.st.might = (c.player.st.might || 0) + 1;
     if (E.has(run, 'barnacleplate')) c.player.st.spines = (c.player.st.spines || 0) + BL.KEEPSAKES.barnacleplate.spines;
     if (E.has(run, 'moonshard')) c.tide = 5;
     if (E.has(run, 'sirenscale')) c.enemies.forEach((e) => { e.st.soaked = (e.st.soaked || 0) + 2; });
     if (E.has(run, 'echoconch')) c.echo = 1;
-    if (seep) fx(c, { t: 'addcards', id: 'seep', n: seep, pile: 'draw' });
+    if (roil.steps) fx(c, { t: 'roil', seep, scour: roil.scour, minnows: roil.minnows });
     if (kind === 'easy' || kind === 'hard') run.normalFights++;
     startPlayerTurn(run);
     if (E.hasKit(run, 'gorget')) gainWard(c, c.player, 4);
@@ -822,6 +845,11 @@
     c.turnLows = 0;
     const P = c.player;
     P.ward = 0;
+    if (c.scour && c.turn >= E.SCOUR_FROM_TURN) {
+      fx(c, { t: 'scour', n: c.scour });
+      loseHpDirect(run, c, P, c.scour);
+      if (c.lost) return;
+    }
     if ((P.st.brine || 0) > 0) {
       loseHpDirect(run, c, P, P.st.brine);
       P.st.brine--;
@@ -1199,10 +1227,23 @@
 
   /* ---------------- Workshop: progression that lasts across runs ----------------
      `meta` is the player's lasting state (the UI keeps it in localStorage):
-     { salvage, earned, owned: [kit ids], kit: { place: id }, ach: [achievement ids] }. */
+     { salvage, earned, owned: [kit ids], kit: { place: id }, ach: [achievement ids],
+       lazaret: [keepsake ids kept at home], bring: [the ones chosen for the next descent], lazOpen,
+       record: { runs, wins, deep } }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [] });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, record: E.newRecord() });
+  /* The logbook: finished runs, counted since v0.13.0. `deep` is the deepest landing reached: { level, floor }. */
+  E.newRecord = () => ({ runs: 0, wins: 0, deep: null });
+  E.recordRun = function (meta, run, won) {
+    if (!run || run.tutorial) return meta.record;
+    const r = meta.record;
+    r.runs++;
+    if (won) r.wins++;
+    const lv = run.level || 0, fl = run.floor || 0;
+    if (!r.deep || lv > r.deep.level || (lv === r.deep.level && fl > r.deep.floor)) r.deep = { level: lv, floor: fl };
+    return r;
+  };
   E.ownsKit = (meta, id) => !!BL.KIT[id] && (!!BL.KIT[id].starter || meta.owned.indexOf(id) >= 0);
   E.kitUnlocked = (meta, id) => { const g = BL.KIT[id]; return !!g && (!g.unlock || meta.ach.indexOf(g.unlock) >= 0); };
   E.buyKit = function (meta, id) {
@@ -1245,6 +1286,17 @@
     }
     m.kit = E.fitKit(m.kit, owned);
     delete m.packed;
+    // the Lazaret (v0.13.0): only real keepsakes, one of each, and you can only bring what is kept there
+    const uniq = (list) => (Array.isArray(list) ? list : []).filter((k, i, a) => BL.KEEPSAKES[k] && a.indexOf(k) === i);
+    m.lazaret = uniq(m.lazaret);
+    m.bring = uniq(m.bring).filter((k) => m.lazaret.indexOf(k) >= 0);
+    m.lazOpen = !!m.lazOpen || m.lazaret.length > 0;
+    // the logbook (v0.13.0)
+    const rec = E.newRecord(), old = m.record && typeof m.record === 'object' ? m.record : {};
+    if (old.runs > 0) rec.runs = Math.floor(old.runs);
+    if (old.wins > 0) rec.wins = Math.min(rec.runs, Math.floor(old.wins));
+    if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
+    m.record = rec;
     return m;
   };
   /* A run saved before v0.10.0: the Tide-Bell keepsake becomes the bell, and the keepsakes and gear that
@@ -1283,6 +1335,46 @@
     return n;
   };
 
+  /* ---------------- The Lazaret: keepsakes kept between runs ----------------
+     The Lazaret is the locked store room at the lighthouse. It opens on the first win. A win puts every
+     keepsake Wren carries into it, one of each; a keepsake it already holds becomes Salvage instead.
+     Before a descent she chooses any of them to bring, and each one counts toward the Hold as usual.
+     When she falls, the keepsakes she found on that descent are lost. The ones in the Lazaret never are. */
+  E.lazaretOpen = (meta) => !!meta.lazOpen;
+  E.inLazaret = (meta, k) => meta.lazaret.indexOf(k) >= 0;
+  /* Choose a kept keepsake for the next descent, or leave it at home again. */
+  E.toggleBring = function (meta, k) {
+    if (!E.inLazaret(meta, k)) return false;
+    const i = meta.bring.indexOf(k);
+    if (i < 0) meta.bring.push(k); else meta.bring.splice(i, 1);
+    return true;
+  };
+  E.bringCharge = (meta) => meta.bring.reduce((a, k) => a + E.chargeOf(k), 0);
+  /* Start-of-run: the chosen keepsakes are carried from the first landing, and the run remembers which they were. */
+  E.bringKeepsakes = function (run, bring) {
+    run.brought = [];
+    (bring || []).forEach((k) => { if (BL.KEEPSAKES[k] && !E.has(run, k)) { E.gainKeepsake(run, k); run.brought.push(k); } });
+    return run.brought;
+  };
+  E.wasBrought = (run, k) => (run.brought || []).indexOf(k) >= 0;
+  /* Keepsakes found on this descent and still carried: what a fall loses. */
+  E.foundKeepsakes = (run) => run.keepsakes.filter((k) => !E.wasBrought(run, k));
+  E.duplicateSalvage = (k) => Math.ceil(E.chargeOf(k) / 2); // a keepsake the Lazaret already holds is worth half its Roil in Salvage, rounded up
+  /* A won run comes home. Returns { opened, kept: [new in the Lazaret], dupes: [turned into Salvage], salvage }. */
+  E.storeKeepsakes = function (meta, run) {
+    const res = { opened: false, kept: [], dupes: [], salvage: 0 };
+    if (!run || run.tutorial || run.screen !== 'victory') return res;
+    if (!meta.lazOpen) { meta.lazOpen = true; res.opened = true; }
+    run.keepsakes.forEach((k) => {
+      if (!BL.KEEPSAKES[k]) return;
+      if (!E.inLazaret(meta, k)) { meta.lazaret.push(k); res.kept.push(k); }
+      else if (!E.wasBrought(run, k)) { res.dupes.push(k); res.salvage += E.duplicateSalvage(k); }
+    });
+    meta.salvage += res.salvage;
+    meta.earned += res.salvage;
+    return res;
+  };
+
   /* ---------------- Story so far ----------------
      Marks are what the player has met. An entry in BL.STORY with `when` opens once its mark is earned.
      E.storyMarks reads them off the run as it stands, so the UI calls it whenever the run changes. */
@@ -1300,7 +1392,7 @@
       run.combat.enemies.forEach((e) => { if (m.indexOf('en:' + e.id) < 0) m.push('en:' + e.id); });
     }
     if (run.keepsakes.length) m.push('keepsake');
-    if (E.seepCount(run) > 0) m.push('roiled');
+    if (E.roil(run).steps > 0) m.push('roiled');
     return m;
   };
   E.storyOpen = (entry, marks) => !entry.when || marks.indexOf(entry.when) >= 0;

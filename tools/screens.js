@@ -132,6 +132,34 @@ const SIZES = {
       await sleep(900);
       await shot(tag, '21_opening_4');
       await page.eval(`document.querySelector('[data-act="opnext"]').click()`);
+      // the Lazaret: five keepsakes kept, two chosen (over the Shallows Hold), then the choice before a descent
+      await setup(`B.closeOverlay(true); B.setMaxLevel(1); const m = B.meta; m.lazOpen = true; m.lazaret = ['whaletooth', 'stormbottle', 'moonshard', 'biscuit', 'coralcrown']; m.bring = ['whaletooth', 'stormbottle']; B.saveMeta(); B.run = null; B.render(); document.querySelector('[data-act="lazaret"]').click();`);
+      await shot(tag, '22_lazaret');
+      await setup(`B.closeOverlay(true); document.querySelector('[data-act="newrun"]').click();`);
+      await sleep(200);
+      await page.eval(`document.querySelector('[data-act="startlevel"][data-lv="0"]').click()`);
+      await shot(tag, '23_pack');
+      // a win: one new keepsake kept, one the Lazaret already holds
+      await setup(`B.closeOverlay(true); const r = E.newRun(4242, 0, B.meta.kit, B.meta.bring); E.gainKeepsake(r, 'anchor'); E.gainKeepsake(r, 'moonshard'); r.floor = 11; r.screen = 'victory'; B.run = r; B.render();`);
+      await shot(tag, '24_victory');
+      // a fall: the found keepsakes are lost
+      await setup(`const r = E.newRun(4242, 0, B.meta.kit, B.meta.bring); E.gainKeepsake(r, 'gullfeather'); E.gainKeepsake(r, 'tidewatch'); r.floor = 6; r.screen = 'defeat'; B.run = r; B.render();`);
+      await shot(tag, '25_defeat_lost');
+      // a Roiled fight: 3 steps past the Hold, so a Seep, Scour 1 and a Bell Minnow; then the keepsake that causes it
+      await setup(`const r = E.newRun(4242, 0, B.meta.kit, ['whaletooth', 'stormbottle', 'coralcrown']); B.run = r; E.startCombat(r, 'hard', ['crab', 'jelly']); B.render();`);
+      await sleep(1800);
+      await shot(tag, '27_roiled_fight');
+      await setup(`const r = B.run; const c = r.combat; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); c.won = true; E.finishCombat(r); E.backToMap(r); B.render(); document.querySelector('.hud .charge').click();`);
+      await shot(tag, '28_roil_tip');
+      await setup(`document.querySelector('.hud .medal[data-k="whaletooth"]').click();`);
+      await shot(tag, '29_keepsake_roiled');
+      // the logbook
+      await setup(`B.closeOverlay(true); B.meta.record = { runs: 14, wins: 3, deep: { level: 1, floor: 7 } }; B.saveMeta(); B.run = null; B.render(); document.querySelector('[data-act="logbook"]').click();`);
+      await shot(tag, '30_logbook');
+      await setup(`B.closeOverlay(true);`);
+      // the title screen with every button: a saved run, the Workshop and the Lazaret
+      await setup(`const r = E.newRun(4242, 0); r.floor = 3; B.run = r; B.save(); B.run = null; B.render();`);
+      await shot(tag, '26_title_full');
     }
     fs.writeFileSync(path.join(out, 'small-text.txt'), small.join('\n') + '\n');
     console.log(small.length ? `Text below ${MIN_PX}px on ${small.length} screens (see small-text.txt)` : `No text below ${MIN_PX}px`);

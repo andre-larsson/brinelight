@@ -94,6 +94,9 @@ Every expedition starts on shore in the Shallows and can continue through every 
 - **Agreed:** Continuing is the only way to reach richer finds and make progress farther down in that expedition. The expedition also ends if Wren completes the game or falls.
 - **Agreed:** Keepsakes are kept between expeditions, as the name says. If Wren falls, she loses the keepsakes she found on that expedition. She keeps the ones she brought from home.
 - **Agreed:** A keepsake fresh from the Reach still answers the Bellwether, so the bell calls it back when Wren falls. A night in the Lazaret makes a keepsake hers.
+- **Agreed:** A keepsake that has spent a night in the Lazaret answers its keeper. If Wren leaves it behind in the caves, it is in the Lazaret again when she gets home. Nobody has seen one travel.
+- **Agreed (v0.13.0): what a Roiled aether does, in order.** First it sheds seawater into Wren's pack: Seep. Stirred further, the aether turns rough and drags over her like a tide over rock: Scour. It takes a few turns of a fight to build, so a quick fight escapes it. Further still, the noise carries. The Bellwether listens for Roil, and sends a Bell Minnow to find what is calling. The minnow that arrives is a small one. Then the ladder goes round again.
+- **In the game (v0.13.0):** The Lazaret opens after the first win. A win keeps every keepsake Wren carries. Before a descent she chooses any number to bring, and each counts toward the Hold. A fall loses only the keepsakes found on that descent. The Lazaret holds one of each, and a second one becomes Salvage: the keepers break it up for its brass and bone.
 - **Open:** How the rest of what Wren brings home is kept or used between expeditions.
 - **Agreed:** The pack does not grow and cannot be repacked after breaking a pin. If Wren brings the diving suit, it occupies a worn slot from the first band onward and has no effect in fights. Carrying it therefore makes every band above the last harder. She cannot enter the Belfry without it.
 - **Agreed:** Wren finds the suit the first time she clears the Abyss, the last walkable band. She cannot put it on during that expedition, so she has to carry it home. From then on she can pack it on shore. It is an old keeper's diving dress with a sealed lamp. Her open lantern establishes that the bands above the Belfry contain air.
@@ -117,7 +120,7 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 
 - **In the game:** Saltmere has a lighthouse and its great light above the descent. Saltmere is named in the README and on the win screen.
 - **Agreed:** The Workshop is on the shore at Saltmere and is used between expeditions. Salvage, Workshop, and Kit are working names in `BL.META_TEXT` in js/data.js. The Workshop has no scene yet.
-- **Agreed:** The Lazaret is the safe room at the lighthouse where keepsakes are stored. A lazaret is a ship's store locker, and also a quarantine house. It keeps the keepsakes' Roil in, so the aether around it stays Calm and nothing takes Seep. That is how Wren can keep many keepsakes close together at home. The form of the store inside the room is open. The Lazaret is not in the game yet.
+- **Agreed:** The Lazaret is the safe room at the lighthouse where keepsakes are stored. A lazaret is a ship's store locker, and also a quarantine house. It keeps the keepsakes' Roil in, so the aether around it stays Calm and nothing takes Seep. That is how Wren can keep many keepsakes close together at home. The form of the store inside the room is open. The Lazaret is in the game since v0.13.0, as a screen with no picture of its own.
 - **In the game:** The Drowned Reach is the map of a single depth. **Agreed:** It will refer to the whole coast, crossed band by band during one expedition.
 - **In the game:** Sheltered Cove is a dry hollow above the tide line. The lantern burns steadily there, and the deep cannot reach Wren for a little while.
 - **Agreed:** The Shallows are the foreshore at ordinary low tide. They contain wet stone, pools, and the first stair. There is no sill yet.
@@ -139,12 +142,12 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 - **In the game:** The on-screen voice is short and concrete. Its vocabulary includes harpoon, bilge, gaff, brace, slack water, pearls, brine, and barnacles. New story text should use the same voice.
 - **In the game:** Pearls are money during a descent. Barnaby accepts them, and Wren can find them in wrecks and after fights.
 - **In the game:** Light is the resource spent on cards. The game also uses the word for lanterns and Saltmere's great light. **Agreed:** They are the same fire.
-- **In the game:** Swell, Surge, Ebb, Crest, Strand, Ward, Brine, Soaked, Chilled, Sink, Float, Rite, Echo, Dread, Fog, Roil, Hold, and Seep already have meanings in play. Story text must use them consistently with their definitions in the README.
+- **In the game:** Swell, Surge, Ebb, Crest, Strand, Ward, Brine, Soaked, Chilled, Sink, Float, Rite, Echo, Dread, Fog, Roil, Hold, Seep, and Scour already have meanings in play. Story text must use them consistently with their definitions in the README.
 - **Agreed:** Keepsakes are small trinkets with strong magical effects. Gear is worn equipment, separate from keepsakes. The suit is gear and has no magical effect.
 - **Agreed:** A keepsake is a lost thing that has sat in brinelight. Closer to the bell, the held water has more of the Heart's light in it, so the keepsakes found there are stronger. The drained terraces contain wet stone and pools. The brinelight is in the remaining water, rather than in a larger volume of seawater. How a lost thing becomes a keepsake is not explained.
 - **In the game:** The aether is the unseen stuff that carries magic, the way air carries sound.
 - **Agreed:** A keepsake stirs the aether around it. The user's word is "pollutes". The measure of that is Roil. Every keepsake Wren carries counts, worn or not. The aether around her can hold only so much Roil, and it holds more closer to the bell. That limit is her Hold.
-- **Agreed:** Up to the Hold the aether is Calm. Past it the aether is Roiled, and the extra condenses as Seep: seawater that clogs her pack. In a fight, Seep is an unplayable card.
+- **Agreed:** Up to the Hold the aether is Calm. Past it the aether is Roiled, and the extra condenses as Seep: seawater that clogs her pack. In a fight, Seep is an unplayable card. Since v0.13.0 Seep is the first of three effects; the expedition section lists them in order.
 - **In the game:** Each keepsake shows its Roil. The top bar shows Roil against Hold, such as "37/30". Its tooltip says whether the aether is Calm or Roiled.
 - **Open:** What else a Roiled aether does. The user's ideas are madness, self-harm, hallucinations, and extra monsters that give no loot.
 
@@ -159,14 +162,13 @@ Story so far is a screen on the title and in the menu. Its text is in `BL.STORY`
   - *Why the fire followed* (Riptide): hand-bells are tuned to the Bellwether and lanterns are lit from the Heart. The Heart answered the lead bell.
   - *Under the last stair* (the Abyss): the Belfry lies under the Abyss and does not drain. An old keeper's diving dress hangs on the wall of the hall above it. The chapter says the story stops there for now.
 - **The world tab:** A glossary of places, people and magic. It is always open.
-- **Keeper's notes tab:** 15 notes, each opened by first meeting its subject. New facts in them: somebody has left a blanket, a kettle and a coil of rope in each Sheltered Cove. Seep is seawater that beads on Wren's gear. Something with one eye and many arms has grown into the Bellwether. The Drowned Deckhands still work their watch. Nobody knows why some lost things turn into keepsakes and others do not.
+- **Keeper's notes tab:** 16 notes, each opened by first meeting its subject. "A night in the Lazaret" (v0.13.0) opens on the first win in the Shallows. New facts in them: somebody has left a blanket, a kettle and a coil of rope in each Sheltered Cove. Seep is seawater that beads on Wren's gear. Something with one eye and many arms has grown into the Bellwether. The Drowned Deckhands still work their watch. Nobody knows why some lost things turn into keepsakes and others do not.
 - **Agreed:** As depths and the Belfry are built, each gets a chapter. New people, places and enemies get a note.
 
 ## Open questions
 
 - What does Wren lose when she falls, besides that expedition's keepsakes?
 - Besides keepsakes, how is everything brought home kept or used between expeditions?
-- Besides Seep, what does a Roiled aether do?
 - What form does the keepsake store inside the Lazaret take?
 - Why does the aether hold more Roil closer to the bell?
 - How does a lost thing in brinelight become a keepsake?

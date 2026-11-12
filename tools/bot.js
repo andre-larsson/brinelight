@@ -58,15 +58,15 @@ function chooseCombatAction(run) {
   return { uid: playable[0].uid, target: E.needsTarget(playable[0]) ? alive[0].uid : null };
 }
 
-/* Keepsake pick: the offered keepsake worth the most, counting its Roil as its value and each Seep it
-   would add as -10. (One Seep alone costs the bot about 5 points, but Seep stacks badly with a
-   second keepsake, so -10 picks better.) Null when none is worth taking. */
+/* Keepsake pick: the offered keepsake worth the most, counting its Roil as its value and each step past
+   the Hold it would add as -10. (One step alone costs the bot about 5 points, but steps stack badly
+   with a second keepsake, so -10 picks better.) Null when none is worth taking. */
 function pickKeepsake(run, choices) {
   const { E } = load();
   let best = null;
   let bestV = 0;
   choices.forEach((k) => {
-    const v = E.chargeOf(k) - 10 * (E.seepCount(run, k) - E.seepCount(run));
+    const v = E.chargeOf(k) - 10 * (E.roil(run, k).steps - E.roil(run).steps);
     if (v > bestV) { best = k; bestV = v; }
   });
   return best;

@@ -115,8 +115,15 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   color: #ffe9bd; text-shadow: 0 0 24px rgba(255, 184, 77, .55), 0 3px 0 #5b3a0d, 0 6px 22px rgba(0, 0, 0, .7);
 }
 .tagline { margin: 14px auto 30px; max-width: 34em; font-family: var(--serif); font-size: clamp(15px, 2.1vw, 19px); color: #cfe4e2; line-height: 1.5; text-shadow: 0 2px 8px #000; }
-.title-buttons { display: flex; flex-direction: column; gap: 12px; width: min(300px, 86vw); }
+.title-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: min(360px, 86vw); }
 .title-buttons .btn { font-size: 18px; min-height: 52px; }
+.title-buttons .btn:not(.ghost) { grid-column: 1 / -1; }
+.title-buttons .btn.ghost { font-size: 17px; padding-left: .5em; padding-right: .5em; }
+/* three levels: Continue and New Descent first, the Workshop and the Lazaret second, reading and help third */
+.title-buttons .btn.second { min-height: 46px; font-size: 16px; }
+.title-buttons .btn.third { min-height: 40px; font-size: 15px; font-weight: 600; color: #c4dad8; background: transparent; border-color: transparent; box-shadow: none; text-shadow: 0 1px 6px #000; }
+.title-buttons .btn.third:hover, .title-buttons .btn.third:focus-visible { color: #ffe9bd; border-color: rgba(212, 236, 232, .35); background: rgba(5, 15, 24, .45); filter: none; }
+@media (pointer: coarse) { .title-buttons .btn.third { min-height: 44px; } }
 .title-foot { margin-top: auto; padding-top: 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px; font-size: 13px; color: rgba(212, 236, 232, .65); }
 .title-foot > span { text-wrap: balance; }
 .title-version { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 12px; border-radius: 18px; border: 1px solid rgba(212, 236, 232, .25);
@@ -125,21 +132,24 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .tab.on .new-pill { background: #2a1504; color: #f2c46b; }
 .new-pill { padding: 1px 7px; border-radius: 9px; background: #f2c46b; color: #2a1504; font-size: 12px; font-weight: 800; letter-spacing: .03em; }
 .title-buttons .btn.span { grid-column: 1 / -1; }
-/* narrow phones: the smaller buttons sit two to a row, so six buttons still fit */
+/* the smaller buttons sit two to a row at every size, so seven buttons fit; narrow phones get tighter ones */
 @media (max-width: 480px) {
   .title-screen .tagline { margin-bottom: 20px; }
-  .title-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: min(340px, 100%); }
-  .title-buttons .btn:not(.ghost) { grid-column: 1 / -1; }
-  .title-buttons .btn.ghost { font-size: 16px; min-height: 48px; padding-left: .5em; padding-right: .5em; }
+  .title-buttons { gap: 10px; width: min(340px, 100%); }
+  .title-buttons .btn.second { font-size: 16px; min-height: 48px; }
 }
-/* landscape phones: a smaller logo, and Tutorial / How to Play side by side */
+/* landscape phones: a smaller logo and lower buttons */
 @media (max-height: 500px) {
   .title-screen { padding-top: 12px; }
   .title-screen .logo { font-size: clamp(36px, 7vw, 60px); }
   .title-screen .tagline { margin: 8px auto 14px; font-size: 15px; }
-  .title-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: min(460px, 86vw); }
-  .title-buttons .btn { min-height: 44px; font-size: 16px; }
-  .title-buttons .btn:not(.ghost) { grid-column: 1 / -1; }
+  .title-buttons { gap: 8px; width: min(460px, 86vw); }
+  .title-buttons .btn, .title-buttons .btn.second { min-height: 44px; font-size: 16px; }
+  .title-buttons .btn.third, .title-buttons { row-gap: 4px; }
+  .title-buttons .btn.third { min-height: 40px; }
+  /* Continue and New Descent share a row here; New Descent alone still spans */
+  .title-buttons .btn:not(.ghost) { grid-column: auto; }
+  .title-buttons .btn.solo { grid-column: 1 / -1; }
   .title-best { margin-top: 10px; }
   .title-foot { padding-top: 10px; }
 }
@@ -1053,3 +1063,30 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
   .op-foot .btn { min-height: 42px; }
 }
 @media (prefers-reduced-motion: reduce) { .op-art, .op-fig, .op-text { animation: none; } }
+
+/* ---------- The Lazaret ---------- */
+.btn-count { font-size: 14px; font-weight: 700; color: #e6d3a8; white-space: nowrap; }
+.lz-roil { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0 0 6px; }
+.lz-roil ul { margin: 0; padding: 0; list-style: none; font-size: 15px; line-height: 1.5; color: #d6e3e0; text-align: center; }
+.lz-line { margin: 0 0 10px; font-size: 15px; line-height: 1.5; color: #d6e3e0; text-align: left; }
+.lz-line b, .lz-roil li b { color: #ffe2a8; }
+.lz-line b.calm, .lz-roil li b.calm { color: #9ff0b5; }
+.lz-line b.roiled, .lz-roil li b.roiled { color: #ffb0a0; }
+.lz-empty { padding: 12px 14px; border-radius: 10px; border: 1px dashed rgba(201, 162, 74, .45); text-align: center; }
+.lz-missing { opacity: .7; }
+.lz-missing b { color: #a9b9b8; }
+.kit-tile .k-charge { font-size: 13px; }
+.lz-box { font-size: 15px; line-height: 1.45; background: rgba(14, 44, 46, .8); border-color: rgba(140, 220, 205, .55); color: #dff5ee; }
+.lz-box b { color: #ffe2a8; }
+.lz-box.lost { background: rgba(50, 22, 22, .78); border-color: rgba(255, 160, 140, .5); color: #f6dcd6; }
+button.lz-box:hover, button.lz-box:focus-visible { border-color: #bff3e6; }
+.ws-head { margin-top: 22px; padding-top: 14px; border-top: 1px solid rgba(201, 162, 74, .25); }
+
+/* ---------- The logbook ---------- */
+.logbook { margin: 0; display: flex; flex-direction: column; }
+.logbook > div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 9px 2px; border-bottom: 1px solid rgba(201, 162, 74, .2); }
+.logbook > div:last-child { border-bottom: 0; }
+.logbook dt { font-size: 15px; color: #c4dad8; }
+.logbook dd { margin: 0; font-size: 16px; font-weight: 700; color: #ffe2a8; text-align: right; }
+.logbook dd small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+.log-note { margin: 12px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }

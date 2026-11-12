@@ -280,7 +280,7 @@
         anchor: () => document.querySelector('.node.avail.t-elite') || document.querySelector('.unit.enemy .sprite'),
         html: () => 'A <b>Dread</b> is an elite: tougher than a skirmish. Beat it, and you may take 1 of 2 <b>keepsakes</b>.' },
       { id: 'charge', when: (r) => r.screen === 'map' && r.keepsakes.length > 0, anchor: '.hud .charge',
-        html: () => `Every keepsake stirs the aether: its <b>Roil</b>. The aether here holds ${E.hold(api.getRun().level)}. Past that it is Roiled, and a <b>Seep</b> (an unplayable card) joins every fight. ${tap()} a keepsake between fights to drop it.` },
+        html: () => `Every keepsake stirs the aether: its <b>Roil</b>. The aether here holds ${E.hold(api.getRun().level)}. Past that it is Roiled, and every fight gets worse: first a <b>Seep</b> (an unplayable card), then <b>Scour</b> (HP lost in long fights), then a Bell Minnow. ${tap()} a keepsake between fights to drop it.` },
       // above the cards, so the keyword legend under them stays readable
       { id: 'reward', when: (r) => r.screen === 'reward' && !r.rewards.cardTaken, anchor: '.reward-cards', side: 'above',
         html: () => 'Add <b>1 card</b> to your deck, or skip. A smaller deck draws its best cards more often. Keywords are explained below the cards.' },
