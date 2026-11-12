@@ -155,6 +155,39 @@ One Seep costs about 5 points in the Shallows, roughly the worth of a mid keepsa
 - Bells vary the bell's own rule, so they don't copy keepsakes. For example, what makes it draw, or where the Tide resets after a Crest or Low Water.
 - The alternative is a fixed bell that the Workshop upgrades.
 
+**Decided (2026-11-12, fourth round): a Bell slot holding one of several bells.** The user doubted that boots could show what a Fog holds, and rightly: that is a spyglass's job. Revised Boots examples, all about moving on the route:
+- cross to the stop beside yours on a neighbouring path
+- slip past one fight
+- skip a row
+
+**Bells measured** (bot, Shallows, 1000 seeds; each bell replaces the Brass Tide-Bell; scratch `bells.js` patches the reset and the bell's draw):
+
+| Bell | Win rate |
+|---|---|
+| none | 22.0% |
+| Brass Tide-Bell: draw 1 on a Crest or Low Water | 24.2% |
+| Crest draws 2, Low Water draws nothing | 25.7% |
+| Low Water draws 2, Crest draws nothing | 23.5% |
+| nothing on the first Crest or Low Water each turn, then 2 each | 23.8% |
+| Tide settles at 4 after a Crest or Low Water, no draw | 25.4% |
+| Tide settles at 4, draw 1 | 34.0% |
+| Tide settles at 4 after a Crest only, draw 1 | 29.0% |
+| Tide settles at 2, draw 1 | 25.2% |
+| Tide settles at 2, no draw | 21.2% |
+| Tide settles at 2 after a Low Water only, draw 1 | 24.0% |
+| +1 Light on the first Crest or Low Water each turn, no draw | 32.2% |
+| +1 Light the first time in each fight, then draw 1 | 27.6% |
+
+The bot favours Crests and never plans for Low Water, so it undervalues the Ebb-side bells. Light is worth far more than a card, so the Light bells run strong.
+
+**Proposed set** (not agreed): all four change only what the bell draws, so kit still never changes the sea. All four land within 23.5–25.7%.
+- **Brass Tide-Bell:** a Crest or Low Water draws 1.
+- **Flood Bell:** a Crest draws 2, Low Water nothing.
+- **Ebb Bell:** a Low Water draws 2, a Crest nothing.
+- **Cracked Bell:** the first Crest or Low Water each turn draws nothing, every later one draws 2.
+
+"The Tide settles at 4, no draw" (25.4%) is in range but changes the sea, so it's kept for later.
+
 ### Later slices of meta-progression (planned 2026-11-11)
 
 - Starting keepsakes, after the first Shallows win.
