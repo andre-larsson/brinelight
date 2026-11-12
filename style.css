@@ -943,31 +943,23 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   .small-cards .hand .card.selected { --card-text: 10px; --card-text-long: 9px; }
 }
 
-/* ---------- Workshop (permanent gear) ---------- */
+/* ---------- Workshop (permanent kit) ---------- */
 .workshop-modal { width: min(760px, 100%); }
 .ws-lead { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: #d6e3e0; }
 .ws-bal { display: flex; justify-content: center; margin: 0 0 14px; }
-.pips { color: var(--amber); letter-spacing: 1px; font-size: 13px; }
-/* gear is square with a brass corner, so it never reads as a (round) keepsake */
+/* kit is square with a brass corner, so it never reads as a (round) keepsake */
 .medal.gear { border-radius: 10px; border-color: #b8893a; background: radial-gradient(circle at 50% 40%, #3a3322, #14120c 75%); }
 .gear-tile .medal.gear { width: 64px; height: 64px; }
 .gear-tile.owned { cursor: default; border-color: rgba(159, 240, 181, .45); }
 .gear-tile.locked { cursor: default; }
 .gear-tile.locked .medal img { filter: grayscale(1) brightness(.55); }
-.gear-tile.nofit { opacity: .5; }
 .g-state { font-size: 13px; font-weight: 700; color: #9ff0b5; }
-.pack-tile .g-state { color: var(--muted); }
-.pack-tile.chosen .g-state { color: var(--amber); }
 .g-lock { display: flex; gap: 6px; align-items: flex-start; text-align: left; font-size: 13px; line-height: 1.35; color: #cbbfa8; }
 .g-lock svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 2px; color: #a8987a; }
 .g-lock b { color: #e6d3a8; }
-.pack-meter { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 8px; font-size: 16px; color: #e6dcc6; }
-.pack-meter .pips { font-size: 20px; letter-spacing: 3px; }
-.pack-meter b { color: #ffe2a8; }
 .ws-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .ws-btn svg { width: 20px; height: 20px; flex: 0 0 auto; }
 .ws-btn small { font-size: 14px; font-weight: 700; color: #e6d3a8; white-space: nowrap; }
-.g-weight { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .salvage-box { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 10px; background: rgba(40, 32, 14, .75); border: 1px solid rgba(201, 162, 74, .55); color: #f1e6cf; font-size: 15px; text-align: left; }
 .salvage-box svg { width: 24px; height: 24px; flex: 0 0 auto; }
 .salvage-box b { color: #ffe2a8; }
@@ -992,8 +984,21 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .dbg-pair { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; color: #d6e3e0; font-size: 14px; }
 .dbg-sel { min-height: 36px; max-width: 190px; border-radius: 8px; border: 1px solid rgba(201, 162, 74, .45); background: #0b1f2c; color: #e6dcc6; font: 14px var(--sans); }
 .dbg-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
-.pips .ob { color: #ff8a8a; }
-.pack-meter.over b { color: #ffb3bd; }
-.ob-line { margin: 0 0 12px; text-align: center; font-size: 15px; color: #ffc9c9; }
-.ob-line b { color: #ff9a9a; }
-.pack-tile.heavy .g-state { color: #ffb3bd; }
+
+/* ---------- Kit places and keepsake Charge (v0.10.0) ---------- */
+.ws-place { margin: 14px 0 8px; font-size: 16px; color: #f3dfb2; text-align: left; }
+.ws-place small { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.kit-tile .g-state { color: var(--muted); }
+.kit-tile.chosen .g-state { color: var(--amber); }
+.k-charge { display: inline-block; padding: 1px 7px; border-radius: 8px; border: 1px solid rgba(140, 220, 205, .45); background: rgba(120, 200, 190, .14); color: #bff3e6; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.k-after { font-size: 13px; font-weight: 700; color: #9ff0b5; }
+.k-after.over { color: #ffb3bd; }
+.leave-ks { display: block; margin: 10px auto 0; }
+.hud .charge { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; height: 30px; padding: 0 8px 0 5px; border-radius: 15px; border: 1px solid rgba(140, 220, 205, .5); background: rgba(10, 40, 44, .8); color: #bff3e6; font: 700 13px/1 var(--sans); white-space: nowrap; cursor: pointer; }
+.hud .charge svg { width: 18px; height: 18px; }
+.hud .charge.over { border-color: rgba(255, 140, 150, .7); background: rgba(60, 14, 20, .8); color: #ffc9cf; }
+@media (max-width: 600px) {
+  /* on phones the bell, kit and Charge sit in the second row with the keepsakes */
+  .hud .medal.bell, .hud .gear-pack, .hud .charge { order: 10; }
+  .hud .medal.bell, .hud .gear-pack { width: 30px; height: 30px; }
+}

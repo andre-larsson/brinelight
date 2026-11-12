@@ -119,3 +119,4 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 - How do the README's "last lighthouse keeper", the loss screen's "keepers", and possible later keepers fit together?
 - What is the goddess's name? Leave it forgotten unless an event needs it.
 - What did the Gilded Gull carry, and what lives in its hold?
+- What should the fight's Tide, Surge and Ebb be called? Wren's local water-working is separate from the tide that affects the whole coast. She raises waves, gathers and pins water, and pushes water masses. A Crest collapses a water mass onto the enemies. Low Water is a small local drought that strands them. The user asked for new words (2026-11-12).

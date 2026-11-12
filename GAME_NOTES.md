@@ -221,9 +221,9 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
 - A full kit in the Shallows lands at 30–35%. The 1-space pack the user chose gave 28–30%, and the 3-space pack the user found too generous gave 35–42%.
 - The keepsake Hold should take some of that back, so the plan is to build the kit and the Hold close together and measure them together.
 
-**Proposed build order** (sent to the user):
-1. **Kit in slots.** This replaces the pack, capacity and overburden.
-2. **Charge, Hold and Seep** in the current one-depth game. Until the expedition exists, the Hold follows the depth level. Keepsake picks become optional again.
+**Build order** (the user said "start building" on 2026-11-12):
+1. **Kit in slots.** This replaces the pack, capacity and overburden. **Built in v0.10.0.**
+2. **Charge, Hold and Seep** in the current one-depth game. Until the expedition exists, the Hold follows the depth level. Keepsake picks become optional again. **Built in v0.10.0.** See "Kit and keepsake Charge (v0.10.0)".
 3. **The keepsake cabinet.** Keepsakes from a won run are kept, and you bring them within your Hold. New ones are lost on defeat.
 4. **The expedition:** bands, going home after a boss, and currents.
 
@@ -271,6 +271,10 @@ The steps are lumpy because of enemy HP breakpoints. For example, 6 + 6 damage k
 - **More levels**: more bands or depths.
 - **More characters**: unlockable keepers. WORLD.md has the open question about other keepers.
 - **A lore overhaul** comes later. WORLD.md has started it.
+- **Art and sound to match the new lore (2026-11-12; planned, not built):**
+  - Update the art that tells the old story.
+  - Add sound effects, for example for a bell that changes the water.
+- **Rename the fight's Tide words (2026-11-12; planned, not built).** Tide, Surge and Ebb no longer fit the lore. In a fight, Wren works the water around her: she raises waves, gathers and pins water, and pushes water masses. A Crest collapses a water mass onto the enemies. Low Water is a small local drought that strands them. The tide that rises and falls across the whole coast is a different thing. The new words should keep the two apart. No names are proposed yet. The names touch cards, How to Play, the tutorial, the README and the tests.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -369,7 +373,120 @@ Provisional calls (each can be undone on its own):
 6. **The Tide bar hint** reads "Low Water! Enemy Ward gone, +1 Light". When the keyword box leaves no room on the bar, the hint lifts above the box.
 7. **Old saves and best scores:** a saved run continues under the new rule. Scores are a little higher now that Low Waters count.
 
+## Kit and keepsake Charge (v0.10.0, 2026-11-12)
+
+Built from the decisions in "Paused plan and open questions". It replaces the pack, capacity and overburden described under "The Workshop" below.
+
+**Kit:**
+- **Five places, one piece each:** Harpoon, Bell, Coat, Pocket and Ditty Bag (`BL.KIT_PLACES`, `BL.KIT`, `E.fitKit`, `E.equipKit`, `E.applyKit`).
+- **The Bell always holds a bell.** The Brass Tide-Bell is free and owned by everyone.
+- **The run carries its kit** in `run.kit = { place: id }`.
+- **Lasting state** is `brinelight.meta.v1 = { salvage, earned, owned, kit, ach }`.
+
+**Charge, Hold and Seep:**
+- **Charge:** every keepsake has one (`BL.KEEPSAKES[k].charge`).
+- **Hold:** `E.hold(level)`, which is 30 + 5 per depth.
+- **Seep:** 1 per started 5 Charge over the Hold (`E.seepCount`), shuffled into the draw pile at the start of each fight. It is never added to the deck.
+- **Keepsake picks are optional:** `E.leaveKeepsakes` scores 80. `E.dropKeepsake` works between fights.
+- **Moved to kit:** the money keepsakes and the Tide-Bell. Flood Chart, Ebb Chart, Storm Lens and Whetstone became the Flood, Ebb and Cracked Bells and the Honed Harpoon.
+
+**Provisional calls (each can be undone on its own):**
+1. **Hold 30 in the Shallows, +5 per depth.** The bot settled it. At a Hold of 10 (my first proposal), a new player's Shallows dropped to 16%. At 30, it stays close to v0.9.0 (23.3% against 24.2%).
+2. **Charge is the keepsake's bot value:** win-rate points when the keepsake is carried from the start, on top of the Brass Tide-Bell and the bot's normal picks (baseline 24.7%).
+
+   | Charge | Keepsake |
+   |---|---|
+   | 19 | Whale Tooth |
+   | 18 | Storm Bottle, Drowned Anchor |
+   | 17 | Conch of Echoes, Whispering Conch |
+   | 14 | Barnacle Plate |
+   | 12 | Tidewatch, Scallop Charm |
+   | 11 | Kelp Bracelet |
+   | 10 | Angler's Lure |
+   | 8 | Moon Shard, Gull Feather |
+   | 7 | Salted Hook |
+   | 6 | Coral Branch |
+
+   These are higher than the 4–15 I proposed, because the bot now picks keepsakes better and the pool lost its weak money keepsakes.
+3. **Barnacle Plate gives 1 Spines (was 3).** With the bot's normal picks, 3 Spines gives 70.5%, 2 gives 53.9%, and 1 gives 38.5%. The rest of the keepsakes land at 30–44%.
+4. **The harpoons are small.** The Honed Harpoon adds +2 damage to the first Jab of each fight, and the Barbed Harpoon applies 1 Brine. With the real engine, the first Jab gives:
+
+   | First Jab | Win rate |
+   |---|---|
+   | +2 damage | 28.7% |
+   | +3 damage | 30.4% |
+   | +5 damage | 31.4% |
+   | 1 Brine | 26.5% |
+   | 2 Brine | 33.2% |
+
+   The baseline is 23.3%. The scratch `harpoon.js` numbers above, from a patched v0.9.0 engine, are superseded.
+5. **Prices.** Carried-over pieces keep their price. The Honed Harpoon keeps the Whetstone's 35, and the bells keep the charts' and Storm Lens's 20, 20 and 30. New pieces: Barbed Harpoon 25, Gleaner's Pouch 15, Pearl Scales 15, Gleaning Net 10, Spare Wick 12.
+6. **Leaving the keepsakes scores +80**, the same as a Dread's card. A pick left open by some other path is lost and scores nothing.
+7. **Dropping a keepsake** works only between fights and is for good. Scallop Charm's 10 Max HP go with it, and its text now says "While you carry it".
+8. **New kit is worn as soon as it's bought** if its place is empty. A new bell never replaces the worn bell by itself.
+9. **The kit screen before a dive** shows only the places where you own a choice. It is skipped while you own nothing.
+10. **The HUD:**
+    - The bell is a square medal.
+    - The rest of the kit sits behind the pack button.
+    - A Charge chip ("37/30") turns red when you're over the Hold.
+    - On phones these move to the second row.
+    - The bell and the Gleaning Net flash when they act.
+11. **Old saves carry over:**
+    - Owned gear becomes kit, and the old pack becomes the worn kit (`E.migrateMeta`).
+    - A run in progress keeps its retired keepsakes and gear working as kit (`run.kitExtra`, `E.migrateRun`).
+    - The charts' and Storm Lens's effects end in such a run.
+12. **New achievement: Salt the Wound** (an enemy dies to Brine; `stats.brineKills`). It unlocks the Barbed Harpoon.
+13. **The bot's keepsake rule** is the offered keepsake with the highest Charge, minus 10 per Seep it adds. It takes that keepsake if the result is above 0; otherwise it leaves them. One Seep alone costs about 5 points, but Seep stacks badly with a second keepsake, so −10 picks better.
+14. **A first-time hint** explains Charge the first time you carry a keepsake.
+15. **Art:**
+    - 9 kit icons and the Seep card were made with Codex (`assets-src/wanted-images.tsv`).
+    - The Spare Wick has its own icon. The old Spare Lantern art is retired.
+    - 8 unused icons were removed.
+
+**Bot measurements** (1000 seeds a row; real engine, real bot):
+
+Shallows (Hold 30):
+
+| Kit | Win rate |
+|---|---|
+| empty | 23.3% |
+| Honed Harpoon | 28.7% |
+| Cork Vest | 28.2% |
+| Barbed Harpoon | 26.5% |
+| Shell Gorget | 26.3% |
+| Honed Harpoon + Cork Vest | 34.5% |
+| Honed Harpoon + Shell Gorget | 33.0% |
+| Barbed Harpoon + Cork Vest | 32.0% |
+| Barbed Harpoon + Shell Gorget | 30.4% |
+| no Hold at all, empty kit | 28.9% |
+
+Bells, with Honed Harpoon + Cork Vest:
+
+| Bell | Win rate |
+|---|---|
+| Brass Tide-Bell | 34.5% |
+| Ebb Bell | 34.5% |
+| Flood Bell | 31.0% |
+| Cracked Bell | 29.8% |
+
+The bot never plans a chain, so it can't use the Cracked Bell well.
+
+Deeper depths (Hold 35, 40 and 45):
+
+| Depth | Empty kit | Full kit |
+|---|---|---|
+| Dark Water | 14.4% | 19.9–20.2% |
+| Riptide | 3.3% | 5.8–6.6% |
+| The Abyss | 1.3% | 2.6–3.1% |
+
+- **A full kit in the Shallows lands at 30–34.5%.** v0.8.0's 1-space pack gave 28–29.5%, and v0.7.0's 3-space pack gave 35–42% (too generous for the user). So it's a bit more generous than v0.9.0.
+- **The bot can't value the Pocket and Ditty Bag,** so a person's kit is worth more than these numbers show.
+- **The keepsake Hold took back about 5.6 points** for an empty kit (28.9% → 23.3%).
+- **A full kit is worth about one depth,** as the old pack was.
+
 ## The Workshop (v0.7.0, 2026-11-11): first slice of meta-progression
+
+Superseded in part by v0.10.0: the pack, capacity and overburden are gone, and gear became kit. The decisions and measurements below are kept as history.
 
 **Decided with the user** (names and numbers stay open until the final version):
 - **Salvage** is the currency. Every finished run earns it from its **score**: 1 per 50 (`E.SALVAGE_PER_SCORE`). Deeper depths pay more through the score multiplier. Abandoning a run earns nothing, and neither does the tutorial.
@@ -500,7 +617,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - `tools/screens.js`: screenshots of every screen at the four sizes, plus the small-text list. `tools/tutorial-shots.js`: one screenshot per tutorial step.
 - `tools/serve.js`, `tools/cdp.js`: static server and a tiny Chrome DevTools client (launches its own headless Chrome on a free port).
 - `tools/build.js`: assembles `_site/` for Pages and checks every referenced file exists.
-- `tests/workshop.test.js`: the Workshop rules. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: buy, pack, dive, Salvage at the end, and abandoning a run earns nothing.
+- `tests/workshop.test.js`: the Workshop, kit, Charge, Hold and Seep rules, and old saves carrying over. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: old lasting state carried over, buy, wear, dive, the Charge chip, dropping a keepsake, Seep in a fight, Salvage at the end, and abandoning a run earns nothing.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 
 ## Determinism and saves
@@ -508,7 +625,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - All game randomness goes through a mulberry32 RNG whose state lives in the run (`run.rng`), so a save restores it exactly. Same seed and same decisions give the same run; tested, including a save/reload mid-fight.
 - `Math.random` is used only for a fresh seed and in the UI (music, particles, float positions).
 - The tutorial is a separate run object (`run.tutorial`) that is never saved and never scores. A run in progress is saved before the tutorial starts and reloaded after.
-- localStorage keys: `brinelight.save.v1`, `brinelight.prefs.v1`, `brinelight.best.v1`, `brinelight.maxlevel.v1`, `brinelight.tutorial.v1`, `brinelight.hints.v1`, `brinelight.version.v1`, `brinelight.meta.v1`. Every project site on the Pages origin shares storage, so keep the `brinelight.` prefix on anything new.
+- localStorage keys: `brinelight.save.v1`, `brinelight.prefs.v1`, `brinelight.best.v1`, `brinelight.maxlevel.v1`, `brinelight.tutorial.v1`, `brinelight.hints.v1`, `brinelight.version.v1`, `brinelight.meta.v1` (`{ salvage, earned, owned, kit, ach }` since v0.10.0; the older `packed` list is converted on load), `brinelight.debug.v1`. Every project site on the Pages origin shares storage, so keep the `brinelight.` prefix on anything new.
 
 ## Art
 

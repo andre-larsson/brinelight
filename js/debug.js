@@ -23,6 +23,7 @@
     untouched: (r) => { r.stats.flawless = Math.max(r.stats.flawless || 0, 3); },
     dreadhunter: (r) => { r.stats.elites = Math.max(r.stats.elites || 0, 1); },
     travellight: (r) => { r.stats.leanDread = true; },
+    pickled: (r) => { r.stats.brineKills = Math.max(r.stats.brineKills || 0, 1); },
   };
   const GO = [['fight', 'Fight'], ['elite', 'Dread'], ['boss', 'Boss'], ['shop', 'Shop'], ['event', 'Fog'], ['treasure', 'Wreck'], ['rest', 'Cove']];
 
@@ -36,8 +37,8 @@
     const c = live && run.screen === 'combat' ? run.combat : null;
     const fighting = c && !c.won && !c.lost && c.phase === 'player' && !b.ui.busy;
     const sec = (title, inner) => `<section class="dbg-sec"><h3>${title}</h3><div class="dbg-row">${inner}</div></section>`;
-    let html = sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.GEAR).length} gear · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · depth ${b.maxLevel}</small>`,
-      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allgear', 'Own all gear') + btn('depths', 'Unlock all depths') +
+    let html = sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · depth ${b.maxLevel}</small>`,
+      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('depths', 'Unlock all depths') +
       btn('resetmeta', 'Reset Workshop') + btn('resetall', 'Reset everything'));
     if (live) {
       html += sec(`This run <small>seed ${run.seed} · depth ${run.floor}${run.cheated ? ' · cheated' : ''}</small>`,
@@ -75,7 +76,7 @@
     switch (name) {
       case 'salvage': meta.salvage += 100; meta.earned += 100; b.saveMeta(); return reopen();
       case 'allach': Object.keys(BL.ACHIEVEMENTS).forEach((a) => { if (meta.ach.indexOf(a) < 0) meta.ach.push(a); }); b.saveMeta(); return reopen();
-      case 'allgear': Object.keys(BL.GEAR).forEach((g) => { if (meta.owned.indexOf(g) < 0) meta.owned.push(g); }); b.saveMeta(); return reopen();
+      case 'allkit': Object.keys(BL.KIT).forEach((g) => { if (!BL.KIT[g].starter && meta.owned.indexOf(g) < 0) meta.owned.push(g); }); b.saveMeta(); return reopen();
       case 'depths': b.setMaxLevel(b.E.LEVELS.length - 1); return reopen();
       case 'resetmeta': Object.assign(meta, b.E.newMeta()); b.saveMeta(); return reopen();
       case 'resetall':

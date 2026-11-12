@@ -1,5 +1,6 @@
-/* Workshop rules: Salvage from score, buying gear, packing within the depth's capacity, what each piece
-   of gear does, and the achievements that unlock gear. Run with: node --test tests/ */
+/* Workshop and kit rules: Salvage from score, buying and wearing kit, what each piece does, the
+   achievements that unlock kit, keepsake Charge, the Hold and Seep, and carrying old saves over.
+   Run with: node --test tests/ */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -10,7 +11,11 @@ const { BL, E } = load();
 const metaWith = (o) => Object.assign(E.newMeta(), o);
 const fightIn = (run, enc, kind) => { E.startCombat(run, kind || 'easy', enc || ['kelp']); run.combat.fx.length = 0; return run.combat; };
 const win = (run) => { const c = run.combat; c.enemies.forEach((e) => { e.dead = true; }); c.won = true; E.finishCombat(run); };
+const tough = (c) => c.enemies.forEach((e) => { e.hp = e.maxHp = 500; });
+const give = (run, id) => { const card = { uid: run.nextUid++, id, up: 0 }; run.combat.hand.push(card); return card; };
+const play = (run, card, target) => E.playCard(run, card.uid, target ? target.uid : undefined);
 
+/* ---------- Salvage ---------- */
 test('a finished run earns 1 Salvage per 50 score, rounded down', () => {
   assert.equal(E.SALVAGE_PER_SCORE, 50);
   assert.equal(E.salvageFor(0), 0);
@@ -24,85 +29,74 @@ test('a finished run earns 1 Salvage per 50 score, rounded down', () => {
   assert.equal(meta.earned, 40);
 });
 
-test('capacity follows the depth of the dive: Shallows 1, then 1 more per depth', () => {
-  assert.deepEqual([0, 1, 2, 3].map(E.capacity), [1, 2, 3, 4]);
+/* ---------- Kit: places, buying, wearing ---------- */
+test('kit goes in five places, one piece each; the Bell always holds a bell, the Brass Tide-Bell to start', () => {
+  assert.deepEqual(E.KIT_PLACES, ['harpoon', 'bell', 'coat', 'pocket', 'ditty']);
+  assert.deepEqual(BL.KIT_PLACES.map((p) => p.name), ['Harpoon', 'Bell', 'Coat', 'Pocket', 'Ditty Bag']);
+  Object.keys(BL.KIT).forEach((id) => assert.ok(E.KIT_PLACES.includes(BL.KIT[id].place), id));
+  assert.deepEqual(E.fitKit(), { harpoon: null, bell: 'tidebell', coat: null, pocket: null, ditty: null });
+  // a list puts each piece in its own place; a later piece replaces an earlier one in the same place
+  assert.deepEqual(E.fitKit(['honed', 'cork', 'purse', 'flask', 'floodbell']), { harpoon: 'honed', bell: 'floodbell', coat: 'cork', pocket: 'purse', ditty: 'flask' });
+  assert.equal(E.fitKit(['cork', 'gorget']).coat, 'gorget');
+  // unknown ids, ids in the wrong place and (with an owned list) unowned ones are dropped
+  assert.deepEqual(E.fitKit({ coat: 'purse', pocket: 'nope', ditty: 'net' }, ['net']), { harpoon: null, bell: 'tidebell', coat: null, pocket: null, ditty: 'net' });
+  assert.equal(E.fitKit({ bell: 'ebbbell' }, []).bell, 'tidebell', 'an unowned bell falls back to the Brass Tide-Bell');
+  const run = E.newRun(5);
+  assert.equal(E.bell(run), 'tidebell');
+  assert.deepEqual(E.kitIds(run), ['tidebell']);
 });
 
-test('gear costs Salvage, is bought once, and locked gear waits for its achievement', () => {
+test('kit costs Salvage, is bought once, and locked kit waits for its achievement', () => {
   const meta = metaWith({ salvage: 30 });
-  assert.equal(E.buyGear(meta, 'cork'), true);
-  assert.equal(meta.salvage, 30 - BL.GEAR.cork.price);
+  assert.equal(E.ownsKit(meta, 'tidebell'), true, 'everyone has the Brass Tide-Bell');
+  assert.equal(E.buyKit(meta, 'tidebell'), false);
+  assert.equal(E.buyKit(meta, 'cork'), true);
+  assert.equal(meta.salvage, 30 - BL.KIT.cork.price);
   assert.deepEqual(meta.owned, ['cork']);
-  assert.equal(E.buyGear(meta, 'cork'), false, 'already owned');
+  assert.equal(E.buyKit(meta, 'cork'), false, 'already owned');
   meta.salvage = 100;
-  assert.equal(E.gearUnlocked(meta, 'stormlens'), false);
-  assert.equal(E.buyGear(meta, 'stormlens'), false, 'locked');
+  assert.equal(E.kitUnlocked(meta, 'crackedbell'), false);
+  assert.equal(E.buyKit(meta, 'crackedbell'), false, 'locked');
   meta.ach.push('threecrests');
-  assert.equal(E.buyGear(meta, 'stormlens'), true);
-  const poor = metaWith({ salvage: BL.GEAR.flask.price - 1 });
-  assert.equal(E.buyGear(poor, 'flask'), false, 'not enough Salvage');
+  assert.equal(E.buyKit(meta, 'crackedbell'), true);
+  const poor = metaWith({ salvage: BL.KIT.flask.price - 1 });
+  assert.equal(E.buyKit(poor, 'flask'), false, 'not enough Salvage');
   // every locked piece names a real achievement, and every achievement unlocks something
-  Object.values(BL.GEAR).forEach((g) => { if (g.unlock) assert.ok(BL.ACHIEVEMENTS[g.unlock], g.name); });
-  Object.keys(BL.ACHIEVEMENTS).forEach((a) => assert.ok(E.gearFor(a).length > 0, a));
+  Object.values(BL.KIT).forEach((g) => { if (g.unlock) assert.ok(BL.ACHIEVEMENTS[g.unlock], g.name); });
+  Object.keys(BL.ACHIEVEMENTS).forEach((a) => assert.ok(E.kitFor(a).length > 0, a));
 });
 
-test('packing: only owned gear, up to the capacity plus 2 spaces of overburden', () => {
-  assert.equal(E.OVERBURDEN_MAX, 2);
-  assert.deepEqual([0, 1, 2, 3].map(E.packLimit), [3, 4, 5, 6]);
-  const meta = metaWith({ owned: ['cork', 'flask', 'purse', 'whetstone'] });
-  assert.equal(E.togglePack(meta, 'gorget', 0), false, 'not owned');
-  assert.equal(E.togglePack(meta, 'cork', 0), true);
-  assert.equal(E.overburden(meta.packed, 0), 0);
-  assert.equal(E.togglePack(meta, 'whetstone', 0), true, 'the Shallows hold 1, and 2 more as overburden');
-  assert.equal(E.overburden(meta.packed, 0), 2);
-  assert.equal(E.togglePack(meta, 'flask', 0), false, 'past the limit');
-  assert.equal(E.togglePack(meta, 'flask', 1), true, 'Dark Water holds 2, so 4 with overburden');
-  assert.equal(E.overburden(meta.packed, 1), 2);
-  assert.equal(E.togglePack(meta, 'whetstone', 1), true, 'unpacking always works');
-  assert.deepEqual(meta.packed, ['cork', 'flask']);
-  // a pack made for a deeper dive is trimmed, in order, to the limit of a shallower one
-  assert.deepEqual(E.fitGear(['whetstone', 'cork', 'flask', 'purse'], 0), ['whetstone', 'cork']);
-  assert.deepEqual(E.fitGear(['cork', 'flask', 'purse', 'gorget'], 0), ['cork', 'flask', 'purse']);
-  assert.deepEqual(E.fitGear(['cork', 'nope', 'cork'], 0), ['cork']);
-  assert.deepEqual(E.fitGear(['cork', 'flask'], 0, ['flask']), ['flask'], 'unowned gear is dropped');
-  // the run itself enforces the limit too
-  assert.deepEqual(E.newRun(5, 0, ['whetstone', 'cork', 'stormlens']).gear, ['whetstone', 'cork']);
+test('wearing kit: a piece replaces whatever is in its place; taking it off empties the place, or puts the Brass Tide-Bell back', () => {
+  const meta = metaWith({ owned: ['cork', 'gorget', 'floodbell'] });
+  assert.equal(E.equipKit(meta, 'honed'), false, 'not owned');
+  assert.equal(E.equipKit(meta, 'cork'), true);
+  assert.equal(meta.kit.coat, 'cork');
+  E.equipKit(meta, 'gorget');
+  assert.equal(meta.kit.coat, 'gorget', 'one piece per place');
+  E.equipKit(meta, 'gorget');
+  assert.equal(meta.kit.coat, null, 'off again');
+  E.equipKit(meta, 'floodbell');
+  assert.equal(meta.kit.bell, 'floodbell');
+  E.equipKit(meta, 'floodbell');
+  assert.equal(meta.kit.bell, 'tidebell', 'never without a bell');
+  // the run takes the kit as it is
+  E.equipKit(meta, 'cork');
+  const run = E.newRun(5, 0, meta.kit);
+  assert.deepEqual(run.kit, meta.kit);
 });
 
-test('overburdened: each space past the capacity costs 4 Max HP for the dive', () => {
-  assert.equal(E.OVERBURDEN_HP, 4);
-  const base = E.newRun(5, 0);
-  const fits = E.newRun(5, 0, ['gorget']);
-  assert.equal(fits.overburden, 0);
-  assert.equal(fits.maxHp, base.maxHp);
-  const one = E.newRun(5, 0, ['gorget', 'stormlens']);
-  assert.equal(one.overburden, 1);
-  assert.equal(one.maxHp, base.maxHp - E.OVERBURDEN_HP);
-  assert.equal(one.hp, one.maxHp, 'you start at full health');
-  const two = E.newRun(5, 0, ['whetstone', 'gorget']);
-  assert.equal(two.overburden, 2);
-  assert.equal(two.maxHp, base.maxHp - 2 * E.OVERBURDEN_HP);
-  // Cork Vest still adds its 5 on top
-  const cork = E.newRun(5, 0, ['gorget', 'cork']);
-  assert.equal(cork.maxHp, base.maxHp - E.OVERBURDEN_HP + 5);
-  // deeper depths hold more, so the same pack is no burden there
-  assert.equal(E.newRun(5, 1, ['gorget', 'stormlens']).overburden, 0);
-  // rests heal a share of the (lower) Max HP
-  assert.ok(E.restAmount(one) <= E.restAmount(base));
-});
-
-test('gear changes nothing about the map, and the same seed with the same gear gives the same run', () => {
+test('kit changes nothing about the map, and the same seed with the same kit gives the same run', () => {
   const plain = E.newRun(42, 2);
-  const geared = E.newRun(42, 2, ['flask', 'cork', 'purse']);
-  assert.equal(geared.gear.length, 3);
-  assert.equal(snapshot(plain.map), snapshot(geared.map));
-  const a = E.newRun(42, 1, ['flask', 'gorget', 'floodchart']);
-  const b = E.newRun(42, 1, ['flask', 'gorget', 'floodchart']);
+  const kitted = E.newRun(42, 2, ['flask', 'cork', 'purse', 'honed', 'ebbbell']);
+  assert.equal(snapshot(plain.map), snapshot(kitted.map));
+  const a = E.newRun(42, 1, ['flask', 'gorget', 'crackedbell', 'barbed']);
+  const b = E.newRun(42, 1, ['flask', 'gorget', 'crackedbell', 'barbed']);
   assert.deepEqual(playRun(a), playRun(b));
   assert.equal(snapshot(a), snapshot(b));
 });
 
-test('start-of-run gear: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask a tonic, Whetstone upgrades Rising Swell', () => {
+/* ---------- What each piece does ---------- */
+test('start-of-run kit: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask a tonic', () => {
   const base = E.newRun(7, 2);
   const run = E.newRun(7, 2, ['cork', 'purse', 'flask']);
   assert.equal(run.maxHp, base.maxHp + 5);
@@ -110,35 +104,98 @@ test('start-of-run gear: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask
   assert.equal(run.pearls, base.pearls + 30);
   assert.ok(BL.TONICS[run.tonics[0]], 'a tonic in the first slot');
   assert.deepEqual(base.tonics, [null, null, null]);
-  const ws = E.newRun(7, 1, ['whetstone']);
-  ws.deck.forEach((card) => assert.equal(card.up, card.id === 'swell' ? 1 : 0, card.id));
 });
 
-test('Flood Chart and Ebb Chart move the starting Tide by 1; with Moon Shard the Tide stays between 1 and 5', () => {
-  const tideWith = (gear, keepsakes) => { const run = E.newRun(3, 0, gear); if (keepsakes) run.keepsakes.push(...keepsakes); return fightIn(run).tide; };
-  assert.equal(tideWith([]), 3);
-  assert.equal(tideWith(['floodchart']), 4);
-  assert.equal(tideWith(['ebbchart']), 2);
-  assert.equal(tideWith([], ['moonshard']), 5);
-  assert.equal(tideWith(['floodchart'], ['moonshard']), 5);
-  assert.equal(tideWith(['ebbchart'], ['moonshard']), 4);
+test('bells: Brass draws 1 on every Crest and Low Water; Flood 2 on a Crest only; Ebb 2 on a Low Water only; Cracked nothing on the first each turn, then 2', () => {
+  // [bell, Crest, Low Water] -> cards drawn
+  const draws = (bell, first, second) => {
+    const run = E.newRun(3, 0, [bell]);
+    const c = fightIn(run);
+    tough(c);
+    const out = [];
+    [first, second].forEach((kind) => {
+      if (!kind) return;
+      const n = c.hand.length;
+      if (kind === 'crest') { c.tide = 4; play(run, give(run, 'swell'), c.enemies[0]); } else { c.tide = 2; play(run, give(run, 'slack')); }
+      out.push(c.hand.length - n);
+    });
+    return out;
+  };
+  assert.deepEqual(draws('tidebell', 'crest', 'low'), [1, 1]);
+  assert.deepEqual(draws('floodbell', 'crest', 'low'), [2, 0]);
+  assert.deepEqual(draws('ebbbell', 'crest', 'low'), [0, 2]);
+  assert.deepEqual(draws('crackedbell', 'crest', 'low'), [0, 2]);
+  assert.deepEqual(draws('crackedbell', 'low', 'crest'), [0, 2]);
+  // the Cracked Bell counts each turn afresh
+  const run = E.newRun(3, 0, ['crackedbell']);
+  const c = fightIn(run);
+  tough(c);
+  c.enemies.forEach((e) => { e.intent = 'none'; });
+  c.tide = 4;
+  play(run, give(run, 'swell'), c.enemies[0]);
+  E.endTurn(run);
+  const n = c.hand.length;
+  c.tide = 4;
+  play(run, give(run, 'swell'), c.enemies[0]);
+  assert.equal(c.hand.length, n, 'the first Crest of the new turn draws nothing');
+});
+
+test('harpoons: the Honed Harpoon adds 2 damage to the first Harpoon Jab of each fight; the Barbed Harpoon makes it apply 1 Brine', () => {
+  assert.equal(BL.KIT.honed.dmg, 2);
+  assert.equal(BL.KIT.barbed.brine, 1);
+  const jabs = (kit, keepsakes) => {
+    const run = E.newRun(3, 0, kit);
+    if (keepsakes) run.keepsakes = keepsakes;
+    const c = fightIn(run);
+    tough(c);
+    const e = c.enemies[0];
+    const out = [];
+    for (let i = 0; i < 2; i++) {
+      const card = give(run, 'jab');
+      if (i === 0) out.push(E.playVals(run, card).dmg);
+      const hp = e.hp;
+      play(run, card, e);
+      out.push(hp - e.hp, e.st.brine || 0);
+    }
+    return out;
+  };
+  // [shown damage, 1st Jab damage, Brine after, 2nd Jab damage, Brine after]
+  assert.deepEqual(jabs([]), [6, 6, 0, 6, 0]);
+  assert.deepEqual(jabs(['honed']), [8, 8, 0, 6, 0]);
+  assert.deepEqual(jabs(['barbed']), [6, 6, 1, 6, 1]);
+  assert.deepEqual(jabs(['barbed'], ['saltedhook']), [6, 6, 2, 6, 2], 'Salted Hook adds to it');
+  // a new fight brings a new first Jab
+  const run = E.newRun(3, 0, ['honed']);
+  fightIn(run); tough(run.combat);
+  play(run, give(run, 'jab'), run.combat.enemies[0]);
+  win(run);
+  const c2 = fightIn(run);
+  assert.equal(E.playVals(run, give(run, 'jab')).dmg, 8);
+  assert.ok(c2);
 });
 
 test('Shell Gorget: start each fight with 4 Ward, which washes away on your next turn like any Ward', () => {
-  const run = E.newRun(3, 0, ['gorget']);
-  const c = fightIn(run);
+  const c = fightIn(E.newRun(3, 0, ['gorget']));
   assert.equal(c.turn, 1);
   assert.equal(c.player.ward, 4);
   assert.equal(fightIn(E.newRun(3, 0)).player.ward, 0);
 });
 
-test('Storm Lens: Crests deal 2 more damage', () => {
-  const run = E.newRun(3, 0, ['stormlens']);
+test("Pocket and Ditty Bag: Gleaner's Pouch +10 Pearls a fight, Pearl Scales 25% off at Barnaby's, Gleaning Net +3 Pearls a Crest, Spare Wick rests heal 10 more", () => {
+  const pearlsAfter = (kit) => { const run = E.newRun(3, 0, kit); fightIn(run); win(run); return run.rewards.pearls; };
+  assert.equal(pearlsAfter(['pouch']), pearlsAfter([]) + 10);
+  const shop = (kit) => { const run = E.newRun(9, 0, kit); E.enterNode(run, { row: 2, col: 0, type: 'shop' }); return E.price(run, run.shop.cards[0].base); };
+  const full = shop([]);
+  assert.equal(shop(['scales']), Math.round(full * 0.75));
+  const run = E.newRun(3, 0, ['net']);
   const c = fightIn(run);
-  const plain = fightIn(E.newRun(3, 0));
-  assert.equal(E.crestDamage(run, c, 1), E.crestDamage(E.newRun(3, 0), plain, 1) + 2);
-  assert.equal(E.crestDamage(run, c, 1), 8);
-  assert.equal(E.crestDamage(run, c, 2), 11);
+  tough(c);
+  const p = run.pearls;
+  c.tide = 4;
+  play(run, give(run, 'swell'), c.enemies[0]);
+  assert.equal(run.pearls, p + 3);
+  const rest = (kit) => { const r = E.newRun(3, 0, kit); return E.restAmount(r); };
+  assert.equal(rest(['wick']), rest([]) + 10);
 });
 
 test("Barnaby's Marker: the first removal at Barnaby's in a run is free and doesn't raise the next price", () => {
@@ -153,11 +210,11 @@ test("Barnaby's Marker: the first removal at Barnaby's in a run is free and does
   assert.equal(E.removePrice(run), 75);
   E.buyRemoval(run, run.deck[0].uid);
   assert.equal(run.pearls, 125);
-  const plain = E.newRun(3, 0);
-  assert.equal(E.removePrice(plain), 75);
+  assert.equal(E.removePrice(E.newRun(3, 0)), 75);
 });
 
-test('achievements: double and triple Crest, double Low Water, 3 flawless fights, a Dread, a Dread with 12 or fewer cards', () => {
+/* ---------- Achievements ---------- */
+test('achievements: double and triple Crest, double Low Water, 3 flawless fights, a Dread, a lean Dread, a Brine kill', () => {
   const run = E.newRun(9, 0);
   assert.deepEqual(E.achievementsMet(run), []);
   run.stats.maxChain = 2;
@@ -179,10 +236,17 @@ test('achievements: double and triple Crest, double Low Water, 3 flawless fights
   assert.deepEqual(E.achievementsMet(lean).filter((a) => a === 'dreadhunter' || a === 'travellight'), ['dreadhunter', 'travellight']);
   const fat = E.newRun(9, 0);
   ['jab', 'jab', 'jab'].forEach((id) => E.addCard(fat, id));
-  assert.equal(fat.deck.length, 13);
   fightIn(fat, ['hulk'], 'elite'); win(fat);
   assert.ok(E.achievementsMet(fat).includes('dreadhunter'));
   assert.ok(!E.achievementsMet(fat).includes('travellight'));
+  // an enemy that dies to Brine at the start of its turn
+  const br = E.newRun(9, 0);
+  const c = fightIn(br, ['kelp', 'crab']);
+  c.enemies[0].hp = 2;
+  c.enemies[0].st.brine = 3;
+  E.endTurn(br);
+  assert.equal(br.stats.brineKills, 1);
+  assert.ok(E.achievementsMet(br).includes('pickled'));
 });
 
 test('achievements unlock once, are kept on the run for the end screen, and never come from the tutorial', () => {
@@ -193,9 +257,100 @@ test('achievements unlock once, are kept on the run for the end screen, and neve
   assert.deepEqual(E.unlockAchievements(meta, run), []);
   assert.deepEqual(meta.ach, ['twocrests']);
   assert.deepEqual(run.unlocks, ['twocrests']);
-  assert.deepEqual(E.gearFor('twocrests'), ['floodchart']);
+  assert.deepEqual(E.kitFor('twocrests'), ['floodbell']);
+  assert.deepEqual(E.kitFor('twolows'), ['ebbbell']);
+  assert.deepEqual(E.kitFor('threecrests'), ['crackedbell']);
   const tut = E.newTutorialRun();
   tut.stats.maxChain = 3;
   assert.deepEqual(E.achievementsMet(tut), []);
   assert.deepEqual(E.unlockAchievements(E.newMeta(), tut), []);
+  assert.equal(E.bell(tut), null, 'no bell in the tutorial');
+});
+
+/* ---------- Charge, Hold and Seep ---------- */
+test('the Hold is 30 Charge in the Shallows and 5 more each depth; every 5 Charge over (or part of 5) is 1 Seep', () => {
+  assert.deepEqual([0, 1, 2, 3].map(E.hold), [30, 35, 40, 45]);
+  assert.deepEqual([30, 31, 35, 36, 40, 41].map((ch) => E.seepFor(ch, 0)), [0, 1, 1, 2, 2, 3]);
+  assert.equal(E.seepFor(36, 1), 1, 'deeper water holds more');
+  const run = E.newRun(5);
+  run.keepsakes = ['whaletooth', 'stormbottle'];
+  assert.equal(E.charge(run), BL.KEEPSAKES.whaletooth.charge + BL.KEEPSAKES.stormbottle.charge);
+  assert.equal(E.seepCount(run), E.seepFor(E.charge(run), 0));
+  // what taking one more would do
+  assert.equal(E.charge(run, 'tidewatch'), E.charge(run) + BL.KEEPSAKES.tidewatch.charge);
+  assert.equal(E.seepCount(run, 'tidewatch'), E.seepFor(E.charge(run) + BL.KEEPSAKES.tidewatch.charge, 0));
+});
+
+test('Seep: shuffled into the draw pile at the start of each fight, unplayable, and gone after the fight', () => {
+  const run = E.newRun(5);
+  run.keepsakes = ['whaletooth', 'stormbottle', 'tidewatch']; // 19 + 18 + 12 = 49: 4 Seep at a Hold of 30
+  assert.equal(E.seepCount(run), 4);
+  const deck = run.deck.length;
+  const c = fightIn(run);
+  const all = c.hand.concat(c.draw);
+  assert.equal(all.length, deck + 4);
+  const seep = all.filter((card) => card.id === 'seep');
+  assert.equal(seep.length, 4);
+  assert.equal(c.seep, 4);
+  assert.equal(E.playable(run, seep[0]).ok, false);
+  assert.equal(run.deck.length, deck, 'never joins the deck');
+  assert.ok(!run.deck.some((card) => card.id === 'seep'));
+  win(run);
+  assert.equal(run.deck.length, deck);
+  // within the Hold, no Seep
+  const light = E.newRun(5);
+  light.keepsakes = ['whaletooth'];
+  assert.equal(fightIn(light).hand.concat(light.combat.draw).filter((x) => x.id === 'seep').length, 0);
+});
+
+test('dropping a keepsake: between fights only, for good; Scallop Charm takes its 10 Max HP with it', () => {
+  const run = E.newRun(5);
+  E.gainKeepsake(run, 'biscuit');
+  E.gainKeepsake(run, 'whaletooth');
+  assert.equal(run.maxHp, 80);
+  fightIn(run);
+  assert.equal(E.dropKeepsake(run, 'whaletooth'), false, 'not during a fight');
+  win(run);
+  E.backToMap(run);
+  assert.equal(E.dropKeepsake(run, 'whaletooth'), true);
+  assert.deepEqual(run.keepsakes, ['biscuit']);
+  assert.equal(E.dropKeepsake(run, 'whaletooth'), false, 'already gone');
+  E.dropKeepsake(run, 'biscuit');
+  assert.equal(run.maxHp, 70);
+  assert.ok(run.hp <= run.maxHp);
+});
+
+/* ---------- Saves from before v0.10.0 ---------- */
+test('old lasting state carries over: gear becomes kit, and the pack becomes what you wear', () => {
+  const m = E.migrateMeta({ salvage: 9, earned: 40, owned: ['purse', 'floodchart', 'stormlens', 'whetstone', 'nope'], packed: ['whetstone', 'purse', 'floodchart'], ach: ['twocrests'] });
+  assert.deepEqual(m.owned, ['purse', 'floodbell', 'crackedbell', 'honed']);
+  assert.deepEqual(m.kit, { harpoon: 'honed', bell: 'floodbell', coat: null, pocket: 'purse', ditty: null });
+  assert.equal(m.packed, undefined);
+  assert.equal(m.salvage, 9);
+  // new state passes through unchanged
+  const n = E.migrateMeta({ salvage: 0, earned: 0, owned: ['cork'], kit: { coat: 'cork' }, ach: [] });
+  assert.equal(n.kit.coat, 'cork');
+  assert.equal(n.kit.bell, 'tidebell');
+});
+
+test('an old saved run carries over: the Tide-Bell keepsake becomes the bell, and the money keepsakes and gear keep working as kit', () => {
+  const run = E.newRun(3);
+  delete run.kit;
+  run.keepsakes = ['tidebell', 'pearlearring', 'doubloon', 'whaletooth'];
+  run.gear = ['cork', 'floodchart'];
+  E.migrateRun(run);
+  assert.equal(E.bell(run), 'tidebell');
+  assert.deepEqual(run.keepsakes, ['whaletooth']);
+  assert.ok(E.hasKit(run, 'pouch'));
+  assert.ok(E.hasKit(run, 'scales'));
+  assert.ok(E.hasKit(run, 'cork'));
+  assert.equal(run.gear, undefined);
+  const before = E.newRun(3);
+  fightIn(run); win(run);
+  fightIn(before); win(before);
+  assert.equal(run.rewards.pearls, before.rewards.pearls + 10, "the Pearl Earring's effect goes on");
+  // a run that already has a kit is left alone
+  const now = E.newRun(3, 0, ['honed']);
+  E.migrateRun(now);
+  assert.equal(now.kit.harpoon, 'honed');
 });

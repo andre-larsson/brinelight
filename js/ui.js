@@ -24,16 +24,19 @@
   const BEST_KEY = 'brinelight.best.v1';
   const LEVEL_KEY = 'brinelight.maxlevel.v1';
   const VERSION_KEY = 'brinelight.version.v1'; // the last version whose What's new the player has seen
-  const META_KEY = 'brinelight.meta.v1'; // the Workshop: Salvage, gear owned and packed, achievements
-  const MT = BL.META_TEXT; // working names (Salvage, Workshop, Gear, Pack), kept in js/data.js
+  const META_KEY = 'brinelight.meta.v1'; // the Workshop: Salvage, kit owned and worn, achievements
+  const MT = BL.META_TEXT; // working names (Salvage, Workshop, Kit), kept in js/data.js
   const getNum = (k) => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
   const setNum = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* ignore */ } };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { /* ignore */ }
   let meta = E.newMeta();
   try {
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
-    ['salvage', 'earned'].forEach((k) => { if (typeof m[k] === 'number') meta[k] = m[k]; });
-    ['owned', 'packed', 'ach'].forEach((k) => { if (Array.isArray(m[k])) meta[k] = m[k].filter((x) => typeof x === 'string'); });
+    const raw = { salvage: 0, earned: 0, owned: [], ach: [] };
+    ['salvage', 'earned'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
+    ['owned', 'packed', 'ach'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
+    meta = E.migrateMeta(raw); // gear from before v0.10.0 becomes kit
   } catch (e) { /* ignore */ }
   const saveMeta = () => { try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch (e) { /* ignore */ } };
   const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
@@ -84,6 +87,7 @@
     salvage: '<img class="salv" src="img/icons/g_salvage.webp" alt="">',
     lock: svg('<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/>'),
     pack: svg('<path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="7" width="16" height="14" rx="3" fill="currentColor" opacity=".9"/><path d="M4 12h16M10 12v2.5h4V12" fill="none" stroke="#0b1f2c" stroke-width="1.6"/>'),
+    charge: svg('<path d="M12 2.5c3.3 4.3 6.3 7.6 6.3 11.4a6.3 6.3 0 0 1-12.6 0c0-3.8 3-7.1 6.3-11.4z" opacity=".4"/><path d="M12 8.2l1.3 2.8 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z"/>'),
     chevron: svg('<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
   const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss };
@@ -303,7 +307,8 @@
       if (!r || r.version !== 2 || !r.map) return null;
       if (r.screen === 'victory' || r.screen === 'defeat') return null;
       r.stats.lastTick = Date.now();
-      return r;
+      return E.migrateRun(r); // a run saved before v0.10.0 gets its kit
+
     } catch (e) { return null; }
   }
   function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
@@ -320,7 +325,7 @@
     setTimeout(() => d.remove(), (ms || 2200) + 100);
   }
 
-  const KW_RE = /\b(Low Water|Surge|Ebb|Ward|Soaked|Chilled|Brine|Sink|Float|Might|Spines|Crest|Light|Tide)\b/g;
+  const KW_RE = /\b(Low Water|Surge|Ebb|Ward|Soaked|Chilled|Brine|Sink|Float|Might|Spines|Crest|Light|Tide|Seep)\b/g;
   const kwClass = (k) => 'k-' + k.toLowerCase().replace(/\s/g, '');
   function markKeywords(text) {
     return text.replace(KW_RE, (m) => `<span class="kw ${kwClass(m)}">${m}</span>`);
@@ -349,8 +354,15 @@
       case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
       case 'floor': return `<b>Depth ${run.floor} of ${E.MAP_ROWS + 1}</b><br>The Drowned Bellwether waits at depth ${E.MAP_ROWS + 1}.`;
-      case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b><br>${k.desc}`; }
-      case 'gear': return `<b>${MT.item} you packed</b>${(run.gear || []).map((id) => `<div class="tip-row"><b>${BL.GEAR[id].name}:</b> ${BL.GEAR[id].desc}</div>`).join('')}${run.overburden ? `<div class="tip-row"><b>Overburdened:</b> &minus;${run.overburden * E.OVERBURDEN_HP} Max HP this dive.</div>` : ''}`;
+      case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Charge ${k.charge}</span><br>${k.desc}`; }
+      case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
+      case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
+      case 'charge': {
+        const ch = E.charge(run), h = E.hold(run.level), sp = E.seepCount(run);
+        return `<b>Charge ${ch} of ${h}</b><br>Your keepsakes give off ${ch} Charge. The water in ${levelName(run.level)} holds ${h}, and deeper water holds more.` +
+          `<div class="tip-row">${sp ? `<b>${sp} Seep</b> joins each fight: an unplayable card for every ${E.SEEP_STEP} Charge over, or part of ${E.SEEP_STEP}.` : `Past ${h}, every ${E.SEEP_STEP} Charge over (or part of ${E.SEEP_STEP}) adds a <b>Seep</b> to each fight: an unplayable card.`}</div>` +
+          '<div class="tip-row">Tap a keepsake between fights to drop it.</div>';
+      }
       case 'tonic': {
         const t = run.tonics[+parts[1]];
         if (!t) return '<b>Empty tonic slot</b><br>Tonics are found after fights and sold by Barnaby.';
@@ -419,14 +431,14 @@
   /* ================================================================== *
    *  Cards
    * ================================================================== */
-  function combatFmt(target) {
+  function combatFmt(target, boost) {
     const c = run.combat;
     return {
       tide: c.tide,
       ward: c.player.ward,
       d: (base) => {
         const v = E.attackValue(c.player, target || null, base);
-        if (v > base) return `<span class="num-up">${v}</span>`;
+        if (v > base || boost) return `<span class="num-up">${v}</span>`;
         if (v < base) return `<span class="num-down">${v}</span>`;
         return String(v);
       },
@@ -438,7 +450,8 @@
   function cardInner(card, inCombat, target) {
     const d = BL.CARDS[card.id];
     const cost = E.cost(card, inCombat ? run.combat : null);
-    const text = markKeywords(d.text(E.vals(card), inCombat ? combatFmt(target) : plainFmt));
+    const v = inCombat ? E.playVals(run, card) : E.vals(card);
+    const text = markKeywords(d.text(v, inCombat ? combatFmt(target, v.dmg > E.vals(card).dmg) : plainFmt));
     const baseCost = d.cost;
     const long = text.replace(/<[^>]+>/g, '').length > 58;
     const name = E.cardName(card);
@@ -599,26 +612,27 @@
         <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Low Water</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Tide resets to 3.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Low Water gives 1 Light. Save Surge for one big turn.</li>
-        <li>Your <b>Tide-Bell</b> draws a card on every Crest and Low Water.</li>
+        <li>Your <b>bell</b> draws when you Crest or reach Low Water. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} draw differently.</li>
         <li>Badges on your cards say what a card would do right now: ${['CREST', 'LETHAL', 'VICTORY', 'LOW WATER', 'ECHO'].map((b) => `<span class="c-badge ${b.split(' ')[0].toLowerCase()}">${b}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
-      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine'].map((k) => [k, BL.KEYWORDS[k]]));
+      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
         <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
-        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and you choose 1 of 2 keepsakes after.'],
+        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and then you may take 1 of 2 keepsakes.'],
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
         [`${NODE_ICON.rest} Cove`, 'Rest to heal 30% of your max HP, or upgrade a card.'],
-        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and 1 of 3 keepsakes.'],
+        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and you may take 1 of 3 keepsakes.'],
       ])}<ul class="help-list">
         <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>Deep Ebb</b> (2+ Low Waters in a turn).</li>
-        <li><b>Keepsakes</b> last the whole run. <b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
-        <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
+        <li><b>Keepsakes</b> last the whole run, and each gives off <b>Charge</b>. The water holds ${E.hold(0)} Charge in the Shallows and ${E.HOLD_STEP} more at each deeper depth: your <b>Hold</b>. Past it, every ${E.SEEP_STEP} Charge over (or part of ${E.SEEP_STEP}) shuffles a <b>Seep</b> into your draw pile at the start of each fight: an unplayable card, gone after the fight. You can drop a keepsake between fights.</li>
+        <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
+        <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
-        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on ${MT.item.toLowerCase()} that lasts across runs. Achievements unlock more. Before a dive you pack it: the Shallows hold ${pips(E.capacity(0))}, and each deeper depth ${pips(1)} more. Up to ${E.OVERBURDEN_MAX} spaces more are allowed, at ${E.OVERBURDEN_HP} Max HP each for the dive.</li>
+        <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on <b>${MT.item.toLowerCase()}</b> that lasts across runs: one piece each for your ${BL.KIT_PLACES.map((pl) => pl.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}. Achievements unlock more. Choose what to wear before each dive.</li>
       </ul>`;
       case 'controls': return dl([
         ['Mouse', 'Click a card, then click an enemy (or the card again). Or drag a card onto an enemy, or up into the sea. Hover anything for details.'],
@@ -659,6 +673,19 @@
     openOverlay(modal('Menu', body, null, 'narrow'));
   }
 
+  const seepToast = (n) => toast(`${n} Seep in your draw pile: your keepsakes give off more Charge than the water here holds`, 3200);
+  /* A keepsake, between fights: what it does, its Charge, and a way to drop it. */
+  function showKeepsake(k) {
+    const K = BL.KEEPSAKES[k];
+    if (!K) return;
+    const ch = E.charge(run), h = E.hold(run.level), sp = E.seepCount(run);
+    const without = E.seepFor(ch - K.charge, run.level);
+    const body = `<div style="display:flex;gap:14px;align-items:center"><div class="medal" style="width:72px;height:72px;flex:0 0 auto"><img src="img/icons/${K.art}.webp" alt=""></div><p style="margin:0;font-size:16px">${K.desc}</p></div>
+      <p class="buy-left">Charge ${K.charge}. You carry ${ch} of your Hold of ${h}${sp ? `: <b>${sp} Seep</b> in each fight` : ''}.${sp ? ` Without it: ${without ? without + ' Seep' : 'no Seep'}.` : ''}</p>
+      <p class="buy-left muted">Dropping it is for good${k === 'biscuit' ? ', and its 10 Max HP go with it' : ''}.</p>`;
+    openOverlay(modal(K.name, body, `<button class="btn" data-act="ksdrop" data-k="${k}">Drop it</button><button class="btn primary" data-act="close" autofocus>Keep it</button>`, 'narrow'));
+  }
+
   function showTonic(slot) {
     const t = run.tonics[slot];
     if (!t) return;
@@ -675,7 +702,10 @@
    *  HUD
    * ================================================================== */
   function hudHTML() {
-    const ks = run.keepsakes.map((k) => `<button class="medal" data-tip="ks:${k}" data-act="ks" data-k="${k}" aria-label="${BL.KEEPSAKES[k].name}: ${BL.KEEPSAKES[k].desc}"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></button>`).join('');
+    const ks = run.keepsakes.map((k) => `<button class="medal" data-tip="ks:${k}" data-act="ks" data-k="${k}" aria-label="${BL.KEEPSAKES[k].name}, Charge ${BL.KEEPSAKES[k].charge}: ${BL.KEEPSAKES[k].desc}"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></button>`).join('');
+    const bell = E.bell(run) ? BL.KIT[E.bell(run)] : null;
+    const kitIds = E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell');
+    const ch = E.charge(run), hold = E.hold(run.level), seep = E.seepCount(run);
     const ts = run.tonics.map((t, i) => t
       ? `<button class="medal tonic-slot${ui.tonicSel === i ? ' selected' : ''}" data-tip="tonic:${i}" data-act="tonic" data-slot="${i}" aria-label="Tonic: ${BL.TONICS[t].name}"><img src="img/icons/${BL.TONICS[t].art}.webp" alt=""></button>`
       : `<span class="medal empty" data-tip="tonic:${i}" aria-hidden="true"></span>`).join('');
@@ -684,7 +714,9 @@
       <div class="stat pearls" data-tip="pearls" aria-label="Pearls">${ICON.pearl}<span>${run.pearls}</span></div>
       <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Depth </span>${run.floor}/${E.MAP_ROWS + 1}</span></div>
       <div class="hud-break"></div>
-      ${run.gear && run.gear.length ? `<button class="medal gear-pack" data-tip="gear" data-act="gearinfo" aria-label="${MT.item}: ${run.gear.map((id) => BL.GEAR[id].name).join(', ')}">${ICON.pack}<span class="n">${run.gear.length}</span></button>` : ''}
+      ${bell ? `<button class="medal gear bell" data-tip="bell" data-act="kitinfo" data-k="bell" aria-label="${bell.name}: ${bell.desc}"><img src="img/icons/${bell.art}.webp" alt=""></button>` : ''}
+      ${kitIds.length ? `<button class="medal gear-pack" data-tip="kit" data-act="kitinfo" aria-label="${MT.item}: ${kitIds.map((id) => BL.KIT[id].name).join(', ')}">${ICON.pack}<span class="n">${kitIds.length}</span></button>` : ''}
+      ${run.keepsakes.length ? `<button class="charge${seep ? ' over' : ''}" data-tip="charge" data-act="kitinfo" aria-label="Charge ${ch} of ${hold}${seep ? `, ${seep} Seep each fight` : ''}">${ICON.charge}<span>${ch}/${hold}</span></button>` : ''}
       <div class="keepsakes">${ks}</div>
       <div class="tonics">${ts}</div>
       <button class="icon-btn" data-act="deck" aria-label="View deck (D)" title="Deck (D)">${ICON.deck}</button>
@@ -831,73 +863,67 @@
     openOverlay(modal('Choose your depth', body, null, 'narrow'));
   }
 
-  /* ----- Workshop: gear bought with Salvage, packed before a dive ----- */
+  /* ----- Workshop: kit bought with Salvage, chosen before a dive ----- */
   const levelName = (lv) => { const n = E.LEVELS[lv].name; return n === 'Shallows' ? 'the Shallows' : n.replace(/^The /, 'the '); };
-  const pips = (n, of) => `<span class="pips" aria-hidden="true">${'&#9670;'.repeat(n)}${of ? '&#9671;'.repeat(Math.max(0, of - n)) : ''}</span>`;
-  const space = (n) => `<span class="g-weight">${pips(n)} ${n} ${n === 1 ? 'space' : 'spaces'}</span>`;
   const gearArt = (g) => `<span class="medal gear"><img src="img/icons/${g.art}.webp" alt=""></span>`;
   const workshopOpen = () => meta.earned > 0 || meta.owned.length > 0;
+  const kitIn = (place) => Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === place);
 
   function showWorkshop() {
-    const tiles = Object.keys(BL.GEAR).map((id) => {
-      const g = BL.GEAR[id];
-      const owned = meta.owned.indexOf(id) >= 0;
-      const open = E.gearUnlocked(meta, id);
+    const tile = (id) => {
+      const g = BL.KIT[id];
+      const owned = E.ownsKit(meta, id);
+      const open = E.kitUnlocked(meta, id);
       const a = g.unlock ? BL.ACHIEVEMENTS[g.unlock] : null;
       const foot = owned ? '<span class="g-state">Owned</span>'
         : !open ? `<span class="g-lock">${ICON.lock}<span><b>${a.name}:</b> ${a.desc}</span></span>`
           : `<span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span>`;
-      const attrs = !owned && open ? ` tabindex="0" role="button" data-act="gearbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
-      return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small>${foot}</div>`;
-    }).join('');
-    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Before each dive you pack it: the Shallows hold ${pips(E.capacity(0))} and every deeper depth holds ${pips(1)} more. You can overburden yourself by up to ${E.OVERBURDEN_MAX} spaces, at ${E.OVERBURDEN_HP} Max HP each.</p>
-      <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div><div class="shop-row">${tiles}</div>`;
+      const attrs = !owned && open ? ` tabindex="0" role="button" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
+      return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small>${foot}</div>`;
+    };
+    const groups = BL.KIT_PLACES.map((pl) => `<h3 class="ws-place">${pl.name} <small>${pl.desc}</small></h3><div class="shop-row">${kitIn(pl.id).filter((id) => !BL.KIT[id].starter).map(tile).join('')}</div>`).join('');
+    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. You wear one piece in each place, and choose before each dive.</p>
+      <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${groups}`;
     openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
 
-  /* Before a dive: choose the gear to bring, up to the depth's capacity. Skipped while nothing is owned. */
+  /* Before a dive: choose what to wear, one piece in each place. Skipped while nothing is owned. */
   function prepareDive(level) {
-    if (!meta.owned.length) return startNewRun(level, []);
-    showPack(level);
+    if (!meta.owned.length) return startNewRun(level, meta.kit);
+    showKit(level);
   }
-  function showPack(level) {
-    meta.packed = E.fitGear(meta.packed, level, meta.owned);
-    const cap = E.capacity(level);
-    const used = E.gearWeight(meta.packed);
-    const over = E.overburden(meta.packed, level);
-    const tiles = meta.owned.filter((id) => BL.GEAR[id]).map((id) => {
-      const g = BL.GEAR[id];
-      const on = meta.packed.indexOf(id) >= 0;
-      const fits = on || used + g.weight <= E.packLimit(level);
-      const heavy = !on && fits && used + g.weight > cap;
-      const cost = E.OVERBURDEN_HP * (Math.max(0, used + g.weight - cap) - over);
-      const state = on ? 'Packed' : !fits ? 'No room' : heavy ? `Overburdens you: &minus;${cost} Max HP` : 'Not packed';
-      return `<div class="shop-tile gear-tile pack-tile${on ? ' chosen' : ''}${fits ? '' : ' nofit'}${heavy ? ' heavy' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="packtoggle" data-g="${id}" data-lv="${level}">${gearArt(g)}<b>${g.name}</b>${space(g.weight)}<small>${g.desc}</small><span class="g-state">${state}</span></div>`;
+  function showKit(level) {
+    meta.kit = E.fitKit(meta.kit, meta.owned);
+    const rows = BL.KIT_PLACES.map((pl) => {
+      const ids = kitIn(pl.id).filter((id) => E.ownsKit(meta, id));
+      if (!ids.length || (pl.id === 'bell' && ids.length < 2)) return '';
+      const tiles = ids.map((id) => {
+        const g = BL.KIT[id];
+        const on = meta.kit[pl.id] === id;
+        return `<div class="shop-tile gear-tile kit-tile${on ? ' chosen' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="kitwear" data-g="${id}" data-lv="${level}">${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small><span class="g-state">${on ? 'Worn' : 'Not worn'}</span></div>`;
+      }).join('');
+      return `<h3 class="ws-place">${pl.name}</h3><div class="shop-row">${tiles}</div>`;
     }).join('');
-    const meter = `<span class="pips" aria-hidden="true">${'&#9670;'.repeat(Math.min(used, cap))}${'&#9671;'.repeat(Math.max(0, cap - used))}<span class="ob">${'&#9670;'.repeat(over)}</span></span>`;
-    const note = over
-      ? `<p class="ob-line">Overburdened by ${over} ${over === 1 ? 'space' : 'spaces'}: <b>&minus;${E.OVERBURDEN_HP * over} Max HP</b> for this dive.</p>`
-      : `<p class="ws-lead">You can pack up to ${E.OVERBURDEN_MAX} spaces more, but each one costs ${E.OVERBURDEN_HP} Max HP for the dive. Deeper depths hold more. Your choice is remembered.</p>`;
-    const body = `<div class="pack-meter${over ? ' over' : ''}"><span>${MT.pack}</span>${meter}<b>${used} / ${cap}</b></div>${note}<div class="shop-row">${tiles}</div>`;
-    openOverlay(modal(`${MT.pack} for ${levelName(level)}`, body,
+    const body = `<p class="ws-lead">One piece in each place. Your choice is remembered. Keepsakes: the water in ${levelName(level)} holds <b>${E.hold(level)} Charge</b>.</p>${rows}`;
+    openOverlay(modal(`${MT.item} for ${levelName(level)}`, body,
       `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" data-lv="${level}" autofocus>Dive</button>`, 'workshop-modal'));
   }
 
-  /* Achievements reached in this run unlock gear at once, so they're kept even if the run is abandoned. */
+  /* Achievements reached in this run unlock kit at once, so they're kept even if the run is abandoned. */
   function checkUnlocks(quiet) {
     if (!run || run.tutorial) return;
     const fresh = E.unlockAchievements(meta, run);
     if (!fresh.length) return;
     saveMeta();
     if (quiet) return; // the end screen lists them itself
-    fresh.forEach((a) => toast(`\u2605 ${BL.ACHIEVEMENTS[a].name}! ${E.gearFor(a).map((id) => BL.GEAR[id].name).join(', ')} can now be bought in the ${MT.shop}.`, 4500));
+    fresh.forEach((a) => toast(`\u2605 ${BL.ACHIEVEMENTS[a].name}! ${E.kitFor(a).map((id) => BL.KIT[id].name).join(', ')} can now be bought in the ${MT.shop}.`, 4500));
     sfx('buff');
   }
 
-  function startNewRun(level, gear) {
+  function startNewRun(level, kit) {
     clearSave();
     const m = /[?&]seed=(\d+)/.exec(location.search);
-    run = E.newRun(m ? +m[1] : undefined, level || 0, gear || []);
+    run = E.newRun(m ? +m[1] : undefined, level || 0, kit);
     save();
     render();
     sfx('bell');
@@ -1015,6 +1041,7 @@
     if (names) {
       c.fx.length = 0;
       banner(names, 'enemy');
+      if (c.seep) seepToast(c.seep);
       if (c.kind === 'boss') sfx('bell');
     } else processFx();
   }
@@ -1870,10 +1897,11 @@
           break;
         }
         case 'shuffle': anim($('#pile-draw'), 'pulse', 500); break;
-        case 'addcards': toast(`${f.n} ${BL.CARDS[f.id].name} shuffled into your draw pile`); break;
+        case 'addcards': if (f.id === 'seep') seepToast(f.n); else toast(`${f.n} ${BL.CARDS[f.id].name} shuffled into your draw pile`); break;
         case 'turn': banner(c.turn === 1 ? 'Your Turn' : `Turn ${c.turn}`); sfx('turn'); break;
         case 'light': { const o = $('#orb'); anim(o, 'gain', 700); if (f.n) floatAt(o, `+${f.n} Light`, 'light-gain'); break; }
         case 'ks': { const m = $(`.hud .medal[data-k="${f.k}"]`, screenEl); anim(m, 'flash', 900); break; }
+        case 'kit': { const m = f.k === 'bell' ? $('.hud .medal[data-k="bell"]', screenEl) : $('.hud .gear-pack', screenEl); anim(m, 'flash', 900); break; }
         case 'tide': sfx('tide'); break;
       }
     }
@@ -2011,14 +2039,20 @@
 
   /* ----- Reward ----- */
   /* Keepsake tiles to pick from. Once one is taken they stay where they are: the pick lit, the rest dimmed. */
-  function ksTiles(ids, taken, act) {
+  /* What carrying one more keepsake would do to your Charge: "Then 34/30, 1 Seep". */
+  function chargeAfter(id) {
+    const ch = E.charge(run, id), h = E.hold(run.level), s0 = E.seepCount(run), s1 = E.seepCount(run, id);
+    return `<span class="k-after${s1 > s0 ? ' over' : ''}">Then ${ch}/${h}${s1 ? `, ${s1} Seep` : ''}</span>`;
+  }
+  function ksTiles(ids, taken, act, left) {
     return ids.map((id) => {
       const K = BL.KEEPSAKES[id];
-      const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><small>${K.desc}</small>`;
-      if (taken) return `<div class="shop-tile ${id === taken ? 'chosen' : 'dim'}"${id === taken ? ' aria-label="Taken: ' + K.name + '"' : ''}>${art}</div>`;
-      return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="${act}" data-k="${id}">${art}</div>`;
+      const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Charge ${K.charge}</span><small>${K.desc}</small>`;
+      if (taken || left) return `<div class="shop-tile ${id === taken ? 'chosen' : 'dim'}"${id === taken ? ' aria-label="Taken: ' + K.name + '"' : ''}>${art}</div>`;
+      return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="${act}" data-k="${id}" aria-label="${K.name}, Charge ${K.charge}">${art}${chargeAfter(id)}</div>`;
     }).join('');
   }
+  const leaveKsBtn = () => `<button class="btn ghost small leave-ks" data-act="leaveks">Leave them (+${E.DECLINE_SCORE.keepsake} score)</button>`;
 
   function renderReward() {
     const rw = run.rewards;
@@ -2038,15 +2072,16 @@
         ${rw.tonicTaken ? '<span class="muted">Taken</span>' : `<button class="btn small" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : ''}>${full ? 'Slots full' : 'Take'}</button>`}</div>`);
     }
     // the panel stays after the pick (chosen tile lit, the other dimmed) so nothing below it jumps up under the pointer
-    const ksPanel = ksChoices ? `<div class="panel"><h3>${rw.keepsake ? 'Keepsake taken' : 'Choose a keepsake'}</h3><div class="shop-row">${ksTiles(ksChoices, rw.keepsake, 'rewardks')}</div></div>` : '';
+    const ksOpen = ksChoices && !rw.keepsake && !rw.keepsakeLeft;
+    const ksPanel = ksChoices ? `<div class="panel"><h3>${rw.keepsake ? 'Keepsake taken' : rw.keepsakeLeft ? 'Keepsakes left behind' : 'Take a keepsake?'}</h3><div class="shop-row">${ksTiles(ksChoices, rw.keepsake, 'rewardks', rw.keepsakeLeft)}</div>${ksOpen ? leaveKsBtn() : ''}</div>` : '';
     const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : ''}`,
       (rw.cardTaken ? '' : `tabindex="0" role="button" data-act="rewardcard" data-i="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
     const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
-    // a keepsake on offer must be taken before moving on
+    // a keepsake on offer is taken or left before moving on
     const buttons = !rw.cardTaken
       ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card (+${E.DECLINE_SCORE[E.skipCardKind(rw)]} score)</button>`
-      : ksChoices && !rw.keepsake
-        ? '<button class="btn primary wide" disabled>Choose a keepsake to continue</button>'
+      : ksOpen
+        ? '<button class="btn primary wide" disabled>Take a keepsake or leave them</button>'
         : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner reward-screen">
       <h1>Victory</h1>
@@ -2090,7 +2125,7 @@
         ${staticCard(pseudo(it.id), 'choice', it.sold ? '' : `tabindex="0" role="button" data-act="buy" data-kind="cards" data-i="${i}"`)}
         <div>${priceTag(it.base)} ${it.sale ? '<span class="sale-tag">SALE</span>' : ''}</div></div>`).join('');
     const tile = (kind, it, i, def) => `<div class="shop-tile${it.sold ? ' sold' : ''}" tabindex="0" role="button" data-act="buy" data-kind="${kind}" data-i="${i}" aria-label="Buy ${def.name}">
-        <span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><b>${def.name}</b><small>${def.desc}</small>${it.sold ? '<span class="muted">Sold</span>' : priceTag(it.base)}</div>`;
+        <span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><b>${def.name}</b>${kind === 'keepsakes' ? `<span class="k-charge">Charge ${def.charge}</span>` : ''}<small>${def.desc}</small>${it.sold ? '<span class="muted">Sold</span>' : priceTag(it.base)}${kind === 'keepsakes' && !it.sold ? chargeAfter(it.id) : ''}</div>`;
     const ks = s.keepsakes.map((it, i) => tile('keepsakes', it, i, BL.KEEPSAKES[it.id])).join('');
     const ts = s.tonics.map((it, i) => tile('tonics', it, i, BL.TONICS[it.id])).join('');
     const rp = E.removePrice(run);
@@ -2185,13 +2220,13 @@
       const k = t.keepsake ? BL.KEEPSAKES[t.keepsake] : null;
       const hasChoices = t.choices && t.choices.length;
       // like the Dread reward: the chest stays open where it was after the pick
+      const picking = hasChoices && !k && !t.keepsakeLeft;
       const choices = hasChoices
-        ? `<div class="panel"><h3>${k ? 'You take the ' + k.name + '.' : 'Three keepsakes glint in the chest. Take one.'}</h3><div class="shop-row">${ksTiles(t.choices, t.keepsake, 'treasureks')}</div></div>` : '';
-      const picking = hasChoices && !k;
+        ? `<div class="panel"><h3>${k ? 'You take the ' + k.name + '.' : t.keepsakeLeft ? 'You leave the keepsakes in the chest.' : 'Three keepsakes glint in the chest. Take one?'}</h3><div class="shop-row">${ksTiles(t.choices, t.keepsake, 'treasureks', t.keepsakeLeft)}</div>${picking ? leaveKsBtn() : ''}</div>` : '';
       body = `<div class="reward-list">
         <div class="reward-item done"><span class="medal" style="display:grid;place-items:center">${ICON.pearl}</span><div class="grow"><b>${t.pearls} Pearls</b></div></div>
         ${k && !hasChoices ? `<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>` : ''}
-      </div>${choices}${picking ? '<button class="btn" disabled>Choose a keepsake to continue</button>' : '<button class="btn primary" data-act="tomap" autofocus>Continue</button>'}`;
+      </div>${choices}${picking ? '<button class="btn" disabled>Take a keepsake or leave them</button>' : '<button class="btn primary" data-act="tomap" autofocus>Continue</button>'}`;
     }
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="chest" style="background-image:url(img/scenes/treasure.webp)"></div>
@@ -2229,7 +2264,7 @@
     const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score or depth unlock</small>' : ''}</div>
       ${fin.unlocked ? `<div class="unlock-box">New depth unlocked: <b>${fin.unlocked}</b>. Choose it when you start your next descent.</div>` : ''}
       ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b> for the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
-      ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.gearFor(a).map((id) => `<b>${BL.GEAR[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
+      ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? 'The Lantern Heart rises' : 'The tide takes you';
     const text = win
       ? 'The Bellwether cracks and falls silent. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up through the dark water, and by dawn the great light of Saltmere is turning again.'
@@ -2286,34 +2321,35 @@
       case 'confirmnew': closeOverlay(true); beginNewRun(); break;
       case 'startlevel': closeOverlay(true); prepareDive(+t.dataset.lv); break;
       case 'workshop': showWorkshop(); break;
-      case 'gearbuy': {
-        const id = t.dataset.g, g = BL.GEAR[id];
-        if (!g || meta.owned.indexOf(id) >= 0) break;
+      case 'kitbuy': {
+        const id = t.dataset.g, g = BL.KIT[id];
+        if (!g || E.ownsKit(meta, id)) break;
         if (meta.salvage < g.price) { toast(`Not enough ${MT.currency}`); break; }
         openOverlay(modal(`Buy ${g.name} for ${g.price} ${MT.currency}?`,
           `<div class="buy-item">${gearArt(g)}<div><b>${g.name}</b><p>${g.desc}</p></div></div><p class="buy-left">You have ${meta.salvage} ${MT.currency}; ${meta.salvage - g.price} left after this.</p>`,
-          `<button class="btn" data-act="workshop">Back</button><button class="btn primary" data-act="gearbuyconfirm" data-g="${id}" autofocus>Buy</button>`, 'narrow'));
+          `<button class="btn" data-act="workshop">Back</button><button class="btn primary" data-act="kitbuyconfirm" data-g="${id}" autofocus>Buy</button>`, 'narrow'));
         break;
       }
-      case 'gearbuyconfirm':
-        if (E.buyGear(meta, t.dataset.g)) {
-          // packed straight away when the Shallows have room for it
-          if (E.gearWeight(meta.packed) + BL.GEAR[t.dataset.g].weight <= E.capacity(0)) meta.packed.push(t.dataset.g);
+      case 'kitbuyconfirm':
+        if (E.buyKit(meta, t.dataset.g)) {
+          // worn straight away when its place is empty
+          const pl = BL.KIT[t.dataset.g].place;
+          if (!meta.kit[pl]) meta.kit[pl] = t.dataset.g;
           saveMeta();
           sfx('coin');
           if (!run) render();
         }
         showWorkshop();
         break;
-      case 'packtoggle': {
+      case 'kitwear': {
         const lv = +t.dataset.lv;
-        if (E.togglePack(meta, t.dataset.g, lv)) { saveMeta(); sfx('select'); } else toast(`No room: unpack something first`);
-        showPack(lv);
-        { const b = $(`[data-act="packtoggle"][data-g="${t.dataset.g}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); }
+        if (E.equipKit(meta, t.dataset.g)) { saveMeta(); sfx('select'); }
+        showKit(lv);
+        { const b = $(`[data-act="kitwear"][data-g="${t.dataset.g}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); }
         break;
       }
-      case 'dive': closeOverlay(true); startNewRun(+t.dataset.lv, meta.packed.slice()); break;
-      case 'gearinfo': if (ui.lastPointer !== 'mouse') showTip(t, tipContent('gear')); break;
+      case 'dive': closeOverlay(true); startNewRun(+t.dataset.lv, meta.kit); break;
+      case 'kitinfo': if (ui.lastPointer !== 'mouse') showTip(t, tipContent(t.dataset.tip)); break;
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
       case 'changelog': showChangelog(); break;
@@ -2351,7 +2387,17 @@
         break;
       }
       case 'pile': if (run && run.combat) showPile(t.dataset.pile); break;
-      case 'ks': if (ui.lastPointer !== 'mouse') showTip(t, tipContent('ks:' + t.dataset.k)); break;
+      case 'ks':
+        // between fights a keepsake opens, so it can be dropped; in a fight it only explains itself
+        if (run && run.screen !== 'combat' && !run.tutorial) showKeepsake(t.dataset.k);
+        else if (ui.lastPointer !== 'mouse') showTip(t, tipContent('ks:' + t.dataset.k));
+        break;
+      case 'ksdrop': {
+        const K = BL.KEEPSAKES[t.dataset.k];
+        if (E.dropKeepsake(run, t.dataset.k)) { closeOverlay(true); save(); render(); toast(`You leave the ${K.name} behind.`); }
+        break;
+      }
+      case 'leaveks': if (E.leaveKeepsakes(run)) { sfx('select'); save(); render(); } break;
       case 'tonic': {
         const slot = +t.dataset.slot;
         if (ui.tonicSel === slot) { ui.tonicSel = null; updateCombat(); break; }
@@ -2399,8 +2445,8 @@
       }
       case 'taketonic': if (E.takeRewardTonic(run)) { sfx('tonic'); save(); render(); } break;
       case 'tomap': {
-        // a keepsake on offer has to be taken first (the button is disabled until then)
-        const ksWait = (src, list) => src && !src.keepsake && list && list.length;
+        // a keepsake on offer is taken or left first (the button is disabled until then)
+        const ksWait = (src, list) => src && !src.keepsake && !src.keepsakeLeft && list && list.length;
         if (ksWait(run.rewards, run.rewards && run.rewards.keepsakeChoices) || ksWait(run.treasure, run.treasure && run.treasure.choices)) break;
         E.backToMap(run);
         save();
@@ -2439,7 +2485,11 @@
         const what = kind === 'cards'
           ? `<div class="compare">${staticCard(pseudo(it.id))}</div>`
           : `<div class="buy-item"><span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><div><b>${kind === 'tonics' ? 'Tonic: ' : ''}${def.name}</b><p>${def.desc}</p></div></div>`;
-        const left = `<p class="buy-left">You have ${run.pearls} Pearls; ${run.pearls - p} left after this.</p>`;
+        let left = `<p class="buy-left">You have ${run.pearls} Pearls; ${run.pearls - p} left after this.</p>`;
+        if (kind === 'keepsakes') {
+          const ch = E.charge(run, it.id), h = E.hold(run.level), sp = E.seepCount(run, it.id);
+          left += `<p class="buy-left">Charge ${def.charge}: you'd carry ${ch} of your Hold of ${h}${sp ? `, so <b>${sp} Seep</b> would join each fight` : ''}.</p>`;
+        }
         openOverlay(modal(`Buy ${def.name} for ${p} Pearls?`, what + left,
           `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="buyconfirm" data-kind="${kind}" data-i="${i}" autofocus>Buy</button>`, 'narrow'));
         break;

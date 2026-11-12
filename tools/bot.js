@@ -58,6 +58,20 @@ function chooseCombatAction(run) {
   return { uid: playable[0].uid, target: E.needsTarget(playable[0]) ? alive[0].uid : null };
 }
 
+/* Keepsake pick: the offered keepsake worth the most, counting its Charge as its value and each Seep it
+   would add as -10. (One Seep alone costs the bot about 5 points, but Seep stacks badly with a
+   second keepsake, so -10 picks better.) Null when none is worth taking. */
+function pickKeepsake(run, choices) {
+  const { E } = load();
+  let best = null;
+  let bestV = 0;
+  choices.forEach((k) => {
+    const v = E.chargeOf(k) - 10 * (E.seepCount(run, k) - E.seepCount(run));
+    if (v > bestV) { best = k; bestV = v; }
+  });
+  return best;
+}
+
 /* Advance the run by one decision. Returns a short label of what happened, or null when the run is over. */
 function step(run, opts = {}) {
   const { E } = load();
@@ -81,7 +95,10 @@ function step(run, opts = {}) {
   }
   if (s === 'reward') {
     const rw = run.rewards;
-    if (rw.keepsakeChoices.length && !rw.keepsake) E.takeRewardKeepsake(run, rw.keepsakeChoices[0]);
+    if (rw.keepsakeChoices.length && !rw.keepsake && !rw.keepsakeLeft) {
+      const k = opts.keepsake ? opts.keepsake(run, rw.keepsakeChoices) : pickKeepsake(run, rw.keepsakeChoices);
+      if (k) E.takeRewardKeepsake(run, k); else E.leaveKeepsakes(run);
+    }
     if (rw.tonic && !rw.tonicTaken) E.takeRewardTonic(run);
     if (!rw.cardTaken) E.takeRewardCard(run, opts.skipCards ? null : 0);
     E.backToMap(run);
@@ -91,7 +108,10 @@ function step(run, opts = {}) {
   if (s === 'shop') { E.backToMap(run); return 'shop'; }
   if (s === 'treasure') {
     E.openTreasure(run);
-    if (run.treasure.choices.length) E.takeTreasureKeepsake(run, run.treasure.choices[0]);
+    if (run.treasure.choices.length) {
+      const k = opts.keepsake ? opts.keepsake(run, run.treasure.choices) : pickKeepsake(run, run.treasure.choices);
+      if (k) E.takeTreasureKeepsake(run, k); else E.leaveKeepsakes(run);
+    }
     E.backToMap(run);
     return 'treasure';
   }
@@ -121,4 +141,4 @@ function playRun(run, maxSteps = 5000, opts) {
   return labels;
 }
 
-module.exports = { load, saveLoad, snapshot, chooseCombatAction, step, playRun };
+module.exports = { load, saveLoad, snapshot, chooseCombatAction, step, playRun, pickKeepsake };

@@ -305,6 +305,13 @@
     v: {}, art: 'c_barnacles',
     text: () => `Unplayable. Stays in your deck until you remove it.`,
   });
+  /* Seep: Charge carried past your Hold condenses into seawater. Shuffled into the draw pile at the
+     start of each fight (never into the deck), so it is gone after the fight. */
+  card('seep', {
+    name: 'Seep', type: 'status', rarity: 'special', cost: null, target: 'none', unplayable: true,
+    v: {}, art: 'c_seep',
+    text: () => `Unplayable. Gone after this fight.`,
+  });
 
   BL.CARDS = CARDS;
   BL.STARTER_DECK = ['jab', 'jab', 'jab', 'jab', 'brace', 'brace', 'brace', 'brace', 'swell', 'slack'];
@@ -334,6 +341,9 @@
     Soaked: 'Takes 50% more damage from attacks and Crests. Wears off by 1 each turn.',
     Chilled: 'Deals 25% less attack damage. Wears off by 1 each turn.',
     Brine: 'Loses that much HP at the start of its turn, then Brine drops by 1.',
+    Charge: 'How much magic a keepsake gives off. Every keepsake you carry counts.',
+    Hold: 'How much Charge the water around you can hold. Deeper depths hold more.',
+    Seep: 'Charge you carry past your Hold condenses into Seep: an unplayable card shuffled into your draw pile at the start of each fight, 1 for every 5 Charge over (or part of 5). It is gone after the fight.',
   };
 
   /* ------------------------------------------------------------------ *
@@ -544,27 +554,27 @@
   /* ------------------------------------------------------------------ *
    *  KEEPSAKES (relics)
    * ------------------------------------------------------------------ */
+  /* Every keepsake has a Charge. Carrying more Charge than your Hold adds Seep to each fight (see
+     E.seepCount). Charge is roughly what the keepsake is worth to the bot in win-rate points.
+     The Brass Tide-Bell and the money keepsakes moved to the kit in v0.10.0 (BL.KIT). */
   BL.KEEPSAKES = {
-    tidebell: { name: 'Brass Tide-Bell', art: 'k_tidebell', starter: true, desc: 'Whenever you Crest or reach Low Water, draw 1 card.' },
-    whaletooth: { name: 'Whale Tooth', art: 'k_whaletooth', desc: 'Start each fight with 1 Might.' },
-    barnacleplate: { name: 'Barnacle Plate', art: 'k_barnacleplate', desc: 'Start each fight with 3 Spines.' },
-    pearlearring: { name: 'Pearl Earring', art: 'k_pearlearring', desc: 'Gain 10 extra Pearls after each fight.' },
-    tidewatch: { name: 'Tidewatch', art: 'k_tidewatch', desc: 'Your Crests deal 4 more damage.' },
-    moonshard: { name: 'Moon Shard', art: 'k_moonshard', desc: 'Start each fight at Tide 5.' },
-    kelpbracelet: { name: 'Kelp Bracelet', art: 'k_kelpbracelet', desc: 'Whenever you reach Low Water, gain 8 Ward.' },
-    gullfeather: { name: 'Gull Feather', art: 'k_gullfeather', desc: 'Draw 2 extra cards on your first turn of each fight.' },
-    biscuit: { name: 'Scallop Charm', art: 'k_biscuit', desc: 'When picked up, raise your Max HP by 10 and heal 10.' },
-    stormbottle: { name: 'Storm Bottle', art: 'k_stormbottle', desc: 'Every 3rd turn of a fight, gain 1 extra Light.' },
-    sirenscale: { name: 'Whispering Conch', art: 'k_sirenscale', desc: 'Enemies start each fight with 2 Soaked.' },
-    coralcrown: { name: 'Coral Branch', art: 'k_coralcrown', desc: 'Whenever you play a Rite, gain 5 Ward.' },
-    doubloon: { name: "Merchant's Astrolabe", art: 'k_doubloon', desc: "Barnaby's prices are 25% lower." },
-    inksac: { name: "Angler's Lure", art: 'k_inksac', desc: 'The first time you lose HP in a fight, apply 2 Chilled to ALL enemies.' },
-    saltedhook: { name: 'Salted Hook', art: 'k_saltedhook', desc: 'Whenever you apply Brine, apply 1 more.' },
-    echoconch: { name: 'Conch of Echoes', art: 'k_echoconch', desc: 'The first card you play in each fight is played twice.' },
-    anchor: { name: 'Drowned Anchor', art: 'k_anchor', desc: 'Low Water also deals 4 damage to ALL enemies.' },
-    pearlstrand: { name: 'Pearl Strand', art: 'k_pearlstrand', desc: 'Gain 3 Pearls whenever you Crest.' },
-    sparewick: { name: 'Spare Lantern', art: 'k_sparewick', desc: 'Resting heals 10 more HP.' },
+    whaletooth: { name: 'Whale Tooth', art: 'k_whaletooth', charge: 19, desc: 'Start each fight with 1 Might.' },
+    barnacleplate: { name: 'Barnacle Plate', art: 'k_barnacleplate', charge: 14, spines: 1, desc: 'Start each fight with Spines 1: every attack on you takes 1 damage back.' },
+    tidewatch: { name: 'Tidewatch', art: 'k_tidewatch', charge: 12, desc: 'Your Crests deal 4 more damage.' },
+    moonshard: { name: 'Moon Shard', art: 'k_moonshard', charge: 8, desc: 'Start each fight at Tide 5.' },
+    kelpbracelet: { name: 'Kelp Bracelet', art: 'k_kelpbracelet', charge: 11, desc: 'Whenever you reach Low Water, gain 8 Ward.' },
+    gullfeather: { name: 'Gull Feather', art: 'k_gullfeather', charge: 8, desc: 'Draw 2 extra cards on your first turn of each fight.' },
+    biscuit: { name: 'Scallop Charm', art: 'k_biscuit', charge: 12, desc: 'While you carry it, your Max HP is 10 higher. Heals 10 when you pick it up.' },
+    stormbottle: { name: 'Storm Bottle', art: 'k_stormbottle', charge: 18, desc: 'Every 3rd turn of a fight, gain 1 extra Light.' },
+    sirenscale: { name: 'Whispering Conch', art: 'k_sirenscale', charge: 17, desc: 'Enemies start each fight with 2 Soaked.' },
+    coralcrown: { name: 'Coral Branch', art: 'k_coralcrown', charge: 6, desc: 'Whenever you play a Rite, gain 5 Ward.' },
+    inksac: { name: "Angler's Lure", art: 'k_inksac', charge: 10, desc: 'The first time you lose HP in a fight, apply 2 Chilled to ALL enemies.' },
+    saltedhook: { name: 'Salted Hook', art: 'k_saltedhook', charge: 7, desc: 'Whenever you apply Brine, apply 1 more.' },
+    echoconch: { name: 'Conch of Echoes', art: 'k_echoconch', charge: 17, desc: 'The first card you play in each fight is played twice.' },
+    anchor: { name: 'Drowned Anchor', art: 'k_anchor', charge: 18, desc: 'Low Water also deals 4 damage to ALL enemies.' },
   };
+  /* Keepsakes from before v0.10.0 that are kit now: a saved run carries them over as kit (E.migrateRun). */
+  BL.RETIRED_KEEPSAKES = { tidebell: 'tidebell', pearlearring: 'pouch', doubloon: 'scales', pearlstrand: 'net', sparewick: 'wick' };
 
   /* ------------------------------------------------------------------ *
    *  TONICS (single-use potions)
@@ -668,24 +678,40 @@
 
   /* ------------------------------------------------------------------ *
    *  WORKSHOP (permanent progression between runs)
-   *  Every finished run turns its score into Salvage. Salvage buys gear in the Workshop, and gear
-   *  stays bought. Before a dive you pack gear up to the depth's capacity (Shallows 1, +1 per depth).
-   *  Some gear is locked until an achievement. The names are working names, kept here so they are
-   *  easy to change.
+   *  Every finished run turns its score into Salvage. Salvage buys kit in the Workshop, and kit stays
+   *  bought. Kit is mundane gear Wren wears and carries, one item in each place; keepsakes are the
+   *  magic. Some kit is locked until an achievement. The names are working names, kept here so they
+   *  are easy to change.
    * ------------------------------------------------------------------ */
-  BL.META_TEXT = { currency: 'Salvage', shop: 'Workshop', item: 'Gear', pack: 'Pack' };
-  BL.GEAR = {
-    purse: { name: 'Coin Purse', art: 'g_purse', weight: 1, price: 8, desc: 'Start each run with 30 more Pearls.' },
-    cork: { name: 'Cork Vest', art: 'g_cork', weight: 1, price: 12, desc: 'Start each run with 5 more Max HP.' },
-    flask: { name: 'Spare Flask', art: 'g_flask', weight: 1, price: 12, desc: 'Start each run with a random tonic.' },
-    floodchart: { name: 'Flood Chart', art: 'g_floodchart', weight: 1, price: 20, unlock: 'twocrests', desc: 'Start each fight 1 Tide higher (4 instead of 3).' },
-    ebbchart: { name: 'Ebb Chart', art: 'g_ebbchart', weight: 1, price: 20, unlock: 'twolows', desc: 'Start each fight 1 Tide lower (2 instead of 3).' },
-    gorget: { name: 'Shell Gorget', art: 'g_gorget', weight: 1, price: 25, unlock: 'untouched', desc: 'Start each fight with 4 Ward.' },
-    marker: { name: "Barnaby's Marker", art: 'g_marker', weight: 1, price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
-    stormlens: { name: 'Storm Lens', art: 'g_stormlens', weight: 1, price: 30, unlock: 'threecrests', desc: 'Your Crests deal 2 more damage.' },
-    whetstone: { name: 'Whetstone', art: 'g_whetstone', weight: 2, price: 35, unlock: 'dreadhunter', desc: 'Your Rising Swell starts upgraded.' },
+  BL.META_TEXT = { currency: 'Salvage', shop: 'Workshop', item: 'Kit' };
+  /* Where kit goes. The Bell always holds a bell; the others can be empty. */
+  BL.KIT_PLACES = [
+    { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.' },
+    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you draw when you Crest or reach Low Water.' },
+    { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.' },
+    { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.' },
+    { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.' },
+  ];
+  BL.KIT = {
+    honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
+    barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
+    tidebell: { place: 'bell', name: 'Brass Tide-Bell', art: 'k_tidebell', price: 0, starter: true, desc: 'Whenever you Crest or reach Low Water, draw 1 card.' },
+    floodbell: { place: 'bell', name: 'Flood Bell', art: 'g_floodbell', price: 20, unlock: 'twocrests', desc: 'Whenever you Crest, draw 2 cards. Low Water draws nothing.' },
+    ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you reach Low Water, draw 2 cards. Crests draw nothing.' },
+    crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Low Water each turn draws nothing. Every one after it draws 2 cards.' },
+    cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
+    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', price: 25, unlock: 'untouched', desc: 'Start each fight with 4 Ward.' },
+    purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
+    pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, desc: 'Gain 10 extra Pearls after each fight.' },
+    marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
+    flask: { place: 'ditty', name: 'Spare Flask', art: 'g_flask', price: 12, desc: 'Start each run with a random tonic.' },
+    scales: { place: 'ditty', name: 'Pearl Scales', art: 'g_scales', price: 15, desc: "Barnaby's prices are 25% lower: he can't argue with honest weights." },
+    net: { place: 'ditty', name: 'Gleaning Net', art: 'g_net', price: 10, desc: 'Gain 3 Pearls whenever you Crest.' },
+    wick: { place: 'ditty', name: 'Spare Wick', art: 'g_wick', price: 12, desc: 'Resting heals 10 more HP.' },
   };
-  /* Achievements unlock gear. met(run) is checked after every fight and at the end of a run (never in the tutorial). */
+  /* Gear from before v0.10.0 that became kit (or went away): owned pieces carry over (E.migrateMeta). */
+  BL.OLD_GEAR = { floodchart: 'floodbell', ebbchart: 'ebbbell', stormlens: 'crackedbell', whetstone: 'honed', purse: 'purse', cork: 'cork', flask: 'flask', gorget: 'gorget', marker: 'marker' };
+  /* Achievements unlock kit. met(run) is checked after every fight and at the end of a run (never in the tutorial). */
   BL.ACHIEVEMENTS = {
     twocrests: { name: 'Double Crest', desc: 'Crest twice in one turn.', met: (r) => (r.stats.maxChain || 0) >= 2 },
     twolows: { name: 'Double Low Water', desc: 'Reach Low Water twice in one turn.', met: (r) => (r.stats.maxLowChain || 0) >= 2 },
@@ -693,5 +719,6 @@
     untouched: { name: 'Untouched', desc: 'Win 3 fights in one run without losing HP.', met: (r) => (r.stats.flawless || 0) >= 3 },
     dreadhunter: { name: 'Dread Hunter', desc: 'Defeat a Dread.', met: (r) => (r.stats.elites || 0) >= 1 },
     travellight: { name: 'Travel Light', desc: 'Defeat a Dread with 12 or fewer cards in your deck.', met: (r) => !!r.stats.leanDread },
+    pickled: { name: 'Salt the Wound', desc: 'Defeat an enemy with Brine.', met: (r) => (r.stats.brineKills || 0) >= 1 },
   };
 })();

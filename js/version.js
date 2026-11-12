@@ -5,8 +5,17 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.9.0';
+  BL.VERSION = '0.10.0';
   BL.CHANGELOG = [
+    { v: '0.10.0', date: '2026-11-12', items: [
+      'Kit replaces gear: one piece each for your Harpoon, Bell, Coat, Pocket and Ditty Bag, chosen before each dive. Gear you owned carries over.',
+      'The Brass Tide-Bell is your bell now. Three more bells draw differently: the Flood Bell, the Ebb Bell and the Cracked Bell.',
+      "New kit: the Honed and Barbed Harpoons, Gleaner's Pouch, Pearl Scales, Gleaning Net and Spare Wick. The last four replace the Pearl Earring, Merchant's Astrolabe, Pearl Strand and Spare Lantern keepsakes.",
+      'Keepsakes give off Charge. Past your Hold (30 in the Shallows, 5 more at each deeper depth), Seep joins every fight: an unplayable card, gone after the fight.',
+      'Keepsake picks are optional again: leave them for +80 score. Between fights you can drop a keepsake.',
+      'Barnacle Plate gives 1 Spines (was 3). A new achievement, Salt the Wound, unlocks the Barbed Harpoon.',
+      'The pack, its spaces and overburden are gone.',
+    ] },
     { v: '0.9.0', date: '2026-11-11', items: [
       'Overburdened: you can pack up to 2 spaces more than a depth holds. Each extra space costs 4 Max HP for that dive.',
     ] },

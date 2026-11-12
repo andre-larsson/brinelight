@@ -65,6 +65,38 @@
   E.newCard = (run, id, up) => ({ uid: run.nextUid++, id, up: up ? 1 : 0 });
   E.has = (run, k) => run.keepsakes.indexOf(k) >= 0;
 
+  /* ---------------- Kit: mundane gear in five places (BL.KIT_PLACES), one item each ---------------- */
+  E.KIT_PLACES = BL.KIT_PLACES.map((p) => p.id);
+  /* A full kit: every place, the Bell holding the Brass Tide-Bell unless told otherwise. `kit` can be an
+     object { place: id } or a list of ids (each goes to its own place). Unknown ids, ids in the wrong
+     place and (when `owned` is given) unowned ones are dropped. */
+  E.fitKit = function (kit, owned) {
+    const out = {};
+    E.KIT_PLACES.forEach((pl) => { out[pl] = null; });
+    out.bell = 'tidebell';
+    const ok = (id) => !!BL.KIT[id] && (!owned || BL.KIT[id].starter || owned.indexOf(id) >= 0);
+    if (Array.isArray(kit)) kit.forEach((id) => { if (ok(id)) out[BL.KIT[id].place] = id; });
+    else if (kit) E.KIT_PLACES.forEach((pl) => { const id = kit[pl]; if (ok(id) && BL.KIT[id].place === pl) out[pl] = id; });
+    return out;
+  };
+  /* Everything a run has on: the places, plus kit carried over from an older save (E.migrateRun). */
+  E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean).concat(run.kitExtra || []) : []);
+  E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
+  E.bell = (run) => (run.kit && run.kit.bell) || null;
+
+  /* ---------------- Charge, Hold and Seep ----------------
+     Every keepsake has a Charge. The water around you can hold so much (the Hold, more at deeper depths);
+     past it, every 5 Charge over (or part of 5) adds 1 Seep to the draw pile at the start of each fight. */
+  E.HOLD_BASE = 30;
+  E.HOLD_STEP = 5; // more Hold for each deeper depth
+  E.SEEP_STEP = 5; // Charge over the Hold for each Seep
+  E.hold = (level) => E.HOLD_BASE + E.HOLD_STEP * (level || 0);
+  E.chargeOf = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].charge) || 0;
+  /* The Charge you carry, optionally with one more keepsake (to show what taking it would do). */
+  E.charge = (run, extra) => run.keepsakes.reduce((a, k) => a + E.chargeOf(k), 0) + (extra ? E.chargeOf(extra) : 0);
+  E.seepFor = (charge, level) => { const over = charge - E.hold(level); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
+  E.seepCount = (run, extra) => (run.tutorial ? 0 : E.seepFor(E.charge(run, extra), run.level));
+
   /* ---------------- Run ---------------- */
   E.LEVELS = [
     { name: 'Shallows', desc: 'The standard descent.' },
@@ -76,7 +108,7 @@
     { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1.1, dmg: 1, rest: 0.3 }, { hp: 1.15, dmg: 1.1, rest: 0.3 }, { hp: 1.2, dmg: 1.15, rest: 0.25 },
   ][lv || 0] || { hp: 1, dmg: 1, rest: 0.3 });
 
-  E.newRun = function (seed, level, gear) {
+  E.newRun = function (seed, level, kit) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
       version: 2,
@@ -84,7 +116,7 @@
       seed: seed >>> 0,
       rng: seed >>> 0,
       hp: 70, maxHp: 70, pearls: 75,
-      deck: [], keepsakes: ['tidebell'], tonics: [null, null, null],
+      deck: [], keepsakes: [], tonics: [null, null, null], kit: E.fitKit(),
       nextUid: 1, floor: 0, pos: null, screen: 'map',
       combat: null, rewards: null, shop: null, event: null, treasure: null,
       removeCost: 75, seenEvents: [], lastEnc: [], normalFights: 0,
@@ -93,7 +125,7 @@
     };
     BL.STARTER_DECK.forEach((id) => run.deck.push(E.newCard(run, id)));
     run.map = genMap(run);
-    if (gear && gear.length) E.applyGear(run, gear);
+    E.applyKit(run, kit); // after the map, so the same seed gives the same map with any kit
     return run;
   };
 
@@ -103,6 +135,7 @@
     const run = E.newRun(1, 0);
     run.tutorial = true;
     run.keepsakes = [];
+    run.kit.bell = null; // no bell in the tutorial, so the hands stay fixed
     run.deck = [];
     BL.TUTORIAL.deck.forEach((id) => E.addCard(run, id));
     E.startCombat(run, 'tutorial', BL.TUTORIAL.enc, { noShuffle: true });
@@ -223,18 +256,9 @@
     }
   };
 
-  /* The UI won't leave a keepsake pick (Dread reward, opened Wreck) until one is taken. If some
-     other path leaves it unchosen, one of the offered keepsakes is taken at random rather than
-     lost. Returns its id, or null. A reward tonic left behind with a free slot counts as declined. */
+  /* Leaving a stop. A reward tonic left behind with a free slot counts as declined. A keepsake pick
+     left open is simply lost: the UI asks you to take one or leave them (E.leaveKeepsakes) first. */
   E.backToMap = function (run) {
-    const pick = (src, list) => {
-      if (!src || src.keepsake || !list || !list.length) return null;
-      const k = makeR(run).pick(list);
-      src.keepsake = k;
-      E.gainKeepsake(run, k);
-      return k;
-    };
-    const auto = pick(run.rewards, run.rewards && run.rewards.keepsakeChoices) || pick(run.treasure, run.treasure && run.treasure.choices);
     const rw = run.rewards;
     if (rw && rw.tonic && !rw.tonicTaken && run.tonics.indexOf(null) >= 0) E.decline(run, 'tonic');
     run.screen = 'map';
@@ -243,7 +267,6 @@
     run.event = null;
     run.shop = null;
     run.treasure = null;
-    return auto;
   };
 
   /* ---------------- Rewards & pools ---------------- */
@@ -265,11 +288,28 @@
     const R = makeR(run);
     return R.shuffle(BL.REWARD_POOL[rarity].slice()).slice(0, n);
   };
-  E.keepsakePool = (run) => Object.keys(BL.KEEPSAKES).filter((k) => !BL.KEEPSAKES[k].starter && !E.has(run, k));
+  E.keepsakePool = (run) => Object.keys(BL.KEEPSAKES).filter((k) => !E.has(run, k));
   E.gainKeepsake = function (run, k) {
-    if (!k || E.has(run, k)) return;
+    if (!k || !BL.KEEPSAKES[k] || E.has(run, k)) return;
     run.keepsakes.push(k);
     if (k === 'biscuit') { run.maxHp += 10; run.hp += 10; }
+  };
+  /* Drop a keepsake for good, between fights, to bring your Charge down. Scallop Charm takes its 10 Max HP with it. */
+  E.dropKeepsake = function (run, k) {
+    const i = run.keepsakes.indexOf(k);
+    if (i < 0 || run.screen === 'combat') return false;
+    run.keepsakes.splice(i, 1);
+    if (k === 'biscuit') E.loseMaxHp(run, 10);
+    return true;
+  };
+  /* Turn down a keepsake pick (a Dread's reward, an opened Wreck): it scores like any declined reward. */
+  E.leaveKeepsakes = function (run) {
+    const src = run.screen === 'reward' ? run.rewards : run.screen === 'treasure' ? run.treasure : null;
+    const list = src && (src.keepsakeChoices || src.choices);
+    if (!src || src.keepsake || src.keepsakeLeft || !list || !list.length) return false;
+    src.keepsakeLeft = true;
+    E.decline(run, 'keepsake');
+    return true;
   };
   E.gainRandomKeepsake = function (run) {
     const pool = E.keepsakePool(run);
@@ -328,14 +368,14 @@
   };
 
   /* ---------------- Rest / shop / treasure / events ---------------- */
-  E.restAmount = (run) => Math.floor(run.maxHp * E.levelMods(run.level).rest) + (E.has(run, 'sparewick') ? 10 : 0);
+  E.restAmount = (run) => Math.floor(run.maxHp * E.levelMods(run.level).rest) + (E.hasKit(run, 'wick') ? 10 : 0);
   E.rest = function (run) {
     const h = E.heal(run, E.restAmount(run));
     run.restDone = true;
     return h;
   };
 
-  E.price = (run, base) => (E.has(run, 'doubloon') ? Math.round(base * 0.75) : base);
+  E.price = (run, base) => (E.hasKit(run, 'scales') ? Math.round(base * 0.75) : base);
 
   function genShop(run) {
     const R = makeR(run);
@@ -367,7 +407,7 @@
     if (kind === 'tonics') E.gainTonic(run, item.id);
     return true;
   };
-  E.freeRemoval = (run) => E.hasGear(run, 'marker') && !run.markerUsed;
+  E.freeRemoval = (run) => E.hasKit(run, 'marker') && !run.markerUsed;
   E.removePrice = (run) => (E.freeRemoval(run) ? 0 : E.price(run, run.removeCost));
   E.buyRemoval = function (run, uid) {
     const p = E.removePrice(run);
@@ -397,7 +437,7 @@
   };
   E.takeTreasureKeepsake = function (run, k) {
     const t = run.treasure;
-    if (!t || t.keepsake || t.choices.indexOf(k) < 0) return;
+    if (!t || t.keepsake || t.keepsakeLeft || t.choices.indexOf(k) < 0) return;
     t.keepsake = k;
     E.gainKeepsake(run, k);
   };
@@ -476,19 +516,22 @@
     run.combat = c;
     run.screen = 'combat';
     const pile = run.deck.map((card) => ({ uid: card.uid, id: card.id, up: card.up }));
+    // Seep: Charge carried past the Hold, for this fight only (it never joins the deck)
+    const seep = E.seepCount(run);
+    for (let i = 0; i < seep; i++) pile.push(E.newCard(run, 'seep'));
+    if (seep) c.seep = seep;
     // noShuffle (tutorial only): draw the deck in order, and refill from the discard pile in a fixed order
     if (opts && opts.noShuffle) { c.noShuffle = true; c.draw = pile.reverse(); } else c.draw = R.shuffle(pile);
     enc.forEach((id, idx) => spawnEnemy(run, c, id, idx));
     if (E.has(run, 'whaletooth')) c.player.st.might = (c.player.st.might || 0) + 1;
-    if (E.has(run, 'barnacleplate')) c.player.st.spines = (c.player.st.spines || 0) + 3;
+    if (E.has(run, 'barnacleplate')) c.player.st.spines = (c.player.st.spines || 0) + BL.KEEPSAKES.barnacleplate.spines;
     if (E.has(run, 'moonshard')) c.tide = 5;
     if (E.has(run, 'sirenscale')) c.enemies.forEach((e) => { e.st.soaked = (e.st.soaked || 0) + 2; });
     if (E.has(run, 'echoconch')) c.echo = 1;
-    if (E.hasGear(run, 'floodchart')) c.tide = Math.min(TIDE_MAX - 1, c.tide + 1);
-    if (E.hasGear(run, 'ebbchart')) c.tide = Math.max(1, c.tide - 1);
+    if (seep) fx(c, { t: 'addcards', id: 'seep', n: seep, pile: 'draw' });
     if (kind === 'easy' || kind === 'hard') run.normalFights++;
     startPlayerTurn(run);
-    if (E.hasGear(run, 'gorget')) gainWard(c, c.player, 4);
+    if (E.hasKit(run, 'gorget')) gainWard(c, c.player, 4);
     return c;
   };
 
@@ -603,8 +646,21 @@
     }
   }
 
-  function onTideTurn(run, c) {
-    if (E.has(run, 'tidebell')) { fx(c, { t: 'ks', k: 'tidebell' }); drawCards(run, c, 1); }
+  /* The bell in your kit draws when you Crest or reach Low Water (kind: 'crest' or 'low'). */
+  E.bellDraw = function (bell, kind, chain) {
+    switch (bell) {
+      case 'tidebell': return 1;
+      case 'floodbell': return kind === 'crest' ? 2 : 0;
+      case 'ebbbell': return kind === 'low' ? 2 : 0;
+      case 'crackedbell': return chain >= 2 ? 2 : 0; // chain: Crests and Low Waters so far this turn
+      default: return 0;
+    }
+  };
+  function onTideTurn(run, c, kind) {
+    const n = E.bellDraw(E.bell(run), kind, c.turnCrests + c.turnLows);
+    if (!n) return;
+    fx(c, { t: 'kit', k: 'bell' });
+    drawCards(run, c, n);
   }
 
   /* Wave damage (Crests and similar): not an attack, but Soaked targets take 50% more. */
@@ -613,7 +669,7 @@
   }
   E.waveValue = waveValue;
   E.crestDamage = function (run, c, chain) {
-    let dmg = 6 + 3 * Math.max(0, chain - 1) + (E.has(run, 'tidewatch') ? 4 : 0) + (E.hasGear(run, 'stormlens') ? 2 : 0);
+    let dmg = 6 + 3 * Math.max(0, chain - 1) + (E.has(run, 'tidewatch') ? 4 : 0);
     dmg *= 1 + (c.player.st.r_maelstrom || 0);
     return dmg;
   };
@@ -644,11 +700,11 @@
     run.stats.crests++;
     fx(c, { t: 'crest', n: dmg, chain: c.turnCrests, fury });
     E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, dmg), null, false));
-    if (E.has(run, 'pearlstrand')) { fx(c, { t: 'ks', k: 'pearlstrand' }); gainPearls(run, c, 3); }
+    if (E.hasKit(run, 'net')) { fx(c, { t: 'kit', k: 'ditty' }); gainPearls(run, c, 3); }
     const mem = c.player.st.r_tidalmemory || 0;
     if (mem) { c.light += mem; fx(c, { t: 'light', n: mem }); }
     c.tide = TIDE_MID;
-    onTideTurn(run, c);
+    onTideTurn(run, c, 'crest');
   }
   /* Low Water: the sea pulls back and strands the enemies. They lose all their Ward, and you gain 1 Light. */
   function lowWater(run, c) {
@@ -667,7 +723,7 @@
     if (E.has(run, 'anchor')) fx(c, { t: 'ks', k: 'anchor' });
     if (abyss) E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, abyss), null, false));
     c.tide = TIDE_MID;
-    onTideTurn(run, c);
+    onTideTurn(run, c, 'low');
   }
   /* Surge/Ebb carry over: surplus keeps flowing after the reset, so big swells can Crest twice. */
   function surge(run, c, n) {
@@ -786,6 +842,12 @@
   };
 
   E.needsTarget = (card) => BL.CARDS[card.id].target === 'enemy';
+  /* A card's numbers as it would play right now: the Honed Harpoon adds to the first Harpoon Jab of a fight. */
+  E.playVals = function (run, card, harpoon) {
+    const v = E.vals(card);
+    if (harpoon === undefined) harpoon = card.id === 'jab' && run.combat && !run.combat.jabbed ? (run.kit && run.kit.harpoon) : null;
+    return harpoon === 'honed' ? Object.assign({}, v, { dmg: v.dmg + BL.KIT.honed.dmg }) : v;
+  };
 
   E.playCard = function (run, uid, targetUid) {
     const c = run.combat;
@@ -808,7 +870,10 @@
     run.stats.cardsPlayed++;
     fx(c, { t: 'play', uid: card.uid, target: target ? target.uid : null, type: d.type });
     const A = api(run, c);
-    if (d.play) d.play(A, E.vals(card), target);
+    const harpoon = card.id === 'jab' && !c.jabbed ? (run.kit && run.kit.harpoon) : null;
+    if (card.id === 'jab') c.jabbed = true;
+    if (d.play) d.play(A, E.playVals(run, card, harpoon), target);
+    if (harpoon === 'barbed' && target && !target.dead && !c.won) { fx(c, { t: 'kit', k: 'harpoon' }); applyStatus(run, c, target, 'brine', BL.KIT.barbed.brine, true); }
     // Echo: the card resolves a second time
     if (c.echo > 0 && !d.givesEcho && d.type !== 'status' && d.type !== 'curse' && !c.won && !c.lost) {
       c.echo--;
@@ -937,7 +1002,7 @@
     e.ward = 0;
     if ((e.st.brine || 0) > 0) {
       loseHpDirect(run, c, e, e.st.brine);
-      if (e.dead) return true;
+      if (e.dead) { run.stats.brineKills = (run.stats.brineKills || 0) + 1; return true; }
       e.st.brine--;
       if (!e.st.brine) delete e.st.brine;
     }
@@ -1063,7 +1128,7 @@
     const elite = c.kind === 'elite';
     let pearls = elite ? R.int(30, 40) : R.int(14, 22);
     pearls += c.bonusPearls || 0;
-    if (E.has(run, 'pearlearring')) pearls += 10;
+    if (E.hasKit(run, 'pouch')) pearls += 10;
     const bonuses = [];
     if (!c.flags.hpLost) bonuses.push({ name: 'Flawless', desc: 'Won without losing HP', pearls: elite ? 20 : 12 });
     if (c.turn <= (elite ? 4 : 3)) bonuses.push({ name: 'Swift', desc: `Won on turn ${c.turn}`, pearls: elite ? 12 : 8 });
@@ -1098,7 +1163,7 @@
   };
   /* Turning down a reward adds to the final score, more for a bigger reward: a fight's card, a Dread's
      card, an event's card pick, an event's Leave / Decline, a tonic left behind with a free slot. */
-  E.DECLINE_SCORE = { card: 50, eliteCard: 80, eventCard: 50, event: 50, tonic: 20 };
+  E.DECLINE_SCORE = { card: 50, eliteCard: 80, eventCard: 50, event: 50, tonic: 20, keepsake: 80 };
   /* Saves from before the tiers counted 20 a decline and kept only the count. */
   E.declinePoints = (st) => (st.declineScore != null ? st.declineScore : (st.declined || 0) * 20);
   E.decline = function (run, kind) {
@@ -1110,7 +1175,7 @@
   E.skipCardKind = (rw) => ((rw && (rw.elite != null ? rw.elite : rw.keepsakeChoices && rw.keepsakeChoices.length > 0)) ? 'eliteCard' : 'card');
   E.takeRewardKeepsake = function (run, k) {
     const rw = run.rewards;
-    if (!rw || rw.keepsake || rw.keepsakeChoices.indexOf(k) < 0) return;
+    if (!rw || rw.keepsake || rw.keepsakeLeft || rw.keepsakeChoices.indexOf(k) < 0) return;
     rw.keepsake = k;
     E.gainKeepsake(run, k);
   };
@@ -1132,56 +1197,72 @@
 
   /* ---------------- Workshop: progression that lasts across runs ----------------
      `meta` is the player's lasting state (the UI keeps it in localStorage):
-     { salvage, earned, owned: [gear ids], packed: [gear ids], ach: [achievement ids] }. */
+     { salvage, earned, owned: [kit ids], kit: { place: id }, ach: [achievement ids] }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.capacity = (level) => 1 + (level || 0);
-  /* Overburdened: you may pack up to OVERBURDEN_MAX spaces past the capacity; each one costs Max HP for the run. */
-  E.OVERBURDEN_MAX = 2;
-  E.OVERBURDEN_HP = 4; // bot: about break-even on average, so overpacking pays only when the extra piece suits the plan
-  E.packLimit = (level) => E.capacity(level) + E.OVERBURDEN_MAX;
-  E.overburden = (ids, level) => Math.max(0, E.gearWeight(ids) - E.capacity(level));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], packed: [], ach: [] });
-  E.hasGear = (run, id) => !!run.gear && run.gear.indexOf(id) >= 0;
-  E.gearWeight = (ids) => ids.reduce((w, id) => w + (BL.GEAR[id] ? BL.GEAR[id].weight : 0), 0);
-  E.gearUnlocked = (meta, id) => { const g = BL.GEAR[id]; return !!g && (!g.unlock || meta.ach.indexOf(g.unlock) >= 0); };
-  E.buyGear = function (meta, id) {
-    const g = BL.GEAR[id];
-    if (!g || meta.owned.indexOf(id) >= 0 || !E.gearUnlocked(meta, id) || meta.salvage < g.price) return false;
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [] });
+  E.ownsKit = (meta, id) => !!BL.KIT[id] && (!!BL.KIT[id].starter || meta.owned.indexOf(id) >= 0);
+  E.kitUnlocked = (meta, id) => { const g = BL.KIT[id]; return !!g && (!g.unlock || meta.ach.indexOf(g.unlock) >= 0); };
+  E.buyKit = function (meta, id) {
+    const g = BL.KIT[id];
+    if (!g || E.ownsKit(meta, id) || !E.kitUnlocked(meta, id) || meta.salvage < g.price) return false;
     meta.salvage -= g.price;
     meta.owned.push(id);
     return true;
   };
-  /* Known gear, once each, in order, while it fits the pack's limit (the capacity plus the overburden allowance). */
-  E.fitGear = function (ids, level, owned) {
-    const out = [];
-    let w = 0;
-    (ids || []).forEach((id) => {
-      const g = BL.GEAR[id];
-      if (!g || out.indexOf(id) >= 0 || (owned && owned.indexOf(id) < 0) || w + g.weight > E.packLimit(level)) return;
-      out.push(id);
-      w += g.weight;
-    });
-    return out;
-  };
-  /* Pack or unpack one piece of owned gear for a dive at `level`. Returns false past the pack's limit. */
-  E.togglePack = function (meta, id, level) {
-    const i = meta.packed.indexOf(id);
-    if (i >= 0) { meta.packed.splice(i, 1); return true; }
-    if (meta.owned.indexOf(id) < 0 || !BL.GEAR[id] || E.gearWeight(meta.packed) + BL.GEAR[id].weight > E.packLimit(level)) return false;
-    meta.packed.push(id);
+  /* Put on a piece of owned kit, or take it off again. The Bell always holds a bell: choosing another
+     replaces it, and taking a bell off puts the Brass Tide-Bell back. */
+  E.equipKit = function (meta, id) {
+    if (!E.ownsKit(meta, id)) return false;
+    const place = BL.KIT[id].place;
+    meta.kit = E.fitKit(meta.kit, meta.owned);
+    if (meta.kit[place] !== id) meta.kit[place] = id;
+    else meta.kit[place] = place === 'bell' ? 'tidebell' : null;
     return true;
   };
-  /* Start-of-run gear effects. The rest are checked where they apply (fights, Crests, the shop). */
-  E.applyGear = function (run, ids) {
-    run.gear = E.fitGear(ids, run.level);
-    run.overburden = E.overburden(run.gear, run.level);
-    if (run.overburden) { run.maxHp -= E.OVERBURDEN_HP * run.overburden; run.hp = Math.min(run.hp, run.maxHp); }
-    if (E.hasGear(run, 'cork')) { run.maxHp += 5; run.hp += 5; }
-    if (E.hasGear(run, 'purse')) run.pearls += 30;
-    if (E.hasGear(run, 'whetstone')) run.deck.forEach((card) => { if (card.id === 'swell') card.up = 1; });
-    if (E.hasGear(run, 'flask')) run.tonics[0] = E.randomTonic(run);
-    return run.gear;
+  /* Start-of-run kit effects. The rest are checked where they apply (fights, Crests, the shop, rests). */
+  E.applyKit = function (run, kit) {
+    run.kit = E.fitKit(kit);
+    if (E.hasKit(run, 'cork')) { run.maxHp += 5; run.hp += 5; }
+    if (E.hasKit(run, 'purse')) run.pearls += 30;
+    if (E.hasKit(run, 'flask')) run.tonics[0] = E.randomTonic(run);
+    return run.kit;
+  };
+  /* Lasting state from before v0.10.0: gear becomes kit (the charts, Storm Lens and Whetstone become
+     the bells and the Honed Harpoon), and the old pack becomes the kit you wear. */
+  E.migrateMeta = function (m) {
+    const owned = [];
+    (m.owned || []).forEach((id) => { const to = BL.KIT[id] ? id : BL.OLD_GEAR[id]; if (to && BL.KIT[to] && owned.indexOf(to) < 0) owned.push(to); });
+    m.owned = owned;
+    const fromPack = !m.kit && Array.isArray(m.packed) ? m.packed.map((id) => BL.OLD_GEAR[id] || id) : null;
+    if (fromPack) {
+      // first piece in each place wins
+      const k = {};
+      fromPack.forEach((id) => { if (BL.KIT[id] && !k[BL.KIT[id].place]) k[BL.KIT[id].place] = id; });
+      m.kit = k;
+    }
+    m.kit = E.fitKit(m.kit, owned);
+    delete m.packed;
+    return m;
+  };
+  /* A run saved before v0.10.0: the Tide-Bell keepsake becomes the bell, and the keepsakes and gear that
+     are kit now keep working as kit for the rest of that run. */
+  E.migrateRun = function (run) {
+    if (!run) return run;
+    if (!run.kit) {
+      const kit = E.fitKit();
+      kit.bell = null;
+      const extra = [];
+      const add = (id) => { if (id && BL.KIT[id] && extra.indexOf(id) < 0) extra.push(id); };
+      (run.keepsakes || []).forEach((k) => { const to = BL.RETIRED_KEEPSAKES[k]; if (to === 'tidebell') kit.bell = 'tidebell'; else add(to); });
+      (run.gear || []).forEach((g) => { const to = BL.OLD_GEAR[g]; if (to && ['coat', 'pocket', 'ditty'].indexOf(BL.KIT[to].place) >= 0) add(to); });
+      run.kit = kit;
+      if (extra.length) run.kitExtra = extra;
+      delete run.gear;
+      delete run.overburden;
+    }
+    run.keepsakes = (run.keepsakes || []).filter((k) => BL.KEEPSAKES[k]);
+    return run;
   };
   E.achievementsMet = (run) => (run.tutorial ? [] : Object.keys(BL.ACHIEVEMENTS).filter((id) => BL.ACHIEVEMENTS[id].met(run)));
   /* Records achievements this run has newly met; returns their ids (also kept on the run for the end screen). */
@@ -1191,8 +1272,8 @@
     if (fresh.length) run.unlocks = (run.unlocks || []).concat(fresh);
     return fresh;
   };
-  /* Gear that an achievement unlocks. */
-  E.gearFor = (achId) => Object.keys(BL.GEAR).filter((id) => BL.GEAR[id].unlock === achId);
+  /* Kit that an achievement unlocks. */
+  E.kitFor = (achId) => Object.keys(BL.KIT).filter((id) => BL.KIT[id].unlock === achId);
   E.earnSalvage = function (meta, score) {
     const n = E.salvageFor(score);
     meta.salvage += n;

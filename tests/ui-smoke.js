@@ -184,6 +184,17 @@ async function playStops(page, label, opts) {
   return visited;
 }
 
+/* Keepsake picks alternate between taking one and leaving them, so both paths run. */
+let ksTurn = 0;
+async function decideKeepsake(page, label, takeAct) {
+  if (!(await page.eval(`!!document.querySelector('[data-act="${takeAct}"]')`))) return;
+  // a keepsake on offer is taken or left before Continue is offered
+  if (await page.eval(`!!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: Continue was offered before the keepsake pick was decided`);
+  if (!(await page.eval(`!!document.querySelector('.ks-pick .k-charge') && !!document.querySelector('.ks-pick .k-after')`))) failures.push(`${label}: the keepsake pick doesn't show Charge`);
+  if (ksTurn++ % 2) await clickIf(page, '[data-act="leaveks"]');
+  else await clickIf(page, `[data-act="${takeAct}"]`);
+}
+
 async function afterStop(page, label) {
   for (let guard = 0; guard < 12; guard++) {
     await waitIdle(page);
@@ -195,9 +206,7 @@ async function afterStop(page, label) {
     if (s === 'reward') {
       await clickIf(page, '[data-act="taketonic"]:not([disabled])');
       await clickIf(page, '[data-act="rewardcard"][data-i="0"]');
-      // a Dread's keepsake has to be taken before Continue is offered
-      if (await page.eval(`!!document.querySelector('[data-act="rewardks"]') && !!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: Continue was offered before the keepsake was taken`);
-      await clickIf(page, '[data-act="rewardks"]');
+      await decideKeepsake(page, label, 'rewardks');
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'rest') {
       if (!(await clickIf(page, '[data-act="rest"]'))) await clickIf(page, '[data-act="tomap"]');
@@ -214,8 +223,7 @@ async function afterStop(page, label) {
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'treasure') {
       await clickIf(page, '[data-act="opentreasure"]');
-      if (await page.eval(`!!document.querySelector('[data-act="treasureks"]') && !!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: the Wreck could be left before a keepsake was taken`);
-      await clickIf(page, '[data-act="treasureks"]');
+      await decideKeepsake(page, label, 'treasureks');
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'event') {
       if (!(await clickIf(page, '[data-act="evopt"]:not([disabled])'))) await clickIf(page, '[data-act="evcontinue"]');
@@ -289,54 +297,67 @@ async function summonDeathCheck(page, base) {
   if (page.errors.length) failures.push('summon check: page errors:\n    ' + page.errors.join('\n    '));
 }
 
-/* The Workshop: buy gear with Salvage, pack it for a dive, see it in the run, and earn Salvage and an
-   unlock at the end of the run. */
+/* The Workshop: lasting state from before v0.10.0 carries over, buy kit with Salvage, wear it for a dive,
+   see it in the run with keepsake Charge, drop a keepsake, and earn Salvage and an unlock at the end. */
 async function workshopScenario(page, base, name, size) {
   log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
   await page.viewport(size.w, size.h, size);
   page.errors.length = 0;
   await page.goto(base + '?seed=4444');
+  // stored in the v0.9.0 shape: gear owned and packed
   await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done');
-    localStorage.setItem('brinelight.meta.v1', JSON.stringify({ salvage: 60, earned: 60, owned: [], packed: [], ach: ['twocrests'] })); })()`);
+    localStorage.setItem('brinelight.meta.v1', JSON.stringify({ salvage: 60, earned: 60, owned: ['purse'], packed: ['purse'], ach: ['twocrests'] })); })()`);
   await page.goto(base + '?seed=4444');
   await inject(page);
   const stored = () => page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
   await page.click('[data-act="workshop"]');
   await sleep(150);
-  if (await page.eval(`!!document.querySelector('#overlay [data-act="gearbuy"][data-g="stormlens"]')`)) failures.push(`${name}: locked gear can be bought`);
-  for (const g of ['cork', 'floodchart']) {
-    await clickIf(page, `#overlay [data-act="gearbuy"][data-g="${g}"]`);
-    await clickIf(page, '#overlay [data-act="gearbuyconfirm"]');
+  if (await page.eval(`!!document.querySelector('#overlay [data-act="kitbuy"][data-g="crackedbell"]')`)) failures.push(`${name}: locked kit can be bought`);
+  if (await page.eval(`document.querySelectorAll('#overlay .ws-place').length`) !== 5) failures.push(`${name}: the Workshop doesn't group kit by its five places`);
+  for (const g of ['cork', 'floodbell']) {
+    await clickIf(page, `#overlay [data-act="kitbuy"][data-g="${g}"]`);
+    await clickIf(page, '#overlay [data-act="kitbuyconfirm"]');
   }
   let m = await stored();
-  if (m.owned.join() !== 'cork,floodchart' || m.salvage !== 60 - 12 - 20) failures.push(`${name}: after buying, stored ${JSON.stringify(m)}`);
+  if (m.owned.join() !== 'purse,cork,floodbell' || m.salvage !== 60 - 12 - 20) failures.push(`${name}: after buying, stored ${JSON.stringify(m)}`);
+  if (!m.kit || m.kit.pocket !== 'purse' || m.kit.coat !== 'cork' || m.kit.bell !== 'tidebell') failures.push(`${name}: the old pack or the new Cork Vest isn't worn: ${JSON.stringify(m.kit)}`);
   await checkPage(page, name + ' workshop');
   await clickIf(page, '#overlay [data-act="close"]');
-  // New Descent opens the pack, with the new gear already packed
+  // New Descent opens the kit; put on the Flood Bell, take off the Cork Vest
   await page.click('[data-act="newrun"]');
-  await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the pack before a dive');
-  await checkPage(page, name + ' pack');
-  if ((await stored()).packed.join() !== 'cork') failures.push(`${name}: the first purchase wasn't packed, or the second was`);
-  // the Shallows hold 1: packing the Flood Chart too overburdens you, and the pack says what it costs
-  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="floodchart"]');
-  if ((await stored()).packed.join() !== 'cork,floodchart') failures.push(`${name}: couldn't overburden the pack`);
-  if (!(await page.eval(`/Overburdened by 1 space/.test(document.querySelector('#overlay').innerText)`))) failures.push(`${name}: the pack doesn't warn about overburden`);
-  await checkPage(page, name + ' overburdened pack');
-  await clickIf(page, '#overlay [data-act="packtoggle"][data-g="cork"]');
-  if ((await stored()).packed.join() !== 'floodchart') failures.push(`${name}: unpacking the Cork Vest didn't stick`);
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the kit before a dive');
+  await checkPage(page, name + ' kit');
+  await clickIf(page, '#overlay [data-act="kitwear"][data-g="floodbell"]');
+  await clickIf(page, '#overlay [data-act="kitwear"][data-g="cork"]');
+  m = await stored();
+  if (m.kit.bell !== 'floodbell' || m.kit.coat !== null) failures.push(`${name}: wearing kit didn't stick: ${JSON.stringify(m.kit)}`);
   await clickIf(page, '#overlay [data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after Dive');
-  const gear = await page.eval('window.Brinelight.run.gear.join()');
-  if (gear !== 'floodchart') failures.push(`${name}: the run took gear "${gear}"`);
-  if (!(await page.eval(`!!document.querySelector('.hud .gear-pack')`))) failures.push(`${name}: no packed gear in the HUD`);
-  // the first fight starts one Tide higher
+  const kit = await page.eval('JSON.stringify(window.Brinelight.run.kit)');
+  if (kit !== JSON.stringify({ harpoon: null, bell: 'floodbell', coat: null, pocket: 'purse', ditty: null })) failures.push(`${name}: the run took kit ${kit}`);
+  if (!(await page.eval(`!!document.querySelector('.hud .medal.bell') && !!document.querySelector('.hud .gear-pack')`))) failures.push(`${name}: the bell or the kit is missing from the HUD`);
+  if (await page.eval('window.Brinelight.run.pearls') !== 105) failures.push(`${name}: the Coin Purse didn't add its Pearls`);
+  // keepsakes past the Hold: the HUD shows the Charge in red; drop one between fights
+  await dismissHints(page);
+  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'whaletooth'); B.E.gainKeepsake(B.run, 'stormbottle'); B.render(); })()`);
+  await dismissHints(page);
+  const chip = await page.eval(`(() => { const c = document.querySelector('.hud .charge'); return c ? c.className + ' ' + c.innerText : ''; })()`);
+  if (!/over/.test(chip) || !/37\/30/.test(chip)) failures.push(`${name}: the HUD Charge reads "${chip}"`);
+  await checkPage(page, name + ' charge');
+  await page.click('.hud .medal[data-k="stormbottle"]');
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="ksdrop"]')`, 3000, 'the keepsake opens');
+  await clickIf(page, '#overlay [data-act="ksdrop"]');
+  if (await page.eval('window.Brinelight.run.keepsakes.join()') !== 'whaletooth') failures.push(`${name}: dropping a keepsake didn't work`);
+  if (await page.eval(`!!document.querySelector('.hud .charge.over')`)) failures.push(`${name}: still over the Hold after dropping`);
+  // the first fight: Seep joins it when over the Hold
+  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'anchor'); B.render(); })()`);
   await dismissHints(page);
   await page.click('[data-act="node"]');
   await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop');
   if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
-  const tide = await page.eval('window.Brinelight.run.combat.tide');
-  if (tide !== 4) failures.push(`${name}: Flood Chart: the fight started at Tide ${tide}`);
-  // the run ends: Salvage from the score, and an achievement reached in it unlocks gear
+  const seep = await page.eval(`(() => { const c = window.Brinelight.run.combat; return c.hand.concat(c.draw).filter((x) => x.id === 'seep').length; })()`);
+  if (seep !== 2) failures.push(`${name}: ${seep} Seep in a fight at Charge 37 of 30`);
+  // the run ends: Salvage from the score, and an achievement reached in it unlocks kit
   await waitIdle(page);
   await page.eval(`(() => { const B = window.Brinelight; B.run.stats.maxChain = 3; B.run.screen = 'defeat'; B.render(); })()`);
   await sleep(300);
@@ -344,7 +365,7 @@ async function workshopScenario(page, base, name, size) {
   const expect = await page.eval('window.Brinelight.E.salvageFor(window.Brinelight.run.final.score)');
   if (m.salvage !== 28 + expect) failures.push(`${name}: Salvage after the run is ${m.salvage}, expected ${28 + expect}`);
   if (m.ach.indexOf('threecrests') < 0) failures.push(`${name}: Triple Crest wasn't unlocked`);
-  if (!(await page.eval(`!!document.querySelector('.salvage-box') && /Storm Lens/.test(document.body.innerText)`))) failures.push(`${name}: the end screen doesn't show the Salvage and the unlock`);
+  if (!(await page.eval(`!!document.querySelector('.salvage-box') && /Cracked Bell/.test(document.body.innerText)`))) failures.push(`${name}: the end screen doesn't show the Salvage and the unlock`);
   await checkPage(page, name + ' end');
   // abandoning a run earns nothing
   const before = (await stored()).salvage;
@@ -374,10 +395,10 @@ async function debugScenario(page, base) {
   await page.click('.dbg-tab');
   await sleep(150);
   await clickIf(page, '#overlay [data-dbg="salvage"]');
-  await clickIf(page, '#overlay [data-dbg="allgear"]');
+  await clickIf(page, '#overlay [data-dbg="allkit"]');
   await clickIf(page, '#overlay [data-dbg="depths"]');
   const m = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
-  if (m.salvage !== 100 || m.owned.length !== Object.keys(await page.eval('window.BL.GEAR')).length) failures.push(`debug: Salvage and gear cheats stored ${JSON.stringify(m)}`);
+  if (m.salvage !== 100 || m.owned.length !== Object.keys(await page.eval('window.BL.KIT')).length - 1) failures.push(`debug: Salvage and kit cheats stored ${JSON.stringify(m)}`);
   await clickIf(page, '#overlay [data-act="close"]');
   // a run: god mode holds HP through an enemy turn, the Tide can be set, and Win the fight leads to the rewards
   await page.click('[data-act="newrun"]');

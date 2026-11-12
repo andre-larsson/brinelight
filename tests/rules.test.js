@@ -8,11 +8,15 @@ const { load, saveLoad, snapshot, playRun, step } = require('../tools/bot');
 const { BL, E } = load();
 
 /* ---------- helpers ---------- */
-/* A fight against `enc` with an optional fixed deck, hand and keepsakes. */
+/* A fight against `enc` with an optional fixed deck, hand and keepsakes. As before the bell became kit,
+   a keepsake list without 'tidebell' also leaves the bell out, so hands stay fixed. */
 function fight(enc, o = {}) {
   const run = E.newRun(o.seed || 1, o.level || 0);
   if (o.deck) { run.deck = []; o.deck.forEach((id) => E.addCard(run, id)); }
-  if (o.keepsakes) run.keepsakes = o.keepsakes.slice();
+  if (o.keepsakes) {
+    run.keepsakes = o.keepsakes.filter((k) => k !== 'tidebell');
+    if (o.keepsakes.indexOf('tidebell') < 0) run.kit.bell = null;
+  }
   E.startCombat(run, o.kind || 'easy', enc);
   const c = run.combat;
   if (o.hand) {
@@ -43,7 +47,8 @@ test('the keeper starts with 70 HP, 3 Light and the 10-card starting deck', () =
   const count = (id) => run.deck.filter((c) => c.id === id).length;
   assert.equal(run.deck.length, 10);
   assert.deepEqual([count('jab'), count('brace'), count('swell'), count('slack')], [4, 4, 1, 1]);
-  assert.deepEqual(run.keepsakes, ['tidebell']);
+  assert.deepEqual(run.keepsakes, [], 'no keepsakes yet');
+  assert.equal(E.bell(run), 'tidebell', 'the Brass Tide-Bell is part of the kit');
   E.startCombat(run, 'easy');
   assert.equal(run.combat.maxLight, 3);
 });
@@ -283,7 +288,7 @@ test('chains start over each turn', () => {
   assert.equal(hp - e.hp, 6);
 });
 
-test('the Brass Tide-Bell draws a card whenever you Crest or hit Low Water', () => {
+test('the Brass Tide-Bell (the starting bell) draws a card whenever you Crest or hit Low Water', () => {
   const { run, c } = fight(['kelp'], { hand: ['swell', 'slack'] });
   tough(c);
   c.tide = 4;
@@ -654,49 +659,41 @@ test('Wrecks: a chest of Pearls and a choice of 1 of 3 keepsakes', () => {
   assert.ok(!E.has(run, run.treasure.choices[0]), 'only one');
 });
 
-test('a keepsake pick is never lost: if one is left unchosen (the UI requires a pick), one of the offered keepsakes is taken at random', () => {
-  // Wreck
-  const seen = new Set();
-  for (let seed = 1; seed <= 40; seed++) {
-    const run = E.newRun(seed);
-    E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
-    E.openTreasure(run);
-    const choices = run.treasure.choices.slice();
-    const before = run.keepsakes.length;
-    const k = E.backToMap(run);
-    assert.ok(choices.includes(k), 'one of the offered ones');
-    assert.ok(E.has(run, k));
-    assert.equal(run.keepsakes.length, before + 1, 'exactly one');
-    seen.add(choices.indexOf(k));
-  }
-  assert.equal(seen.size, 3, 'any of the three can come up');
-
-  // a pick already made is kept, nothing extra
-  const run = E.newRun(4);
+test('a keepsake pick is optional: take one, or leave them for +80 score; a pick left open is lost', () => {
+  // Wreck: take one, and only one
+  let run = E.newRun(4);
   E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
   E.openTreasure(run);
   E.takeTreasureKeepsake(run, run.treasure.choices[2]);
+  assert.ok(E.has(run, run.treasure.choices[2]));
+  assert.equal(E.leaveKeepsakes(run), false, 'already taken');
   const n = run.keepsakes.length;
-  assert.equal(E.backToMap(run), null);
+  E.backToMap(run);
   assert.equal(run.keepsakes.length, n);
 
-  // Dread reward
+  // Wreck: leave them
+  run = E.newRun(4);
+  E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
+  E.openTreasure(run);
+  const s0 = E.score(run, false);
+  assert.equal(E.leaveKeepsakes(run), true);
+  assert.equal(E.leaveKeepsakes(run), false, 'once');
+  E.takeTreasureKeepsake(run, run.treasure.choices[0]);
+  assert.equal(run.keepsakes.length, 0, 'left behind means left behind');
+  assert.equal(E.score(run, false), s0 + E.DECLINE_SCORE.keepsake);
+  assert.equal(E.DECLINE_SCORE.keepsake, 80);
+
+  // Dread reward left open: nothing is taken, and it doesn't score
   const f = fight(['kelp'], { kind: 'elite' });
   f.c.enemies[0].dead = true;
   f.c.won = true;
   E.finishCombat(f.run);
-  const offered = f.run.rewards.keepsakeChoices.slice();
-  const k = E.backToMap(f.run);
-  assert.ok(offered.includes(k) && E.has(f.run, k));
-
-  // a normal fight offers no keepsake, so none is given
-  const g = fight(['kelp']);
-  g.c.enemies[0].dead = true;
-  g.c.won = true;
-  E.finishCombat(g.run);
-  const m = g.run.keepsakes.length;
-  assert.equal(E.backToMap(g.run), null);
-  assert.equal(g.run.keepsakes.length, m);
+  assert.equal(f.run.rewards.keepsakeChoices.length, 2);
+  f.run.rewards.tonic = null; // (a tonic left behind would count on its own)
+  const d0 = f.run.stats.declined;
+  E.backToMap(f.run);
+  assert.equal(f.run.keepsakes.length, 0);
+  assert.equal(f.run.stats.declined, d0);
 });
 
 test('Kelp Bracelet: Low Water gives 8 Ward. Tidal Memory: each Crest gives 1 Light. Spring Tide: Low Water, then Crest', () => {
@@ -740,7 +737,7 @@ test('deeper starting depths: tougher enemies and a higher score multiplier', ()
 
 test('turning down a reward adds to the score: 50 for a card or an event Leave, 80 for a Dread card, 20 for a tonic left with a free slot', () => {
   const won = (seed, o, enc) => { const f = fight(enc || ['kelp'], Object.assign({ seed }, o)); f.c.enemies.forEach((e) => { e.dead = true; }); f.c.won = true; E.finishCombat(f.run); return f.run; };
-  assert.deepEqual(E.DECLINE_SCORE, { card: 50, eliteCard: 80, eventCard: 50, event: 50, tonic: 20 });
+  assert.deepEqual(E.DECLINE_SCORE, { card: 50, eliteCard: 80, eventCard: 50, event: 50, tonic: 20, keepsake: 80 });
   // skip the reward card
   let run = won(1);
   const s0 = E.score(run, false);
@@ -854,15 +851,16 @@ test('the score counts Low Waters and the best Low Water chain the same as Crest
 });
 
 /* ---------- Content (README counts) ---------- */
-test('content: 38 collectible cards (14/16/8), all upgradable; 3 statuses and 1 curse; 13 enemies; 19 keepsakes; 7 tonics; 7 events', () => {
+test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 13 enemies; 14 keepsakes; 7 tonics; 7 events', () => {
   const cards = Object.values(BL.CARDS);
   const by = (r) => cards.filter((c) => c.rarity === r).length;
   assert.deepEqual([by('common'), by('uncommon'), by('rare')], [14, 16, 8]);
   cards.filter((c) => ['common', 'uncommon', 'rare', 'starter'].includes(c.rarity)).forEach((c) => assert.ok(Object.keys(c.up).length > 0, c.id + ' has an upgrade'));
-  assert.equal(cards.filter((c) => c.type === 'status').length, 3);
+  assert.equal(cards.filter((c) => c.type === 'status').length, 4);
   assert.equal(cards.filter((c) => c.type === 'curse').length, 1);
   assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 13);
-  assert.equal(Object.keys(BL.KEEPSAKES).length, 19);
+  assert.equal(Object.keys(BL.KEEPSAKES).length, 14);
+  Object.values(BL.KEEPSAKES).forEach((k) => assert.ok(k.charge > 0, k.name + ' has a Charge'));
   assert.equal(Object.keys(BL.TONICS).length, 7);
   assert.equal(BL.EVENTS.length, 7);
 });

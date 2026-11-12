@@ -95,6 +95,10 @@ const SIZES = {
       await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'elite', ['angler', 'angler']); B.render();`);
       await sleep(1800);
       await shot(tag, '11_elite');
+      // the Dread's reward: a keepsake pick with Charge (the run carries Whale Tooth and Drowned Anchor, over the Hold)
+      await setup(`const r = B.run; const c = r.combat; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); c.won = true; E.finishCombat(r); B.render();`);
+      await sleep(900);
+      await shot(tag, '11b_elite_reward');
       // defeat screen
       await setup(`const r = B.run; r.combat = null; r.screen = 'defeat'; r.floor = 6; B.render();`);
       await shot(tag, '12_defeat');
@@ -102,6 +106,11 @@ const SIZES = {
       await setup(`B.run = null; B.render();`);
       await page.eval(`document.querySelector('[data-act="help"]') && document.querySelector('[data-act="help"]').click()`);
       await shot(tag, '13_help');
+      // the Workshop and the kit before a dive
+      await setup(`B.closeOverlay(true); const m = B.meta; m.salvage = 40; m.earned = 200; m.owned = ['cork', 'purse', 'floodbell', 'honed', 'net']; m.ach = ['twocrests', 'dreadhunter']; m.kit = E.fitKit(['honed', 'cork', 'purse']); B.saveMeta(); B.render(); document.querySelector('[data-act="workshop"]').click();`);
+      await shot(tag, '14_workshop');
+      await setup(`B.closeOverlay(true); document.querySelector('[data-act="newrun"]').click();`);
+      await shot(tag, '15_kit');
     }
     fs.writeFileSync(path.join(out, 'small-text.txt'), small.join('\n') + '\n');
     console.log(small.length ? `Text below ${MIN_PX}px on ${small.length} screens (see small-text.txt)` : `No text below ${MIN_PX}px`);
