@@ -285,9 +285,9 @@ test('the Hold is 30 Roil in the Shallows and 5 more each depth; every 5 Roil ov
   assert.equal(E.roil(tut).steps, 0);
 });
 
-test('a Roiled aether climbs a ladder: a Seep, then Scour, then a Bell Minnow, then round again (2 Minnows at most)', () => {
-  const at = (steps) => { const r = E.roilFor(30 + 5 * steps, 0); return [r.seep, r.scour, r.minnows]; };
-  assert.deepEqual(E.roilFor(30, 0), { steps: 0, seep: 0, scour: 0, minnows: 0 });
+test('a Roiled aether climbs a ladder: a Seep, then Thrash, then a Bell Minnow, then round again (2 Minnows at most)', () => {
+  const at = (steps) => { const r = E.roilFor(30 + 5 * steps, 0); return [r.seep, r.thrash, r.minnows]; };
+  assert.deepEqual(E.roilFor(30, 0), { steps: 0, seep: 0, thrash: 0, minnows: 0 });
   assert.deepEqual(at(1), [1, 0, 0]);
   assert.deepEqual(at(2), [1, 1, 0]);
   assert.deepEqual(at(3), [1, 1, 1]);
@@ -303,7 +303,7 @@ test('a Roiled aether climbs a ladder: a Seep, then Scour, then a Bell Minnow, t
 test('Seep: shuffled into the draw pile at the start of each fight, unplayable, and gone after the fight', () => {
   const run = E.newRun(5);
   run.keepsakes = ['whaletooth', 'stormbottle', 'tidewatch']; // 19 + 18 + 12 = 49: 4 steps past a Hold of 30
-  assert.deepEqual(E.roil(run), { steps: 4, seep: 2, scour: 1, minnows: 1 });
+  assert.deepEqual(E.roil(run), { steps: 4, seep: 2, thrash: 1, minnows: 1 });
   const deck = run.deck.length;
   const c = fightIn(run);
   const all = c.hand.concat(c.draw);
@@ -321,47 +321,65 @@ test('Seep: shuffled into the draw pile at the start of each fight, unplayable, 
   light.keepsakes = ['whaletooth'];
   const lc = fightIn(light);
   assert.equal(lc.hand.concat(lc.draw).filter((x) => x.id === 'seep').length, 0);
-  assert.equal(lc.scour, undefined);
+  assert.equal(lc.thrash, undefined);
   assert.equal(lc.enemies.length, 1);
 });
 
-test('Scour: from your 4th turn of a fight, lose that much HP at the start of each turn; Ward does not stop it', () => {
-  assert.equal(E.SCOUR_FROM_TURN, 4);
+test('Thrash: at the start of each of your turns, take that much damage; Ward left from the turn before stops it', () => {
   const quiet = (c) => c.enemies.forEach((e) => { e.intent = Object.keys(BL.ENEMIES[e.id].moves).find((k) => { const m = BL.ENEMIES[e.id].moves[k]; return !m.dmg && !m.debuff; }) || e.intent; });
   const run = E.newRun(5);
-  run.keepsakes = ['whaletooth', 'stormbottle']; // 19 + 18 = 37: 2 steps, so 1 Seep and Scour 1
-  assert.equal(E.roil(run).scour, 1);
+  run.keepsakes = ['whaletooth', 'stormbottle']; // 19 + 18 = 37: 2 steps, so 1 Seep and Thrash 1
+  assert.equal(E.roil(run).thrash, 1);
+  const hp0 = run.hp;
   const c = fightIn(run, ['crab']);
   tough(c);
-  assert.equal(c.scour, 1);
-  const hp = run.hp;
-  const turnEnd = () => { run.hp = hp; quiet(c); c.player.ward = 50; E.endTurn(run); return hp - run.hp; };
-  assert.equal(run.hp, hp, 'nothing on turn 1');
-  assert.equal(turnEnd(), 0, 'nothing on turn 2');
-  assert.equal(turnEnd(), 0, 'nothing on turn 3, so a Swift fight is never Scoured');
-  assert.equal(c.turn, 3);
-  assert.equal(c.flags.hpLost, false);
-  assert.equal(turnEnd(), 1, 'turn 4: 1 HP, through 50 Ward');
-  assert.equal(c.turn, 4);
+  assert.equal(c.thrash, 1);
+  assert.equal(run.hp, hp0 - 1, 'the first turn of a fight: 1 damage, with no Ward up yet');
   assert.equal(c.flags.hpLost, true, 'so the fight is no longer Flawless');
-  assert.equal(turnEnd(), 1, 'and every turn after');
-  // Scour 2 takes 2 a turn
+  const hp = run.hp;
+  // end the turn with enough Ward for the enemies' attacks and `left` over
+  const incoming = (cc, r) => E.alive(cc).reduce((n, e) => { const i = E.intentInfo(r, e); return n + (i && i.dmg ? i.dmg * i.hits : 0); }, 0);
+  const turnEnd = (left) => { run.hp = hp; quiet(c); c.player.ward = incoming(c, run) + left; E.endTurn(run); return hp - run.hp; };
+  assert.equal(turnEnd(0), 1, 'no Ward left after the enemies: 1 damage');
+  assert.equal(turnEnd(3), 0, 'Ward left over stops it');
+  assert.equal(c.player.ward, 0, 'and what is left of the Ward still washes away');
+  assert.deepEqual(c.fx.filter((f) => f.t === 'dmg' && f.who === 'p').pop(), { t: 'dmg', who: 'p', n: 0, blocked: 1, attack: false });
+  assert.equal(turnEnd(0), 1, 'and it comes every turn');
+  // Thrash 2 is 2 damage a turn, and 1 Ward stops half of it
   const two = E.newRun(5);
-  two.keepsakes = ['whaletooth', 'stormbottle', 'anchor']; // 55: 5 steps, so Scour 2
-  assert.equal(E.roil(two).scour, 2);
+  two.keepsakes = ['whaletooth', 'stormbottle', 'anchor']; // 55: 5 steps, so Thrash 2
+  assert.equal(E.roil(two).thrash, 2);
+  const hp2 = two.hp;
   const c2 = fightIn(two, ['crab']);
   tough(c2);
   c2.enemies.splice(1); // leave only the crab: the Minnow would bite
-  const hp2 = two.hp;
-  [1, 2, 3].forEach(() => { quiet(c2); c2.player.ward = 50; E.endTurn(two); });
   assert.equal(two.hp, hp2 - 2);
+  quiet(c2); c2.player.ward = incoming(c2, two) + 1; E.endTurn(two);
+  assert.equal(two.hp, hp2 - 3);
   // at 1 HP it ends the run
   two.hp = 1;
   quiet(c2);
-  c2.player.ward = 50;
+  c2.player.ward = incoming(c2, two);
   E.endTurn(two);
   assert.equal(c2.lost, true);
   assert.equal(two.hp, 0);
+});
+
+test("Thrash and the Shell Gorget: the Gorget's Ward is up before the first turn, so it stops the first Thrash", () => {
+  const run = E.newRun(5, 0, ['gorget']);
+  run.keepsakes = ['whaletooth', 'stormbottle']; // Thrash 1
+  const hp = run.hp;
+  const c = fightIn(run, ['crab']);
+  assert.equal(run.hp, hp);
+  assert.equal(c.player.ward, 3, '1 of its 4 Ward went to the Thrash');
+  assert.equal(c.flags.hpLost, false, 'a stopped Thrash keeps the fight Flawless');
+  // a fight saved in v0.13.0, when Thrash was called Scour, keeps it
+  const old = E.newRun(5);
+  fightIn(old).scour = 2;
+  assert.equal(E.migrateRun(old).combat.thrash, 2);
+  assert.equal(old.combat.scour, undefined);
+  // a Calm run never has Thrash
+  assert.equal(fightIn(E.newRun(5)).thrash, undefined);
 });
 
 test('Bell Minnows follow a Roiled aether into every fight, after the encounter\'s own enemies', () => {

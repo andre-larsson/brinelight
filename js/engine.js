@@ -89,13 +89,13 @@
      (the Hold, more at deeper depths) and stay Calm. Past it the aether is Roiled, one step for every
      5 Roil over (or part of 5). The steps climb a ladder of three, round and round:
        step 1, 4, 7...: one more Seep, an unplayable card in the draw pile of each fight;
-       step 2, 5, 8...: one more Scour, HP lost at the start of each of your turns from the 4th turn of a fight;
+       step 2, 5, 8...: one more Thrash, damage at the start of each of your turns, which Ward left from the turn
+                        before stops;
        step 3, 6:       one more Bell Minnow joins each fight at half health, drawn by the noise (2 at most). */
   E.HOLD_BASE = 30;
   E.HOLD_STEP = 5; // more Hold for each deeper depth
   E.SEEP_STEP = 5; // Roil over the Hold for each step
   E.MAX_ROIL_MINNOWS = 2;
-  E.SCOUR_FROM_TURN = 4; // the first turn of a fight on which Scour takes HP: a fight won in 3 turns (Swift) is never Scoured
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
   E.hold = (level) => E.HOLD_BASE + E.HOLD_STEP * (level || 0);
   E.chargeOf = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].charge) || 0;
@@ -104,7 +104,7 @@
   E.roilSteps = (charge, level) => { const over = charge - E.hold(level); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
   E.roilFor = function (charge, level) {
     const s = E.roilSteps(charge, level);
-    return { steps: s, seep: Math.ceil(s / 3), scour: Math.floor((s + 1) / 3), minnows: Math.min(E.MAX_ROIL_MINNOWS, Math.floor(s / 3)) };
+    return { steps: s, seep: Math.ceil(s / 3), thrash: Math.floor((s + 1) / 3), minnows: Math.min(E.MAX_ROIL_MINNOWS, Math.floor(s / 3)) };
   };
   /* What the aether does to this run in every fight, optionally with one more keepsake. */
   E.roil = (run, extra) => (run.tutorial ? E.roilFor(0, 0) : E.roilFor(E.charge(run, extra), run.level));
@@ -536,7 +536,7 @@
     const seep = roil.seep;
     for (let i = 0; i < seep; i++) pile.push(E.newCard(run, 'seep'));
     if (seep) c.seep = seep;
-    if (roil.scour) c.scour = roil.scour;
+    if (roil.thrash) c.thrash = roil.thrash;
     // noShuffle (tutorial only): draw the deck in order, and refill from the discard pile in a fixed order
     if (opts && opts.noShuffle) { c.noShuffle = true; c.draw = pile.reverse(); } else c.draw = R.shuffle(pile);
     enc.forEach((id, idx) => spawnEnemy(run, c, id, idx));
@@ -552,10 +552,11 @@
     if (E.has(run, 'moonshard')) c.tide = 5;
     if (E.has(run, 'sirenscale')) c.enemies.forEach((e) => { e.st.soaked = (e.st.soaked || 0) + 2; });
     if (E.has(run, 'echoconch')) c.echo = 1;
-    if (roil.steps) fx(c, { t: 'roil', seep, scour: roil.scour, minnows: roil.minnows });
+    if (roil.steps) fx(c, { t: 'roil', seep, thrash: roil.thrash, minnows: roil.minnows });
     if (kind === 'easy' || kind === 'hard') run.normalFights++;
-    startPlayerTurn(run);
+    // before the first turn, so the Gorget's Ward stands against a first Thrash
     if (E.hasKit(run, 'gorget')) gainWard(c, c.player, 4);
+    startPlayerTurn(run);
     return c;
   };
 
@@ -844,12 +845,13 @@
     c.turnCrests = 0;
     c.turnLows = 0;
     const P = c.player;
-    P.ward = 0;
-    if (c.scour && c.turn >= E.SCOUR_FROM_TURN) {
-      fx(c, { t: 'scour', n: c.scour });
-      loseHpDirect(run, c, P, c.scour);
+    // Thrash lands before last turn's Ward washes away, so Ward left over after the enemies stops it
+    if (c.thrash) {
+      fx(c, { t: 'thrash', n: c.thrash });
+      dealDamage(run, c, P, c.thrash, null, false);
       if (c.lost) return;
     }
+    if (c.turn > 1) P.ward = 0; // on the first turn the only Ward is the Shell Gorget's, which lasts the turn
     if ((P.st.brine || 0) > 0) {
       loseHpDirect(run, c, P, P.st.brine);
       P.st.brine--;
@@ -1316,6 +1318,8 @@
       delete run.overburden;
     }
     run.keepsakes = (run.keepsakes || []).filter((k) => BL.KEEPSAKES[k]);
+    // a fight saved in v0.13.0, when Thrash was called Scour
+    if (run.combat && run.combat.scour) { run.combat.thrash = run.combat.scour; delete run.combat.scour; }
     return run;
   };
   E.achievementsMet = (run) => (run.tutorial ? [] : Object.keys(BL.ACHIEVEMENTS).filter((id) => BL.ACHIEVEMENTS[id].met(run)));

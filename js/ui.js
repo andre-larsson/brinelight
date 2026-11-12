@@ -402,7 +402,7 @@
       }
       case 'ward': return `<b>Ward</b><br>${BL.KEYWORDS.Ward}`;
       case 'echo': return `<b>Echo ${c ? c.echo : ''}</b><br>Your next card is played twice.`;
-      case 'incoming': return `<b>Incoming damage</b><br>What the enemies intend to hit you for this turn, after your current Ward.`;
+      case 'incoming': return `<b>Incoming damage</b><br>What the enemies intend to hit you for this turn${c && c.thrash ? `, and Thrash ${c.thrash} at the start of your next turn,` : ','} after your current Ward.`;
       case 'intent': {
         const e = E.enemyByUid(c, parts[1]);
         if (!e) return '';
@@ -641,7 +641,7 @@
         <li>Your <b>bell</b> draws when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} draw differently.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
-      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Scour'].map((k) => [k, BL.KEYWORDS[k]]));
+      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
         <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
       </ul>${dl([
@@ -701,16 +701,16 @@
     openOverlay(modal('Menu', body, null, 'narrow'));
   }
 
-  /* What a Roiled aether adds to every fight, in words: "1 Seep, Scour 1 and 1 Bell Minnow". Empty when Calm. */
+  /* What a Roiled aether adds to every fight, in words: "1 Seep, Thrash 1 and 1 Bell Minnow". Empty when Calm. */
   function roilWords(fx, short) {
     const parts = [];
     if (fx.seep) parts.push(`${fx.seep} Seep`);
-    if (fx.scour) parts.push(`Scour ${fx.scour}`);
+    if (fx.thrash) parts.push(`Thrash ${fx.thrash}`);
     if (fx.minnows) parts.push(`${fx.minnows} ${short ? 'Minnow' : 'Bell Minnow'}${fx.minnows > 1 ? 's' : ''}`);
     if (short) return parts.join(', ');
     return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts.join('');
   }
-  const ROIL_LADDER = `Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step, and each step adds one thing to every fight: first a <b>Seep</b> (an unplayable card), then <b>Scour</b> (from your ${['', '1st', '2nd', '3rd', '4th', '5th'][E.SCOUR_FROM_TURN]} turn of a fight, lose 1 HP at the start of each turn), then a <b>Bell Minnow</b> (an extra enemy, at half health), then a second Seep, and so on round`;
+  const ROIL_LADDER = `Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step, and each step adds one thing to every fight: first a <b>Seep</b> (an unplayable card), then <b>Thrash</b> (1 damage at the start of each turn, unless you kept Ward for it), then a <b>Bell Minnow</b> (an extra enemy, at half health), then a second Seep, and so on round`;
   const roilToast = (fx) => toast(`The aether is Roiled: ${roilWords(fx)} in this fight`, 3600);
   /* A keepsake, between fights: what it does, its Roil, and a way to drop it. */
   function showKeepsake(k) {
@@ -1209,7 +1209,7 @@
     if (names) {
       c.fx.length = 0;
       banner(names, 'enemy');
-      if (c.seep || c.scour || c.roilMinnows) roilToast({ seep: c.seep, scour: c.scour, minnows: c.roilMinnows });
+      if (c.seep || c.thrash || c.roilMinnows) roilToast({ seep: c.seep, thrash: c.thrash, minnows: c.roilMinnows });
       if (c.kind === 'boss') sfx('bell');
     } else processFx();
   }
@@ -1221,7 +1221,8 @@
   function statusesHTML(o, who) {
     const c = run.combat;
     const echo = who === 'p' && c && c.echo > 0 ? `<span class="st buff echo-chip" data-tip="echo">${ICON.echo}${c.echo > 1 ? c.echo : ''}</span>` : '';
-    return echo + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
+    const thrash = who === 'p' && c && c.thrash ? `<span class="st debuff thrash-chip" data-tip="kw:Thrash" aria-label="Thrash ${c.thrash}">${ICON.vortex}${c.thrash}</span>` : '';
+    return echo + thrash + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
       const s = BL.STATUSES[k];
       const n = s.kind === 'rite' && o.st[k] === 1 && k !== 'r_beam' ? '' : o.st[k];
       return `<span class="st ${s.kind}" data-tip="st:${who}:${k}">${ICON[s.icon] || ''}${n}</span>`;
@@ -1309,6 +1310,7 @@
       const info = E.intentInfo(run, e);
       if (info && info.dmg) incoming += info.dmg * info.hits;
     });
+    if (c.thrash) incoming += c.thrash; // Thrash lands after the enemies, on whatever Ward is left
     const unblocked = Math.max(0, incoming - c.player.ward);
     const inc = $('.incoming', pel);
     if (inc) {
@@ -2066,7 +2068,7 @@
         }
         case 'shuffle': anim($('#pile-draw'), 'pulse', 500); break;
         case 'roil': roilToast(f); break;
-        case 'scour': floatAt(unitEl('p'), 'Scour', 'status debuff'); break;
+        case 'thrash': floatAt(unitEl('p'), 'Thrash', 'status debuff'); break;
         case 'addcards': toast(`${f.n} ${BL.CARDS[f.id].name} shuffled into your draw pile`); break;
         case 'turn': banner(c.turn === 1 ? 'Your Turn' : `Turn ${c.turn}`); sfx('turn'); break;
         case 'light': { const o = $('#orb'); anim(o, 'gain', 700); if (f.n) floatAt(o, `+${f.n} Light`, 'light-gain'); break; }

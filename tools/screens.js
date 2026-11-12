@@ -145,7 +145,7 @@ const SIZES = {
       // a fall: the found keepsakes are lost
       await setup(`const r = E.newRun(4242, 0, B.meta.kit, B.meta.bring); E.gainKeepsake(r, 'gullfeather'); E.gainKeepsake(r, 'tidewatch'); r.floor = 6; r.screen = 'defeat'; B.run = r; B.render();`);
       await shot(tag, '25_defeat_lost');
-      // a Roiled fight: 3 steps past the Hold, so a Seep, Scour 1 and a Bell Minnow; then the keepsake that causes it
+      // a Roiled fight: 3 steps past the Hold, so a Seep, Thrash 1 and a Bell Minnow; then the keepsake that causes it
       await setup(`const r = E.newRun(4242, 0, B.meta.kit, ['whaletooth', 'stormbottle', 'coralcrown']); B.run = r; E.startCombat(r, 'hard', ['crab', 'jelly']); B.render();`);
       await sleep(1800);
       await shot(tag, '27_roiled_fight');

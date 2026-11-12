@@ -350,7 +350,7 @@ async function workshopScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="ksdrop"]');
   if (await page.eval('window.Brinelight.run.keepsakes.join()') !== 'whaletooth') failures.push(`${name}: dropping a keepsake didn't work`);
   if (await page.eval(`!!document.querySelector('.hud .charge.over')`)) failures.push(`${name}: still over the Hold after dropping`);
-  // the first fight, 3 steps over the Hold: a Seep, Scour 1 and a Bell Minnow join it
+  // the first fight, 3 steps over the Hold: a Seep, Thrash 1 and a Bell Minnow join it
   await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'anchor'); B.E.gainKeepsake(B.run, 'coralcrown'); B.render(); })()`);
   await dismissHints(page);
   await page.click('[data-act="node"]');
@@ -358,8 +358,18 @@ async function workshopScenario(page, base, name, size) {
   if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
   const seep = await page.eval(`(() => { const c = window.Brinelight.run.combat; return c.hand.concat(c.draw).filter((x) => x.id === 'seep').length; })()`);
   if (seep !== 1) failures.push(`${name}: ${seep} Seep in a fight at Roil 43 of 30`);
-  const roiled = await page.eval(`(() => { const c = window.Brinelight.run.combat; return { scour: c.scour, minnows: c.enemies.filter((e) => e.roil && e.id === 'minnow').length, shown: document.querySelectorAll('.enemy').length, all: c.enemies.length }; })()`);
-  if (roiled.scour !== 1 || roiled.minnows !== 1 || roiled.shown !== roiled.all) failures.push(`${name}: a fight at Roil 43 of 30 should have Scour 1 and 1 Bell Minnow on the field (${JSON.stringify(roiled)})`);
+  const roiled = await page.eval(`(() => { const c = window.Brinelight.run.combat; return { thrash: c.thrash, minnows: c.enemies.filter((e) => e.roil && e.id === 'minnow').length, shown: document.querySelectorAll('.enemy').length, all: c.enemies.length }; })()`);
+  if (roiled.thrash !== 1 || roiled.minnows !== 1 || roiled.shown !== roiled.all) failures.push(`${name}: a fight at Roil 43 of 30 should have Thrash 1 and 1 Bell Minnow on the field (${JSON.stringify(roiled)})`);
+  // Thrash shows on the keeper, and the incoming number counts it on top of what the enemies intend
+  const thrashUi = await page.eval(`(() => {
+    const B = window.Brinelight, c = B.run.combat;
+    let hits = 0;
+    B.E.alive(c).forEach((e) => { const i = B.E.intentInfo(B.run, e); if (i && i.dmg) hits += i.dmg * i.hits; });
+    const chip = document.querySelector('.unit.player .thrash-chip, .thrash-chip');
+    const inc = document.querySelector('.incoming span');
+    return { chip: chip ? chip.textContent.trim() : null, shown: inc ? inc.textContent.trim() : null, want: String(Math.max(0, hits + c.thrash - c.player.ward)) };
+  })()`);
+  if (thrashUi.chip !== '1' || thrashUi.shown !== thrashUi.want) failures.push(`${name}: a Thrashed fight should show a Thrash 1 chip and count Thrash in the incoming damage (${JSON.stringify(thrashUi)})`);
   await checkPage(page, name + ' roiled fight');
   // the run ends: Salvage from the score, and an achievement reached in it unlocks kit
   await waitIdle(page);

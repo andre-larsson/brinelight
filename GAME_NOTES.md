@@ -54,7 +54,8 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
-- The live build is v0.13.0, pushed on 2026-11-12: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
+- The live build is v0.14.0, pushed on 2026-11-12: Scour is renamed Thrash, hits every turn from the first, and Ward stops it; `tools/measure.js` measures in parallel. See "Scour changed in v0.14.0".
+- Before it came v0.13.0, pushed the same day: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
 - Before it came v0.12.0 (the opening and Story so far) and v0.11.0 (the lore and names pass), pushed together in one commit on the same day, and v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
 - The item-rework plans below (plans 1 and 2) record earlier design discussion. Kit and keepsake changes have since shipped in the versioned sections below; they do not set the next implementation priority.
 - The expedition direction (top of "Decisions the user made") came after the item plan was written. It answers some of the questions below and changes others. The notes say where.
@@ -415,7 +416,7 @@ Step 3 of the build order. The user played v0.10.0 and their recent feedback com
 | Step | Adds to every fight |
 |---|---|
 | 1, 4, 7... | 1 Seep (an unplayable card in the draw pile) |
-| 2, 5, 8... | 1 Scour: from the 4th turn of a fight, lose that much HP at the start of each turn. Ward does not stop it. |
+| 2, 5, 8... | 1 Scour: from the 4th turn of a fight, lose that much HP at the start of each turn. Ward does not stop it. (Changed in v0.14.0, see below.) |
 | 3, 6 | 1 Bell Minnow as an extra enemy, at half health (6 or 7 HP in the Shallows). 2 at most. |
 
 **The agent's calls (provisional; each is one constant in js/engine.js):**
@@ -450,6 +451,26 @@ Real runs that bring keepsakes from the Lazaret (the bot picks as usual):
 - **The ladder is steeper than the old one from step 2 on.** Step 1 is unchanged. For the bot, step 2 is about as bad as 3 or 4 Seep were. The bot's fights are long (5 turns at the median), so Scour hurts it more than it would hurt a player who wins in 3 or 4.
 - **Even a 1 HP Minnow costs the bot 10 points,** because it spends a card on it and takes a bite first. A player with a Crest deck kills a half-health Minnow with one wave.
 - **Open for the playtest:** is step 2 too big a jump from step 1? The knobs are the three constants above.
+
+**Scour changed in v0.14.0 (2026-11-12).** The user asked whether a Scour that Ward stops had been tested. It had not, so it was measured, in two timings: at the start of the turn before last turn's Ward washes away, and at the end of the turn before the enemies act.
+
+| Scour rule (ladder step 2 / 3 / 4 / 5 / 6; Calm 28.9%, step 1 22.2%) | Win rate |
+|---|---|
+| v0.13.0: Ward does not stop it, from turn 4 | 11.1% / 4.7% / 2.4% / 0.8% / 0.1% |
+| start of turn, Ward stops it, from turn 4 | 14.9% / 7.6% / 3.7% / 1.7% / 0.4% |
+| **start of turn, Ward stops it, from turn 1 (the user's choice, built)** | **10.5% / 4.9% / 1.9% / 0.5% / 0.0%** |
+| end of turn, Ward stops it, from turn 4 | 17.0% / 8.4% / 4.4% / 2.5% / 0.6% |
+| end of turn, Ward stops it, from turn 1 | 12.1% / 6.2% / 2.6% / 0.9% / 0.1% |
+
+- **The user's choice:** "start of turn, Ward stops it, from turn 1". `E.SCOUR_FROM_TURN` is gone. Scour is now ordinary damage (`dealDamage`) dealt in `startPlayerTurn` before the keeper's Ward is cleared.
+- **The bot understates Ward.** It plays Ward only to cover the attacks it sees, so it stops a Scour by accident. A bot that warded for Scour on purpose did slightly worse (Scour 1 alone, from turn 1: 10.3% against 14.1%), because it spent a whole card on 1 damage. A player who has Ward to spare loses nothing.
+- **The agent's calls (provisional):**
+  1. **The Shell Gorget stops the first Scour.** Its 4 Ward now goes up before the first turn, and Ward is not cleared at the start of turn 1. Without this the first Scour of every fight could not be stopped by anything. With Scour 1 alone the Gorget takes the bot from 14.1% to 21.3%, and with Scour 2 from 5.8% to 12.2%, so it is the kit answer to Scour. That may be too strong for a 25 Salvage piece.
+  2. **A stopped Scour keeps the fight Flawless,** because no HP is lost.
+  3. **The fight shows it:** a Scour chip on the keeper, and the incoming damage number adds the Scour that lands at the start of the next turn. Enemy hits and the Scour both come off the same Ward, so the number is what the keeper will lose if she ends the turn now.
+- **Real runs with the built rule** (bring from the Lazaret, bot picks as usual): Shallows nothing 23.8%, Whale Tooth + Kelp Bracelet (30, Calm) 30.8%, Whale Tooth + Storm Bottle (37, step 2) 20.7%, with Coral Branch (43, step 3) 12.2%, with Drowned Anchor (55, step 5) 4.5%. Dark Water: 14.2% / 21.4% / 20.2% / 13.2% / 5.4%.
+- **Scour is now Thrash (the user's pick, 2026-11-12).** They asked for a name that implies a chaotic force you can defend against at a cost. The agent offered Thrash (its pick), Buffet, Batter, Churn and Brunt; Lash, Breaker, Squall, Riptide and Undertow were already cards, enemy moves or places. The fiction: the aether thrashes like a hooked fish and strikes whoever is nearest. The code says `thrash` too (`roil.thrash`, `c.thrash`), and `E.migrateRun` carries over a fight saved as `scour`. The v0.13.0 notes above and the v0.13.0 changelog entry keep the old name.
+- **Measuring is parallel now:** `tools/measure.js` (`npm run measure`) runs each row of a table in its own process. The 35 settings above took 40 seconds on 22 cores, against about 7.5 minutes one after another, with the same numbers.
 
 **The title screen (the user, 2026-11-12):** "New Descent being most prominent/largest" is right; other action buttons such as the Workshop should be secondary, and the story, tutorial and How to Play buttons tertiary. Built as three levels: Continue and New Descent (large, filled), the Workshop and the Lazaret (medium, outlined), and Story so far, the Logbook, the Tutorial and How to Play (small, text only).
 

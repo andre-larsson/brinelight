@@ -79,9 +79,9 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - The aether around you holds a set amount of Roil, your **Hold**: 30 in the Shallows, and 5 more at each deeper depth (Dark Water 35, Riptide 40, The Abyss 45). Up to your Hold the aether is **Calm**.
 - Past your Hold the aether is **Roiled**. Every 5 Roil over (or part of 5) is one step, and each step adds one thing to every fight. The steps go round a ladder of three:
   - **Step 1: a Seep.** Seep is an unplayable card shuffled into your draw pile at the start of the fight, and it's gone after the fight. It never joins your deck.
-  - **Step 2: Scour 1.** From your 4th turn of a fight, you lose 1 HP at the start of each turn. Ward does not stop it. A fight won within 3 turns is never Scoured.
+  - **Step 2: Thrash 1.** At the start of each of your turns, you take 1 damage. Ward stops it: Thrash lands before the Ward from your last turn washes away, so Ward left over after the enemies have acted takes the hit. On the first turn of a fight only the Shell Gorget's Ward is there to stop it.
   - **Step 3: a Bell Minnow.** One of the Bellwether's minnows follows you into the fight as an extra enemy, at half health.
-  - **Step 4** is a second Seep, **step 5** is Scour 2, **step 6** is a second Bell Minnow, and so on. There are never more than 2 Bell Minnows.
+  - **Step 4** is a second Seep, **step 5** is Thrash 2, **step 6** is a second Bell Minnow, and so on. There are never more than 2 Bell Minnows.
 - The Roil number in the top bar, every keepsake pick and the screen before a descent say what your Roil does at that moment.
 - A keepsake pick shows what taking it would do to your Roil. You can take one, or leave them.
 - Between fights you can drop a keepsake for good (one you brought from the Lazaret is only out of that run). Scallop Charm takes its 10 Max HP with it.

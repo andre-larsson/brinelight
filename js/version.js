@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.13.0';
+  BL.VERSION = '0.14.0';
   BL.CHANGELOG = [
+    { v: '0.14.0', date: '2026-11-12', items: [
+      'Scour is now called Thrash, and it works differently: a Roiled aether thrashes, and it strikes you at the start of every turn of a fight, from the first.',
+      'Ward stops Thrash. Any Ward you still have after the enemies have acted takes the hit.',
+      'A Thrash that your Ward stops costs no HP, so the fight can still be Flawless.',
+      'The Shell Gorget puts its 4 Ward up before the first turn, so it stops the first Thrash of a fight.',
+      'While the aether thrashes, the keeper shows a Thrash marker, and the incoming damage number counts the Thrash that lands at the start of your next turn.',
+    ] },
     { v: '0.13.0', date: '2026-11-12', items: [
       'The Lazaret: the locked store room at the lighthouse. It opens after your first win, on the title screen.',
       'When you win a run, every keepsake you carry is kept in the Lazaret for good.',
