@@ -835,7 +835,21 @@ From a fresh start the bot clears Dark Water 11.8% of the time. A built deck mak
 
   The Belfry columns rest on 10 to 70 runs, so they are rough.
 - **Most bot runs end before a pin, not at it.** Of the runs that reach a pin, 27% beat the Buoy and 34% the Bellwether. I didn't measure the Hermit's share.
-- **Open:** `run.normalFights` carries across levels. After the Shallows, every normal fight is 'hard' at once, so Dark Water and the Belfry have no easy table in an expedition. That is how slice A played too, and it is part of the numbers above. If the deeper levels should open gently, reset it in `E.goDeeper`.
+- **Decided by the user (2026-11-13): the deeper levels don't open gently.** `run.normalFights` keeps counting across levels. After the Shallows, every normal fight uses the hard table, so in an expedition Dark Water and the Belfry never use their easy tables (only the bot and the tests do, from a fresh start at that level). The user: "the new enemies in these levels should be inherently harder".
+- **Are they? With the same decks:** 1,058 runs that reached the Belfry (39.8 of 70 HP, 13.4 cards), each played against every encounter in each table (scratchpad `fights.js`; each table's encounters weighted evenly). Each cell is HP lost / fights lost:
+
+  | | Shallows | Dark Water | Belfry |
+  |---|---|---|---|
+  | easy (unused after the Shallows) | 2.0 / 0% | 2.5 / 0% | 9.6 / 2.8% |
+  | hard | 7.4 / 1.4% | 10.5 / 3.0% | 15.8 / 10.1% |
+  | Dreads | 15.4 / 10.9% | 10.8 / 3.1% | 17.2 / 11.9% |
+
+  - **Normal fights:** yes. Each level's hard table costs about 40–50% more than the one above it.
+  - **Dreads: no.**
+    - Dark Water's Dreads are easier than the Shallows': the Chain costs 12.0, the Gulper 10.7, and the Angler Twins 9.6. The Twins are the Shallows' own Dread, reused.
+    - The Shallows' Hulk is the hardest Dread in the game (26.4 HP lost, 31% of fights lost). The Siren costs 10.1 and the Twins 9.7.
+    - The Belfry: the Ringer costs 21.0, the Oarfish 18.2, and the Chain 12.4.
+  - This is a balance call, left to the user. Options: replace Dark Water's Angler Twins with a Dread of its own, strengthen the Chain and the Gulper, or bring the Hulk down toward the other Shallows Dreads.
 
 **The crashes during this work.** The machine froze three times on 2026-11-13 (20:43, 20:49 and 21:07), while I ran 22, 22 and then 8 bot processes at once. Each time it stopped responding for over a minute, and the user had to power it off.
 - **Checked:** no memory leak in the engine or the bot. In one capped process over 30,000 seeds:
