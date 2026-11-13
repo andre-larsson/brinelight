@@ -33,6 +33,7 @@ const SIZES = { desktop: { w: 1280, h: 800 }, phone: { w: 390, h: 844, mobile: t
       await page.screenshot(path.join(out, `${tag}_tut_${n}_${st.id}.png`));
       if (st.info) { await page.eval('window.Brinelight.teach.next()'); continue; }
       if (st.endTurn) { await page.eval('document.getElementById("btn-end").click()'); await sleep(400); continue; }
+      if (st.act) { await page.click(`#tidebar .tb-act.${st.act}`); await sleep(600); continue; }
       // select the card through the UI, screenshot the aiming state, then play it
       const d = await page.eval(`(() => { const c = window.Brinelight.run.combat; const card = c.hand.find((k) => k.id === ${JSON.stringify(st.play.card)}); const t = ${JSON.stringify(st.play.target)} ? c.enemies.find((e) => e.id === ${JSON.stringify(st.play.target)} && !e.dead) : null; return { uid: card.uid, target: t ? t.uid : null }; })()`);
       await page.click(`#hand .card[data-uid="${d.uid}"]`);

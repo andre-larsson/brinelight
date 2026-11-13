@@ -166,10 +166,10 @@
         html: () => `Swell 1. It stays put between turns. ${tap()} <b>End Turn</b>.${kbd('Or press E')}` },
       { id: 'reshuffle', info: true, anchor: '#pile-draw',
         html: () => 'Your draw pile ran out, so the <b>discard pile was shuffled back in</b>.' },
-      playStep('low', 'riptide', 'tut_crab',
-        () => `Play <b>Riptide Cut</b> on the crab: Ebb 1 takes the Swell to 0 and <b>Strands</b> them.`),
+      { id: 'bail', act: 'bail', anchor: '#tidebar .tb-act.bail',
+        html: () => `Swell 1, and no Ebb card in your hand. Once a turn you can <b>Bail</b>: spend 1 Light to Ebb 1, without a card. ${tap()} <b>Bail</b> to <b>Strand</b> them. <b>Stir</b>, at the other end, Surges 1.${kbd('Or press B')}` },
       playStep('payoff', 'stormsurge', null,
-        () => '<b>+1 Light!</b> Now the payoff: extra Surge <b>carries over</b>, and each extra Crest in a turn hits 3 harder. Play <b>Storm Surge</b> (Surge 6) to Crest twice.'),
+        () => '<b>Strand!</b> It gave back the Light you spent. Now the payoff: extra Surge <b>carries over</b>, and each extra Crest in a turn hits 3 harder. Play <b>Storm Surge</b> (Surge 6) to Crest twice.'),
     ];
 
     const tut = { active: false, i: 0, resume: false, note: null };
@@ -230,10 +230,15 @@
     function allows(action, cardId, targetId) {
       const s = step();
       if (!s) return true;
-      if (action === 'endturn') return s.endTurn ? true : s.info ? 'Press Next first' : `Play ${BL.CARDS[s.play.card].name} first`;
+      if (action === 'endturn') return s.endTurn ? true : s.info ? 'Press Next first' : s.act ? 'Bail first' : `Play ${BL.CARDS[s.play.card].name} first`;
+      if (action === 'swellact') {
+        if (s.act) return cardId === s.act ? true : 'Bail this time: it takes the Swell to 0';
+        return s.info ? 'Press Next first' : s.endTurn ? 'End your turn now' : 'Not yet: play the card first';
+      }
       if (action === 'play') {
         if (s.info) return 'Press Next first';
         if (s.endTurn) return 'End your turn now';
+        if (s.act) return 'Bail first: no card this time';
         const why = s.why || {};
         if (cardId !== s.play.card) return `Play ${BL.CARDS[s.play.card].name} this time${why.card ? ': ' + why.card : ''}.`;
         if (s.play.target && targetId !== s.play.target) return `Aim at the ${NAMES[s.play.target]}${why.target ? ': ' + why.target : ''}.`;
@@ -247,6 +252,7 @@
       if (s && s.play && s.play.card === cardId && (!s.play.target || s.play.target === targetId)) next();
     }
     function onEndTurn() { const s = step(); if (s && s.endTurn) next(); }
+    function onSwellAct(kind) { const s = step(); if (s && s.act === kind) next(); }
     function onVictory() {
       store.set(KEY_TUTORIAL, 'done');
       hide();
@@ -257,6 +263,7 @@
           <li><b>Attack</b> to bring enemy HP to 0, and <b>Ward</b> up against their intents.</li>
           <li>Each turn: <b>3 Light</b>, <b>5 cards</b>. The discard pile comes back when you run out.</li>
           <li><b>Surge</b> to 6 to <b>Crest</b> (hits every enemy). <b>Ebb</b> to 0 to <b>Strand</b> them (enemies lose their Ward, +1 Light). Save Surge for one big turn: chained Crests hit harder.</li>
+          <li>Once a turn, <b>Bail</b> (Ebb 1) or <b>Stir</b> (Surge 1) for 1 Light, without a card.</li>
         </ul>
         <p class="muted">The full rules are in How to Play, in the menu.</p></div>`;
       const foot = (tut.resume ? '<button class="btn" data-act="tutback">Back to my run</button>' : '<button class="btn" data-act="tutback">Title screen</button>') +
@@ -304,6 +311,16 @@
     }));
     // statuses, the first time one shows on anyone
     // Doused shows on the Light orb at the start of the turn it costs you
+    // Bail and Stir, the first time the Swell is one step from either end; it remembers which end, since the fight
+    // can end while the bubble is still up
+    let actEnd = 'bail';
+    HINTS.push({ id: 'swellacts', when: (r) => {
+      const ok = r.screen === 'combat' && !r.tutorial && r.combat.phase === 'player' && (r.combat.tide === 1 || r.combat.tide === 5) && E.canSwellAct(r).ok;
+      if (ok) actEnd = r.combat.tide === 1 ? 'bail' : 'stir';
+      return ok;
+    },
+      anchor: () => `#tidebar .tb-act.${actEnd}`, side: 'above',
+      html: () => `One step from ${actEnd === 'bail' ? 'a Strand' : 'a Crest'}. Once a turn, without a card, you can spend 1 Light to <b>Bail</b> (Ebb 1) or <b>Stir</b> (Surge 1). A Bail that makes a Strand gets its Light back.` });
     HINTS.push({ id: 'st-doused', when: (r) => r.screen === 'combat' && r.combat.dousedTurn === r.combat.turn && r.combat.phase === 'player', anchor: '#orb',
       html: () => '<b>Doused</b>: something drank from your lantern, so you have less Light this turn. An enemy\'s intent warns you a turn before.' });
     ['soaked', 'chilled', 'brine', 'might', 'spines', 'grief', 'submerged', 'shell', 'swallowed'].forEach((key) => HINTS.push({
@@ -355,12 +372,12 @@
       get resume() { return tut.resume; },
       status: () => store.get(KEY_TUTORIAL),
       setStatus: (v) => store.set(KEY_TUTORIAL, v),
-      startTutorial, endTutorial, next, allows, nudge, onPlayed, onEndTurn, onVictory, onKey,
+      startTutorial, endTutorial, next, allows, nudge, onPlayed, onEndTurn, onSwellAct, onVictory, onKey,
       checkHints, closeHint, hide, refresh: place,
       hintShowing: () => !!(shown && shown.kind === 'hint'),
       stepId: () => (tut.active && STEPS[tut.i] ? STEPS[tut.i].id : null),
       /* the current step without its functions, for the UI tests */
-      stepSpec: () => { const s = tut.active && STEPS[tut.i]; return s ? { id: s.id, info: !!s.info, endTurn: !!s.endTurn, play: s.play || null } : null; },
+      stepSpec: () => { const s = tut.active && STEPS[tut.i]; return s ? { id: s.id, info: !!s.info, endTurn: !!s.endTurn, play: s.play || null, act: s.act || null } : null; },
       steps: STEPS.map((s) => s.id),
       hintIds: () => HINTS.map((h) => h.id),
     };

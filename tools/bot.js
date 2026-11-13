@@ -58,6 +58,19 @@ function chooseCombatAction(run) {
   return { uid: playable[0].uid, target: E.needsTarget(playable[0]) ? alive[0].uid : null };
 }
 
+/* Bail or Stir. During the turn: Bail at Swell 1, since the Strand gives the Light back. With Light left and
+   nothing to play: Stir at 5 for a Crest, or Bail toward a Strand at 2 or lower. Null to do neither. */
+function chooseSwellAct(run, endOfTurn) {
+  const { E } = load();
+  const c = run.combat;
+  if (!E.canSwellAct(run).ok) return null;
+  if (c.tide === 1) return 'bail';
+  if (!endOfTurn) return null;
+  if (c.tide === 5) return 'stir';
+  if (c.tide <= 2) return 'bail';
+  return null;
+}
+
 /* Keepsake pick: the offered keepsake worth the most, counting its Roil as its value and each step past
    the Hold it would add as -10. (One step alone costs the bot about 5 points, but steps stack badly
    with a second keepsake, so -10 picks better.) Null when none is worth taking. */
@@ -88,8 +101,12 @@ function step(run, opts = {}) {
     const c = run.combat;
     if (c.lost) { run.screen = 'defeat'; return 'defeat'; }
     if (c.won) { E.finishCombat(run); return 'won'; }
+    const sw = opts.noSwellActs ? null : chooseSwellAct(run, false);
+    if (sw && E.swellAct(run, sw)) return sw;
     const a = chooseCombatAction(run);
     if (a && E.playCard(run, a.uid, a.target)) return 'play';
+    const late = opts.noSwellActs ? null : chooseSwellAct(run, true);
+    if (late && E.swellAct(run, late)) return late;
     E.endTurn(run);
     return 'end';
   }
@@ -141,4 +158,4 @@ function playRun(run, maxSteps = 5000, opts) {
   return labels;
 }
 
-module.exports = { load, saveLoad, snapshot, chooseCombatAction, step, playRun, pickKeepsake };
+module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, step, playRun, pickKeepsake };

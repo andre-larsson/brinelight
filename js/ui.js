@@ -702,10 +702,11 @@
         <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Strand</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Swell resets to 3.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Strand gives 1 Light. Save Surge for one big turn.</li>
+        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand gets its Light back. You can Bail or Stir, not both.</li>
         <li>Your <b>bell</b> draws when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} draw differently.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
-      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))
+      case 'keywords': return dl(['Bail', 'Stir', 'Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))
         + `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
         <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
@@ -729,7 +730,7 @@
       case 'controls': return dl([
         ['Mouse', 'Click a card, then click an enemy (or the card again). Or drag a card onto an enemy, or up into the sea. Hover anything for details.'],
         ['Touch', 'Tap a card to raise it, then tap an enemy or the card again. Dragging works too. Tap a creature to read its effects.'],
-        ['Keyboard', `${kbd('1')}-${kbd('0')} pick a card, ${kbd('&larr;')} ${kbd('&rarr;')} aim, ${kbd('Enter')} play, ${kbd('Esc')} cancel, ${kbd('E')} end turn, ${kbd('D')} deck, ${kbd('Z')} ${kbd('X')} ${kbd('C')} tonics. On the map: arrows and ${kbd('Enter')}.`],
+        ['Keyboard', `${kbd('1')}-${kbd('0')} pick a card, ${kbd('&larr;')} ${kbd('&rarr;')} aim, ${kbd('Enter')} play, ${kbd('Esc')} cancel, ${kbd('E')} end turn, ${kbd('B')} Bail, ${kbd('S')} Stir, ${kbd('D')} deck, ${kbd('Z')} ${kbd('X')} ${kbd('C')} tonics. On the map: arrows and ${kbd('Enter')}.`],
       ]);
       default: return `<ul class="help-list">
         <li><b>Win a fight</b> by bringing every enemy to 0 HP. If your HP reaches 0, the run is over.</li>
@@ -1455,9 +1456,18 @@
       }
     }
     tb.setAttribute('aria-label', `Swell ${c.tide} of 6`);
-    tb.innerHTML = `<span class="tb-label low" data-tip="kw:Strand">Strand</span>
+    // Bail and Stir: once a turn, 1 Light for one step toward Strand or Crest, without a card
+    const can = E.canSwellAct(run);
+    const used = c.swellActTurn === c.turn;
+    const actBtn = (kind, arrow) => {
+      const a = E.SWELL_ACTS[kind];
+      const off = !can.ok || ui.busy;
+      return `<button class="tb-act ${kind}${used ? ' used' : ''}" data-act="swellact" data-kind="${kind}" data-tip="kw:${a.name}"${off ? ' aria-disabled="true"' : ''}
+        aria-label="${a.name}: spend 1 Light to ${a.ebb ? 'Ebb' : 'Surge'} 1. Once a turn, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>1</i>${kind === 'stir' ? arrow : ''}</button>`;
+    };
+    tb.innerHTML = `${actBtn('bail', '<span class="tb-arrow">&#9662;</span>')}<span class="tb-label low" data-tip="kw:Strand">Strand</span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
-      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>`;
+      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>${actBtn('stir', '<span class="tb-arrow">&#9652;</span>')}`;
   }
 
   /* ----- Hand ----- */
@@ -1778,6 +1788,27 @@
     await processFx();
     ui.busy = false;
     if (Teach.active) Teach.onPlayed(cardId, targetId);
+    updateCombat();
+    await afterAction();
+  }
+
+  /* Bail or Stir (see E.swellAct). */
+  async function swellAct(kind) {
+    const c = run.combat;
+    if (!c || ui.busy) return;
+    if (Teach.active) {
+      const ok = Teach.allows('swellact', kind);
+      if (ok !== true) { if (!Teach.nudge(ok)) toast(ok); return; }
+    }
+    const can = E.canSwellAct(run);
+    if (!can.ok) { toast(can.reason); return; }
+    deselect();
+    if (!E.swellAct(run, kind)) return;
+    ui.busy = true;
+    sfx('card');
+    await processFx();
+    ui.busy = false;
+    if (Teach.active) Teach.onSwellAct(kind);
     updateCombat();
     await afterAction();
   }
@@ -2737,6 +2768,7 @@
       }
       case 'node': chooseNode(+t.dataset.row, +t.dataset.col); break;
       case 'endturn': endTurn(); break;
+      case 'swellact': swellAct(t.dataset.kind); break;
       case 'enemy': onEnemyClick(t, e); break;
       case 'field': onFieldClick(e); break;
       case 'dock': if (e.target === t || e.target.id === 'hand') deselect(); break;
@@ -2936,6 +2968,7 @@
       return;
     }
     if (k === 'e' || k === 'E') { e.preventDefault(); endTurn(); return; }
+    if (k === 'b' || k === 'B' || k === 's' || k === 'S') { e.preventDefault(); swellAct(k.toLowerCase() === 'b' ? 'bail' : 'stir'); return; }
     if (k === 'z' || k === 'x' || k === 'c' || k === 'Z' || k === 'X' || k === 'C') {
       const slot = { z: 0, x: 1, c: 2 }[k.toLowerCase()];
       if (run.tonics[slot]) { e.preventDefault(); showTonic(slot); }

@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.16.0';
+  BL.VERSION = '0.17.0';
   BL.CHANGELOG = [
+    { v: '0.17.0', date: '2026-11-13', items: [
+      'Bail and Stir: once a turn, without a card, spend 1 Light to Bail (Ebb 1) or Stir (Surge 1). The buttons are at the two ends of the Swell bar, or press B or S.',
+      'A Bail that makes a Strand gets its Light back, because the Strand gives 1 Light. You can Bail or Stir in a turn, not both.',
+      'Riptide Cut, Saltspray, Sea Wall and Whirlpool Ebb 2 instead of 1.',
+      'The tutorial teaches Bail on its third turn, in place of Riptide Cut.',
+    ] },
     { v: '0.16.0', date: '2026-11-13', items: [
       'The Shallows are harder. The aether there holds 20 Roil, down from 30, so fewer keepsakes from the Lazaret fit before it is Roiled.',
       'Dreads pay Pearls and let you take 1 of 2 keepsakes. They no longer give a card or a tonic.',

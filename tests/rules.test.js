@@ -532,6 +532,66 @@ test('a Dread pays Pearls and a pick of 1 of 2 keepsakes, and offers no card and
   }
 });
 
+test('Bail and Stir: once a turn, without a card, 1 Light to Ebb 1 or Surge 1; a Bail that Strands gets its Light back', () => {
+  let f = fight(['kelp'], { tide: 2 });
+  tough(f.c);
+  assert.deepEqual(E.canSwellAct(f.run), { ok: true });
+  assert.ok(E.swellAct(f.run, 'bail'));
+  assert.equal(f.c.tide, 1);
+  assert.equal(f.c.light, 2, 'Bail costs 1 Light');
+  assert.equal(f.run.stats.bails, 1);
+  // once a turn, and Bail or Stir, not both
+  assert.equal(E.swellAct(f.run, 'bail'), false);
+  assert.equal(E.swellAct(f.run, 'stir'), false);
+  assert.match(E.canSwellAct(f.run).reason, /Once a turn/);
+  assert.equal(f.c.light, 2);
+  // next turn it is back
+  pacify(f.c);
+  E.endTurn(f.run);
+  assert.ok(E.canSwellAct(f.run).ok);
+  // a Bail that makes a Strand pays for itself
+  f.c.tide = 1;
+  const light = f.c.light;
+  f.c.enemies[0].ward = 7;
+  assert.ok(E.swellAct(f.run, 'bail'));
+  assert.equal(f.c.turnLows, 1);
+  assert.equal(f.c.enemies[0].ward, 0, 'the Strand strips Ward');
+  assert.equal(f.c.light, light, '-1 for the Bail, +1 for the Strand');
+  assert.equal(f.c.tide, 3);
+
+  // Stir: Surge 1, and a Crest at 6 (it does not give the Light back)
+  f = fight(['kelp', 'crab'], { tide: 5, hand: ['spindrift'] });
+  tough(f.c);
+  play(f.run, 'spindrift');
+  const hp = f.c.enemies.map((e) => e.hp);
+  const l0 = f.c.light;
+  assert.ok(E.swellAct(f.run, 'stir'));
+  assert.equal(f.c.turnCrests, 1);
+  assert.equal(f.c.light, l0 - 1);
+  const dealt = f.c.enemies.reduce((a, e, i) => a + hp[i] - e.hp, 0);
+  assert.equal(dealt, 6 * 2 + 3, 'a Crest on both, and Spindrift on one: Stir is a Surge');
+  assert.equal(f.run.stats.stirs, 1);
+
+  // not without Light, and not on the enemies' turn
+  f = fight(['kelp']);
+  f.c.light = 0;
+  assert.equal(E.canSwellAct(f.run).reason, 'Not enough Light');
+  assert.equal(E.swellAct(f.run, 'stir'), false);
+  f.c.light = 3;
+  f.c.phase = 'enemy';
+  assert.equal(E.swellAct(f.run, 'stir'), false);
+  assert.equal(E.swellAct(f.run, 'nope'), false);
+});
+
+test('Riptide Cut, Saltspray, Sea Wall and Whirlpool Ebb 2', () => {
+  assert.deepEqual(['riptide', 'saltspray', 'seawall', 'whirlpool'].map((id) => BL.CARDS[id].v.ebb), [2, 2, 2, 2]);
+  const f = fight(['kelp'], { hand: ['riptide'], tide: 2 });
+  tough(f.c);
+  play(f.run, 'riptide', f.c.enemies[0]);
+  assert.equal(f.c.turnLows, 1, 'from 2, Ebb 2 Strands');
+  assert.equal(f.c.tide, 3);
+});
+
 test('Kelp Lurker: each Lash hits 2 harder than the last', () => {
   const { run, c } = fight(['kelp'], { deck: ['brace', 'brace', 'brace', 'brace', 'brace'] });
   run.hp = run.maxHp = 999;

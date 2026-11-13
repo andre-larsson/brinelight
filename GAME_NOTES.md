@@ -54,8 +54,9 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
-- v0.16.0 (2026-11-13, committed, not pushed yet): the user's playtest notes on v0.14.0. The Shallows are harder, Dreads give less, the pins call for help sooner, and there are the RITE label, the score lines, purple unlock boxes, and backup, restore and reset. See "Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)" below. Two notes are proposals, not built: Strands are hard to reach, and a weak standard action.
-- v0.15.0 (2026-11-12, committed 2026-11-13, not pushed yet): Dark Water is a band of its own, step 1 of the expedition work. See "Dark Water (v0.15.0, 2026-11-12)" below.
+- v0.17.0 (2026-11-13, pushed with v0.15.0 and v0.16.0): Bail and Stir, and Ebb 2 on four cards. See "Bail and Stir (v0.17.0, 2026-11-13)" below.
+- v0.16.0 (2026-11-13): the user's playtest notes on v0.14.0. The Shallows are harder, Dreads give less, the pins call for help sooner, and there are the RITE label, the score lines, purple unlock boxes, and backup, restore and reset. See "Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)" below. Two notes are proposals, not built: Strands are hard to reach, and a weak standard action.
+- v0.15.0 (2026-11-12, committed 2026-11-13): Dark Water is a band of its own, step 1 of the expedition work. See "Dark Water (v0.15.0, 2026-11-12)" below.
 - The live build is v0.14.0, pushed on 2026-11-12: Scour is renamed Thrash, hits every turn from the first, and Ward stops it; `tools/measure.js` measures in parallel. See "Scour changed in v0.14.0".
 - Before it came v0.13.0, pushed the same day: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
 - Before it came v0.12.0 (the opening and Story so far) and v0.11.0 (the lore and names pass), pushed together in one commit on the same day, and v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
@@ -578,6 +579,33 @@ Rares added to the starter deck (Shallows, v0.15.0 rules otherwise): none 23.8%;
 **Open (for the playtest):** Is the Shallows now "somewhat" harder, or too much? The dials, in order: give Dreads their card back, then move the pins' call to 0.6. Do the minnows now matter in the Bellwether fight? Is the Kelp Lurker's growing Lash readable from its intent (it shows the next hit's number and a tip)? Does the end screen's score list make the score clear, or is it too long on a phone (it can be folded)?
 - Seen in screenshots, not changed: on phones the Lethal and Crest badges over hand cards render at about 11.5px (the screens check flags them), and a 13px floor made them so wide that the next card covered them. They need a different place, not a bigger size.
 
+### Bail and Stir (v0.17.0, 2026-11-13)
+
+The user read the proposal above and chose: "Change to Ebb 2 instead of 1 on four existing cards. Add Bail, but we would also need something that a Crest deck could use." Then: "when done, commit and push".
+
+**Built:**
+- **Ebb 2** (from 1) on Riptide Cut, Saltspray, Sea Wall and Whirlpool.
+- **Bail and Stir** (`E.SWELL_ACTS`, `E.canSwellAct`, `E.swellAct`): once a turn, without a card, spend 1 Light to Ebb 1 (Bail) or Surge 1 (Stir). They share the one use a turn (`c.swellActTurn`). A Bail that makes a Strand pays for itself, because the Strand gives 1 Light; a Stir that makes a Crest does not. They are a real Ebb and Surge, so Spindrift, Kelp Bracelet, the bells and chains all count them. They are not cards: no Echo, no Gulper, no card count. `run.stats.bails` and `stirs` count them.
+- **The interface:** a button at each end of the Swell bar, outside the Strand and Crest labels, with an arrow and a 1-Light coin (the arrows drop on phones under 480 px). Disabled when it can't be used, faded once used. Keys `B` and `S`. A first-time hint (`swellacts`) the first time the Swell is one step from either end with Light to spend. How to Play: a line in the Swell tab, both words in Keywords, both keys in Controls.
+- **The tutorial teaches Bail** on turn 3, in place of Riptide Cut, which now Ebbs 2 and would carry the Swell past 0 (so Storm Surge would Crest only once). Turn 3 draws a Harpoon Jab instead. The crab has 11 HP left, and Bail then Storm Surge's double Crest (15) still ends the fight. The steps are the same count (16). The gate refuses cards at the Bail step and Bail at other steps.
+- **The bot** Bails at Swell 1 during the turn (free), and with Light left at the end of the turn Stirs at 5 or Bails at 2 or lower (`chooseSwellAct` in tools/bot.js; `opts.noSwellActs` turns it off).
+
+**The agent's calls (provisional):**
+1. **The Crest-side answer is a mirror, Stir,** sharing the once-a-turn use with Bail, so the choice each turn is a direction. A separate Crest-only action would let a turn spend 2 Light on both for nothing new.
+2. **Only the Strand refunds the Light.** It already gave 1 Light, so this needed no new rule, and it keeps the help weighted toward the harder end.
+3. **The name Stir** (Churn was the first idea): the same length as Bail, so the two buttons match, and `S` was a free key. Wren stirs the water up into a wave.
+
+**Measured** (bot, 1000 seeds a row, no kit):
+
+| | v0.16.0 | + Ebb 2 cards | + Bail and Stir | both (v0.17.0) |
+|---|---|---|---|---|
+| Shallows | 11.4% | 12.4% | 14.3% | 15.8% |
+| Dark Water | 8.4% | 10.2% | 10.3% | 13.2% |
+
+In the Shallows, Strands per fight 0.68 → 1.74 and Crests 0.57 → 0.72. Per fight: easy 3.4 HP in 4.7 turns (4.5 before), hard 9.9 HP in 5.3 turns, Dreads 19.5 in 6.5, the Bellwether 52.4 HP in 10.6 turns. The first fight (aggressive bot): 3.19 turns, 10.5 actions, the same as v0.16.0.
+
+**Open (for the playtest):** Is an Ebb deck now worth building, and does a Crest deck use Stir? Strands now outnumber Crests for the bot by more than 2 to 1. The bot Bails whenever it's free, so a player who builds for Crests will see fewer Strands. Are the buttons found without the tutorial (the hint fires once)? Is the Swell bar still readable at 360 px with the buttons (the cells are about 18 px wide)?
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -908,7 +936,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot, 1000 seeds, the Shallows): win 11.4% in v0.16.0 (23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
+- **Bot run outcomes** (careful bot, 1000 seeds, the Shallows): win 15.8% in v0.17.0 (11.4% in v0.16.0, 23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
 
 ## Tools
 

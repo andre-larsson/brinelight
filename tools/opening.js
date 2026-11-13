@@ -109,6 +109,7 @@ async function uiReport(nodeStats) {
       if (s.info) { infos++; await page.eval('window.Brinelight.teach.next()'); continue; }
       if (s.endTurn) { ends++; await page.eval(`document.getElementById('btn-end').click()`); await sleep(100); continue; }
       acts++;
+      if (s.act) { await page.eval(`document.querySelector('#tidebar .tb-act.${s.act}').click()`); await sleep(60); continue; }
       await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat; const card = c.hand.find((k) => k.id === ${JSON.stringify(s.play.card)}); const t = ${JSON.stringify(s.play.target)} ? c.enemies.find((e) => e.id === ${JSON.stringify(s.play.target)} && !e.dead) : null; B.ui.sel = card.uid; B.ui.target = t ? t.uid : null; document.querySelector('#hand .card[data-uid="' + card.uid + '"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()`);
       await sleep(60);
     }
@@ -116,7 +117,7 @@ async function uiReport(nodeStats) {
     const tutAnim = (Date.now() - t0) / 1000;
     const read = words * THINK.readWord + (infos + acts + ends) * THINK.readBase;
     const think = acts * 1.5 + ends * 0.5; // the bubble already says which card: less deciding, mostly finding and tapping
-    console.log(`\nTutorial fight: ${infos + acts + ends} steps = ${infos} Next taps + ${acts} card plays + ${ends} End Turns`);
+    console.log(`\nTutorial fight: ${infos + acts + ends} steps = ${infos} Next taps + ${acts} card plays and Bails + ${ends} End Turns`);
     console.log(`  actions ${infos + acts + ends}, taps on a phone ${infos + acts * 2 + ends}`);
     console.log(`  animation time ${tutAnim.toFixed(0)} s; reading ${words} words at 180 wpm + 1 s a bubble = ${read.toFixed(0)} s; finding and tapping ${think.toFixed(0)} s`);
     console.log(`  estimated ${(tutAnim + read + think).toFixed(0)} s in all`);

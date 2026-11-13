@@ -1,6 +1,6 @@
 /* The guided first fight is scripted: these tests play it the way the tutorial steps require
    and check that every step has something to show (Ward, enemy Ward, a Crest that hits both
-   enemies, the reshuffle, a Strand, a double Crest) and that the fight ends on the payoff. */
+   enemies, the reshuffle, a Bail that Strands, a double Crest) and that the fight ends on the payoff. */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -52,13 +52,15 @@ test('the tutorial fight plays out as scripted', () => {
   E.endTurn(run);
   assert.ok(!c.lost && run.hp === 68, 'the Ward holds');
 
-  // turn 3: the reshuffle, a Strand, then Surge 6 Crests twice and wins
+  // turn 3: the reshuffle, a Bail that Strands, then Surge 6 Crests twice and wins
   assert.equal(c.turn, 3);
   assert.ok(c.fx.some((f) => f.t === 'shuffle'), 'the discard pile was shuffled back in');
-  assert.deepEqual(handIds(c), ['riptide', 'stormsurge', 'jab', 'jab', 'brace']);
-  playId(run, 'riptide', 'tut_crab');
+  assert.deepEqual(handIds(c), ['jab', 'stormsurge', 'jab', 'jab', 'brace']);
+  assert.ok(!c.hand.some((x) => E.movesSwell(x.id) && BL.CARDS[x.id].v.ebb), 'no Ebb card: the Bail is the way down');
+  assert.ok(E.swellAct(run, 'bail'));
   assert.equal(c.turnLows, 1);
-  assert.equal(c.light, 3 + 1, 'Riptide Cut is free and the Strand gives 1 Light');
+  assert.equal(c.tide, 3);
+  assert.equal(c.light, 3, 'the Bail costs 1 Light and the Strand gives it back');
   assert.ok(!c.won);
   playId(run, 'stormsurge');
   assert.equal(c.turnCrests, 2);

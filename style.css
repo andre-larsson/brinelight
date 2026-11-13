@@ -1129,3 +1129,23 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 }
 .small-cards .hand .card.t-rite .c-type { top: calc(var(--cw) * .635 - 1.45em); }
 .small-cards .hand .card.t-rite.selected .c-type { top: calc(var(--cw) * .575 - 1.45em); }
+
+/* Bail and Stir, at the two ends of the Swell bar: once a turn, 1 Light for one step without a card */
+.tb-act {
+  display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; height: 26px; padding: 0 7px; border-radius: 13px; cursor: pointer;
+  font: inherit; font-size: 12px; letter-spacing: .03em; color: #e6f7fa; background: rgba(12, 44, 62, .95); border: 1px solid rgba(150, 220, 240, .55);
+}
+.tb-act b { font-weight: 800; }
+.tb-act i { font-style: normal; font-weight: 900; font-size: 12px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; color: #2a1503;
+  background: radial-gradient(circle at 40% 35%, #fff0c8, #f3a432 55%, #8a4d0a); }
+.tb-act .tb-arrow { font-size: 12px; opacity: .85; }
+.tb-act.bail { border-color: rgba(140, 170, 255, .7); }
+.tb-act.stir { border-color: rgba(150, 240, 255, .75); }
+.tb-act:hover:not([aria-disabled]), .tb-act:focus-visible { background: rgba(24, 74, 100, .98); box-shadow: 0 0 10px rgba(95, 211, 238, .5); }
+.tb-act[aria-disabled] { opacity: .45; cursor: default; }
+.tb-act.used { opacity: .3; }
+@media (max-width: 480px) {
+  .tidebar { gap: 5px; padding-left: 6px; padding-right: 6px; }
+  .tb-act { padding: 0 5px; gap: 2px; }
+  .tb-act .tb-arrow { display: none; }
+}

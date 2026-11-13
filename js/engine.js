@@ -840,6 +840,32 @@
     }
   }
 
+  /* Bail and Stir: once a turn, without a card, spend 1 Light to move the Swell 1 step. Bail Ebbs 1 and Stir Surges 1.
+     A Strand gives 1 Light, so a Bail that makes a Strand pays for itself; a Stir that makes a Crest does not. That
+     is on purpose: Strands are the harder end to reach. The tutorial teaches Bail on its third turn. */
+  E.SWELL_ACTS = { bail: { name: 'Bail', ebb: 1 }, stir: { name: 'Stir', surge: 1 } };
+  E.SWELL_ACT_COST = 1;
+  E.canSwellAct = function (run) {
+    const c = run.combat;
+    if (!c) return { ok: false, reason: 'Not in a fight' };
+    if (c.phase !== 'player' || c.won || c.lost) return { ok: false, reason: 'Not your turn' };
+    if (c.swellActTurn === c.turn) return { ok: false, reason: 'Once a turn: you have already Bailed or Stirred' };
+    if (c.light < E.SWELL_ACT_COST) return { ok: false, reason: 'Not enough Light' };
+    return { ok: true };
+  };
+  E.swellAct = function (run, kind) {
+    const act = E.SWELL_ACTS[kind];
+    if (!act || !E.canSwellAct(run).ok) return false;
+    const c = run.combat;
+    c.light -= E.SWELL_ACT_COST;
+    c.swellActTurn = c.turn;
+    run.stats[kind === 'bail' ? 'bails' : 'stirs'] = (run.stats[kind === 'bail' ? 'bails' : 'stirs'] || 0) + 1;
+    fx(c, { t: 'swellact', kind });
+    if (act.ebb) ebb(run, c, act.ebb);
+    else surge(run, c, act.surge);
+    return true;
+  };
+
   /* The API that card and tonic effects use. */
   function api(run, c) {
     const R = makeR(run);

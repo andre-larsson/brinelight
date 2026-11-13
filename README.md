@@ -29,7 +29,7 @@ Progress is saved automatically in your browser, at the start of every turn and 
 |---|---|---|
 | **Mouse** | Click a card to raise it, then click an enemy (or click the card again for cards without a target). You can also drag a card onto an enemy, or up into the sea. | Hover anything (statuses, intents, keepsakes, the Swell gauge) for a tooltip. Click the draw or discard pile to see it. Between fights, click a keepsake to drop it. |
 | **Touch** | Tap a card to raise it and read it, then tap an enemy, or tap the card again. Dragging works too. | Tap an enemy or the keeper to see HP, intent and effects. Tap a keepsake to read it, or between fights to drop it. |
-| **Keyboard** | `1`-`9`, `0` pick a card; `←` `→` choose the target; `Enter` / `Space` / `↑` play it; `Esc` / `↓` cancel. | `E` end turn, `D` view deck, `Z` `X` `C` use tonic slots 1-3. On the map: arrow keys and `Enter` (or `1`-`9`). On reward screens: `1`-`3` pick a card. `Tab` reaches every button. |
+| **Keyboard** | `1`-`9`, `0` pick a card; `←` `→` choose the target; `Enter` / `Space` / `↑` play it; `Esc` / `↓` cancel. | `E` end turn, `B` Bail, `S` Stir, `D` view deck, `Z` `X` `C` use tonic slots 1-3. On the map: arrow keys and `Enter` (or `1`-`9`). On reward screens: `1`-`3` pick a card. `Tab` reaches every button. |
 
 The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: descents finished, won and lost, the deepest landing reached, depths cleared, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
 
@@ -50,6 +50,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
   - Every extra Crest in the same turn hits 3 harder (6, 9, 12, 15...).
   - Every Strand gives 1 Light, so a turn with two Strands gets 2 back.
   - Saving up Surges for one big turn is the core skill.
+- **Bail and Stir:** once a turn, without a card, you can spend 1 Light to **Bail** (Ebb 1) or **Stir** (Surge 1). The two buttons are at the ends of the Swell bar. A Bail that makes a Strand gets its Light back, because the Strand gives 1 Light; a Stir that makes a Crest does not. You can Bail or Stir in a turn, not both. The tutorial teaches Bail on its third turn.
 - Your bell draws when you Crest or Strand. You start with the Brass Tide-Bell, which draws a card on every one. Other bells from the Workshop draw differently.
 - Some cards scale with the Swell (Undercurrent, Tsunami, Lighthouse Beam) or with chains (Toppled Tower costs 1 less per Crest this turn).
 

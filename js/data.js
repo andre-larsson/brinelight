@@ -64,7 +64,7 @@
   });
   card('riptide', {
     name: 'Riptide Cut', type: 'attack', rarity: 'common', cost: 0, target: 'enemy',
-    v: { dmg: 3, ebb: 1 }, up: { dmg: 5 }, art: 'c_riptide',
+    v: { dmg: 3, ebb: 2 }, up: { dmg: 5 }, art: 'c_riptide',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Ebb ${v.ebb}. Draw 1 card.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.ebb(v.ebb); A.draw(1); },
   });
@@ -94,7 +94,7 @@
   });
   card('saltspray', {
     name: 'Saltspray', type: 'skill', rarity: 'common', cost: 1, target: 'enemy',
-    v: { brine: 5, ebb: 1 }, up: { brine: 7 }, art: 'c_saltspray',
+    v: { brine: 5, ebb: 2 }, up: { brine: 7 }, art: 'c_saltspray',
     text: (v) => `Apply ${v.brine} Brine. Ebb ${v.ebb}.`,
     play: (A, v, t) => { A.apply(t, 'brine', v.brine); A.ebb(v.ebb); },
   });
@@ -147,7 +147,7 @@
   });
   card('seawall', {
     name: 'Sea Wall', type: 'skill', rarity: 'uncommon', cost: 2, target: 'none',
-    v: { ward: 15, ebb: 1 }, up: { ward: 20 }, art: 'c_seawall',
+    v: { ward: 15, ebb: 2 }, up: { ward: 20 }, art: 'c_seawall',
     text: (v) => `Gain ${v.ward} Ward. Ebb ${v.ebb}.`,
     play: (A, v) => { A.ward(v.ward); A.ebb(v.ebb); },
   });
@@ -225,7 +225,7 @@
   });
   card('whirlpool', {
     name: 'Whirlpool', type: 'skill', rarity: 'uncommon', cost: 1, target: 'all', sink: true,
-    v: { soak: 2, chill: 1, ebb: 1 }, up: { soak: 3, chill: 2 }, art: 'c_whirlpool',
+    v: { soak: 2, chill: 1, ebb: 2 }, up: { soak: 3, chill: 2 }, art: 'c_whirlpool',
     text: (v) => `Apply ${v.soak} Soaked and ${v.chill} Chilled to ALL enemies. Ebb ${v.ebb}. Sink.`,
     play: (A, v) => { A.applyAll('soaked', v.soak); A.applyAll('chilled', v.chill); A.ebb(v.ebb); },
   });
@@ -337,6 +337,8 @@
     Float: 'Stays in your hand at the end of your turn.',
     Rite: 'Rites stay in effect for the rest of the fight once played.',
     Echo: 'Your next card is played twice.',
+    Bail: 'Once a turn, without a card: spend 1 Light to Ebb 1. If it makes a Strand, the Strand gives the Light back. Bail or Stir, not both.',
+    Stir: 'Once a turn, without a card: spend 1 Light to Surge 1. Bail or Stir, not both.',
     Might: 'Each hit of an attack deals that much more damage.',
     Spines: 'Whenever you are attacked, deal that much damage back.',
     Soaked: 'Takes 50% more damage from attacks and Crests. Wears off by 1 each turn.',
@@ -632,7 +634,7 @@
     deck: [
       'jab', 'brace', 'jab', 'brace', 'jab', // turn 1
       'swell', 'shellup', 'slack', 'jab', 'brace', // turn 2
-      'riptide', 'stormsurge', 'jab', // turn 3, then the reshuffle
+      'jab', 'stormsurge', 'jab', // turn 3, then the reshuffle (turn 3 teaches Bail, so no Ebb card)
     ],
   };
 

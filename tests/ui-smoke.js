@@ -530,6 +530,21 @@ async function tutorialScenario(page, base, name, size, input) {
       if (input === 'keyboard') await page.key('e'); else await page.click('#btn-end');
       actions++;
       await sleep(300);
+    } else if (s.act) {
+      // the Bail step: a card doesn't count, the Bail does
+      const before = await page.eval('window.Brinelight.run.stats.cardsPlayed');
+      const jab = await page.eval(`(() => { const x = window.Brinelight.run.combat.hand.find((k) => k.id === 'jab'); return x ? x.uid : null; })()`);
+      if (jab && input !== 'keyboard') {
+        await page.click(`#hand .card[data-uid="${jab}"]`); await sleep(320); await page.click(`#hand .card[data-uid="${jab}"]`); await sleep(200);
+        if ((await page.eval('window.Brinelight.run.stats.cardsPlayed')) !== before) failures.push(`${name}: the tutorial let a card be played at the Bail step`);
+        await page.key('Escape');
+      }
+      const light = await page.eval('window.Brinelight.run.combat.light');
+      if (input === 'keyboard') await page.key('b'); else await page.click('#tidebar .tb-act.bail');
+      actions++;
+      await waitIdle(page, 'the Bail');
+      const after = await page.eval('(() => { const c = window.Brinelight.run.combat; return { lows: c.turnLows, light: c.light, used: !!document.querySelector("#tidebar .tb-act.used") }; })()');
+      if (after.lows !== 1 || after.light !== light || !after.used) failures.push(`${name}: the tutorial's Bail should Strand, give the Light back and use up the turn's Bail (${JSON.stringify(after)})`);
     } else {
       // try a wrong card first once, to check the gate holds
       if (s.id === 'attack') {
@@ -893,6 +908,19 @@ async function progressScenario(page, base, name, size) {
   await sleep(1500);
   const pills = await page.eval(`[...document.querySelectorAll('.hand .card')].map((c) => { const t = c.querySelector('.c-type'); const r = t.getBoundingClientRect(); return (getComputedStyle(t).display !== 'none' && r.width > 0 ? t.textContent : '-'); }).join(',')`);
   if (pills.toLowerCase() !== 'rite,-,rite,-') failures.push(`${name}: only the Rites in the hand should show their type (${pills})`);
+  // Bail and Stir: a button at each end of the Swell; one a turn
+  await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat; c.tide = 5; c.light = 3; B.render(); })()`);
+  await sleep(600);
+  await dismissHints(page);
+  if ((await count('#tidebar .tb-act.bail')) !== 1 || (await count('#tidebar .tb-act.stir')) !== 1) failures.push(`${name}: the Swell bar should have a Bail and a Stir button`);
+  await checkPage(page, name + ' swell bar');
+  await page.click('#tidebar .tb-act.stir');
+  await waitIdle(page, 'the Stir');
+  const stirred = await page.eval('(() => { const c = window.Brinelight.run.combat; return { crests: c.turnCrests, light: c.light, tide: c.tide, off: document.querySelectorAll("#tidebar .tb-act[aria-disabled]").length }; })()');
+  if (stirred.crests !== 1 || stirred.light !== 2 || stirred.tide !== 3 || stirred.off !== 2) failures.push(`${name}: Stir at 5 should Crest for 1 Light and use up the turn's Bail or Stir (${JSON.stringify(stirred)})`);
+  await page.key('b');
+  await sleep(300);
+  if ((await page.eval('window.Brinelight.run.combat.light')) !== 2 || !/Once a turn/.test(await page.eval('document.body.innerText'))) failures.push(`${name}: a second Bail in the same turn should be refused with a reason`);
   await page.eval(`(() => { const B = window.Brinelight; B.run = null; B.render(); })()`);
 
   // the menu during a run has no reset; on the title screen it has backup, restore and reset
