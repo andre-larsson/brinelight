@@ -38,7 +38,7 @@
   });
   card('slack', {
     name: 'Slack Water', type: 'skill', rarity: 'starter', cost: 1, target: 'none',
-    v: { ward: 5, ebb: 2 }, up: { ward: 8 }, art: 'c_slack',
+    v: { ward: 4, ebb: 2 }, up: { ward: 7 }, art: 'c_slack',
     text: (v) => `Gain ${v.ward} Ward. Ebb ${v.ebb}.`,
     play: (A, v) => { A.ward(v.ward); A.ebb(v.ebb); },
   });
@@ -351,7 +351,7 @@
     Doused: 'Something drank from your lantern: you start your next turn with that much less Light.',
     Submerged: 'Sunk out of reach until it next acts. You cannot target it, and attacks cannot reach it, but Crests and other waves still hit it. A Strand brings it up.',
     Shell: 'Its Ward does not wash away from turn to turn. A Strand still strips it.',
-    Roiled: 'You carry more Roil than your Hold. Every 5 Roil over (or part of 5) is one step, and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows.',
+    Roiled: 'You carry more Roil than your Hold. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows.',
   };
 
   /* ------------------------------------------------------------------ *
@@ -402,9 +402,13 @@
     };
   }
 
-  /* A pin (a band's boss) calls for help once it is down to this share of its health. It was half until v0.16.0,
-     which came too late for the help to matter. */
+  /* A pin (a band's boss) changes once it is down to this share of its health: the Bellwether calls its shoal, the
+     Tolling Buoy slips its chain. It was half until v0.16.0, which came too late for the help to matter. */
   BL.PIN_CALL = 2 / 3;
+  /* The Pale Gulper, a Dread of Dark Water, retches up two Glimmer Leeches once it is down to this share of its health. */
+  BL.DREAD_CALL = 1 / 2;
+  /* The Tolling Buoy's Wild Peal: this much damage, less this much for each Crest or Strand you make that turn. */
+  BL.PEAL = { dmg: 30, quiet: 10 };
 
   const ENEMIES = {
     kelp: {
@@ -582,14 +586,20 @@
       ai: cycleFrom(['lash', 'douse', 'glut']),
     },
     gulper: {
-      name: 'Pale Gulper', hp: [70, 74], art: 'gulper', scale: 1.2, elite: true,
+      name: 'Pale Gulper', hp: [62, 66], art: 'gulper', scale: 1.2, elite: true,
       init: (e, R) => { e.mem.offset = R.int(0, 2); },
       moves: {
         bite: { name: 'Bite', dmg: 12 },
         gulp: { name: 'Gulp', dmg: 7, swallow: true },
         whip: { name: 'Tail Whip', dmg: 5, hits: 2, debuff: { soaked: 1 } },
+        // hurt, it brings up what it has swallowed: two Glimmer Leeches, still alive, and your cards with them
+        retch: { name: 'Retch', summon: ['leech', 'leech'], disgorge: true, phase: 'It Retches!' },
       },
-      ai: cycleFrom(['bite', 'gulp', 'whip']),
+      ai: (e) => {
+        if (!e.mem.summoned && e.hp <= e.maxHp * BL.DREAD_CALL) { e.mem.summoned = true; return 'retch'; }
+        const seq = ['bite', 'gulp', 'whip'];
+        return seq[((e.mem.offset || 0) + e.hist.filter((h) => h !== 'retch').length) % seq.length];
+      },
     },
     // ---------- Dark Water's pin: it holds the water in Dark Water for the Bellwether ----------
     buoy: {
@@ -600,11 +610,15 @@
         toll: { name: 'Rocking Toll', dmg: (e, c) => 12 + 2 * (e.mem.tolls || 0) + 4 * Math.abs(((c && c.tide) == null ? 3 : c.tide) - 3), after: (e) => { e.mem.tolls = (e.mem.tolls || 0) + 1; },
           tip: 'It hits 4 harder for each step your Swell is away from 3, and every Toll rings 2 harder than the last' },
         clang: { name: 'Clang', dmg: 8, hits: 2 },
-        spill: { name: 'The Cage Opens', summon: ['leech', 'leech'], buff: { might: 1 }, phase: 'The Cage Breaks Open!' },
+        // at two thirds of its health its chain snaps: it swings free, and with no chain left to haul it rings wild
+        slip: { name: 'Slip the Chain', ward: 15, buff: { might: 1 }, phase: 'The Chain Snaps!' },
+        // a wave smothers a bell and a Strand grounds it: each Crest or Strand you make this turn muffles the Peal
+        peal: { name: 'Wild Peal', dmg: (e, c) => Math.max(0, BL.PEAL.dmg - BL.PEAL.quiet * ((c && (c.turnCrests + c.turnLows)) || 0)),
+          tip: `Each Crest or Strand you make this turn muffles it by ${BL.PEAL.quiet}` },
       },
       ai: (e) => {
-        if (!e.mem.summoned && e.hp <= e.maxHp * BL.PIN_CALL) { e.mem.summoned = true; return 'spill'; }
-        const seq = ['haul', 'toll', 'clang', 'toll'];
+        if (!e.mem.free && e.hp <= e.maxHp * BL.PIN_CALL) { e.mem.free = true; e.mem.step = 0; return 'slip'; }
+        const seq = e.mem.free ? ['peal', 'toll', 'clang', 'toll'] : ['haul', 'toll', 'clang', 'toll'];
         e.mem.step = (e.mem.step || 0) + 1;
         return seq[(e.mem.step - 1) % seq.length];
       },
@@ -852,9 +866,9 @@
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
     tidebell: { place: 'bell', name: 'Brass Tide-Bell', art: 'k_tidebell', price: 0, starter: true, desc: 'Whenever you Crest or Strand, draw 1 card.' },
-    floodbell: { place: 'bell', name: 'Flood Bell', art: 'g_floodbell', price: 20, unlock: 'twocrests', desc: 'Whenever you Crest, draw 2 cards. A Strand draws nothing.' },
-    ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you Strand, draw 2 cards. Crests draw nothing.' },
-    crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Strand each turn draws nothing. Every one after it draws 2 cards.' },
+    floodbell: { place: 'bell', name: 'Flood Bell', art: 'g_floodbell', price: 20, unlock: 'twocrests', desc: 'Whenever you Crest, draw 1 card and gain 1 Light. A Strand gives nothing.' },
+    ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you Strand, draw 1 card and gain 3 Ward. A Crest gives nothing.' },
+    crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Strand each turn gives nothing. Every one after it draws 2 cards and gives 1 Light.' },
     cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
     gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', price: 25, unlock: 'untouched', desc: 'Start each fight with 4 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
@@ -980,7 +994,7 @@
       { id: 'hermit', title: 'Lamp Hermits', when: 'en:hermit', lock: 'Found in Dark Water.', art: 'units/hermit',
         text: 'Keepers carried lanterns down the stair, and not all of them came back up. The hermit crabs of Dark Water grew too big for whelk shells long ago. They live in the keepers\' lanterns now, and they keep their Ward from turn to turn the way the lanterns kept their glass. A Strand still strips it.' },
       { id: 'buoy', title: 'The Tolling Buoy', when: 'en:buoy', lock: 'Found on the last landing of Dark Water.', art: 'units/buoy',
-        text: 'Before there was a lighthouse, Saltmere had a bell-buoy. It rocked on its chain off the harbour rocks and rang in the swell, so ships heard the rocks before they saw them. A storm broke its chain and it sank. Now it rings for the Bellwether. It is a pin: while it rings, it holds the water in Dark Water. It still rocks on the water. The further you push the Swell from the middle, the harder its Toll swings, and every Toll is louder than the last.' },
+        text: 'Before there was a lighthouse, Saltmere had a bell-buoy. It rocked on its chain off the harbour rocks and rang in the swell, so ships heard the rocks before they saw them. A storm broke its chain and it sank. Now it rings for the Bellwether. It is a pin: while it rings, it holds the water in Dark Water. It still rocks on the water. The further you push the Swell from the middle, the harder its Toll swings, and every Toll is louder than the last. Hurt, it snaps its chain and swings free, and then it rings wild. A breaking wave smothers a bell, and a bell on dry rock cannot swing.' },
       { id: 'tideboard', title: 'The tide-board', when: 'ev:tideboard', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_tideboard',
         text: 'For as long as there have been keepers, they cut a line for the highest tide of the year. While they still tended the Bellwether, the lines go up and down. For the last hundred years, with nobody to tend it, every line is higher than the one before. The bell holds the sea off the town by holding it under the cliffs, and the water it holds grows every year.' },
       { id: 'garden', title: 'The Glimmer Garden', when: 'ev:garden', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_garden',

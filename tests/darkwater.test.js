@@ -256,22 +256,28 @@ test('The Tolling Buoy: Rocking Toll hits 12, +4 for each step the Swell is from
   assert.equal(c.light, 2);
 });
 
-test('The Tolling Buoy: at two thirds of its health its cage opens and two Glimmer Leeches come out; when it falls, they scatter', () => {
+test('The Tolling Buoy: at two thirds of its health it slips its chain (15 Ward, 1 Might), and from then on rings a Wild Peal in place of Haul the Chain', () => {
   const { run, c } = fight(['buoy'], { kind: 'boss' });
   const b = c.enemies[0];
   b.intent = 'clang';
   b.hp = Math.floor(b.maxHp * BL.PIN_CALL) + 1; // 111 of 165: not yet
   c.player.ward = 99;
   E.endTurn(run);
-  assert.notEqual(b.intent, 'spill');
+  assert.notEqual(b.intent, 'slip');
   b.intent = 'clang';
   b.hp = Math.floor(b.maxHp * BL.PIN_CALL); // 110
   c.player.ward = 99;
   E.endTurn(run);
-  assert.equal(b.intent, 'spill');
+  assert.equal(b.intent, 'slip');
   E.endTurn(run);
-  assert.deepEqual(enc(c), ['buoy', 'leech', 'leech']);
+  assert.deepEqual(enc(c), ['buoy'], 'nobody comes to help it');
+  assert.equal(b.ward, 15);
+  assert.equal(b.st.might, 1);
   assert.ok(c.fx.some((f) => f.t === 'phase'));
+  // its round is now Wild Peal, Rocking Toll, Clang, Rocking Toll: no more Haul the Chain
+  const seen = [];
+  for (let i = 0; i < 8; i++) { seen.push(b.intent); c.player.ward = 999; b.hp = 100; E.endTurn(run); }
+  assert.deepEqual(seen, ['peal', 'toll', 'clang', 'toll', 'peal', 'toll', 'clang', 'toll']);
   b.hp = 1;
   c.hand.push({ uid: run.nextUid++, id: 'jab', up: 0 });
   c.light = 3;
@@ -279,6 +285,78 @@ test('The Tolling Buoy: at two thirds of its health its cage opens and two Glimm
   assert.ok(c.won);
   E.finishCombat(run);
   assert.equal(run.screen, 'victory');
+});
+
+test('The Wild Peal hits for 30, and each Crest or Strand you make that turn muffles it by 10; at 0 it does not hit at all', () => {
+  assert.deepEqual(BL.PEAL, { dmg: 30, quiet: 10 });
+  const { run, c } = fight(['buoy'], { kind: 'boss', hand: ['jab', 'jab', 'jab'] });
+  const b = c.enemies[0];
+  b.hp = b.maxHp = 500;
+  b.mem.free = true;
+  b.intent = 'peal';
+  delete b.st.might;
+  const shown = () => E.intentInfo(run, b).dmg;
+  assert.equal(shown(), 30);
+  c.light = 9;
+  c.tide = 1;
+  E.swellAct(run, 'bail');
+  assert.equal(shown(), 20, 'one Strand: 30 - 10');
+  play(run, 'jab', b); // no wave
+  assert.equal(shown(), 20);
+  c.swellActTurn = null;
+  c.tide = 5;
+  E.swellAct(run, 'stir');
+  assert.equal(c.turnCrests + c.turnLows, 2);
+  assert.equal(shown(), 10, 'a Strand and a Crest: 30 - 20');
+  const hp = run.hp;
+  c.player.ward = 0;
+  E.endTurn(run);
+  assert.equal(hp - run.hp, 10);
+  // three waves silence it: no hit at all, so not even its Might gets through
+  const f2 = fight(['buoy'], { kind: 'boss' });
+  const b2 = f2.c.enemies[0];
+  b2.hp = b2.maxHp = 500;
+  b2.mem.free = true;
+  b2.intent = 'peal';
+  b2.st.might = 1;
+  f2.c.turnCrests = 2;
+  f2.c.turnLows = 1;
+  assert.equal(E.intentInfo(f2.run, b2).dmg, 0);
+  const hp2 = f2.run.hp;
+  f2.c.player.ward = 0;
+  E.endTurn(f2.run);
+  assert.equal(f2.run.hp, hp2);
+  assert.ok(!f2.c.fx.some((f) => f.t === 'dmg' && f.who === 'p'), 'no hit for 0');
+});
+
+test('Pale Gulper: at half its health it retches up two Glimmer Leeches and every card it swallowed', () => {
+  assert.equal(BL.DREAD_CALL, 1 / 2);
+  const { run, c } = fight(['gulper'], { hand: ['jab', 'brace'] });
+  const g = c.enemies[0];
+  g.hp = g.maxHp;
+  g.intent = 'gulp';
+  play(run, 'brace');
+  const brace = c.discard.find((x) => x.uid === c.lastPlayed);
+  c.player.ward = 99;
+  E.endTurn(run);
+  assert.equal(g.st.swallowed, 1);
+  assert.notEqual(g.intent, 'retch', 'not yet: still at full health');
+  g.hp = Math.floor(g.maxHp / 2);
+  g.intent = 'bite';
+  c.player.ward = 99;
+  E.endTurn(run);
+  assert.equal(g.intent, 'retch');
+  assert.match(E.intentInfo(run, g).parts.join('. '), /Bring up the cards it swallowed/);
+  E.endTurn(run);
+  assert.deepEqual(enc(c), ['gulper', 'leech', 'leech']);
+  assert.ok(c.discard.some((x) => x.uid === brace.uid), 'the Brace is back in the discard pile');
+  assert.ok(!g.st.swallowed);
+  assert.ok(c.fx.some((f) => f.t === 'disgorge'));
+  // it goes back to Bite, Gulp and Tail Whip, and never retches twice
+  const seen = [];
+  for (let i = 0; i < 6; i++) { seen.push(g.intent); c.player.ward = 999; g.hp = 10; E.endTurn(run); }
+  assert.ok(!seen.includes('retch'));
+  assert.deepEqual([...new Set(seen)].sort(), ['bite', 'gulp', 'whip']);
 });
 
 test('The Glimmer Garden: picking the beads pays 45 Pearls, and a Glimmer Leech follows you into your next fight only', () => {

@@ -106,26 +106,34 @@ test('start-of-run kit: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask 
   assert.deepEqual(base.tonics, [null, null, null]);
 });
 
-test('bells: Brass draws 1 on every Crest and Strand; Flood 2 on a Crest only; Ebb 2 on a Strand only; Cracked nothing on the first each turn, then 2', () => {
-  // [bell, Crest, Strand] -> cards drawn
-  const draws = (bell, first, second) => {
-    const run = E.newRun(3, 0, [bell]);
+test('bells: Brass draws 1 on every Crest and Strand; Flood 1 card and 1 Light on a Crest only; Ebb 1 card and 3 Ward on a Strand only; Cracked nothing on the first each turn, then 2 cards and 1 Light', () => {
+  // [bell, first, second] -> [cards drawn, Light gained, Ward gained] for each
+  const gains = (bell, first, second) => {
+    const run = E.newRun(3, 0, bell ? [bell] : null);
+    if (!bell) run.kit.bell = null;
     const c = fightIn(run);
     tough(c);
     const out = [];
     [first, second].forEach((kind) => {
-      if (!kind) return;
+      // a Stir from 5 Crests and a Bail from 1 Strands; each costs 1 Light, the same with or without a bell
+      c.light = 5;
+      c.player.ward = 0;
+      c.swellActTurn = null;
+      c.tide = kind === 'crest' ? 5 : 1;
       const n = c.hand.length;
-      if (kind === 'crest') { c.tide = 4; play(run, give(run, 'swell'), c.enemies[0]); } else { c.tide = 2; play(run, give(run, 'slack')); }
-      out.push(c.hand.length - n);
+      E.swellAct(run, kind === 'crest' ? 'stir' : 'bail');
+      out.push([c.hand.length - n, c.light, c.player.ward]);
     });
     return out;
   };
-  assert.deepEqual(draws('tidebell', 'crest', 'low'), [1, 1]);
-  assert.deepEqual(draws('floodbell', 'crest', 'low'), [2, 0]);
-  assert.deepEqual(draws('ebbbell', 'crest', 'low'), [0, 2]);
-  assert.deepEqual(draws('crackedbell', 'crest', 'low'), [0, 2]);
-  assert.deepEqual(draws('crackedbell', 'low', 'crest'), [0, 2]);
+  // each wave against the same wave with no bell: what the bell adds
+  const base = (first, second) => gains(null, first, second);
+  const added = (bell, first, second) => gains(bell, first, second).map((g, i) => g.map((x, j) => x - base(first, second)[i][j]));
+  assert.deepEqual(added('tidebell', 'crest', 'low'), [[1, 0, 0], [1, 0, 0]]);
+  assert.deepEqual(added('floodbell', 'crest', 'low'), [[1, 1, 0], [0, 0, 0]]);
+  assert.deepEqual(added('ebbbell', 'crest', 'low'), [[0, 0, 0], [1, 0, 3]]);
+  assert.deepEqual(added('crackedbell', 'crest', 'low'), [[0, 0, 0], [2, 1, 0]]);
+  assert.deepEqual(added('crackedbell', 'low', 'crest'), [[0, 0, 0], [2, 1, 0]]);
   // the Cracked Bell counts each turn afresh
   const run = E.newRun(3, 0, ['crackedbell']);
   const c = fightIn(run);
@@ -268,9 +276,10 @@ test('achievements unlock once, are kept on the run for the end screen, and neve
 });
 
 /* ---------- Roil, the Hold and a Roiled aether ---------- */
-test('the Hold is 20 Roil in the Shallows, 35 in Dark Water, 40 in Riptide and 45 in the Abyss; every 5 Roil over (or part of 5) is one step', () => {
+test('the Hold is 20 Roil in the Shallows, 35 in Dark Water, 40 in Riptide and 45 in the Abyss; every 12 Roil over (or part of 12) is one step', () => {
   assert.deepEqual([0, 1, 2, 3].map(E.hold), [20, 35, 40, 45]);
-  assert.deepEqual([20, 21, 25, 26, 30, 31].map((ch) => E.roilSteps(ch, 0)), [0, 1, 1, 2, 2, 3]);
+  assert.equal(E.SEEP_STEP, 12);
+  assert.deepEqual([20, 21, 32, 33, 44, 45].map((ch) => E.roilSteps(ch, 0)), [0, 1, 1, 2, 2, 3]);
   assert.equal(E.roilSteps(36, 1), 1, 'deeper water holds more');
   const run = E.newRun(5);
   run.keepsakes = ['whaletooth', 'stormbottle'];
@@ -286,7 +295,7 @@ test('the Hold is 20 Roil in the Shallows, 35 in Dark Water, 40 in Riptide and 4
 });
 
 test('a Roiled aether climbs a ladder: a Seep, then Thrash, then a Bell Minnow, then round again (2 Minnows at most)', () => {
-  const at = (steps) => { const r = E.roilFor(E.hold(0) + 5 * steps, 0); return [r.seep, r.thrash, r.minnows]; };
+  const at = (steps) => { const r = E.roilFor(E.hold(0) + 12 * steps, 0); return [r.seep, r.thrash, r.minnows]; };
   assert.deepEqual(E.roilFor(E.hold(0), 0), { steps: 0, seep: 0, thrash: 0, minnows: 0 });
   assert.deepEqual(at(1), [1, 0, 0]);
   assert.deepEqual(at(2), [1, 1, 0]);
@@ -297,13 +306,13 @@ test('a Roiled aether climbs a ladder: a Seep, then Thrash, then a Bell Minnow, 
   assert.deepEqual(at(7), [3, 2, 2]);
   assert.deepEqual(at(9), [3, 3, 2], 'never more than 2 Bell Minnows');
   assert.equal(E.MAX_ROIL_MINNOWS, 2);
-  assert.equal(E.seepFor(E.hold(0) + 20, 0), 2);
+  assert.equal(E.seepFor(E.hold(0) + 4 * 12, 0), 2);
 });
 
 test('Seep: shuffled into the draw pile at the start of each fight, unplayable, and gone after the fight', () => {
   const run = E.newRun(5);
-  run.keepsakes = ['whaletooth', 'stormbottle']; // 19 + 18 = 37: 4 steps past a Hold of 20
-  assert.deepEqual(E.roil(run), { steps: 4, seep: 2, thrash: 1, minnows: 1 });
+  run.keepsakes = ['whaletooth', 'stormbottle', 'anchor', 'echoconch']; // 19 + 18 + 18 + 17 = 72: 5 steps past a Hold of 20
+  assert.deepEqual(E.roil(run), { steps: 5, seep: 2, thrash: 2, minnows: 1 });
   const deck = run.deck.length;
   const c = fightIn(run);
   const all = c.hand.concat(c.draw);
@@ -347,7 +356,7 @@ test('Thrash: at the start of each of your turns, take that much damage; Ward le
   assert.equal(turnEnd(0), 1, 'and it comes every turn');
   // Thrash 2 is 2 damage a turn, and 1 Ward stops half of it
   const two = E.newRun(5);
-  two.keepsakes = ['whaletooth', 'stormbottle', 'anchor']; // 55: 5 steps, so Thrash 2
+  two.keepsakes = ['whaletooth', 'stormbottle', 'anchor', 'echoconch']; // 72: 5 steps, so Thrash 2
   assert.equal(E.roil(two).thrash, 2);
   const hp2 = two.hp;
   const c2 = fightIn(two, ['crab']);
@@ -386,7 +395,7 @@ test('Bell Minnows follow a Roiled aether into every fight, after the encounter\
   const calm = E.newRun(5);
   const cc = fightIn(calm, ['crab', 'jelly'], 'hard');
   const run = E.newRun(5);
-  run.keepsakes = ['whaletooth', 'stormbottle', 'coralcrown']; // 3 steps: 1 Bell Minnow
+  run.keepsakes = ['whaletooth', 'stormbottle', 'anchor']; // 55: 3 steps, so 1 Bell Minnow
   const c = fightIn(run, ['crab', 'jelly'], 'hard');
   assert.deepEqual(c.enemies.map((e) => e.id), ['crab', 'jelly', 'minnow']);
   assert.equal(c.roilMinnows, 1);
@@ -402,7 +411,7 @@ test('Bell Minnows follow a Roiled aether into every fight, after the encounter\
   assert.equal(E.alive(c).length, 1);
   // 6 steps and more: 2 Minnows, in the boss fight too
   const six = E.newRun(5);
-  six.keepsakes = ['whaletooth', 'stormbottle', 'anchor', 'coralcrown']; // 61: 7 steps
+  six.keepsakes = ['whaletooth', 'stormbottle', 'anchor', 'echoconch', 'sirenscale']; // 89: 6 steps
   assert.equal(E.roil(six).minnows, 2);
   assert.deepEqual(fightIn(six, ['bell'], 'boss').enemies.map((e) => e.id), ['bell', 'minnow', 'minnow']);
 });

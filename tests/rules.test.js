@@ -227,7 +227,7 @@ test('at 0 you Strand the enemies: they lose all their Ward and you gain 1 Light
   assert.equal(c.turnLows, 1);
   assert.deepEqual(c.enemies.map((e) => e.ward), [0, 0], 'stranded: every enemy loses its Ward');
   assert.equal(c.light, 3 - 1 + 1, 'Slack Water cost 1, the Strand gave 1 back');
-  assert.equal(c.player.ward, 5, 'only the card\'s own Ward: a Strand gives none');
+  assert.equal(c.player.ward, 4, 'only the card\'s own Ward: a Strand gives none');
 });
 
 test('a Strand strips enemy Ward before its own damage lands (Drowned Anchor, Abyssal Pull)', () => {
@@ -809,7 +809,7 @@ test('a keepsake pick is optional: take one, or leave them for +80 score; a pick
 test('Kelp Bracelet: a Strand gives 8 Ward. Tidal Memory: each Crest gives 1 Light. Spring Tide: Strand, then Crest', () => {
   let f = fight(['kelp'], { hand: ['slack'], tide: 2, keepsakes: ['kelpbracelet'] });
   play(f.run, 'slack');
-  assert.equal(f.c.player.ward, 5 + 8);
+  assert.equal(f.c.player.ward, 4 + 8);
 
   f = fight(['kelp'], { hand: ['tidereading', 'slack'], tide: 5, keepsakes: [] });
   tough(f.c);

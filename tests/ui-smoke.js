@@ -351,16 +351,16 @@ async function workshopScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="ksdrop"]');
   if (await page.eval('window.Brinelight.run.keepsakes.join()') !== 'whaletooth') failures.push(`${name}: dropping a keepsake didn't work`);
   if (await page.eval(`!!document.querySelector('.hud .charge.over')`)) failures.push(`${name}: still over the Hold after dropping`);
-  // the first fight, 3 steps over the Hold (Roil 19 + 12 = 31 of 20): a Seep, Thrash 1 and a Bell Minnow join it
-  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'tidewatch'); B.render(); })()`);
+  // the first fight, 3 steps over the Hold (Roil 19 + 18 + 12 = 49 of 20, a step for every 12): a Seep, Thrash 1 and a Bell Minnow join it
+  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'anchor'); B.E.gainKeepsake(B.run, 'tidewatch'); B.render(); })()`);
   await dismissHints(page);
   await page.click('[data-act="node"]');
   await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop');
   if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
   const seep = await page.eval(`(() => { const c = window.Brinelight.run.combat; return c.hand.concat(c.draw).filter((x) => x.id === 'seep').length; })()`);
-  if (seep !== 1) failures.push(`${name}: ${seep} Seep in a fight at Roil 31 of 20`);
+  if (seep !== 1) failures.push(`${name}: ${seep} Seep in a fight at Roil 49 of 20`);
   const roiled = await page.eval(`(() => { const c = window.Brinelight.run.combat; return { thrash: c.thrash, minnows: c.enemies.filter((e) => e.roil && e.id === 'minnow').length, shown: document.querySelectorAll('.enemy').length, all: c.enemies.length }; })()`);
-  if (roiled.thrash !== 1 || roiled.minnows !== 1 || roiled.shown !== roiled.all) failures.push(`${name}: a fight at Roil 31 of 20 should have Thrash 1 and 1 Bell Minnow on the field (${JSON.stringify(roiled)})`);
+  if (roiled.thrash !== 1 || roiled.minnows !== 1 || roiled.shown !== roiled.all) failures.push(`${name}: a fight at Roil 49 of 20 should have Thrash 1 and 1 Bell Minnow on the field (${JSON.stringify(roiled)})`);
   // Thrash shows on the keeper, and the incoming number counts it on top of what the enemies intend
   const thrashUi = await page.eval(`(() => {
     const B = window.Brinelight, c = B.run.combat;
@@ -856,6 +856,18 @@ async function darkwaterScenario(page, base, name, size, opts) {
   const at3 = await intentAt(3), at5 = await intentAt(5);
   if (at3 !== '12' || at5 !== '20') failures.push(`${name}: the Rocking Toll intent should read 12 at Swell 3 and 20 at Swell 5 (got ${at3}, ${at5})`);
   await checkPage(page, name + ' buoy');
+  // v0.18.0: once it has slipped its chain, a Bail that Strands muffles the Wild Peal from 30 to 20
+  await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat; c.enemies[0].mem.free = true; c.enemies[0].intent = 'peal'; c.tide = 1; c.light = 3; c.swellActTurn = null; B.render(); })()`);
+  await sleep(300);
+  const pealText = () => page.eval(`document.querySelector('.unit.enemy .intent').innerText.replace(/\\s+/g, '')`);
+  const peal0 = await pealText();
+  await dismissHints(page);
+  if (!(await page.eval(`(localStorage.getItem('brinelight.hints.v1') || '').includes('"peal"')`))) failures.push(`${name}: no first-time hint for the Wild Peal`);
+  await tap('#tidebar .tb-act.bail');
+  await waitIdle(page);
+  const peal1 = await pealText();
+  if (peal0 !== '30' || peal1 !== '20') failures.push(`${name}: the Wild Peal intent should read 30, then 20 after a Bail that Strands (got ${peal0}, ${peal1})`);
+  await checkPage(page, name + ' wild peal');
 
   // then a few stops of the real descent
   await page.eval(`(() => { const B = window.Brinelight; B.run.combat = null; B.run.screen = 'map'; B.render(); })()`);

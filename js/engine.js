@@ -87,7 +87,7 @@
   /* ---------------- Roil, Hold and what a Roiled aether does ----------------
      Every keepsake has a Roil (`charge` in the code and in saves). The aether around you can hold so much
      (the Hold, more at deeper depths) and stay Calm. Past it the aether is Roiled, one step for every
-     5 Roil over (or part of 5). The steps climb a ladder of three, round and round:
+     12 Roil over (or part of 12). The steps climb a ladder of three, round and round:
        step 1, 4, 7...: one more Seep, an unplayable card in the draw pile of each fight;
        step 2, 5, 8...: one more Thrash, damage at the start of each of your turns, which Ward left from the turn
                         before stops;
@@ -95,7 +95,7 @@
   /* The Hold at each starting depth. The Shallows held 30 until v0.16.0; 20 leaves room for about one strong keepsake
      and one small one, so a stocked Lazaret doesn't make the first depth easy. */
   E.HOLDS = [20, 35, 40, 45];
-  E.SEEP_STEP = 5; // Roil over the Hold for each step
+  E.SEEP_STEP = 12; // Roil over the Hold for each step: about one keepsake's worth, so each keepsake past the Hold adds about one step (5 until v0.18.0)
   E.MAX_ROIL_MINNOWS = 2;
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
   E.hold = (level) => E.HOLDS[Math.min(Math.max(0, level || 0), E.HOLDS.length - 1)];
@@ -650,20 +650,23 @@
     return h;
   }
 
+  /* Whatever an enemy swallowed comes back to the discard pile: when it dies, or when a Pale Gulper retches. */
+  function disgorge(c, e) {
+    const back = e.mem && e.mem.swallowed;
+    if (!back || !back.length) return;
+    back.forEach((card) => c.discard.push(card));
+    fx(c, { t: 'disgorge', who: e.uid, names: back.map(E.cardName) });
+    e.mem.swallowed = [];
+    delete e.st.swallowed;
+  }
+
   function killEnemy(run, c, e) {
     e.hp = 0;
     e.dead = true;
     e.ward = 0;
     run.stats.kills = (run.stats.kills || 0) + 1;
     fx(c, { t: 'die', who: e.uid });
-    // whatever it swallowed comes back to the discard pile
-    const back = e.mem && e.mem.swallowed;
-    if (back && back.length) {
-      back.forEach((card) => c.discard.push(card));
-      fx(c, { t: 'disgorge', who: e.uid, names: back.map(E.cardName) });
-      e.mem.swallowed = [];
-      delete e.st.swallowed;
-    }
+    disgorge(c, e);
     const A = api(run, c);
     E.alive(c).forEach((o) => {
       const d = BL.ENEMIES[o.id];
@@ -724,22 +727,29 @@
     }
   }
 
-  /* The bell in your kit draws when you Crest or Strand (kind: 'crest' or 'low'; the code calls a Strand
-     a low or lowWater, and the Swell the tide). */
-  E.bellDraw = function (bell, kind, chain) {
-    switch (bell) {
-      case 'tidebell': return 1;
-      case 'floodbell': return kind === 'crest' ? 2 : 0;
-      case 'ebbbell': return kind === 'low' ? 2 : 0;
-      case 'crackedbell': return chain >= 2 ? 2 : 0; // chain: Crests and Strands so far this turn
-      default: return 0;
-    }
+  /* The bell in your kit pays out when you Crest or Strand (kind: 'crest' or 'low'; the code calls a Strand
+     a low or lowWater, and the Swell the tide). Each bell lists what it gives: `crest`, `low`, or `after`
+     (from the second Crest or Strand of a turn on). Until v0.18.0 the Flood, Ebb and Cracked Bells drew
+     2 cards and did nothing else; a second card is little use without the Light to play it. */
+  E.BELLS = {
+    tidebell: { crest: { draw: 1 }, low: { draw: 1 } },
+    floodbell: { crest: { draw: 1, light: 1 } },
+    ebbbell: { low: { draw: 1, ward: 3 } }, // a Strand already gives Light, and 1 more made every free Bail pay
+    crackedbell: { after: { draw: 2, light: 1 } },
   };
+  E.bellGain = function (bell, kind, chain) { // chain: Crests and Strands so far this turn, this one included
+    const b = E.BELLS[bell];
+    if (!b) return null;
+    return (b.after ? (chain >= 2 ? b.after : null) : b[kind]) || null;
+  };
+  E.bellDraw = (bell, kind, chain) => { const g = E.bellGain(bell, kind, chain); return (g && g.draw) || 0; };
   function onTideTurn(run, c, kind) {
-    const n = E.bellDraw(E.bell(run), kind, c.turnCrests + c.turnLows);
-    if (!n) return;
+    const g = E.bellGain(E.bell(run), kind, c.turnCrests + c.turnLows);
+    if (!g) return;
     fx(c, { t: 'kit', k: 'bell' });
-    drawCards(run, c, n);
+    if (g.light) { c.light += g.light; fx(c, { t: 'light', n: g.light }); }
+    if (g.ward) gainWard(c, c.player, g.ward);
+    if (g.draw) drawCards(run, c, g.draw);
   }
 
   /* Wave damage (Crests and similar): not an attack, but Soaked targets take 50% more. */
@@ -1142,7 +1152,7 @@
     const P = c.player;
     fx(c, { t: 'act', who: e.uid, name: m.name, attack: !!m.dmg });
     if (m.phase) fx(c, { t: 'phase', who: e.uid, text: m.phase });
-    if (m.dmg) {
+    if (m.dmg && E.moveDamage(c, e, m) > 0) { // a move whose damage falls to 0 (a muffled Wild Peal) doesn't hit at all
       const base = E.moveDamage(c, e, m);
       const hits = m.hits || 1;
       let took = 0;
@@ -1184,6 +1194,7 @@
       fx(c, { t: 'tide', d: m.tideSet - c.tide });
       c.tide = m.tideSet;
     }
+    if (m.disgorge) disgorge(c, e);
     if (m.summon) {
       m.summon.forEach((id) => {
         if (E.alive(c).length < 5) {
@@ -1228,7 +1239,7 @@
     const info = { name: m.name, kinds: [], dmg: 0, hits: 0, ward: m.ward || 0, parts: [] };
     if (m.dmg) {
       const base = E.moveDamage(c, e, m);
-      info.dmg = attackValue(e, c.player, base);
+      info.dmg = base > 0 ? attackValue(e, c.player, base) : 0;
       info.hits = m.hits || 1;
       info.kinds.push('attack');
       info.parts.push(`Attack for ${info.dmg}${info.hits > 1 ? ' x' + info.hits : ''}`);
@@ -1254,6 +1265,7 @@
     }
     if (m.tide) { info.kinds.push('debuff'); info.parts.push(m.tide < 0 ? `Drag your Swell down by ${-m.tide}` : `Raise your Swell by ${m.tide}`); }
     if (m.tideSet != null) { info.kinds.push('debuff'); info.parts.push(`Flatten your Swell back to ${m.tideSet}`); }
+    if (m.disgorge && e.mem.swallowed && e.mem.swallowed.length) info.parts.push('Bring up the cards it swallowed: they go back to your discard pile');
     if (m.summon) { info.kinds.push('summon'); info.parts.push('Call for help'); }
     return info;
   };

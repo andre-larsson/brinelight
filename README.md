@@ -75,8 +75,8 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Murk Ray:** when it Sinks it is **Submerged** until it next acts. You can't target it, your attacks (on one enemy, on ALL or on a random one) can't reach it, and tonics can't be aimed at it. Crests and other waves still hit it, and a Strand brings it up. If nothing else is in reach, cards that need a target can't be played.
 - **Lamp Hermit:** its **Shell** keeps its Ward from turn to turn. A Strand still strips it.
 - **Glimmer Chain** (a Dread): Drink the Light **Douses** your lantern: you start your next turn with 1 less Light.
-- **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies.
-- **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At two thirds of its health its cage breaks open and two Glimmer Leeches come out.
+- **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies. At half its health it Retches: two Glimmer Leeches come up, and so does every card it swallowed.
+- **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At two thirds of its health it Slips the Chain (15 Ward and 1 Might). From then on it rings a **Wild Peal** in place of Haul the Chain: 30 damage, 10 less for each Crest or Strand you make that turn. At 0 it doesn't hit at all.
 - **The Glimmer Garden** (a Fog event): if you pick the beads, a Glimmer Leech follows you into your next fight.
 
 **Between fights.** Choose your route on the map:
@@ -89,7 +89,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 
 **Keepsakes, Roil and a Roiled aether.** A keepsake lasts the whole run, and it stirs the aether around you. How much is its **Roil** (shown on each keepsake). Every keepsake you carry counts.
 - The aether around you holds a set amount of Roil, your **Hold**: 20 in the Shallows, 35 in Dark Water, 40 in Riptide and 45 in the Abyss. Up to your Hold the aether is **Calm**.
-- Past your Hold the aether is **Roiled**. Every 5 Roil over (or part of 5) is one step, and each step adds one thing to every fight. The steps go round a ladder of three:
+- Past your Hold the aether is **Roiled**. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight. The steps go round a ladder of three:
   - **Step 1: a Seep.** Seep is an unplayable card shuffled into your draw pile at the start of the fight, and it's gone after the fight. It never joins your deck.
   - **Step 2: Thrash 1.** At the start of each of your turns, you take 1 damage. Ward stops it: Thrash lands before the Ward from your last turn washes away, so Ward left over after the enemies have acted takes the hit. On the first turn of a fight only the Shell Gorget's Ward is there to stop it.
   - **Step 3: a Bell Minnow.** One of the Bellwether's minnows follows you into the fight as an extra enemy, at half health.
@@ -123,7 +123,7 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 - Spend Salvage in the Workshop on the title screen. **Kit** you buy is yours for good. Kit is the mundane gear Wren wears and carries; keepsakes are the magic.
 - Kit goes in five places, one piece each, and you choose before each descent. The game remembers your choice.
   - **Harpoon:** the Honed Harpoon (your first Harpoon Jab in each fight deals 2 more damage) or the Barbed Harpoon (it applies 1 Brine).
-  - **Bell:** always one. The Brass Tide-Bell draws 1 card on every Crest and Strand. The Flood Bell draws 2 on a Crest and none on a Strand; the Ebb Bell the other way round. The Cracked Bell draws nothing on the first Crest or Strand of a turn and 2 on every one after.
+  - **Bell:** always one. The Brass Tide-Bell draws 1 card on every Crest and Strand. The Flood Bell draws 1 card and gives 1 Light on a Crest, and nothing on a Strand. The Ebb Bell draws 1 card and gives 3 Ward on a Strand, and nothing on a Crest. The Cracked Bell gives nothing on the first Crest or Strand of a turn, then draws 2 cards and gives 1 Light on every one after.
   - **Coat:** Cork Vest (+5 Max HP) or Shell Gorget (4 Ward at the start of each fight).
   - **Pocket:** Coin Purse (+30 Pearls at the start), Gleaner's Pouch (+10 Pearls after each fight) or Barnaby's Marker (your first card removal at Barnaby's is free).
   - **Ditty Bag:** Spare Flask (a tonic at the start), Pearl Scales (Barnaby's prices are 25% lower), Gleaning Net (+3 Pearls whenever you Crest) or Spare Wick (rests heal 10 more HP).

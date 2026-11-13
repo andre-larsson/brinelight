@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.17.0';
+  BL.VERSION = '0.18.0';
   BL.CHANGELOG = [
+    { v: '0.18.0', date: '2026-11-13', items: [
+      'Slack Water gives 4 Ward instead of 5 (7 upgraded, was 8), so it no longer beats Brace at its own job.',
+      'The Flood, Ebb and Cracked Bells give Light or Ward instead of a second card. Flood Bell: a Crest draws 1 card and gives 1 Light. Ebb Bell: a Strand draws 1 card and gives 3 Ward. Cracked Bell: from the second Crest or Strand of a turn, each draws 2 cards and gives 1 Light.',
+      'A Roiled aether takes a step for every 12 Roil past your Hold instead of every 5, so one more keepsake adds about one step, not two or three.',
+      'The Tolling Buoy no longer calls for help. At two thirds of its health it snaps its chain, and from then on it rings a Wild Peal: 30 damage, 10 less for each Crest or Strand you make that turn.',
+      'In Dark Water the Pale Gulper calls for help instead: at half its health it retches up two Glimmer Leeches, and every card it swallowed comes back with them. It has 62 to 66 HP, down from 70 to 74.',
+    ] },
     { v: '0.17.0', date: '2026-11-13', items: [
       'Bail and Stir: once a turn, without a card, spend 1 Light to Bail (Ebb 1) or Stir (Surge 1). The buttons are at the two ends of the Swell bar, or press B or S.',
       'A Bail that makes a Strand gets its Light back, because the Strand gives 1 Light. You can Bail or Stir in a turn, not both.',

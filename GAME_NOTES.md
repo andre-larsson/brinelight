@@ -54,6 +54,7 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
+- v0.18.0 (2026-11-13, not pushed): the user's notes on v0.17.0: Slack Water 4 Ward, the bells pay Light or Ward, a Roil step every 12, the Buoy's Wild Peal, and the Gulper's Retch. See "Playtest notes on v0.17.0 (v0.18.0, 2026-11-13)". The expedition is next and waits for the user's answers: see "Expedition proposal (2026-11-13; waiting for the user)".
 - v0.17.0 (2026-11-13, pushed with v0.15.0 and v0.16.0): Bail and Stir, and Ebb 2 on four cards. See "Bail and Stir (v0.17.0, 2026-11-13)" below.
 - v0.16.0 (2026-11-13): the user's playtest notes on v0.14.0. The Shallows are harder, Dreads give less, the pins call for help sooner, and there are the RITE label, the score lines, purple unlock boxes, and backup, restore and reset. See "Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)" below. Two notes are proposals, not built: Strands are hard to reach, and a weak standard action.
 - v0.15.0 (2026-11-12, committed 2026-11-13): Dark Water is a band of its own, step 1 of the expedition work. See "Dark Water (v0.15.0, 2026-11-12)" below.
@@ -606,6 +607,84 @@ In the Shallows, Strands per fight 0.68 → 1.74 and Crests 0.57 → 0.72. Per f
 
 **Open (for the playtest):** Is an Ebb deck now worth building, and does a Crest deck use Stir? Strands now outnumber Crests for the bot by more than 2 to 1. The bot Bails whenever it's free, so a player who builds for Crests will see fewer Strands. Are the buttons found without the tutorial (the hint fires once)? Is the Swell bar still readable at 360 px with the buttons (the cells are about 18 px wide)?
 
+### Playtest notes on v0.17.0 (v0.18.0, 2026-11-13)
+
+The user played v0.17.0. Their notes, shortened:
+- Strands now outnumber Crests, "as Strand gives back a light, so its essentially a free action. However, I like it. Stir is still a nice ability that could be used sometimes." They found the Bail and Stir buttons without the tutorial. They could not test 360 px.
+- Slack Water: "reduce Ward gained to 4? Now a bit too strong compared to Brace."
+- "Challenge now better." They got the final boss to 20 HP and died; "it felt like it could have went either way".
+- "Flood/Ebb/Bell effects feel a bit weak. Drawing two cards at once is not that useful, since player likely does not have Light to use more cards anyway."
+- Roil: "increase the gaps between too much roil negative effect. Such that adding an average-cost item only adds 1 more effect."
+- Dark Water: they like the level, the new enemy abilities and the balance. The Tolling Buoy should not reuse the Bellwether's call for help: give it a "FUN and new ability", and let one of Dark Water's Dreads call for help instead.
+- "Maybe each level is a bit too long, but maybe also not. Should feel like a small investment starting a new run."
+- Next change: the expedition (see "Expedition proposal" below).
+
+**Built:**
+- **Slack Water** gives 4 Ward (7 upgraded), from 5 (8).
+- **Bells** are a table now (`E.BELLS`, `E.bellGain`; `E.bellDraw` stays for the card count). The Flood Bell draws 1 and gives 1 Light on a Crest. The Ebb Bell draws 1 and gives 3 Ward on a Strand. The Cracked Bell gives nothing on the first Crest or Strand of a turn, then 2 cards and 1 Light on each one after. The Brass Tide-Bell is unchanged.
+- **Roil:** one step for every 12 Roil past the Hold (`E.SEEP_STEP`, was 5). 12 is the median keepsake Roil (the mean is 12.6), so a keepsake of 12 always adds exactly one step.
+- **The Tolling Buoy** no longer calls for help. At two thirds of its health it plays **Slip the Chain** (15 Ward, 1 Might). From then on its round is Wild Peal, Rocking Toll, Clang, Rocking Toll. Haul the Chain and its douse are gone: it has no chain left to haul. **Wild Peal** (`BL.PEAL`) is 30 damage, minus 10 for each Crest or Strand made that turn. At 0 it does not hit at all, so its Might does not get through either. A move whose damage falls to 0 no longer hits (`enemyAct`), and its intent shows 0. Its intent number drops live as you make waves. A first-time hint (`peal`) explains it.
+- **The Pale Gulper** calls for help instead. At half its health (`BL.DREAD_CALL`) it plays **Retch**: two Glimmer Leeches, and every card it swallowed goes back to the discard pile (`disgorge`, shared with its death). Its HP is 62–66, from 70–74.
+- **The bot** (tools/bot.js): when it needs Ward, it now values a card's Surge or Ebb by 1 per point, and a wave the card makes by 3. Before, Slack Water and Brace tied at 5 Ward and the order of the hand decided. With Slack Water at 4, that bot always picked Brace and stopped Stranding: it lost 5 points in Dark Water for that reason alone. Every number in this section uses the new bot, including the v0.17.0 column.
+
+**The agent's calls (provisional):**
+1. **Slack Water upgraded is 7,** to keep the +3 of an upgrade. The user named only the base.
+2. **The bells pay Light or Ward in place of the second card**, as the user's note suggests. The Ebb Bell gives Ward, not Light. A Strand already gives 1 Light, and a second Light made every free Bail at Swell 1 pay 1 Light and 1 card. The bot then won 27% in the Shallows and 29% in Dark Water with it, against 17% and 10% with the Brass bell.
+3. **The step is 12, not 10 or 15.** At 10, a 12-Roil keepsake adds one or two steps depending on where you are, and at 15 most keepsakes add none. The table below has all three.
+4. **The Buoy's new ability is the Wild Peal,** because it uses the Swell from either end. A Crest deck and a Strand deck both answer it, and so does Ward. At 30/10 the Buoy fight costs the bot the same HP (55 against 56) in the same turns (11.1 against 11.2) as the old one. Measured alternatives: 24/8 made Dark Water 3 points easier for the bot and 36/12 made it 2 points harder.
+5. **The Gulper calls, not the Glimmer Chain.** The Chain was already the hardest Dread, and with the call it cost the bot 29.6 HP a fight, against 19.2 without it. The Gulper was the easiest, and with the call and less HP it costs 16.4 HP in 9.0 turns, against 14.6 HP in 9.7 turns before. The Dreads are now closer together: Chain 19.1, Gulper 16.4, Angler Twins 14.0. Getting the swallowed cards back when it retches is the fun part: the call for help also brings back what it took.
+
+**Measured** (bot, 1000 seeds a row; the v0.17.0 column uses the new bot too):
+
+| | v0.17.0 | v0.18.0 |
+|---|---|---|
+| Shallows, no kit | 17.9% | 19.2% |
+| Dark Water, no kit | 14.1% | 11.8% |
+| Riptide, no kit | 3.8% | 4.6% |
+| Shallows, Flood / Ebb / Cracked Bell | 15.1 / 18.7 / 13.5% | 22.0 / 25.0 / 16.8% |
+| Dark Water, Flood / Ebb / Cracked Bell | 9.9 / 13.3 / 9.9% | 19.1 / 19.6 / 13.3% |
+| Shallows, bring Whale Tooth + Kelp Bracelet (30) | 18.6% | 33.5% |
+| Shallows, bring Whale Tooth + Storm Bottle (37) | 3.6% | 18.0% |
+| Shallows, bring Whale Tooth + Storm Bottle + Coral Crown (43) | 1.8% | 20.3% |
+| Shallows, bring Whale Tooth + Storm Bottle + Drowned Anchor (55) | 1.6% | 27.6% |
+
+- **Slack Water at 4 costs the bot 1 point in the Shallows and 3 in Dark Water** (each alone, v0.18.0 otherwise). The Roil step gives the Shallows back more than that, because the bot pays less for what it picks up. The Buoy and Gulper changes are within 1 point of neutral. The net change: Shallows +1.3, Dark Water -2.3.
+- **Before v0.18.0 every special bell was worse for the bot than the free Brass bell.** That confirms the user's note. Now each is better in its own kind of deck: Flood +3 and Ebb +6 in the Shallows over Brass.
+- **Roil step sizes** (Shallows, bring as above; nothing / 30 / 37 / 43 / 55): step 5 16.9 / 17.1 / 2.8 / 1.0 / 1.3; step 10 18.6 / 33.0 / 16.9 / 9.2 / 13.3; **step 12 19.2 / 33.5 / 18.0 / 20.3 / 27.6**; step 15 19.9 / 38.5 / 22.1 / 21.8 / 29.3. With 12, bringing a full pack from the Lazaret is now worth more than it costs. The dials are the Hold (`E.HOLDS`) and the step.
+- **The opening is unchanged:** first fight 3.19 turns, 10.5 actions. The median HP lost is 8 (7 before), from the 1 Ward less on Slack Water.
+
+**Open (for the playtest):** Do the bells now feel worth their Salvage? Is a Wild Peal readable (it has a hint, a tip, and an intent number that falls as you make waves)? Does the Gulper's Retch feel like a reward and a threat at once? Is bringing keepsakes now too generous at a step of 12? The first dial is a Hold of 15 in the Shallows.
+
+### Expedition proposal (2026-11-13; waiting for the user)
+
+The user's direction: an expedition is one longer, coherent run through levels in order. "Choose your depth" goes. Enemy HP and damage multipliers move into the current system. Three levels: the Shallows, Dark Water, and an underwater last level that needs the diving suit, found in the second level. More kit and keepsakes after that, and intermediary levels in later updates. Their note on length: starting a run "should feel like a small investment".
+
+**Prototype** (bot, 1000 seeds, v0.18.0; a throwaway script that plays a Shallows run and, on a win, sets `run.level = 1` and gives the run a fresh Dark Water map): the bot clears the Shallows, then goes on into Dark Water with the same deck (15.7 cards on average), keepsakes (1.6) and HP.
+
+| Between the levels | HP on arrival | Dark Water cleared, if the Shallows were |
+|---|---|---|
+| nothing | 27% | 17.7% |
+| a rest (30% of Max HP) | 57% | 38.5% |
+| a full heal | 100% | 60.4% |
+
+From a fresh start the bot clears Dark Water 11.8% of the time. A built deck makes the second level much easier, so the later levels need more pressure in an expedition. How you get from one level to the next matters as much as the enemies.
+
+**Critique and proposed changes** (the agent's recommendations; each needs the user's yes):
+1. **Shorter levels: 8 landings, from 11** (7 stops and the pin). A Shallows-only trip takes about 15 minutes and the full expedition about 45, against about 25 and 75 now. Going home after a pin keeps every trip small.
+2. **The stair down is a Sheltered Cove:** rest (30%) or upgrade, as in the rest of the game. No free full heal: with a full heal, Dark Water is no threat to a built deck.
+3. **Retune Dark Water for a built deck.** Use pressure, not HP (the user's rule): harder Dreads and normal fights, measured with the prototype. The last level gets the same treatment.
+4. **Continuing has to pay, or players will farm the Shallows.** A fall loses only the fresh keepsakes and still earns Salvage, so the risk of going deeper is small. Score each landing by level: Shallows ×1, Dark Water ×1.5, the last level ×2. The deeper levels also have the better finds (the agreed "richer finds").
+5. **Currents replace Riptide and the Abyss.** Two to start, chosen on shore with the kit: enemies have 10% more HP, and enemies hit 15% harder (names to come; about the old Abyss). Each adds ×1.25 to the score, and they stack. They unlock on the first expedition that brings the Heart home. A player who already unlocked Riptide or the Abyss gets them at once. The old depth multiplier on the score goes.
+6. **The Hold rises with the level** (20, 35, 45), and the pack is fixed on shore (agreed). A heavy pack is Roiled in the Shallows and Calm deeper, which gives packing a real choice.
+7. **The suit** (agreed rules): found the first time Dark Water is cleared, then carried home. From then on it can be packed on shore, in the Coat place (it replaces the Cork Vest or the Shell Gorget). It has no effect in fights. Without it, the passage after Dark Water's pin stays shut, so the first clear always ends at home.
+8. **The Bellwether moves to the last level,** and the Shallows get their own pin: the giant hermit crab wearing a harbour bell (WORLD.md).
+9. **The underwater level:** its identity comes from its creatures, Dreads and events, the way Dark Water has Doused, Submerged and Shell, with no global rule at first. A global rule tends to favour one way of playing, and the suit already costs a kit place. The alternative is an Air rule: the suit holds so many turns of air per fight, and after that you lose HP each turn.
+10. **After the first Heart, the last level needs a repeatable final encounter.** Agreed lore says the Bellwether stays silenced. The proposal is the thing with one eye and many arms that grew into the bell (already in a keeper's note).
+11. **Build in slices, each playable:**
+    - **A:** the expedition flow with the two existing levels: no depth choice, 8 landings, Go deeper or Go home after each pin, the Cove between levels, currents, the new score, Dark Water retuned, old saves carried over, bot and `measure.js` support. The Bellwether stays the Shallows' pin for now.
+    - **B:** the last level: the suit, the underwater band (about 6 creatures, 3 Dreads, events, art), the Bellwether moves there, the Shallows' new pin, the repeatable final encounter, and the story chapters rewritten.
+    - **C:** more kit and keepsakes.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -936,7 +1015,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot, 1000 seeds, the Shallows): win 15.8% in v0.17.0 (11.4% in v0.16.0, 23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
+- **Bot run outcomes** (careful bot, 1000 seeds, the Shallows): win 19.2% in v0.18.0, with the bot that values Swell moves when it guards (17.9% for v0.17.0 with that bot; 15.8% with the old one). Older: 11.4% in v0.16.0, 23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
 
 ## Tools
 

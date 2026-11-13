@@ -703,7 +703,7 @@
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Strand gives 1 Light. Save Surge for one big turn.</li>
         <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand gets its Light back. You can Bail or Stir, not both.</li>
-        <li>Your <b>bell</b> draws when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} draw differently.</li>
+        <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
       case 'keywords': return dl(['Bail', 'Stir', 'Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))

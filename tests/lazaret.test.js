@@ -86,13 +86,13 @@ test('brought keepsakes are carried from the first landing and count toward the 
   const calm = E.newRun(4, 0, null, ['tidewatch', 'moonshard']); // Roil 12 + 8 = 20, the Shallows' Hold
   assert.equal(E.charge(calm), 20);
   assert.equal(E.seepCount(calm), 0);
-  const roiled = E.newRun(4, 0, null, ['whaletooth', 'moonshard']); // Roil 27 against a Hold of 20: 2 steps
+  const roiled = E.newRun(4, 0, null, ['whaletooth', 'moonshard', 'saltedhook']); // Roil 19 + 8 + 7 = 34 against a Hold of 20: 2 steps
   assert.deepEqual(E.roil(roiled), { steps: 2, seep: 1, thrash: 1, minnows: 0 });
   E.startCombat(roiled, 'easy', ['kelp']);
   assert.equal(roiled.combat.draw.concat(roiled.combat.hand).filter((c) => c.id === 'seep').length, 1);
   assert.equal(roiled.combat.thrash, 1);
-  // deeper, the same two are within the Hold of 35
-  assert.equal(E.roil(E.newRun(4, 1, null, ['whaletooth', 'moonshard'])).steps, 0);
+  // deeper, the same three are within the Hold of 35
+  assert.equal(E.roil(E.newRun(4, 1, null, ['whaletooth', 'moonshard', 'saltedhook'])).steps, 0);
   // Scallop Charm gives its 10 Max HP from the start
   const plain = E.newRun(4);
   const charm = E.newRun(4, 0, null, ['biscuit']);

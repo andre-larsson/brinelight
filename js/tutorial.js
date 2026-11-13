@@ -321,6 +321,15 @@
     },
       anchor: () => `#tidebar .tb-act.${actEnd}`, side: 'above',
       html: () => `One step from ${actEnd === 'bail' ? 'a Strand' : 'a Crest'}. Once a turn, without a card, you can spend 1 Light to <b>Bail</b> (Ebb 1) or <b>Stir</b> (Surge 1). A Bail that makes a Strand gets its Light back.` });
+    // the Tolling Buoy's Wild Peal, the first time one is coming
+    let pealUid = null;
+    HINTS.push({ id: 'peal', when: (r) => {
+      const b = r.screen === 'combat' && !r.tutorial && r.combat.phase === 'player' && r.combat.enemies.find((e) => !e.dead && e.intent === 'peal');
+      if (b) pealUid = b.uid;
+      return !!b;
+    },
+      anchor: () => `.unit.enemy[data-uid="${pealUid}"] .intent`, side: 'below',
+      html: () => `<b>Wild Peal</b>: every Crest or Strand you make this turn muffles it by ${BL.PEAL.quiet}. Make ${Math.ceil(BL.PEAL.dmg / BL.PEAL.quiet)} and it doesn't hit at all.` });
     HINTS.push({ id: 'st-doused', when: (r) => r.screen === 'combat' && r.combat.dousedTurn === r.combat.turn && r.combat.phase === 'player', anchor: '#orb',
       html: () => '<b>Doused</b>: something drank from your lantern, so you have less Light this turn. An enemy\'s intent warns you a turn before.' });
     ['soaked', 'chilled', 'brine', 'might', 'spines', 'grief', 'submerged', 'shell', 'swallowed'].forEach((key) => HINTS.push({

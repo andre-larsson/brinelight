@@ -41,8 +41,14 @@ function chooseCombatAction(run) {
   const unblocked = incoming - c.player.ward;
   const wardOf = (card) => { const v = E.vals(card); return v.ward || 0; };
   if (unblocked > 0) {
-    const guard = playable.filter((card) => wardOf(card) > 0).sort((a, b) => wardOf(b) - wardOf(a))[0];
-    if (guard) return { uid: guard.uid, target: E.needsTarget(guard) ? alive[0].uid : null };
+    // the best guard; moving the Swell counts a little, and a wave more, so Slack Water's Ebb isn't left to the order of the hand
+    const guardScore = (card) => {
+      const v = E.vals(card);
+      const p = E.preview(run, card.uid, E.needsTarget(card) ? alive[0].uid : null);
+      return wardOf(card) + (v.ebb || 0) + (v.surge || 0) + (p ? 3 * (p.crests + p.lows) : 0);
+    };
+    const guard = playable.filter((card) => wardOf(card) > 0).map((card) => ({ card, s: guardScore(card) })).sort((a, b) => b.s - a.s)[0];
+    if (guard) return { uid: guard.card.uid, target: E.needsTarget(guard.card) ? alive[0].uid : null };
   }
   // 3. the attack that kills something, else the biggest hit on the weakest enemy
   let best = null;
