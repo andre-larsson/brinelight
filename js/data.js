@@ -345,7 +345,7 @@
     Chilled: 'Deals 25% less attack damage. Wears off by 1 each turn.',
     Brine: 'Loses that much HP at the start of its turn, then Brine drops by 1.',
     Roil: 'How much a keepsake stirs the aether around it. Every keepsake you carry counts.',
-    Hold: 'How much Roil the aether around you holds while it stays Calm. It is the same at every depth.',
+    Hold: 'How much Roil the aether around you holds while it stays Calm. It grows for good the first time you reach each deeper level.',
     Seep: 'Seawater shed by a Roiled aether: an unplayable card shuffled into your draw pile at the start of each fight. It is gone after the fight.',
     Thrash: 'A Roiled aether thrashes, and it strikes you through a fight. Thrash 1: at the start of each of your turns, take 1 damage. Ward you still have from the turn before stops it.',
     Doused: 'Something drank from your lantern: you start your next turn with that much less Light.',
@@ -886,6 +886,15 @@
     saltedhook: { name: 'Salted Hook', art: 'k_saltedhook', charge: 7, desc: 'Whenever you apply Brine, apply 1 more.' },
     echoconch: { name: 'Conch of Echoes', art: 'k_echoconch', charge: 17, desc: 'The first card you play in each fight is played twice.' },
     anchor: { name: 'Drowned Anchor', art: 'k_anchor', charge: 18, desc: 'A Strand also deals 4 damage to ALL enemies.' },
+    /* Found deeper (`deep`: the first level where it can be found, 1 = Dark Water, 2 = the Belfry). Nearer the bell the
+       held water has more of the Heart's light in it, so these are stronger, and they stir the aether more. In those
+       levels the first keepsake of every offer is one of the level's own while any are left (E.keepsakeChoices). */
+    whelk: { name: 'Hollow Whelk', art: 'k_whelk', charge: 27, deep: 1, keep: 1, desc: 'Your Ward no longer washes away at the start of your turn.' },
+    bulb: { name: 'Glimmer Bulb', art: 'k_bulb', charge: 30, deep: 1, light: 1, desc: 'Whenever you Strand, gain 1 more Light.' },
+    leechjar: { name: 'Leech Jar', art: 'k_leechjar', charge: 21, deep: 1, heal: 4, maxHp: 2, desc: 'Whenever a creature dies, your Max HP rises by 2 and you heal 4 HP.' },
+    clapper: { name: 'Bell Clapper', art: 'k_clapper', charge: 41, deep: 2, desc: 'The first time you Crest or Strand each turn, your next card is played twice.' },
+    powderhorn: { name: 'Powder Horn', art: 'k_powderhorn', charge: 26, deep: 2, burst: 12, desc: 'Whenever a creature dies, it bursts: 12 damage to every other creature.' },
+    cinder: { name: 'Heart Cinder', art: 'k_cinder', charge: 42, deep: 2, every: 2, desc: 'Gain 1 more Light on the 1st, 3rd, 5th and every other turn of each fight.' },
   };
 
   /* ------------------------------------------------------------------ *
@@ -1067,7 +1076,7 @@
   /* Where kit goes. The Bell always holds a bell; the others can be empty. */
   BL.KIT_PLACES = [
     { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.' },
-    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you draw when you Crest or Strand.' },
+    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you get when you Crest or Strand.' },
     { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.' },
     { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.' },
     { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.' },
@@ -1075,14 +1084,18 @@
   BL.KIT = {
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
+    toggle: { place: 'harpoon', name: 'Toggle Iron', art: 'g_toggle', price: 30, unlock: 'stillwater', soaked: 2, desc: 'Your first Harpoon Jab in each fight applies 2 Soaked.' },
     tidebell: { place: 'bell', name: 'Brass Tide-Bell', art: 'k_tidebell', price: 0, starter: true, desc: 'Whenever you Crest or Strand, draw 1 card.' },
     floodbell: { place: 'bell', name: 'Flood Bell', art: 'g_floodbell', price: 20, unlock: 'twocrests', desc: 'Whenever you Crest, draw 1 card and gain 1 Light. A Strand gives nothing.' },
     ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you Strand, draw 1 card and gain 3 Ward. A Crest gives nothing.' },
     crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Strand each turn gives nothing. Every one after it draws 2 cards and gives 1 Light.' },
+    harbourbell: { place: 'bell', name: 'Harbour Bell', art: 'g_harbourbell', price: 25, unlock: 'outofbell', desc: 'The Hermit\'s bell, mended. Whenever you Crest or Strand, gain 3 Ward. It draws nothing.' },
     cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
-    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', price: 25, unlock: 'untouched', desc: 'Start each fight with 4 Ward.' },
+    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
     /* Found, never bought: the first time Dark Water's pin breaks, Wren finds it and carries it home (E.carryHome). */
     suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
+    /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */
+    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, with shell plates over the chest. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
     pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, desc: 'Gain 10 extra Pearls after each fight.' },
     marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
@@ -1090,6 +1103,8 @@
     scales: { place: 'ditty', name: 'Pearl Scales', art: 'g_scales', price: 15, desc: "Barnaby's prices are 25% lower: he can't argue with honest weights." },
     net: { place: 'ditty', name: 'Gleaning Net', art: 'g_net', price: 10, desc: 'Gain 3 Pearls whenever you Crest.' },
     wick: { place: 'ditty', name: 'Spare Wick', art: 'g_wick', price: 12, desc: 'Resting heals 10 more HP.' },
+    bailer: { place: 'ditty', name: 'Bailer', art: 'g_bailer', price: 30, unlock: 'bothends', desc: 'You can Bail or Stir twice a turn.' },
+    line: { place: 'ditty', name: 'Safety Line', art: 'g_line', price: 35, unlock: 'closecall', hp: 5, desc: 'The first time you would fall on an expedition, the line holds: you are left with 5 HP.' },
   };
   /* Story so far (title screen and menu): the opening, chapters, the world glossary and the keeper's notes.
      `when` is a mark the player has to earn (E.storyMarks in js/engine.js); an entry without it is always open.
@@ -1267,5 +1282,10 @@
     dreadhunter: { name: 'Dread Hunter', desc: 'Defeat a Dread.', met: (r) => (r.stats.elites || 0) >= 1 },
     travellight: { name: 'Travel Light', desc: 'Defeat a Dread with 12 or fewer cards in your deck.', met: (r) => !!r.stats.leanDread },
     pickled: { name: 'Salt the Wound', desc: 'Defeat an enemy with Brine.', met: (r) => (r.stats.brineKills || 0) >= 1 },
+    bothends: { name: 'Both Ends', desc: 'Crest and Strand in the same turn.', met: (r) => !!r.stats.bothEnds },
+    closecall: { name: 'Close Call', desc: 'Win a fight with 5 HP or less left.', met: (r) => !!r.stats.closeCall },
+    outofbell: { name: 'Out of Its Bell', desc: "Break the Harbour Hermit's bell, the Shallows' pin.", met: (r) => (r.cleared || []).indexOf(0) >= 0 },
+    stillwater: { name: 'Still Water', desc: "Silence the Tolling Buoy, Dark Water's pin.", met: (r) => (r.cleared || []).indexOf(1) >= 0 },
+    heartlight: { name: 'The Light Returns', desc: 'Bring the Lantern Heart home.', met: (r) => !!r.heart && r.screen === 'victory' },
   };
 })();

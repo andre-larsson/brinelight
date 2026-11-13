@@ -50,8 +50,8 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
   - Every extra Crest in the same turn hits 3 harder (6, 9, 12, 15...).
   - Every Strand gives 1 Light, so a turn with two Strands gets 2 back.
   - Saving up Surges for one big turn is the core skill.
-- **Bail and Stir:** once a turn, without a card, you can spend 1 Light to **Bail** (Ebb 1) or **Stir** (Surge 1). The two buttons are at the ends of the Swell bar. A Bail that makes a Strand gets its Light back, because the Strand gives 1 Light; a Stir that makes a Crest does not. You can Bail or Stir in a turn, not both. The tutorial teaches Bail on its third turn.
-- Your bell draws when you Crest or Strand. You start with the Brass Tide-Bell, which draws a card on every one. Other bells from the Workshop draw differently.
+- **Bail and Stir:** once a turn, without a card, you can spend 1 Light to **Bail** (Ebb 1) or **Stir** (Surge 1). The two buttons are at the ends of the Swell bar. A Bail that makes a Strand gets its Light back, because the Strand gives 1 Light; a Stir that makes a Crest does not. You can Bail or Stir in a turn, not both. With the Bailer in your Ditty Bag you can Bail or Stir twice a turn, in any mix. The tutorial teaches Bail on its third turn.
+- Your bell pays out when you Crest or Strand. You start with the Brass Tide-Bell, which draws a card on every one. Other bells from the Workshop pay differently.
 - Some cards scale with the Swell (Undercurrent, Tsunami, Lighthouse Beam) or with chains (Toppled Tower costs 1 less per Crest this turn).
 
 **Feedback while you play.**
@@ -98,15 +98,22 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Wrecks:** a chest of pearls where you may take 1 of 3 keepsakes.
 
 **Keepsakes, Roil and a Roiled aether.** A keepsake lasts the whole run, and it stirs the aether around you. How much is its **Roil** (shown on each keepsake). Every keepsake you carry counts.
-- The aether around you holds a set amount of Roil, your **Hold**: 20, the same at every depth. Up to your Hold the aether is **Calm**.
+- The aether around you holds a set amount of Roil, your **Hold**. It starts at 20. The first time you reach Dark Water it grows to 30, for good, and the first time you reach the Belfry to 40. It counts from the moment you arrive, even if you fall later in that expedition. It doesn't change with the level you are in: once it is 30, it is 30 in the Shallows too. Up to your Hold the aether is **Calm**.
 - Past your Hold the aether is **Roiled**. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight. The steps go round a ladder of three:
   - **Step 1: a Seep.** Seep is an unplayable card shuffled into your draw pile at the start of the fight, and it's gone after the fight. It never joins your deck.
-  - **Step 2: Thrash 1.** At the start of each of your turns, you take 1 damage. Ward stops it: Thrash lands before the Ward from your last turn washes away, so Ward left over after the enemies have acted takes the hit. On the first turn of a fight only the Shell Gorget's Ward is there to stop it.
+  - **Step 2: Thrash 1.** At the start of each of your turns, you take 1 damage. Ward stops it: Thrash lands before the Ward from your last turn washes away, so Ward left over after the enemies have acted takes the hit. On the first turn of a fight only a coat's Ward (the Shell Gorget's or the Plated Dress's) is there to stop it.
   - **Step 3: a Bell Minnow.** One of the Bellwether's minnows follows you into the fight as an extra enemy, at half health.
   - **Step 4** is a second Seep, **step 5** is Thrash 2, **step 6** is a second Bell Minnow, and so on. There are never more than 2 Bell Minnows.
 - The Roil number in the top bar, every keepsake pick and the screen before a descent say what your Roil does at that moment.
 - A keepsake pick shows what taking it would do to your Roil. You can take one, or leave them.
 - Between fights you can drop a keepsake for good (one you brought from the Lazaret is only out of that run). Scallop Charm takes its 10 Max HP with it.
+- **Deeper finds are stronger.** 14 keepsakes can be found anywhere. Three more are found only in Dark Water and deeper (the Hollow Whelk, the Glimmer Bulb and the Leech Jar), and three only in the Belfry (the Bell Clapper, the Powder Horn and the Heart Cinder). They do more, and they carry more Roil (21 to 42). In Dark Water and the Belfry the first keepsake of every Wreck, Dread's pick and shop is one of that level's own, while any are left that you aren't carrying. The Shallows never offer them.
+  - **Hollow Whelk:** your Ward no longer washes away at the start of your turn, so it builds up from turn to turn.
+  - **Glimmer Bulb:** a Strand gives 2 Light instead of 1.
+  - **Leech Jar:** whenever a creature dies, your Max HP rises by 2 and you heal 4 HP. The Max HP lasts the expedition; dropping the jar takes it back.
+  - **Bell Clapper:** the first Crest or Strand of each turn makes the next card you play happen twice (not the card that made it).
+  - **Powder Horn:** whenever a creature dies, it bursts for 12 damage on every other creature. It never hurts you, and one burst can kill and set off the next.
+  - **Heart Cinder:** 1 more Light on the 1st, 3rd, 5th and every other turn of each fight.
 
 After each Skirmish you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded, and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
 
@@ -126,7 +133,7 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 **Expeditions and score.** Every expedition starts on the shore, in the Shallows. The top bar counts the landings you have reached in the level you are in.
 - Each level has 8 landings: 7 rows of stops, then its pin. Every route passes a Wreck on the 4th landing and a Cove on the 7th.
 - The Shallows, Dark Water and the Belfry each have their own creatures, Dreads, pin and Fog events. The Shallows' pin is the Harbour Hermit, Dark Water's is the Tolling Buoy, and the Belfry's is the Drowned Bellwether.
-- **The Belfry is under the sea.** To go down into it you must wear the **Diving Dress** in your Coat place. The first time you break Dark Water's pin without one, it hangs above the stair: go home, and it is yours in the Workshop. It can't be bought, it does nothing in a fight, and it takes the place of the Cork Vest or the Shell Gorget.
+- **The Belfry is under the sea.** To go down into it you must wear the **Diving Dress** in your Coat place. The first time you break Dark Water's pin without one, it hangs above the stair: go home, and it is yours in the Workshop. It can't be bought, it does nothing in a fight, and it takes the place of the Cork Vest or the Shell Gorget. Once the Heart has come home, the Workshop sells the **Plated Dress**, which opens the Belfry too and gives 3 Ward at the start of each fight.
 - After a pin that is not the last, choose: **go home**, which ends the expedition and keeps everything you carry, or **go deeper** with your deck, keepsakes and HP. The stair down starts at a Sheltered Cove, where you rest or upgrade a card, as at any Cove.
 - Breaking the Belfry's pin brings the Lantern Heart home. After that, the Belfry's last landing holds one of its **finals** instead, and beating it quiets the Belfry.
 - The score counts each landing reached: 40 in the Shallows, 60 in Dark Water and 80 in the Belfry. Coming home adds 5 for each HP you have left, and bringing the Heart home, or quieting the Belfry after it, adds 600. Your best score is kept.
@@ -135,12 +142,12 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 **The Workshop (lasts across runs).** Every finished expedition turns its score into **Salvage**: 1 for every 50 points. Abandoning one earns nothing.
 - Spend Salvage in the Workshop on the title screen. **Kit** you buy is yours for good. Kit is the mundane gear Wren wears and carries; keepsakes are the magic.
 - Kit goes in five places, one piece each, and you choose before each descent. The game remembers your choice.
-  - **Harpoon:** the Honed Harpoon (your first Harpoon Jab in each fight deals 2 more damage) or the Barbed Harpoon (it applies 1 Brine).
-  - **Bell:** always one. The Brass Tide-Bell draws 1 card on every Crest and Strand. The Flood Bell draws 1 card and gives 1 Light on a Crest, and nothing on a Strand. The Ebb Bell draws 1 card and gives 3 Ward on a Strand, and nothing on a Crest. The Cracked Bell gives nothing on the first Crest or Strand of a turn, then draws 2 cards and gives 1 Light on every one after.
-  - **Coat:** Cork Vest (+5 Max HP) or Shell Gorget (4 Ward at the start of each fight), or the Diving Dress, found in Dark Water (nothing in a fight, but it opens the Belfry).
+  - **Harpoon:** the Honed Harpoon (your first Harpoon Jab in each fight deals 2 more damage), the Barbed Harpoon (it applies 1 Brine) or the Toggle Iron (it applies 2 Soaked).
+  - **Bell:** always one. The Brass Tide-Bell draws 1 card on every Crest and Strand. The Flood Bell draws 1 card and gives 1 Light on a Crest, and nothing on a Strand. The Ebb Bell draws 1 card and gives 3 Ward on a Strand, and nothing on a Crest. The Cracked Bell gives nothing on the first Crest or Strand of a turn, then draws 2 cards and gives 1 Light on every one after. The Harbour Bell gives 3 Ward on every Crest and Strand, and draws nothing.
+  - **Coat:** Cork Vest (+5 Max HP) or Shell Gorget (4 Ward at the start of each fight), or the Diving Dress, found in Dark Water (nothing in a fight, but it opens the Belfry), or the Plated Dress (it opens the Belfry, and 3 Ward at the start of each fight).
   - **Pocket:** Coin Purse (+30 Pearls at the start), Gleaner's Pouch (+10 Pearls after each fight) or Barnaby's Marker (your first card removal at Barnaby's is free).
-  - **Ditty Bag:** Spare Flask (a tonic at the start), Pearl Scales (Barnaby's prices are 25% lower), Gleaning Net (+3 Pearls whenever you Crest) or Spare Wick (rests heal 10 more HP).
-- Some kit is locked until an **achievement**, such as Crest three times in one turn or defeat an enemy with Brine. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
+  - **Ditty Bag:** Spare Flask (a tonic at the start), Pearl Scales (Barnaby's prices are 25% lower), Gleaning Net (+3 Pearls whenever you Crest), Spare Wick (rests heal 10 more HP), Bailer (Bail or Stir twice a turn) or Safety Line (the first time you would fall on an expedition, you are left with 5 HP instead and the fight goes on; once an expedition).
+- Some kit is locked until an **achievement**, such as Crest three times in one turn, defeat an enemy with Brine, or break a pin: the Harbour Hermit's opens the Harbour Bell, the Tolling Buoy's the Toggle Iron, and bringing the Heart home the Plated Dress. Both Ends (Crest and Strand in one turn) opens the Bailer, and Close Call (win a fight with 5 HP or less) the Safety Line. If you broke those pins before these achievements existed, they are yours already. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
 - Kit never changes the map: the same seed gives the same map with any kit.
 
 **The Lazaret (lasts across runs).** The Lazaret is the locked store room at the lighthouse, where keepsakes are kept between runs. It opens the first time you come home, and it is on the title screen from then on.
@@ -174,8 +181,8 @@ Both are announced the moment you earn them. The score counts Crests and Strands
   - The Bell Minnow, the Bellwether's, follows a Roiled aether.
   - Dark Water: 4 new normal creatures (Glimmer Leech, Pistol Shrimp, Murk Ray, Lamp Hermit), with the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp; 3 elite encounters (Glimmer Chain, Pale Gulper and the Garden Strider, which calls Glimmer Leeches); and its boss, the Tolling Buoy.
   - The Belfry: 3 new normal creatures (Bell Jelly, Bellspawn, Glimmer Bladder), with the Murk Ray, Lantern Eel, Gloom Jelly, Glimmer Leech and Bell Minnow; 3 elite encounters (Drowned Ringer, Crowned Oarfish, Glimmer Chain); its boss, the Drowned Bellwether, and its second form, the Thing in the Bell with its Grasping Arms; and, after the Heart, its finals: the Thing in the Bell or the Drowned Cantor.
-- **14 keepsakes, 7 tonics, 13 events** (7 in the Shallows; in Dark Water, 3 of its own and 3 from the Shallows; in the Belfry, 3 of its own, the Sunken Shrine and the Glimmer Garden).
-- **15 pieces of kit (plus the Brass Tide-Bell) and 7 achievements** in the Workshop. One of them, the Diving Dress, is found, not bought.
+- **20 keepsakes** (14 anywhere, 3 from Dark Water down, 3 only in the Belfry), **7 tonics, 13 events** (7 in the Shallows; in Dark Water, 3 of its own and 3 from the Shallows; in the Belfry, 3 of its own, the Sunken Shrine and the Glimmer Garden).
+- **20 pieces of kit (plus the Brass Tide-Bell) and 12 achievements** in the Workshop. One of them, the Diving Dress, is found, not bought.
 - **Endings:** win and lose screens with the score line by line (and how it turns into Salvage), run stats, best score, unlocks in purple boxes, and a one-click new run.
 
 Sound effects and music are synthesized at runtime with the Web Audio API, so there are no audio files. The music is a generative pad-and-pluck score over an ocean bed, and it changes mood for fights, the boss, and the boss's second phase.

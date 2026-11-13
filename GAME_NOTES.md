@@ -54,6 +54,7 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
+- v0.22.0 (2026-11-14, not pushed): slice C, more kit and keepsakes, and the Hold grows by the deepest level reached. See "More kit and keepsakes, slice C (v0.22.0, 2026-11-14)". v0.20.0 (slice B, the Belfry) and v0.21.0 (deeper Dreads are harder) are committed and not pushed either.
 - v0.19.0 (2026-11-13, not pushed): expeditions, slice A. See "Expeditions, slice A (v0.19.0, 2026-11-13)". Slice B (the Belfry, the suit, the Shallows' new pin, the story rewrite) is next.
 - v0.18.0 (2026-11-13, not pushed): the user's notes on v0.17.0: Slack Water 4 Ward, the bells pay Light or Ward, a Roil step every 12, the Buoy's Wild Peal, and the Gulper's Retch. See "Playtest notes on v0.17.0 (v0.18.0, 2026-11-13)". The expedition is next and waits for the user's answers: see "Expedition proposal (2026-11-13; waiting for the user)".
 - v0.17.0 (2026-11-13, pushed with v0.15.0 and v0.16.0): Bail and Stir, and Ebb 2 on four cards. See "Bail and Stir (v0.17.0, 2026-11-13)" below.
@@ -935,6 +936,92 @@ The user asked for both recommendations from the same-deck table above ("Impleme
 - Does the Strider read as a fight about its Leeches: kill them, or race it?
 - Does the Hulk still feel like the Shallows' hardest Dread?
 
+### More kit and keepsakes, slice C (v0.22.0, 2026-11-14)
+
+The user said "implement phase C": slice C of the expedition plan, "more kit and keepsakes". While it was being built they added: "not sure if Hold should really increase as you go deeper. maybe reaching new depth should result in permanent increase in hold instead." (The Hold was already the same at every level since v0.19.0; WORLD.md still said the aether "holds more closer to the bell".) Their idea is built here.
+
+**Built:**
+- **Richer finds** (agreed in the expedition proposal, item 4; WORLD.md: "the keepsakes found there are stronger").
+  - `BL.KEEPSAKES[k].deep` is the first level where a keepsake can be found (`E.keepsakeDepth`). `E.keepsakePool` holds the keepsakes of the run's level and the levels above it.
+  - Below the Shallows, `E.keepsakeChoices` puts one of the level's own keepsakes first while any are left. Wrecks, Dreads and Barnaby's shop (now `E.keepsakeChoices(run, 2)`) all use it.
+  - In the Shallows the draw is the same as before, so Shallows runs replay unchanged (tested).
+- **Six deeper keepsakes:**
+  - Dark Water: the Hollow Whelk (Roil 27: your Ward no longer washes away at the start of your turn), the Glimmer Bulb (30: a Strand gives 2 Light) and the Leech Jar (22: whenever a creature dies, +1 Max HP and heal 4; the Max HP is taken back if the jar is dropped, `run.leechHp`);
+  - the Belfry: the Bell Clapper (41: the first Crest or Strand of a turn makes the next card play twice), the Powder Horn (26: every creature that dies bursts for 12 on the others, never on you, and bursts chain) and the Heart Cinder (42: 1 more Light on turns 1, 3, 5 and so on).
+  - Echo now replays a card only if it was waiting before that card was played (`echoReady` in `E.playCard`). Without that, the Clapper would echo the very card that made the Crest. Nothing else gave Echo mid-card, so nothing else changed.
+- **The Hold grows for good** (the user's idea): `E.HOLD` 20 plus `E.HOLD_STEP` 10 for the deepest level ever reached (`E.holdAt`): 20, 30, 40.
+  - `run.hold` is set by `E.newRun(..., deepest)` from `meta.reached`, and `E.goDeeper` raises it on a first arrival (`run.holdRose`, a toast).
+  - The UI stores the arrival at once (`E.noteReached`), so it counts even if Wren falls or the run is abandoned. `E.recordRun` notes it too. Tutorial and debug-cheated runs count for nothing.
+  - `meta.reached` comes from the Logbook's deepest landing for older saves. A saved run without `run.hold` uses the Hold for its level.
+  - `E.hold(run)`, `E.roilFor(charge, hold)`; before a run the UI uses `E.metaHold(meta)`. The Logbook shows the Hold and what it grows to. Debug: "Next Hold".
+- **Five pieces of kit**, each unlocked by a new achievement:
+  - Toggle Iron (Harpoon, 30): the first Harpoon Jab of a fight applies 2 Soaked. Unlocked by Still Water (break the Tolling Buoy).
+  - Harbour Bell (Bell, 25): 3 Ward on every Crest and Strand, no card. Unlocked by Out of Its Bell (break the Harbour Hermit).
+  - Plated Dress (Coat, 50): counts as the Diving Dress (`as: 'suit'`, `E.wears`), and 3 Ward at the start of each fight. Unlocked by The Light Returns (bring the Heart home). The Gorget's 4 Ward and the dress's 3 are now a `ward` field on the coat.
+  - Bailer (Ditty Bag, 30): Bail or Stir twice a turn (`E.swellActsPerTurn`, `c.swellActN`). Unlocked by Both Ends (Crest and Strand in one turn, `stats.bothEnds`).
+  - Safety Line (Ditty Bag, 35): the first time Wren would fall on an expedition she is left with 5 HP and the fight goes on (`lineHolds`, `run.lineUsed`). Unlocked by Close Call (win a fight with 5 HP or less, `stats.closeCall`).
+  - Old saves: `E.migrateMeta` grants Out of Its Bell and Still Water from the deepest level reached, and The Light Returns from the Hearts brought home.
+- **Art:** 11 icons from Codex (`assets-src/wanted-images.tsv`, keepsakes in `assets-src/keepsakes/`). The Lazaret lists where each keepsake not yet brought home is found, and reward and shop tiles tag a deeper one "From Dark Water" or "From the Belfry".
+- **Fixed in passing:** the chosen currents were saved but never loaded, so a reload forgot them. `meta.currents` is now read back.
+- **Tests:** `tests/finds.test.js` (19 tests), and `node tests/ui-smoke.js --only finds` on desktop and phone.
+- **Fixed while testing:** the toast stack holds three messages, and going deeper also unlocks Story so far entries, so their toasts pushed the Hold toast out. The Hold toast now comes last.
+
+**Measured** (the bot, one capped process each time; spec files in the session scratchpad):
+- **Keepsake value:** the Shallows' pin with the keepsake carried from the start, the Hold out of the way (999). Baseline 23.5% over 1000 seeds, 23.9% over 2000. On this scale the Shallows keepsakes cost about 1.1 Roil per point: the Whale Tooth gives +16.1 at Roil 19, the Storm Bottle +17.0 at 18, the Tidewatch +11.9 at 12. Each deeper keepsake was tuned until it was worth more than the Whale Tooth, then given 1.1 Roil per point.
+
+  | Keepsake | First version | Gain | Built | Gain | Roil |
+  |---|---|---|---|---|---|
+  | Hollow Whelk | half your Ward stays | +9.2 | all your Ward stays | +24.4 | 27 |
+  | Glimmer Bulb | a Strand gives 2 Light | +27.0 | the same | +27.0 | 30 |
+  | Leech Jar | heal 3 a death | +7.6 | heal 4 and +2 Max HP a death | +18.7 | 21 |
+  | Bell Clapper | first Crest or Strand: next card twice | +37.7 | the same | +37.7 | 41 |
+  | Powder Horn | bursts for 5 | +9.6 | bursts for 12 | +23.5 | 26 |
+  | Heart Cinder | +1 Light every turn | +64.9 | +1 Light on turns 1, 3, 5... | +38.2 | 42 |
+
+  Also tried: Leech Jar heal 5 (+11.2), heal 7 (+14.2), heal 4 and +1 Max HP (+14.7), heal 3 and +2 (+16.2), heal 5 and +2 (+20.4); Powder Horn 8 (+16.1); Heart Cinder every third turn (+22.9).
+- **Kit:** the Shallows' pin at Hold 20, empty kit 20.3% (1000 seeds; noise about ±1.3):
+
+  | Piece | Pin | Piece | Pin |
+  |---|---|---|---|
+  | Honed Harpoon | 22.0 | Flood Bell | 26.4 |
+  | Barbed Harpoon | 20.5 | Ebb Bell | 25.7 |
+  | Toggle Iron | 24.8 | Harbour Bell, 5 / 4 / 3 Ward | 37.2 / 33.3 / 30.3 |
+  | Shell Gorget | 19.0 | Bailer | 19.7 |
+  | Plated Dress | 21.5 | Safety Line, 10 / 5 / 1 HP | 33.4 / 30.7 / 29.2 |
+
+  The bot never plans two Swell acts in a turn, so the Bailer is worth nothing to it. Most of the Safety Line's value is the second chance itself: at 1 HP it still gives +8.9.
+- **The Hold:** the Shallows' pin carrying the Whale Tooth, Storm Bottle and Kelp Bracelet (Roil 48), 2000 seeds: 35.0% at Hold 20, 47.5% at 30, 56.7% at 40 (nothing carried: 19.9%).
+- **The expedition,** wearing the dress, 2000 seeds:
+
+  | | Shallows' pin | Dark Water's after it | Belfry's after that | Heart home |
+  |---|---|---|---|---|
+  | v0.21.0 rules (no deeper keepsakes, Hold 20) | 19.9 | 15.9 | 30.2 | 0.9 |
+  | v0.22.0, first expedition (Hold 20, then 30, then 40) | 19.9 | 17.9 | 45.1 | 1.6 |
+  | v0.22.0, been to the Belfry before (Hold 40) | 23.2 | 20.7 | 53.1 | 2.5 |
+  | after the Heart, Hold 40, Plated Dress | 23.7 | 27.2 | 57.4 | 3.7 (quieted) |
+
+  A first expedition's Shallows are unchanged: they offer nothing new and the Hold is still 20. These rows were played with the Leech Jar's earlier version (+1 Max HP, Roil 22); its final +2 was measured after.
+
+**My provisional calls** (rules and numbers are the user's; each is a dial):
+1. `E.HOLD_STEP` 10: the Hold is 20, 30, 40. It counts on arrival, even if Wren falls later.
+2. Deeper keepsakes are priced like the old ones (1.1 Roil per point), and the cheapest (the Leech Jar, 21) is above the dearest Shallows keepsake (the Whale Tooth, 19). Their numbers were raised until each is worth more than any Shallows keepsake. The Heart Cinder went the other way: +1 Light every turn won 88% of the Shallows' pins.
+3. One of the level's own keepsakes comes first in every offer below the Shallows, while any are left.
+4. Harbour Bell 3 Ward (+10 for the bot; 5 Ward was +17). Safety Line 5 HP. Plated Dress 3 Ward.
+5. Prices and unlocks: Toggle Iron 30 (Still Water), Harbour Bell 25 (Out of Its Bell), Plated Dress 50 (The Light Returns), Bailer 30 (Both Ends), Safety Line 35 (Close Call).
+6. Echo replays only a card it was waiting for before the card was played. It changes nothing that existed before.
+
+**Findings for the user (not changed):**
+1. **The Belfry got easier.** Its pin share rose from 30.2% to 45.1% on a first expedition, and to 53.1% for a veteran, because its own keepsakes are the strongest and the Hold is 40 by then. The user asked for deeper levels to stay hard from their first fight. Levers: the Belfry keepsakes (the Clapper and the Cinder are the strongest), or the Belfry's enemies.
+2. **Two Shallows keepsakes are underpriced** on today's scale: the Kelp Bracelet (+25.6 at Roil 11) and the Drowned Anchor (+23.4 at 18).
+3. The Shell Gorget measured below an empty kit (19.0 against 20.3), inside the noise.
+
+**Open for the playtest:**
+- Do the deeper keepsakes feel worth going down for? Does the "From Dark Water" tag read?
+- Did you see the Hold toast on the stair? Does a bigger Hold feel like progress?
+- Does the Hollow Whelk's stacking Ward make fights slow?
+- Can you follow the Powder Horn's chain bursts, and see which card the Bell Clapper doubles?
+- Did you Bail and Stir in one turn with the Bailer?
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -1265,7 +1352,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot): v0.21.0, 2000 seeds: the Shallows' pin 19.9%, Dark Water's after it 15.9%, the Belfry's after that 30.2%, the Heart 0.9% (see "Deeper Dreads are harder"). v0.20.0, 2000 seeds:
+- **Bot run outcomes** (careful bot): v0.22.0, 2000 seeds, first expedition: the Shallows' pin 19.9%, Dark Water's after it 17.9%, the Belfry's after that 45.1%, the Heart 1.6%; with Hold 40 from earlier expeditions 23.2%, 20.7%, 53.1%, 2.5% (see "More kit and keepsakes, slice C"). v0.21.0, 2000 seeds: the Shallows' pin 19.9%, Dark Water's after it 15.9%, the Belfry's after that 30.2%, the Heart 0.9% (see "Deeper Dreads are harder"). v0.20.0, 2000 seeds:
   - the Shallows' pin 18.5%;
   - Dark Water's after it 18.6%;
   - the Belfry's after that 34% (paired replay);

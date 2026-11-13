@@ -723,7 +723,8 @@ async function lazaretScenario(page, base, name, size) {
   await checkPage(page, name + ' first win');
   await clickIf(page, '.lz-box');
   await sleep(200);
-  if ((await count('#overlay [data-act="ksbring"]')) !== 2 || (await count('#overlay .lz-missing')) !== 12) failures.push(`${name}: the Lazaret should show 2 kept and 12 not brought home`);
+  const ksTotal = await page.eval('Object.keys(BL.KEEPSAKES).length');
+  if ((await count('#overlay [data-act="ksbring"]')) !== 2 || (await count('#overlay .lz-missing')) !== ksTotal - 2) failures.push(`${name}: the Lazaret should show 2 kept and ${ksTotal - 2} not brought home`);
   await checkPage(page, name + ' lazaret');
   await clickIf(page, '#overlay [data-act="ksbring"][data-k="anchor"]');
   await sleep(150);
@@ -731,7 +732,7 @@ async function lazaretScenario(page, base, name, size) {
   if (m.bring.join(',') !== 'anchor' || (await count('#overlay .kit-tile.chosen')) !== 1) failures.push(`${name}: choosing a keepsake in the Lazaret wasn't stored or shown`);
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   await clickIf(page, '[data-act="totitle"]');
-  if (!/2\/14/.test(await text('[data-act="lazaret"]'))) failures.push(`${name}: the title screen doesn't show the Lazaret with 2 of 14`);
+  if (!new RegExp(`2/${ksTotal}`).test(await text('[data-act="lazaret"]'))) failures.push(`${name}: the title screen doesn't show the Lazaret with 2 of ${ksTotal}`);
   // the title screen has three levels of button, and the logbook has counted the win
   const levels = await page.eval(`({ second: document.querySelectorAll('.title-buttons .btn.second').length, third: document.querySelectorAll('.title-buttons .btn.third').length })`);
   if (levels.second !== 2 || levels.third !== 4) failures.push(`${name}: the title screen should have 2 second-level and 4 third-level buttons (${JSON.stringify(levels)})`);
@@ -996,6 +997,104 @@ async function belfryScenario(page, base, name, size, opts) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* v0.22.0, slice C: the Lazaret says where deeper keepsakes are found, the Logbook shows the Hold, the Workshop has
+   the new kit, the Hold grows the first time Wren reaches Dark Water, a Dark Water shop tags its own keepsake, the
+   Bailer allows two Bails or Stirs a turn, and the Safety Line holds once. */
+async function findsScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=8181');
+  const meta = { salvage: 200, earned: 200, owned: ['suit', 'bailer', 'line'], ach: ['bothends', 'closecall'], kit: { bell: 'tidebell', coat: 'suit', ditty: 'bailer' },
+    lazaret: ['whaletooth'], bring: [], lazOpen: true, record: { runs: 1, wins: 1, hearts: 0, quiets: 0, deep: { level: 0, floor: 8 } } };
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify(meta))}); })()`);
+  await page.goto(base + '?seed=8181');
+  await inject(page);
+  const text = (sel) => page.eval(`(document.querySelector(${JSON.stringify(sel)}) || { textContent: '' }).textContent`);
+  const all = (sel) => page.eval(`[...document.querySelectorAll(${JSON.stringify(sel)})].map((x) => x.textContent).join(' | ')`);
+  const toasts = () => all('.toast-msg');
+  const close = async () => { await clickIf(page, '#overlay [data-act="close"]'); await sleep(200); };
+
+  // the Lazaret: keepsakes not brought home yet say where they are found
+  await page.click('[data-act="lazaret"]');
+  await sleep(250);
+  const missing = await all('#overlay .lz-missing');
+  if (!/Found in Dark Water/.test(missing) || !/Found in the Belfry/.test(missing)) failures.push(`${name}: the Lazaret doesn't say where deeper keepsakes are found (${missing.slice(0, 120)})`);
+  await checkPage(page, name + ' lazaret');
+  await close();
+  // the Logbook: the Hold, and what it grows to
+  await page.click('[data-act="logbook"]');
+  await sleep(250);
+  const log2 = await text('#overlay .logbook');
+  if (!/Your Hold\s*20 Roil/.test(log2) || !/30 once you reach Dark Water/.test(log2)) failures.push(`${name}: the Logbook doesn't show the Hold (${log2.slice(0, 160)})`);
+  await close();
+  // the Workshop: the five new pieces, the Harbour Bell locked behind its achievement
+  await page.click('[data-act="workshop"]');
+  await sleep(250);
+  const ws = await text('#overlay');
+  ['Toggle Iron', 'Harbour Bell', 'Plated Dress', 'Bailer', 'Safety Line', "Out of Its Bell"].forEach((w) => { if (ws.indexOf(w) < 0) failures.push(`${name}: the Workshop doesn't show ${w}`); });
+  await checkPage(page, name + ' workshop');
+  await close();
+
+  // set out in the dress with the Bailer, carrying a Hollow Whelk
+  await page.click('[data-act="newrun"]');
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the pack screen');
+  await page.click('#overlay [data-act="dive"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the map');
+  await dismissHints(page);
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.gainKeepsake(r, 'whelk'); r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.render(); })()`);
+  await sleep(200);
+  const whelk = await page.eval('BL.KEEPSAKES.whelk.charge');
+  if (!new RegExp(`${whelk}/20`).test(await text('.hud .charge'))) failures.push(`${name}: the Roil chip should read ${whelk}/20 (got ${await text('.hud .charge')})`);
+  if (!/your Hold grows to 30/.test(await text('[data-act="godeeper"]'))) failures.push(`${name}: Go deeper doesn't say the Hold will grow`);
+  await page.click('[data-act="godeeper"]');
+  await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the Cove on the stair');
+  await sleep(200);
+  if (!/Hold grows from 20 to 30/.test(await toasts())) failures.push(`${name}: no toast when the Hold grows (${await toasts()})`);
+  if (!new RegExp(`${whelk}/30`).test(await text('.hud .charge'))) failures.push(`${name}: the Roil chip should read ${whelk}/30 in Dark Water (got ${await text('.hud .charge')})`);
+  const stored = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1')).reached`);
+  if (stored !== 1) failures.push(`${name}: reaching Dark Water should be stored at once (reached ${stored})`);
+  await page.click('[data-act="rest"]');
+  await sleep(200);
+  await page.click('[data-act="tomap"]');
+  await page.waitFor('window.Brinelight.run.screen === "map"', 5000, 'the Dark Water map');
+  await dismissHints(page);
+
+  // a Dark Water shop: its first keepsake is one of Dark Water's own, and says so
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.enterNode(r, { row: 1, col: r.map.grid[1].findIndex(Boolean), type: 'shop', next: [] }); B.render(); })()`);
+  await sleep(250);
+  await dismissHints(page);
+  if (!/From Dark Water/.test(await all('.shop-tile .k-deep'))) failures.push(`${name}: the Dark Water shop doesn't tag its own keepsake`);
+  await checkPage(page, name + ' dark water shop');
+
+  // a fight: with the Bailer, Bail and Stir both
+  const setFight = async (enc, setup) => {
+    await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.combat = null; r.shop = null; r.screen = 'map'; E.startCombat(r, 'easy', ${JSON.stringify(enc)}); const c = r.combat; c.enemies.forEach((e) => { e.hp = e.maxHp = 300; }); ${setup || ''}; B.render(); })()`);
+    await waitIdle(page);
+    await dismissHints(page);
+  };
+  await setFight(['kelp'], 'c.light = 3; c.tide = 3');
+  await page.click('[data-act="swellact"][data-kind="bail"]');
+  await waitIdle(page, 'the Bail');
+  await page.click('[data-act="swellact"][data-kind="stir"]');
+  await waitIdle(page, 'the Stir');
+  const sw = await page.eval(`(() => { const r = window.Brinelight.run, c = r.combat; return { used: window.Brinelight.E.swellActsUsed(c), tide: c.tide, light: c.light, off: document.querySelectorAll('.tb-act.used').length }; })()`);
+  if (sw.used !== 2 || sw.tide !== 3 || sw.light !== 1 || sw.off !== 2) failures.push(`${name}: with the Bailer, a Bail and a Stir in one turn (got ${JSON.stringify(sw)})`);
+  await checkPage(page, name + ' bailer');
+
+  // the Safety Line holds once
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.kit.ditty = 'line'; })()`);
+  await setFight(['crab'], "r.hp = 1; c.enemies[0].intent = Object.keys(BL.ENEMIES.crab.moves).find((m) => BL.ENEMIES.crab.moves[m].dmg)");
+  await page.click('#btn-end');
+  await waitIdle(page, 'the enemy turn');
+  await sleep(400);
+  const ln = await page.eval(`(() => { const r = window.Brinelight.run; return { hp: r.hp, lost: !!(r.combat && r.combat.lost), screen: r.screen, used: !!r.lineUsed }; })()`);
+  if (ln.lost || ln.screen !== 'combat' || ln.hp !== 5 || !ln.used) failures.push(`${name}: the Safety Line should leave Wren with 5 HP (got ${JSON.stringify(ln)})`);
+  if (!/Line holds/.test(await toasts())) failures.push(`${name}: no toast when the Safety Line holds`);
+  await checkPage(page, name + ' safety line');
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 /* v0.16.0: the end screen's score lines and the purple Lazaret box, the Rite pill in the hand, and the title menu's
    backup, restore and reset (a reset keeps the settings; a restore brings everything back). */
 async function progressScenario(page, base, name, size) {
@@ -1152,6 +1251,10 @@ async function progressScenario(page, base, name, size) {
     if (!ONLY || ONLY === 'progress') {
       await progressScenario(page, base, 'progress desktop', { w: 1280, h: 800 });
       await progressScenario(page, base, 'progress phone', { w: 390, h: 844, mobile: true, touch: true });
+    }
+    if (!ONLY || ONLY === 'finds') {
+      await findsScenario(page, base, 'finds desktop', { w: 1280, h: 800 });
+      await findsScenario(page, base, 'finds phone', { w: 390, h: 844, mobile: true, touch: true });
     }
     if (!ONLY || ONLY === 'workshop') {
       await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });

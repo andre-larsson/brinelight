@@ -91,8 +91,8 @@ test('brought keepsakes are carried from the first landing and count toward the 
   E.startCombat(roiled, 'easy', ['kelp']);
   assert.equal(roiled.combat.draw.concat(roiled.combat.hand).filter((c) => c.id === 'seep').length, 1);
   assert.equal(roiled.combat.thrash, 1);
-  // the Hold is the same deeper down: the same three are just as Roiled in Dark Water
-  assert.equal(E.roil(E.newRun(4, 1, null, ['whaletooth', 'moonshard', 'saltedhook'])).steps, 2);
+  // the Hold doesn't change with the level Wren is in, only with the deepest she has ever reached (30 after Dark Water)
+  assert.equal(E.roil(E.newRun(4, 0, null, ['whaletooth', 'moonshard', 'saltedhook'], [], false, 1)).steps, 1);
   // Scallop Charm gives its 10 Max HP from the start
   const plain = E.newRun(4);
   const charm = E.newRun(4, 0, null, ['biscuit']);
@@ -140,7 +140,7 @@ test('a run can find a keepsake that is at home, and never one it carries', () =
   const run = E.newRun(8, 0, null, ['moonshard']);
   const pool = E.keepsakePool(run);
   assert.equal(pool.includes('moonshard'), false);
-  assert.equal(pool.length, Object.keys(BL.KEEPSAKES).length - 1);
+  assert.equal(pool.length, Object.keys(BL.KEEPSAKES).filter((k) => !BL.KEEPSAKES[k].deep).length - 1);
 });
 
 test('the tutorial keeps nothing, and which keepsakes were brought survives a save', () => {

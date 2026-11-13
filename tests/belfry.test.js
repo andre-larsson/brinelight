@@ -429,7 +429,7 @@ test('the numbers the README gives for the Belfry, its finals and the Harbour He
   // the finals
   assert.deepEqual([hp('thing'), hp('cantor')], [[170, 170], [160, 160]]);
   assert.deepEqual([M('cantor').lead.ward, M('cantor').lead.echoAll, M('cantor').toll.dmg(stub), M('cantor').call.grow], [12, true, 10, { id: 'ringer', max: 1 }]);
-  // the kit: 15 pieces plus the Brass Tide-Bell, one of them found
-  assert.equal(Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter).length, 15);
+  // the kit: 20 pieces plus the Brass Tide-Bell, one of them found
+  assert.equal(Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter).length, 20);
   assert.deepEqual(Object.keys(BL.KIT).filter((id) => BL.KIT[id].found), ['suit']);
 });

@@ -33,7 +33,8 @@
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
     const raw = { salvage: 0, earned: 0, owned: [], ach: [] };
     ['salvage', 'earned'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
-    ['owned', 'packed', 'ach', 'lazaret', 'bring'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
     if (m.record && typeof m.record === 'object') raw.record = m.record;
@@ -449,12 +450,12 @@
       case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
       case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.LANDINGS}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? ' Break it, then go home or go deeper.' : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
-      case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}`; }
+      case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}${k.deep ? `<div class="tip-row muted">${foundIn(parts[1])}</div>` : ''}`; }
       case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
       case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
       case 'charge': {
-        const ch = E.charge(run), h = E.hold(), rf = E.roil(run);
-        return `<b>Roil ${ch} of ${h}</b><br>Your keepsakes stir the aether: ${ch} Roil. The aether holds ${h}, at every depth. It is <b>${rf.steps ? 'Roiled' : 'Calm'}</b>.` +
+        const ch = E.charge(run), h = E.hold(run), rf = E.roil(run);
+        return `<b>Roil ${ch} of ${h}</b><br>Your keepsakes stir the aether: ${ch} Roil. The aether around you holds ${h}: your Hold. It is <b>${rf.steps ? 'Roiled' : 'Calm'}</b>.` +
           `<div class="tip-row">${rf.steps ? `In every fight: <b>${roilWords(rf)}</b>. ` : `Past ${h} the aether is Roiled. `}${ROIL_LADDER}.</div>` +
           '<div class="tip-row">Tap a keepsake between fights to drop it.</div>';
       }
@@ -709,8 +710,8 @@
         <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Strand</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Swell resets to 3.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Strand gives 1 Light. Save Surge for one big turn.</li>
-        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand gets its Light back. You can Bail or Stir, not both.</li>
-        <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn.</li>
+        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand gets its Light back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
+        <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn, or Ward instead of a card.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
       case 'keywords': return dl(['Bail', 'Stir', 'Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))
@@ -719,7 +720,7 @@
       case 'map': return `<ul class="help-list">
         <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => levelName(i)).join(', then ')}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
         <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. The stair down starts at a Sheltered Cove. Break the last pin to bring the Lantern Heart home.</li>
-        <li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Coat place. It does nothing in a fight.</li>
+        <li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Coat place. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
         <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => `${L.landing} in ${levelName(i)}`).join(', ')}. Coming home adds 5 for each HP you have left. Bringing the Heart home, or quieting the Belfry, adds ${E.FINAL_SCORE}.</li>
       </ul>${dl([
@@ -732,7 +733,8 @@
       ])}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
-        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether holds ${E.hold()} Roil, at every depth: your <b>Hold</b>. Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
+        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil to begin with: your <b>Hold</b>. The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good. Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
+        <li><b>Deeper finds are stronger.</b> Some keepsakes are found only in Dark Water and deeper, or only in the Belfry, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
         <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens the first time you come home. When you come home, every keepsake you carry is kept there, one of each; one it already holds becomes ${MT.currency} instead: half its Roil, rounded up. Before an expedition you may bring any number of them, and each counts toward your Hold. If you fall, you lose the keepsakes you found on that expedition. The ones in the Lazaret are never lost.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
@@ -791,14 +793,16 @@
   }
   const ROIL_LADDER = `Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step, and each step adds one thing to every fight: first a <b>Seep</b> (an unplayable card), then <b>Thrash</b> (1 damage at the start of each turn, unless you kept Ward for it), then a <b>Bell Minnow</b> (an extra enemy, at half health), then a second Seep, and so on round`;
   const roilToast = (fx) => toast(`The aether is Roiled: ${roilWords(fx)} in this fight`, 3600);
+  /* Where a deeper keepsake is found: its level and the ones below it. */
+  const foundIn = (k) => { const d = E.keepsakeDepth(k); return d ? `Found in ${E.LEVELS[d].the}${d < E.LEVELS.length - 1 ? ' and deeper' : ''}.` : 'Found anywhere.'; };
   /* A keepsake, between fights: what it does, its Roil, and a way to drop it. */
   function showKeepsake(k) {
     const K = BL.KEEPSAKES[k];
     if (!K) return;
-    const ch = E.charge(run), h = E.hold(), rf = E.roil(run);
-    const without = roilWords(E.roilFor(ch - K.charge));
+    const ch = E.charge(run), h = E.hold(run), rf = E.roil(run);
+    const without = roilWords(E.roilFor(ch - K.charge, h));
     const body = `<div style="display:flex;gap:14px;align-items:center"><div class="medal" style="width:72px;height:72px;flex:0 0 auto"><img src="img/icons/${K.art}.webp" alt=""></div><p style="margin:0;font-size:16px">${K.desc}</p></div>
-      <p class="buy-left">Roil ${K.charge}. You carry ${ch} of your Hold of ${h}${rf.steps ? `: <b>${roilWords(rf)}</b> in every fight` : ''}.${rf.steps ? ` Without it: ${without || 'the aether is Calm'}.` : ''}</p>
+      ${K.deep ? `<p class="buy-left muted">${foundIn(k)}</p>` : ''}<p class="buy-left">Roil ${K.charge}. You carry ${ch} of your Hold of ${h}${rf.steps ? `: <b>${roilWords(rf)}</b> in every fight` : ''}.${rf.steps ? ` Without it: ${without || 'the aether is Calm'}.` : ''}</p>
       <p class="buy-left muted">${E.wasBrought(run, k) ? 'You brought it from the Lazaret. Dropping it leaves it out of this descent, and it is in the Lazaret again when you get home' : 'Dropping it is for good'}${k === 'biscuit' ? `${E.wasBrought(run, k) ? '. Its' : ', and its'} 10 Max HP go with it` : ''}.</p>`;
     openOverlay(modal(K.name, body, `<button class="btn" data-act="ksdrop" data-k="${k}">Drop it</button><button class="btn primary" data-act="close" autofocus>Keep it</button>`, 'narrow'));
   }
@@ -822,7 +826,7 @@
     const ks = run.keepsakes.map((k) => `<button class="medal" data-tip="ks:${k}" data-act="ks" data-k="${k}" aria-label="${BL.KEEPSAKES[k].name}, Roil ${BL.KEEPSAKES[k].charge}: ${BL.KEEPSAKES[k].desc}"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></button>`).join('');
     const bell = E.bell(run) ? BL.KIT[E.bell(run)] : null;
     const kitIds = E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell');
-    const ch = E.charge(run), hold = E.hold(), rf = E.roil(run);
+    const ch = E.charge(run), hold = E.hold(run), rf = E.roil(run);
     const ts = run.tonics.map((t, i) => t
       ? `<button class="medal tonic-slot${ui.tonicSel === i ? ' selected' : ''}" data-tip="tonic:${i}" data-act="tonic" data-slot="${i}" aria-label="Tonic: ${BL.TONICS[t].name}"><img src="img/icons/${BL.TONICS[t].art}.webp" alt=""></button>`
       : `<span class="medal empty" data-tip="tonic:${i}" aria-hidden="true"></span>`).join('');
@@ -1081,6 +1085,7 @@
       ['The Lantern Heart', r.hearts ? 'Brought home' : 'Still in the Belfry'],
       ['Belfry quieted', r.hearts ? `${r.quiets || 0} time${r.quiets === 1 ? '' : 's'}` : 'Bring the Heart home first'],
       ['Deepest landing reached', r.deep ? `${LevelName(r.deep.level)}, landing ${r.deep.floor} of ${E.LANDINGS}` : 'Not recorded yet'],
+      ['Your Hold', `${E.metaHold(meta)} Roil <small>${(meta.reached || 0) < E.LEVELS.length - 1 ? `${E.holdAt((meta.reached || 0) + 1)} once you reach ${levelName((meta.reached || 0) + 1)}` : 'as deep as it grows'}</small>`],
       ['Pins broken', cleared.length ? `${cleared.length} of ${E.LEVELS.length} <small>${cleared.join(', ')}</small>` : `0 of ${E.LEVELS.length}`],
       ['Best score', getNum(BEST_KEY) || 0],
       [MT.currency, `${meta.salvage} <small>${meta.earned} earned in all</small>`],
@@ -1101,7 +1106,7 @@
   const ksNames = (ids) => ids.map((k) => `<b>${BL.KEEPSAKES[k].name}</b>`).join(', ');
   /* What the chosen keepsakes do to the aether. */
   const roilAt = () => {
-    const rf = E.roilFor(E.bringCharge(meta));
+    const rf = E.roilFor(E.bringCharge(meta), E.metaHold(meta));
     return rf.steps ? `<b class="roiled">Roiled</b>: ${roilWords(rf)} in every fight` : '<b class="calm">Calm</b>';
   };
   function ksTile(k, packing) {
@@ -1114,10 +1119,10 @@
     const missing = Object.keys(BL.KEEPSAKES).filter((k) => kept.indexOf(k) < 0);
     const lead = `<p class="ws-lead">The locked store room at the lighthouse. When you come home, every keepsake you carry is kept here. Bring any of them on an expedition: each one still counts toward your Hold. If you fall, you lose only the keepsakes you found on that expedition.</p>`;
     const body = kept.length
-      ? `${lead}<div class="lz-roil"><span class="chip">You bring <b>${meta.bring.length}</b> of ${kept.length}: <b>Roil ${E.bringCharge(meta)}</b></span><ul><li>Hold ${E.hold()}: ${roilAt()}</li></ul></div>
+      ? `${lead}<div class="lz-roil"><span class="chip">You bring <b>${meta.bring.length}</b> of ${kept.length}: <b>Roil ${E.bringCharge(meta)}</b></span><ul><li>Hold ${E.metaHold(meta)}: ${roilAt()}</li></ul></div>
         <h3 class="ws-place">Kept here <small>${kept.length} of ${KS_TOTAL}. Choose what to bring.</small></h3><div class="shop-row">${kept.map((k) => ksTile(k)).join('')}</div>`
       : `${lead}<p class="ws-lead lz-empty">It is empty. Come home while you carry a keepsake, and the keepsake is kept here.</p>`;
-    const rest = missing.length ? `<h3 class="ws-place">Not brought home yet <small>${missing.length}</small></h3><div class="shop-row">${missing.map((k) => `<div class="shop-tile gear-tile locked lz-missing"><span class="medal"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></span><b>${BL.KEEPSAKES[k].name}</b></div>`).join('')}</div>` : '';
+    const rest = missing.length ? `<h3 class="ws-place">Not brought home yet <small>${missing.length}. Deeper down the keepsakes are stronger.</small></h3><div class="shop-row">${missing.map((k) => `<div class="shop-tile gear-tile locked lz-missing"><span class="medal"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></span><b>${BL.KEEPSAKES[k].name}</b>${E.keepsakeDepth(k) ? `<small>${foundIn(k)}</small>` : ''}</div>`).join('')}</div>` : '';
     openOverlay(modal('The Lazaret', body + rest, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
 
@@ -1141,7 +1146,7 @@
     }).join('');
     const ch = E.bringCharge(meta);
     const keeps = meta.lazaret.length ? `<h3 class="ws-place">Keepsakes <small>from the Lazaret. Bring any number.</small></h3>
-      <p class="lz-line">You bring <b>Roil ${ch}</b>. The aether holds <b>${E.hold()}</b>: ${roilAt()}.</p>
+      <p class="lz-line">You bring <b>Roil ${ch}</b>. The aether holds <b>${E.metaHold(meta)}</b>: ${roilAt()}.</p>
       <div class="shop-row">${meta.lazaret.map((k) => ksTile(k, true)).join('')}</div>` : '';
     const curs = E.currentsOpen(meta) ? `<h3 class="ws-place ws-head">Currents <small>Each makes the expedition harder and adds &times;${E.CURRENT_SCORE} to the score. Now: score &times;${E.scoreMult({ currents: meta.currents })}.</small></h3>
       <div class="shop-row">${Object.keys(E.CURRENTS).map((k) => {
@@ -1149,7 +1154,7 @@
         return `<div class="shop-tile gear-tile kit-tile current-tile${on ? ' chosen' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="current" data-k="${k}"><span class="medal">${ICON.wave}</span><b>${C.name}</b><small>${C.desc}</small><span class="g-state">${on ? 'On' : 'Off'}</span></div>`;
       }).join('')}</div>` : '';
     const parts = [keeps ? 'keepsakes' : '', rows ? MT.item.toLowerCase() : '', curs ? 'currents' : ''].filter(Boolean);
-    const body = `<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.hold()} Roil</b>.`}</p>
+    const body = `<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
       ${keeps}${rows ? `<h3 class="ws-place ws-head">${MT.item} <small>One piece in each place.</small></h3>${rows}` : ''}${curs}`;
     openOverlay(modal('Pack for the expedition', body,
       `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, 'workshop-modal'));
@@ -1169,7 +1174,7 @@
   function startNewRun(kit) {
     clearSave();
     const m = /[?&]seed=(\d+)/.exec(location.search);
-    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? meta.bring : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta));
+    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? meta.bring : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta), meta.reached);
     save();
     render();
     sfx('bell');
@@ -1478,12 +1483,13 @@
     tb.setAttribute('aria-label', `Swell ${c.tide} of 6`);
     // Bail and Stir: once a turn, 1 Light for one step toward Strand or Crest, without a card
     const can = E.canSwellAct(run);
-    const used = c.swellActTurn === c.turn;
+    const per = E.swellActsPerTurn(run);
+    const used = E.swellActsUsed(c) >= per;
     const actBtn = (kind, arrow) => {
       const a = E.SWELL_ACTS[kind];
       const off = !can.ok || ui.busy;
       return `<button class="tb-act ${kind}${used ? ' used' : ''}" data-act="swellact" data-kind="${kind}" data-tip="kw:${a.name}"${off ? ' aria-disabled="true"' : ''}
-        aria-label="${a.name}: spend 1 Light to ${a.ebb ? 'Ebb' : 'Surge'} 1. Once a turn, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>1</i>${kind === 'stir' ? arrow : ''}</button>`;
+        aria-label="${a.name}: spend 1 Light to ${a.ebb ? 'Ebb' : 'Surge'} 1. ${per > 1 ? 'Twice a turn with the Bailer' : 'Once a turn'}, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>1</i>${kind === 'stir' ? arrow : ''}</button>`;
     };
     tb.innerHTML = `${actBtn('bail', '<span class="tb-arrow">&#9662;</span>')}<span class="tb-label low" data-tip="kw:Strand">Strand</span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
@@ -2223,7 +2229,7 @@
         case 'burst': {
           const el = unitEl(f.who);
           if (el) burstAt(el);
-          floatAt(el, `Burst ${f.n}`, 'status debuff');
+          floatAt(el, `Burst ${f.n}`, f.horn ? 'status buff' : 'status debuff');
           anim($('#field'), 'impact', 420);
           sfx('crest');
           await wait(260);
@@ -2233,6 +2239,7 @@
         case 'shuffle': anim($('#pile-draw'), 'pulse', 500); break;
         case 'roil': roilToast(f); break;
         case 'thrash': floatAt(unitEl('p'), 'Thrash', 'status debuff'); break;
+        case 'line': { const el = unitEl('p'); floatAt(el, `The line holds: ${f.n} HP`, 'status buff'); anim(el, 'gain', 700); toast(`Your ${BL.KIT.line.name} holds. You are left with ${f.n} HP. It holds only once an expedition.`, 4200); sfx('buff'); await wait(400); break; }
         // Dark Water
         case 'doused': { const o = $('#orb'); anim(o, 'doused', 900); floatAt(o, `-${f.n} Light: doused`, 'status debuff'); sfx('debuff'); break; }
         case 'submerge': { const el = unitEl(f.who); floatAt(el, 'Submerged', 'status buff'); sfx('tide'); await wait(200); break; }
@@ -2382,13 +2389,13 @@
   /* Keepsake tiles to pick from. Once one is taken they stay where they are: the pick lit, the rest dimmed. */
   /* What carrying one more keepsake would do to your Roil: "Then 34/30, 1 Seep". */
   function chargeAfter(id) {
-    const ch = E.charge(run, id), h = E.hold(), r0 = E.roil(run), r1 = E.roil(run, id);
+    const ch = E.charge(run, id), h = E.hold(run), r0 = E.roil(run), r1 = E.roil(run, id);
     return `<span class="k-after${r1.steps > r0.steps ? ' over' : ''}">Then ${ch}/${h}${r1.steps ? `: ${roilWords(r1, true)}` : ''}</span>`;
   }
   function ksTiles(ids, taken, act, left) {
     return ids.map((id) => {
       const K = BL.KEEPSAKES[id];
-      const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>`;
+      const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>${K.deep ? `<span class="k-deep">From ${E.LEVELS[K.deep].the}</span>` : ''}`;
       if (taken || left) return `<div class="shop-tile ${id === taken ? 'chosen' : 'dim'}"${id === taken ? ' aria-label="Taken: ' + K.name + '"' : ''}>${art}</div>`;
       return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="${act}" data-k="${id}" aria-label="${K.name}, Roil ${K.charge}">${art}${chargeAfter(id)}</div>`;
     }).join('');
@@ -2467,7 +2474,7 @@
       : `<p class="lead">Your ${kit.name} is at home on its hook. Without it you cannot go down into ${levelName(lv + 1)}.</p>`;
     const extra = (newKit ? [`the <b>${kit.name}</b>`] : []).concat(found.map((k) => `<b>${BL.KEEPSAKES[k].name}</b>`));
     const deeper = can
-      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. A Sheltered Cove comes first. Each landing there scores ${next.landing}.</span></button>`
+      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. A Sheltered Cove comes first. Each landing there scores ${next.landing}.${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
       : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner">
       <h1>The pin is broken</h1>
@@ -2493,7 +2500,7 @@
         ${staticCard(pseudo(it.id), 'choice', it.sold ? '' : `tabindex="0" role="button" data-act="buy" data-kind="cards" data-i="${i}"`)}
         <div>${priceTag(it.base)} ${it.sale ? '<span class="sale-tag">SALE</span>' : ''}</div></div>`).join('');
     const tile = (kind, it, i, def) => `<div class="shop-tile${it.sold ? ' sold' : ''}" tabindex="0" role="button" data-act="buy" data-kind="${kind}" data-i="${i}" aria-label="Buy ${def.name}">
-        <span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><b>${def.name}</b>${kind === 'keepsakes' ? `<span class="k-charge">Roil ${def.charge}</span>` : ''}<small>${def.desc}</small>${it.sold ? '<span class="muted">Sold</span>' : priceTag(it.base)}${kind === 'keepsakes' && !it.sold ? chargeAfter(it.id) : ''}</div>`;
+        <span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><b>${def.name}</b>${kind === 'keepsakes' ? `<span class="k-charge">Roil ${def.charge}</span>` : ''}<small>${def.desc}</small>${kind === 'keepsakes' && def.deep ? `<span class="k-deep">From ${E.LEVELS[def.deep].the}</span>` : ''}${it.sold ? '<span class="muted">Sold</span>' : priceTag(it.base)}${kind === 'keepsakes' && !it.sold ? chargeAfter(it.id) : ''}</div>`;
     const ks = s.keepsakes.map((it, i) => tile('keepsakes', it, i, BL.KEEPSAKES[it.id])).join('');
     const ts = s.tonics.map((it, i) => tile('tonics', it, i, BL.TONICS[it.id])).join('');
     const rp = E.removePrice(run);
@@ -2764,7 +2771,14 @@
         break;
       }
       case 'gohome': if (E.goHome(run)) { sfx('victory'); clearSave(); render(); } break;
-      case 'godeeper': if (E.goDeeper(run)) { sfx('tide'); save(); render(); } break;
+      case 'godeeper': if (E.goDeeper(run)) {
+        sfx('tide');
+        // reaching a level for the first time counts for good (the Hold), even if Wren falls or turns back
+        if (E.noteReached(meta, run)) saveMeta();
+        save(); render();
+        // after save(): its Story so far toasts would push this one out of the stack of three
+        if (run.holdRose) toast(`You stand in deeper aether, and it steadies around you: your Hold grows from ${run.holdRose.from} to ${run.holdRose.to}, for good.`, 5200);
+      } break;
       case 'lazaret': showLazaret(); break;
       case 'logbook': showLogbook(); break;
       case 'ksbring': {
@@ -2938,7 +2952,7 @@
           : `<div class="buy-item"><span class="medal"><img src="img/icons/${def.art}.webp" alt=""></span><div><b>${kind === 'tonics' ? 'Tonic: ' : ''}${def.name}</b><p>${def.desc}</p></div></div>`;
         let left = `<p class="buy-left">You have ${run.pearls} Pearls; ${run.pearls - p} left after this.</p>`;
         if (kind === 'keepsakes') {
-          const ch = E.charge(run, it.id), h = E.hold(), rf = E.roil(run, it.id);
+          const ch = E.charge(run, it.id), h = E.hold(run), rf = E.roil(run, it.id);
           left += `<p class="buy-left">Roil ${def.charge}: you'd carry ${ch} of your Hold of ${h}${rf.steps ? `, so every fight would have <b>${roilWords(rf)}</b>` : ''}.</p>`;
         }
         openOverlay(modal(`Buy ${def.name} for ${p} Pearls?`, what + left,

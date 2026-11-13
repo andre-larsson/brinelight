@@ -1102,6 +1102,7 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .lz-missing { opacity: .7; }
 .lz-missing b { color: #a9b9b8; }
 .kit-tile .k-charge { font-size: 13px; }
+.k-deep { display: inline-block; padding: 1px 7px; border-radius: 8px; border: 1px solid rgba(232, 190, 110, .5); background: rgba(232, 190, 110, .14); color: #ffe2a8; font-size: 12px; font-weight: 700; white-space: nowrap; }
 /* every unlock on the end screen is the same purple box; only a loss gets its own colour */
 .unlock-box, button.unlock-box { font-size: 15px; line-height: 1.45; }
 .unlock-box b { color: #ffe2a8; }

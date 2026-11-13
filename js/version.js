@@ -5,8 +5,17 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.21.0';
+  BL.VERSION = '0.22.0';
   BL.CHANGELOG = [
+    { v: '0.22.0', date: '2026-11-14', items: [
+      'Deeper finds are stronger. Six new keepsakes are found only below the Shallows. In Dark Water: the Hollow Whelk (your Ward no longer washes away at the start of your turn), the Glimmer Bulb (a Strand gives 2 Light) and the Leech Jar (whenever a creature dies, your Max HP rises by 2 and you heal 4). In the Belfry: the Bell Clapper (your first Crest or Strand each turn makes your next card play twice), the Powder Horn (every creature that dies bursts for 12 on the others) and the Heart Cinder (1 more Light on every other turn, starting with the first). They carry more Roil than any keepsake from the Shallows.',
+      'In Dark Water and the Belfry, the first keepsake in every Wreck, Dread\'s pick and shop is one of that level\'s own, while any are left.',
+      'Your Hold now grows for good: from 20 to 30 the first time you reach Dark Water, and to 40 the first time you reach the Belfry. It counts the moment you arrive, even if you fall later. If you have been that deep before, it has grown already.',
+      'Five new pieces of kit in the Workshop. The Toggle Iron (your first Harpoon Jab applies 2 Soaked), the Harbour Bell (3 Ward on every Crest and Strand, and no card), the Plated Dress (it opens the Belfry like the Diving Dress, and gives 3 Ward at the start of each fight), the Bailer (Bail or Stir twice a turn) and the Safety Line (the first time you would fall on an expedition, you are left with 5 HP).',
+      'Five new achievements unlock them: break the Harbour Hermit\'s bell, silence the Tolling Buoy, bring the Lantern Heart home, Crest and Strand in one turn, and win a fight with 5 HP or less. Pins you broke before this version count already.',
+      'The Lazaret shows where the keepsakes you haven\'t brought home yet are found, and the Logbook shows your Hold.',
+      'Fixed: the currents you chose were forgotten when you reloaded the page.',
+    ] },
     { v: '0.21.0', date: '2026-11-13', items: [
       'Each level\'s Dreads are now harder than the level above\'s.',
       'Dark Water has a Dread of its own: the Garden Strider, a giant sea spider that tends the Glimmer Garden. Its Tend the Garden calls Glimmer Leeches until two are alive and gives it 8 Ward, and its Graze heals it by the HP it takes from you. It takes the Angler Twins\' place; they stay in the Shallows.',

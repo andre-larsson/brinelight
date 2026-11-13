@@ -16,6 +16,7 @@
      kit       Workshop kit ids to wear, e.g. ['honed', 'gorget']; wear 'suit' to go down into the Belfry
      bring     keepsake ids brought from the Lazaret
      heartHome true: the Heart came home on an earlier expedition, so the Belfry ends with one of its finals
+     deepest   the deepest level reached on earlier expeditions (0-2), which sets the Hold (20, 30, 40)
      roil      a fixed penalty for every fight, in place of the run's own Roil: a number of ladder
                steps, or { seep, thrash, minnows }
      setup     (E, BL) => {...}, run once before the row is played: change a constant, patch a rule.
@@ -61,7 +62,7 @@ function playJob(job) {
   }
   let wins = 0, taken = 0, floors = 0, pin1 = 0, pin2 = 0, pin3 = 0;
   for (let seed = job.from; seed <= job.to; seed++) {
-    const run = E.newRun(seed, row.level || 0, row.kit || null, row.bring || [], row.currents || [], !!row.heartHome);
+    const run = E.newRun(seed, row.level || 0, row.kit || null, row.bring || [], row.currents || [], !!row.heartHome, row.deepest || 0);
     bot.playRun(run, 12000, { home: row.home });
     if (run.screen === 'victory') wins++;
     if (run.cleared.indexOf(0) >= 0) pin1++;

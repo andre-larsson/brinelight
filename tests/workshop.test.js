@@ -276,20 +276,25 @@ test('achievements unlock once, are kept on the run for the end screen, and neve
 });
 
 /* ---------- Roil, the Hold and a Roiled aether ---------- */
-test('the Hold is 20 Roil at every depth; every 12 Roil over (or part of 12) is one step', () => {
+test('the Hold starts at 20 Roil and grows by 10 for each deeper level ever reached; every 12 Roil over (or part of 12) is one step', () => {
   assert.equal(E.hold(), 20);
+  assert.deepEqual([0, 1, 2].map(E.holdAt), [20, 30, 40]);
   assert.equal(E.SEEP_STEP, 12);
   assert.deepEqual([20, 21, 32, 33, 44, 45].map((ch) => E.roilSteps(ch)), [0, 1, 1, 2, 2, 3]);
-  const deep = E.newRun(5, 1);
-  deep.keepsakes = ['whaletooth', 'stormbottle'];
-  assert.equal(E.roil(deep).steps, 2, 'Dark Water holds no more than the Shallows');
+  assert.deepEqual([30, 31, 43].map((ch) => E.roilSteps(ch, 30)), [0, 1, 2]);
   const run = E.newRun(5);
   run.keepsakes = ['whaletooth', 'stormbottle'];
+  assert.equal(E.hold(run), 20);
   assert.equal(E.charge(run), BL.KEEPSAKES.whaletooth.charge + BL.KEEPSAKES.stormbottle.charge);
-  assert.deepEqual(E.roil(run), E.roilFor(E.charge(run), 0));
+  assert.deepEqual(E.roil(run), E.roilFor(E.charge(run), 20));
   // what taking one more would do
   assert.equal(E.charge(run, 'tidewatch'), E.charge(run) + BL.KEEPSAKES.tidewatch.charge);
-  assert.deepEqual(E.roil(run, 'tidewatch'), E.roilFor(E.charge(run) + BL.KEEPSAKES.tidewatch.charge, 0));
+  assert.deepEqual(E.roil(run, 'tidewatch'), E.roilFor(E.charge(run) + BL.KEEPSAKES.tidewatch.charge, 20));
+  // someone who has reached Dark Water starts every expedition with a Hold of 30, even in the Shallows
+  const vet = E.newRun(5, 0, null, [], [], false, 1);
+  vet.keepsakes = ['whaletooth', 'stormbottle'];
+  assert.equal(E.hold(vet), 30);
+  assert.equal(E.roil(vet).steps, 1);
   // the tutorial is never Roiled
   const tut = E.newTutorialRun();
   tut.keepsakes = Object.keys(BL.KEEPSAKES);

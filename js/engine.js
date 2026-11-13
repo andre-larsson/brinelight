@@ -84,6 +84,8 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
+  /* Wearing `id` or kit that counts as it (the Plated Dress is a Diving Dress). */
+  E.wears = (run, id) => E.kitIds(run).some((k) => k === id || BL.KIT[k].as === id);
   /* A creature's name for more than one of it: 'Glimmer Leeches', 'Grasping Arms'. */
   E.plural = (id) => BL.ENEMIES[id].plural || BL.ENEMIES[id].name + 's';
   E.bell = (run) => (run.kit && run.kit.bell) || null;
@@ -96,25 +98,30 @@
        step 2, 5, 8...: one more Thrash, damage at the start of each of your turns, which Ward left from the turn
                         before stops;
        step 3, 6:       one more Bell Minnow joins each fight at half health, drawn by the noise (2 at most). */
-  /* The Hold: the Roil the aether holds before it is Roiled. It is the same in every level (since v0.19.0; it rose
-     with the starting depth before), because keepsakes found on the way fill it anyway. The Shallows held 30 until
-     v0.16.0; 20 leaves room for about one strong keepsake and one small one. */
+  /* The Hold: the Roil the aether holds before it is Roiled. It starts at HOLD and grows by HOLD_STEP, for good, the
+     first time Wren reaches each deeper level (since v0.22.0, the user's idea): having stood in the deeper aether, she
+     carries its Roil more steadily. It doesn't change with the level she is in (since v0.19.0; it rose with the starting
+     depth before). The Shallows held 30 until v0.16.0; 20 leaves room for about one strong keepsake and one small one. */
   E.HOLD = 20;
+  E.HOLD_STEP = 10;
   E.SEEP_STEP = 12; // Roil over the Hold for each step: about one keepsake's worth, so each keepsake past the Hold adds about one step (5 until v0.18.0)
   E.MAX_ROIL_MINNOWS = 2;
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
-  E.hold = () => E.HOLD;
+  /* The Hold for someone whose deepest level reached is `deepest` (0 = only the Shallows). */
+  E.holdAt = (deepest) => E.HOLD + E.HOLD_STEP * Math.max(0, Math.min(E.LEVELS.length - 1, deepest || 0));
+  /* A run's Hold (set when it starts, raised when it reaches a new level). Without a run: the starting Hold. */
+  E.hold = (run) => (run ? (run.hold != null ? run.hold : E.holdAt(run.level || 0)) : E.HOLD);
   E.chargeOf = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].charge) || 0;
   /* The Roil you carry, optionally with one more keepsake (to show what taking it would do). */
   E.charge = (run, extra) => run.keepsakes.reduce((a, k) => a + E.chargeOf(k), 0) + (extra ? E.chargeOf(extra) : 0);
-  E.roilSteps = (charge) => { const over = charge - E.hold(); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
-  E.roilFor = function (charge) {
-    const s = E.roilSteps(charge);
+  E.roilSteps = (charge, hold) => { const over = charge - (hold != null ? hold : E.hold()); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
+  E.roilFor = function (charge, hold) {
+    const s = E.roilSteps(charge, hold);
     return { steps: s, seep: Math.ceil(s / 3), thrash: Math.floor((s + 1) / 3), minnows: Math.min(E.MAX_ROIL_MINNOWS, Math.floor(s / 3)) };
   };
   /* What the aether does to this run in every fight, optionally with one more keepsake. */
-  E.roil = (run, extra) => (run.tutorial ? E.roilFor(0) : E.roilFor(E.charge(run, extra)));
-  E.seepFor = (charge) => E.roilFor(charge).seep;
+  E.roil = (run, extra) => (run.tutorial ? E.roilFor(0) : E.roilFor(E.charge(run, extra), E.hold(run)));
+  E.seepFor = (charge, hold) => E.roilFor(charge, hold).seep;
   E.seepCount = (run, extra) => E.roil(run, extra).seep;
 
   /* ---------------- Run ---------------- */
@@ -155,8 +162,9 @@
   E.RUN_VERSION = 4; // a saved run with another version is dropped (4: v0.20.0, the Belfry)
   /* A new expedition. It always starts in the Shallows; `level` starts it deeper, for tests and the bot only.
      `heartHome`: the Heart came home on an earlier expedition, so the Bellwether is silent and the Belfry's last
-     landing is one of its finals (BL.BANDS.belfry.enc.finals). */
-  E.newRun = function (seed, level, kit, bring, currents, heartHome) {
+     landing is one of its finals (BL.BANDS.belfry.enc.finals). `deepest`: the deepest level reached on any earlier
+     expedition (meta.reached), which sets the Hold. */
+  E.newRun = function (seed, level, kit, bring, currents, heartHome, deepest) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
       version: E.RUN_VERSION,
@@ -164,6 +172,7 @@
       heartHome: !!heartHome,
       currents: (currents || []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i),
       cleared: [], // the levels whose pin is broken on this expedition
+      hold: E.holdAt(Math.max(deepest || 0, level || 0)),
       seed: seed >>> 0,
       rng: seed >>> 0,
       hp: 70, maxHp: 70, pearls: 75,
@@ -367,7 +376,10 @@
   E.addFollower = function (run, id) {
     run.followers = (run.followers || []).concat([id]);
   };
-  E.keepsakePool = (run) => Object.keys(BL.KEEPSAKES).filter((k) => !E.has(run, k));
+  /* The first level where a keepsake can be found: 0 for the Shallows, 1 for Dark Water, 2 for the Belfry. */
+  E.keepsakeDepth = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].deep) || 0;
+  /* Keepsakes that can be found here: the ones from this level and the levels above it, not already carried. */
+  E.keepsakePool = (run) => Object.keys(BL.KEEPSAKES).filter((k) => !E.has(run, k) && E.keepsakeDepth(k) <= (run.level || 0));
   E.gainKeepsake = function (run, k) {
     if (!k || !BL.KEEPSAKES[k] || E.has(run, k)) return;
     run.keepsakes.push(k);
@@ -379,6 +391,7 @@
     if (i < 0 || run.screen === 'combat') return false;
     run.keepsakes.splice(i, 1);
     if (k === 'biscuit') E.loseMaxHp(run, 10);
+    if (k === 'leechjar' && run.leechHp) { E.loseMaxHp(run, run.leechHp); run.leechHp = 0; }
     return true;
   };
   /* Turn down a keepsake pick (a Dread's reward, an opened Wreck): it scores like any declined reward. */
@@ -466,7 +479,7 @@
     const sale = R.int(0, cards.length - 1);
     cards[sale].base = Math.round(cards[sale].base / 2);
     cards[sale].sale = true;
-    const ks = pickN(E.keepsakePool(run), 2).map((id) => ({ id, base: R.int(130, 165) }));
+    const ks = E.keepsakeChoices(run, 2).map((id) => ({ id, base: R.int(130, 165) }));
     const ts = pickN(Object.keys(BL.TONICS), 2).map((id) => ({ id, base: R.int(45, 60) }));
     run.shop = { cards, keepsakes: ks, tonics: ts, removed: false };
   }
@@ -503,9 +516,15 @@
     const R = makeR(run);
     run.treasure = { opened: false, pearls: R.int(35, 55), keepsake: null, choices: [] };
   }
+  /* A choice of keepsakes (a Wreck, a Dread, Barnaby's shop). Deeper finds are richer: below the Shallows the first one
+     offered is from the level's own keepsakes while any are left. */
   E.keepsakeChoices = function (run, n) {
     const R = makeR(run);
-    return R.shuffle(E.keepsakePool(run)).slice(0, n);
+    const pool = R.shuffle(E.keepsakePool(run));
+    const lv = run.level || 0;
+    const own = lv > 0 ? pool.findIndex((k) => E.keepsakeDepth(k) === lv) : -1;
+    if (own > 0) pool.unshift(pool.splice(own, 1)[0]);
+    return pool.slice(0, n);
   };
   E.openTreasure = function (run) {
     const t = run.treasure;
@@ -633,8 +652,8 @@
     if (E.has(run, 'echoconch')) c.echo = 1;
     if (roil.steps) fx(c, { t: 'roil', seep, thrash: roil.thrash, minnows: roil.minnows });
     if (kind === 'easy' || kind === 'hard') run.normalFights++;
-    // before the first turn, so the Gorget's Ward stands against a first Thrash
-    if (E.hasKit(run, 'gorget')) gainWard(c, c.player, 4);
+    // before the first turn, so a coat's Ward (the Shell Gorget, the Plated Dress) stands against a first Thrash
+    E.kitIds(run).forEach((id) => { if (BL.KIT[id].ward) gainWard(c, c.player, BL.KIT[id].ward); });
     startPlayerTurn(run);
     return c;
   };
@@ -670,7 +689,7 @@
       c.flags.hpLost = true;
       if (E.has(run, 'inksac')) { fx(c, { t: 'ks', k: 'inksac' }); E.alive(c).forEach((e) => applyStatus(run, c, e, 'chilled', 2, true)); }
     }
-    if (isPlayer && run.hp <= 0) {
+    if (isPlayer && run.hp <= 0 && !lineHolds(run, c)) {
       run.hp = 0;
       c.lost = true;
       fx(c, { t: 'defeat' });
@@ -682,6 +701,16 @@
       dealDamage(run, c, src, tgt.st.spines, null, false);
     }
     return loss;
+  }
+
+  /* The Safety Line: the first time Wren would fall on an expedition, it holds, and she is left with a little HP. */
+  function lineHolds(run, c) {
+    if (!E.hasKit(run, 'line') || run.lineUsed) return false;
+    run.lineUsed = true;
+    run.hp = Math.min(run.maxHp, BL.KIT.line.hp);
+    fx(c, { t: 'kit', k: 'ditty' });
+    fx(c, { t: 'line', n: run.hp });
+    return true;
   }
 
   /* An enemy heals (a Glimmer Leech drinking what it took). */
@@ -722,6 +751,20 @@
       fx(c, { t: 'burst', who: e.uid, n: burst });
       dealDamage(run, c, c.player, Math.round(burst * (c.dmgMul || 1)), null, false);
       E.alive(c).forEach((o) => dealDamage(run, c, o, burst, null, false));
+    }
+    // the Leech Jar drinks from every death, and the Powder Horn makes every death burst (never at the keeper)
+    if (E.has(run, 'leechjar') && !c.lost) {
+      run.maxHp += BL.KEEPSAKES.leechjar.maxHp || 0; // the Leech Jar's Max HP stays for the expedition (and goes if it is dropped: E.dropKeepsake)
+      run.leechHp = (run.leechHp || 0) + (BL.KEEPSAKES.leechjar.maxHp || 0);
+      const h = E.heal(run, BL.KEEPSAKES.leechjar.heal);
+      fx(c, { t: 'ks', k: 'leechjar' });
+      if (h) fx(c, { t: 'heal', who: 'p', n: h });
+    }
+    if (E.has(run, 'powderhorn') && !c.lost && E.alive(c).length) {
+      const n = BL.KEEPSAKES.powderhorn.burst;
+      fx(c, { t: 'ks', k: 'powderhorn' });
+      fx(c, { t: 'burst', who: e.uid, n, horn: true });
+      E.alive(c).forEach((o) => dealDamage(run, c, o, n, null, false));
     }
     // when the boss falls, its shoal scatters
     if (BL.ENEMIES[e.id].boss) scatter(c, e);
@@ -773,7 +816,7 @@
         c.flags.hpLost = true;
         if (E.has(run, 'inksac')) { fx(c, { t: 'ks', k: 'inksac' }); E.alive(c).forEach((e) => applyStatus(run, c, e, 'chilled', 2, true)); }
       }
-      if (run.hp <= 0) { run.hp = 0; c.lost = true; fx(c, { t: 'defeat' }); }
+      if (run.hp <= 0 && !lineHolds(run, c)) { run.hp = 0; c.lost = true; fx(c, { t: 'defeat' }); }
     } else {
       tgt.hp -= n;
       run.stats.dmgDealt += n;
@@ -818,6 +861,7 @@
     floodbell: { crest: { draw: 1, light: 1 } },
     ebbbell: { low: { draw: 1, ward: 3 } }, // a Strand already gives Light, and 1 more made every free Bail pay
     crackedbell: { after: { draw: 2, light: 1 } },
+    harbourbell: { crest: { ward: 3 }, low: { ward: 3 } }, // the Hermit's bell, mended: it guards, and draws nothing
   };
   E.bellGain = function (bell, kind, chain) { // chain: Crests and Strands so far this turn, this one included
     const b = E.BELLS[bell];
@@ -859,6 +903,16 @@
     return E.chainBonus(chain);
   }
 
+  /* A Crest or a Strand has just happened (its counts already raised). Both in one turn is an achievement (Both Ends),
+     and the Bell Clapper rings on the first of a turn: the next card is played twice. */
+  function turnedSwell(run, c) {
+    if (c.turnCrests > 0 && c.turnLows > 0 && !run.tutorial) run.stats.bothEnds = true;
+    if (c.turnCrests + c.turnLows === 1 && E.has(run, 'clapper')) {
+      c.echo += 1;
+      fx(c, { t: 'ks', k: 'clapper' });
+    }
+  }
+
   /* Crest: the wave breaks. Each extra Crest in the same turn hits 3 harder. */
   function crest(run, c) {
     if (c.won || c.lost) return;
@@ -867,6 +921,7 @@
     const fury = newChainBonus(run, c, c.turnCrests, c.maxChain);
     c.maxChain = Math.max(c.maxChain, c.turnCrests);
     run.stats.maxChain = Math.max(run.stats.maxChain || 0, c.turnCrests);
+    turnedSwell(run, c);
     const dmg = E.crestDamage(run, c, c.turnCrests);
     run.stats.crests++;
     // a wave rings a bell around the ears of whatever hides in it: it loses its Ward before the wave lands
@@ -888,13 +943,16 @@
     c.maxLowChain = Math.max(c.maxLowChain || 0, c.turnLows);
     run.stats.lows++;
     run.stats.maxLowChain = Math.max(run.stats.maxLowChain || 0, c.turnLows);
+    turnedSwell(run, c);
     const stripped = [];
     E.alive(c).forEach((e) => { if (e.ward > 0) { stripped.push({ who: e.uid, n: e.ward }); e.ward = 0; } });
     // stranded, nothing can stay sunk out of reach
     const surfaced = [];
     E.alive(c).forEach((e) => { if (e.st.submerged) { delete e.st.submerged; surfaced.push(e.uid); } });
-    c.light += 1;
-    fx(c, { t: 'low', chain: c.turnLows, stripped, surfaced, light: 1, ebb });
+    const light = 1 + (E.has(run, 'bulb') ? BL.KEEPSAKES.bulb.light : 0); // the Glimmer Bulb adds to a Strand's Light
+    c.light += light;
+    fx(c, { t: 'low', chain: c.turnLows, stripped, surfaced, light, ebb });
+    if (light > 1) fx(c, { t: 'ks', k: 'bulb' });
     if (E.has(run, 'kelpbracelet')) { fx(c, { t: 'ks', k: 'kelpbracelet' }); gainWard(c, c.player, 8); }
     const abyss = (c.player.st.r_abyss || 0) + (E.has(run, 'anchor') ? 4 : 0);
     if (E.has(run, 'anchor')) fx(c, { t: 'ks', k: 'anchor' });
@@ -940,11 +998,16 @@
      is on purpose: Strands are the harder end to reach. The tutorial teaches Bail on its third turn. */
   E.SWELL_ACTS = { bail: { name: 'Bail', ebb: 1 }, stir: { name: 'Stir', surge: 1 } };
   E.SWELL_ACT_COST = 1;
+  /* Bails and Stirs a turn: once, or twice with the Bailer in your Ditty Bag. */
+  E.swellActsPerTurn = (run) => (E.hasKit(run, 'bailer') ? 2 : 1);
+  /* Bails and Stirs used this turn (a fight saved before v0.22.0 kept only the turn). */
+  E.swellActsUsed = (c) => (c.swellActTurn === c.turn ? c.swellActN || 1 : 0);
   E.canSwellAct = function (run) {
     const c = run.combat;
     if (!c) return { ok: false, reason: 'Not in a fight' };
     if (c.phase !== 'player' || c.won || c.lost) return { ok: false, reason: 'Not your turn' };
-    if (c.swellActTurn === c.turn) return { ok: false, reason: 'Once a turn: you have already Bailed or Stirred' };
+    const per = E.swellActsPerTurn(run);
+    if (E.swellActsUsed(c) >= per) return { ok: false, reason: per > 1 ? 'Twice a turn with the Bailer: you have already Bailed or Stirred twice' : 'Once a turn: you have already Bailed or Stirred' };
     if (c.light < E.SWELL_ACT_COST) return { ok: false, reason: 'Not enough Light' };
     return { ok: true };
   };
@@ -953,6 +1016,7 @@
     if (!act || !E.canSwellAct(run).ok) return false;
     const c = run.combat;
     c.light -= E.SWELL_ACT_COST;
+    c.swellActN = E.swellActsUsed(c) + 1;
     c.swellActTurn = c.turn;
     run.stats[kind === 'bail' ? 'bails' : 'stirs'] = (run.stats[kind === 'bail' ? 'bails' : 'stirs'] || 0) + 1;
     fx(c, { t: 'swellact', kind });
@@ -1030,7 +1094,12 @@
       dealDamage(run, c, P, c.thrash, null, false);
       if (c.lost) return;
     }
-    if (c.turn > 1) P.ward = 0; // on the first turn the only Ward is the Shell Gorget's, which lasts the turn
+    // on the first turn the only Ward is the coat's, which lasts the turn. The Hollow Whelk keeps it (its `keep` share).
+    if (c.turn > 1) {
+      const kept = E.has(run, 'whelk') ? Math.floor(P.ward * BL.KEEPSAKES.whelk.keep) : 0;
+      if (kept) fx(c, { t: 'ks', k: 'whelk' });
+      P.ward = kept;
+    }
     // the Backwash current pulls the Swell back toward the middle
     const pull = c.turn > 1 ? E.mods(run).backwash : 0;
     if (pull && c.tide !== TIDE_MID) {
@@ -1046,7 +1115,7 @@
     // a doused lantern starts the turn with less Light
     const doused = P.st.doused || 0;
     delete P.st.doused;
-    c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) + (P.st.heartfire || 0) - doused);
+    c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) + (E.has(run, 'cinder') && (c.turn - 1) % BL.KEEPSAKES.cinder.every === 0 ? 1 : 0) + (P.st.heartfire || 0) - doused);
     if (doused) { c.dousedTurn = c.turn; fx(c, { t: 'doused', n: doused }); }
     // a squeezed suit: fewer cards this turn (never fewer than 1)
     const breathless = P.st.breathless || 0;
@@ -1099,12 +1168,16 @@
     c.lastPlayed = card.uid; // what a Pale Gulper swallows
     fx(c, { t: 'play', uid: card.uid, target: target ? target.uid : null, type: d.type });
     const A = api(run, c);
+    // Echo replays this card only if it was waiting before the card was played (a Crest this card makes with the
+    // Bell Clapper echoes the next card, not this one)
+    const echoReady = c.echo > 0;
     const harpoon = card.id === 'jab' && !c.jabbed ? (run.kit && run.kit.harpoon) : null;
     if (card.id === 'jab') c.jabbed = true;
     if (d.play) d.play(A, E.playVals(run, card, harpoon), target);
     if (harpoon === 'barbed' && target && !target.dead && !c.won) { fx(c, { t: 'kit', k: 'harpoon' }); applyStatus(run, c, target, 'brine', BL.KIT.barbed.brine, true); }
+    if (harpoon === 'toggle' && target && !target.dead && !c.won) { fx(c, { t: 'kit', k: 'harpoon' }); applyStatus(run, c, target, 'soaked', BL.KIT.toggle.soaked, true); }
     // Echo: the card resolves a second time
-    if (c.echo > 0 && !d.givesEcho && d.type !== 'status' && d.type !== 'curse' && !c.won && !c.lost) {
+    if (echoReady && c.echo > 0 && !d.givesEcho && d.type !== 'status' && d.type !== 'curse' && !c.won && !c.lost) {
       c.echo--;
       let t2 = target;
       if (d.target === 'enemy' && (!t2 || !E.reachable(t2))) t2 = E.targets(c)[0] || null;
@@ -1416,6 +1489,7 @@
     if (c.kind === 'elite') run.stats.elites++;
     if (!c.flags.hpLost) run.stats.flawless = (run.stats.flawless || 0) + 1;
     if (c.kind === 'elite' && run.deck.length <= 12) run.stats.leanDread = true;
+    if (run.hp <= 5) run.stats.closeCall = true;
     if (c.kind === 'boss') {
       // the pin is broken: its lock drains. The last level's ends the expedition: the Heart comes home the first time,
       // and the Belfry is quieted after that. Before it, Wren chooses to go home or go deeper
@@ -1429,7 +1503,7 @@
       }
       // the diving dress hangs above the stair to the next level: found if she isn't wearing one, and carried home
       const needs = E.LEVELS[lv + 1].needs;
-      if (needs && !E.hasKit(run, needs)) run.found = needs;
+      if (needs && !E.wears(run, needs)) run.found = needs;
       run.screen = 'pin';
       return;
     }
@@ -1467,12 +1541,16 @@
   E.canGoDeeper = function (run) {
     if (run.screen !== 'pin' || E.lastLevel(run)) return false;
     const needs = E.LEVELS[(run.level || 0) + 1].needs;
-    return !needs || E.hasKit(run, needs);
+    return !needs || E.wears(run, needs);
   };
   E.goDeeper = function (run) {
     if (!E.canGoDeeper(run)) return false;
     run.landed = E.landed(run); // the landings reached up here still score
     run.level = (run.level || 0) + 1;
+    // the first time Wren reaches this level, the aether around her steadies: her Hold grows, here and for good
+    const hold = E.holdAt(run.level);
+    run.holdRose = hold > E.hold(run) ? { from: E.hold(run), to: hold } : null;
+    if (run.holdRose) run.hold = hold;
     run.map = genMap(run);
     run.pos = null;
     run.floor = 0;
@@ -1559,10 +1637,21 @@
      `meta` is the player's lasting state (the UI keeps it in localStorage):
      { salvage, earned, owned: [kit ids], kit: { place: id }, ach: [achievement ids],
        lazaret: [keepsake ids kept at home], bring: [the ones chosen for the next descent], lazOpen,
-       record: { runs, wins, deep } }. */
+       record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord() });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord(), reached: 0 });
+  /* A run has reached a level: the deepest one counts for good, even if Wren falls or turns back (not the tutorial or a
+     debug-cheated run). Returns true when it is new, so the Hold has grown. */
+  E.noteReached = function (meta, run) {
+    if (!run || run.tutorial || run.cheated) return false;
+    const lv = run.level || 0;
+    if (lv <= (meta.reached || 0)) return false;
+    meta.reached = lv;
+    return true;
+  };
+  /* The Hold the next expedition starts with. */
+  E.metaHold = (meta) => E.holdAt(meta.reached || 0);
   /* The logbook: finished expeditions, counted since v0.13.0. `wins` counts the ones that came home, `hearts` the ones
      that brought the Heart home, and `deep` is the deepest landing reached: { level, floor }. */
   E.newRecord = () => ({ runs: 0, wins: 0, hearts: 0, quiets: 0, deep: null });
@@ -1575,6 +1664,7 @@
     if (won && run.quieted) r.quiets = (r.quiets || 0) + 1;
     const lv = run.level || 0, fl = run.floor || 0;
     if (!r.deep || lv > r.deep.level || (lv === r.deep.level && fl > r.deep.floor)) r.deep = { level: lv, floor: fl };
+    E.noteReached(meta, run);
     return r;
   };
   /* Has the Heart come home? Then later expeditions meet the Belfry's finals, and currents are open. */
@@ -1644,6 +1734,15 @@
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
     m.currents = uniq2(m.currents);
+    // the deepest level reached (v0.22.0) sets the Hold; the logbook's deepest landing counts from before
+    const deepest = Math.max(m.reached > 0 ? Math.floor(m.reached) : 0, rec.deep ? rec.deep.level : 0);
+    m.reached = Math.min(E.LEVELS.length - 1, deepest);
+    // achievements for pins broken before they existed (v0.22.0): reaching a level means its pin above was broken
+    if (!Array.isArray(m.ach)) m.ach = [];
+    const grant = (id) => { if (BL.ACHIEVEMENTS[id] && m.ach.indexOf(id) < 0) m.ach.push(id); };
+    if (m.reached >= 1) grant('outofbell');
+    if (m.reached >= 2) grant('stillwater');
+    if (rec.hearts > 0) grant('heartlight');
     return m;
   };
   E.achievementsMet = (run) => (run.tutorial ? [] : Object.keys(BL.ACHIEVEMENTS).filter((id) => BL.ACHIEVEMENTS[id].met(run)));
