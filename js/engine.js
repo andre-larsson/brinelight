@@ -5,12 +5,14 @@
   const BL = (globalThis.BL = globalThis.BL || {});
   const E = {};
 
-  const MAP_ROWS = 10;
+  const MAP_ROWS = 7; // 7 rows of stops, then the pin: 8 landings a level (11 until v0.19.0)
   const MAP_COLS = 5;
   const TIDE_MAX = 6;
   const TIDE_MID = 3;
   const HAND_MAX = 10;
   E.MAP_ROWS = MAP_ROWS;
+  E.LANDINGS = MAP_ROWS + 1; // landings in a level, the pin's included
+  E.WRECK_ROW = 3; // every path passes one Wreck, halfway down
   E.MAP_COLS = MAP_COLS;
   E.TIDE_MAX = TIDE_MAX;
 
@@ -79,8 +81,8 @@
     else if (kit) E.KIT_PLACES.forEach((pl) => { const id = kit[pl]; if (ok(id) && BL.KIT[id].place === pl) out[pl] = id; });
     return out;
   };
-  /* Everything a run has on: the places, plus kit carried over from an older save (E.migrateRun). */
-  E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean).concat(run.kitExtra || []) : []);
+  /* Everything a run has on, one piece in each place. */
+  E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
   E.bell = (run) => (run.kit && run.kit.bell) || null;
 
@@ -92,47 +94,66 @@
        step 2, 5, 8...: one more Thrash, damage at the start of each of your turns, which Ward left from the turn
                         before stops;
        step 3, 6:       one more Bell Minnow joins each fight at half health, drawn by the noise (2 at most). */
-  /* The Hold at each starting depth. The Shallows held 30 until v0.16.0; 20 leaves room for about one strong keepsake
-     and one small one, so a stocked Lazaret doesn't make the first depth easy. */
-  E.HOLDS = [20, 35, 40, 45];
+  /* The Hold: the Roil the aether holds before it is Roiled. It is the same in every level (since v0.19.0; it rose
+     with the starting depth before), because keepsakes found on the way fill it anyway. The Shallows held 30 until
+     v0.16.0; 20 leaves room for about one strong keepsake and one small one. */
+  E.HOLD = 20;
   E.SEEP_STEP = 12; // Roil over the Hold for each step: about one keepsake's worth, so each keepsake past the Hold adds about one step (5 until v0.18.0)
   E.MAX_ROIL_MINNOWS = 2;
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
-  E.hold = (level) => E.HOLDS[Math.min(Math.max(0, level || 0), E.HOLDS.length - 1)];
+  E.hold = () => E.HOLD;
   E.chargeOf = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].charge) || 0;
   /* The Roil you carry, optionally with one more keepsake (to show what taking it would do). */
   E.charge = (run, extra) => run.keepsakes.reduce((a, k) => a + E.chargeOf(k), 0) + (extra ? E.chargeOf(extra) : 0);
-  E.roilSteps = (charge, level) => { const over = charge - E.hold(level); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
-  E.roilFor = function (charge, level) {
-    const s = E.roilSteps(charge, level);
+  E.roilSteps = (charge) => { const over = charge - E.hold(); return over > 0 ? Math.ceil(over / E.SEEP_STEP) : 0; };
+  E.roilFor = function (charge) {
+    const s = E.roilSteps(charge);
     return { steps: s, seep: Math.ceil(s / 3), thrash: Math.floor((s + 1) / 3), minnows: Math.min(E.MAX_ROIL_MINNOWS, Math.floor(s / 3)) };
   };
   /* What the aether does to this run in every fight, optionally with one more keepsake. */
-  E.roil = (run, extra) => (run.tutorial ? E.roilFor(0, 0) : E.roilFor(E.charge(run, extra), run.level));
-  E.seepFor = (charge, level) => E.roilFor(charge, level).seep;
+  E.roil = (run, extra) => (run.tutorial ? E.roilFor(0) : E.roilFor(E.charge(run, extra)));
+  E.seepFor = (charge) => E.roilFor(charge).seep;
   E.seepCount = (run, extra) => E.roil(run, extra).seep;
 
   /* ---------------- Run ---------------- */
-  /* The starting depths. Each uses one band of the Reach (BL.BANDS): its creatures, Fog events and look.
-     Dark Water has creatures of its own; Riptide and the Abyss are Dark Water made harder. */
+  /* An expedition goes down through the levels in order, from the Shallows (since v0.19.0; before, a run was one
+     starting depth of four). Each level uses one band of the Reach (BL.BANDS): its creatures, Fog events and look.
+     `landing` is what each landing reached there adds to the score: going deeper has to pay. */
   E.LEVELS = [
-    { name: 'Shallows', band: 'shallows', desc: 'The standard descent.' },
-    { name: 'Dark Water', band: 'dark', desc: 'Below the Shallows: new creatures in still, black water, and a new boss.' },
-    { name: 'Riptide', band: 'dark', desc: "Dark Water's creatures, with 5% more HP, and they hit 10% harder." },
-    { name: 'The Abyss', band: 'dark', desc: "Dark Water's creatures, with 10% more HP, and they hit 15% harder. Rests heal less." },
+    { name: 'Shallows', band: 'shallows', landing: 40 },
+    { name: 'Dark Water', band: 'dark', landing: 60 },
   ];
-  E.levelMods = (lv) => ([
-    { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1.05, dmg: 1.1, rest: 0.3 }, { hp: 1.1, dmg: 1.15, rest: 0.25 },
-  ][lv || 0] || { hp: 1, dmg: 1, rest: 0.3 });
+  E.lastLevel = (run) => (run.level || 0) >= E.LEVELS.length - 1;
+  /* Currents: chosen on shore before an expedition, once the Heart has come home. Each makes the whole expedition
+     harder and adds CURRENT_SCORE to the score's multiplier; they combine. Riptide and the Abyss were starting depths
+     with HP and damage multipliers until v0.19.0. */
+  E.CURRENT_SCORE = 0.25;
+  E.CURRENTS = {
+    fed: { name: 'Fat Year', hp: 1.1, desc: 'Every creature has 10% more HP.' },
+    teeth: { name: 'Hungry Deep', dmg: 1.15, desc: 'Every creature hits 15% harder.' },
+    cold: { name: 'Cold Coves', rest: 0.2, desc: 'Coves heal 20% of your Max HP, not 30%.' },
+    backwash: { name: 'Backwash', backwash: 1, desc: 'At the start of each of your turns after the first, the Swell slips 1 back toward 3.' },
+  };
+  E.currents = (run) => ((run && run.currents) || []).filter((k) => E.CURRENTS[k]);
+  /* What this run's currents do: enemy HP and damage, the share of Max HP a Cove heals, and the backwash. */
+  E.mods = function (run) {
+    const m = { hp: 1, dmg: 1, rest: 0.3, backwash: 0 };
+    E.currents(run).forEach((k) => { const C = E.CURRENTS[k]; if (C.hp) m.hp *= C.hp; if (C.dmg) m.dmg *= C.dmg; if (C.rest) m.rest = Math.min(m.rest, C.rest); if (C.backwash) m.backwash += C.backwash; });
+    return m;
+  };
+  E.scoreMult = (run) => 1 + E.CURRENT_SCORE * E.currents(run).length;
   /* The band a run is in (the tutorial is in the Shallows). */
   E.bandId = (run) => (run && !run.tutorial && E.LEVELS[run.level || 0] && E.LEVELS[run.level || 0].band) || 'shallows';
   E.band = (run) => BL.BANDS[E.bandId(run)];
 
-  E.newRun = function (seed, level, kit, bring) {
+  /* A new expedition. It always starts in the Shallows; `level` starts it deeper, for tests and the bot only. */
+  E.newRun = function (seed, level, kit, bring, currents) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
-      version: 2,
+      version: 3,
       level: level || 0,
+      currents: (currents || []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i),
+      cleared: [], // the levels whose pin is broken on this expedition
       seed: seed >>> 0,
       rng: seed >>> 0,
       hp: 70, maxHp: 70, pearls: 75,
@@ -212,11 +233,11 @@
         if (!n) continue;
         if (r === 0) { n.type = 'fight'; continue; }
         if (r === MAP_ROWS - 1) { n.type = 'rest'; continue; }
-        if (r === 5) { n.type = 'treasure'; continue; }
+        if (r === E.WRECK_ROW) { n.type = 'treasure'; continue; }
         let opts = [['fight', 46], ['event', 22]];
-        if (r >= 3) opts.push(['elite', 13]);
-        if (r >= 3 && r <= 7) opts.push(['rest', 11]);
-        if (r >= 2) opts.push(['shop', 9]);
+        if (r >= 2) opts.push(['elite', 13]);
+        if (r >= 2 && r <= 4) opts.push(['rest', 11]);
+        if (r >= 1) opts.push(['shop', 9]);
         const ptypes = parentsOf(n).map((p) => p.type);
         opts = opts.filter((o) => !(special.indexOf(o[0]) >= 0 && ptypes.indexOf(o[0]) >= 0));
         n.type = R.weighted(opts);
@@ -225,21 +246,29 @@
     // guarantee a minimum of interesting nodes
     const all = [];
     grid.forEach((row) => row.forEach((n) => n && all.push(n)));
+    // with 7 rows a run of Fog and shops can leave a row with no fight: each open row gets one (from v0.19.0)
+    for (let r = 1; r < MAP_ROWS - 1; r++) {
+      if (r === E.WRECK_ROW) continue;
+      const row = all.filter((n) => n.row === r);
+      if (!row.some((n) => n.type === 'fight' || n.type === 'elite')) { const ev = row.filter((n) => n.type === 'event'); if (ev.length) R.pick(ev).type = 'fight'; }
+    }
     const ensure = (type, minCount, rowMin, rowMax) => {
       let count = all.filter((n) => n.type === type).length;
       let guard = 0;
+      const free = (from) => all.filter((n) => n.type === from && n.row >= rowMin && n.row <= rowMax &&
+        parentsOf(n).every((p) => p.type !== type) && childrenOf(n).every((ch) => ch.type !== type));
       while (count < minCount && guard++ < 50) {
-        const cands = all.filter((n) => n.type === 'fight' && n.row >= rowMin && n.row <= rowMax &&
-          parentsOf(n).every((p) => p.type !== type) && childrenOf(n).every((ch) => ch.type !== type));
+        let cands = free('fight');
+        if (!cands.length && type === 'elite') cands = free('event'); // a map always has its Dreads
         if (!cands.length) break;
         R.pick(cands).type = type;
         count++;
       }
     };
-    ensure('shop', 2, 2, 8);
-    ensure('elite', 2, 3, 8);
-    ensure('rest', 2, 3, 7);
-    ensure('event', 3, 1, 8);
+    ensure('shop', 2, 1, MAP_ROWS - 2);
+    ensure('elite', 2, 2, MAP_ROWS - 2);
+    ensure('rest', 1, 2, 4);
+    ensure('event', 2, 1, MAP_ROWS - 2);
 
     grid.forEach((row) => row.forEach((n) => {
       if (!n) return;
@@ -264,6 +293,7 @@
   E.enterNode = function (run, node) {
     run.pos = { row: node.row, col: node.col };
     run.floor = node.row + 1;
+    run.landed = E.landed(run);
     run.visited = run.visited || [];
     run.visited.push(node.row + ',' + node.col);
     switch (node.type) {
@@ -283,6 +313,7 @@
     const rw = run.rewards;
     if (rw && rw.tonic && !rw.tonicTaken && run.tonics.indexOf(null) >= 0) E.decline(run, 'tonic');
     run.screen = 'map';
+    run.passage = false;
     run.combat = null;
     run.rewards = null;
     run.event = null;
@@ -406,7 +437,7 @@
   };
 
   /* ---------------- Rest / shop / treasure / events ---------------- */
-  E.restAmount = (run) => Math.floor(run.maxHp * E.levelMods(run.level).rest) + (E.hasKit(run, 'wick') ? 10 : 0);
+  E.restAmount = (run) => Math.floor(run.maxHp * E.mods(run).rest) + (E.hasKit(run, 'wick') ? 10 : 0);
   E.rest = function (run) {
     const h = E.heal(run, E.restAmount(run));
     run.restDone = true;
@@ -525,7 +556,7 @@
   function spawnEnemy(run, c, id, idx) {
     const R = makeR(run);
     const d = BL.ENEMIES[id];
-    const hp = Math.round(R.int(d.hp[0], d.hp[1]) * E.levelMods(run.level).hp);
+    const hp = Math.round(R.int(d.hp[0], d.hp[1]) * E.mods(run).hp);
     const e = { uid: 'e' + c.nextEid++, id, name: d.name, hp, maxHp: hp, ward: 0, st: {}, hist: [], mem: {}, intent: null, dead: false, acted: false };
     if (d.init) d.init(e, R, idx || 0);
     c.enemies.push(e);
@@ -556,7 +587,7 @@
       player: { ward: 0, st: {} },
       enemies: [], fx: [], nextEid: 1, won: false, lost: false,
       flags: { hpLost: false }, phase: 'player', bonusPearls: (opts && opts.bonusPearls) || 0,
-      turnCrests: 0, turnLows: 0, fightCrests: 0, maxChain: 0, maxLowChain: 0, echo: 0, dmgMul: E.levelMods(run.level).dmg, pearlsWon: 0,
+      turnCrests: 0, turnLows: 0, fightCrests: 0, maxChain: 0, maxLowChain: 0, echo: 0, dmgMul: E.mods(run).dmg, pearlsWon: 0,
     };
     run.combat = c;
     run.screen = 'combat';
@@ -946,6 +977,13 @@
       if (c.lost) return;
     }
     if (c.turn > 1) P.ward = 0; // on the first turn the only Ward is the Shell Gorget's, which lasts the turn
+    // the Backwash current pulls the Swell back toward the middle
+    const pull = c.turn > 1 ? E.mods(run).backwash : 0;
+    if (pull && c.tide !== TIDE_MID) {
+      const d = Math.sign(TIDE_MID - c.tide) * Math.min(pull, Math.abs(TIDE_MID - c.tide));
+      c.tide += d;
+      fx(c, { t: 'tide', d, undertow: true });
+    }
     if ((P.st.brine || 0) > 0) {
       loseHpDirect(run, c, P, P.st.brine);
       P.st.brine--;
@@ -1280,8 +1318,10 @@
     if (!c.flags.hpLost) run.stats.flawless = (run.stats.flawless || 0) + 1;
     if (c.kind === 'elite' && run.deck.length <= 12) run.stats.leanDread = true;
     if (c.kind === 'boss') {
-      run.screen = 'victory';
+      // the pin is broken: its lock drains. After the last level's pin the Heart comes home; before it, Wren chooses
       run.combat = null;
+      if (run.cleared.indexOf(run.level || 0) < 0) run.cleared.push(run.level || 0);
+      if (E.lastLevel(run)) { run.heart = true; run.screen = 'victory'; } else run.screen = 'pin';
       return;
     }
     const elite = c.kind === 'elite';
@@ -1305,6 +1345,33 @@
     run.rewards = rw;
     run.combat = null;
     run.screen = 'reward';
+  };
+
+  /* After a pin: go home, which ends the expedition and keeps everything found, or go on down. The stair down
+     starts at a Sheltered Cove (rest or upgrade), then the next level's map. */
+  E.goHome = function (run) {
+    if (run.screen !== 'pin') return false;
+    run.screen = 'victory';
+    return true;
+  };
+  E.goDeeper = function (run) {
+    if (run.screen !== 'pin' || E.lastLevel(run)) return false;
+    run.landed = E.landed(run); // the landings reached up here still score
+    run.level = (run.level || 0) + 1;
+    run.map = genMap(run);
+    run.pos = null;
+    run.floor = 0;
+    run.visited = [];
+    run.passage = true; // this Cove is the stair down; the next level's first landing comes after it
+    run.screen = 'rest';
+    run.restDone = false;
+    return true;
+  };
+  /* The landings reached in each level of this expedition. */
+  E.landed = function (run) {
+    const l = (run.landed || []).slice(), lv = run.level || 0;
+    l[lv] = Math.max(l[lv] || 0, run.floor || 0);
+    return l;
   };
 
   E.takeRewardCard = function (run, i) {
@@ -1340,12 +1407,12 @@
     E.gainKeepsake(run, k);
   };
 
-  /* Score for the end screen, line by line: what each line counted, its points, and the depth's multiplier.
-     `n` is the count shown (null for a flat amount), `each` the points per one. Lines worth nothing are left out. */
+  /* Score for the end screen, line by line: what each line counted, its points, and the currents' multiplier.
+     `n` is the count shown (null for a flat amount), `each` the points per one. Lines worth nothing are left out.
+     `won` means Wren came home: after any pin, or with the Heart. */
   E.scoreParts = function (run, won) {
-    const st = run.stats;
-    const lines = [
-      ['Landings reached', run.floor, 40],
+    const st = run.stats, landed = E.landed(run);
+    const lines = E.LEVELS.map((L, i) => [`Landings in ${i ? L.name : 'the Shallows'}`, landed[i] || 0, L.landing]).concat([
       ['Creatures defeated', st.kills || 0, 12],
       ['Dreads defeated', st.elites || 0, 80],
       ['Crests', st.crests || 0, 6],
@@ -1354,11 +1421,12 @@
       ['Most Strands in one turn', st.maxLowChain || 0, 30],
       ['Bonuses (Flawless, Swift and chains)', st.bonuses || 0, 15],
       ['Rewards turned down', st.declined || 0, null, E.declinePoints(st)],
-    ];
-    if (won) lines.push(['The Lantern Heart brought home', null, null, 600], ['HP left', run.hp, 5]);
+    ]);
+    if (won && run.heart) lines.push(['The Lantern Heart brought home', null, null, 600]);
+    if (won) lines.push(['HP left', run.hp, 5]);
     const parts = lines.map(([label, n, each, flat]) => ({ label, n, each, pts: flat != null ? flat : n * each })).filter((p) => p.pts > 0);
     const sum = parts.reduce((a, p) => a + p.pts, 0);
-    const mult = 1 + 0.25 * (run.level || 0);
+    const mult = E.scoreMult(run);
     return { parts, sum, mult, total: Math.round(sum * mult) };
   };
   E.score = (run, won) => E.scoreParts(run, won).total;
@@ -1377,17 +1445,27 @@
        record: { runs, wins, deep } }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, record: E.newRecord() });
-  /* The logbook: finished runs, counted since v0.13.0. `deep` is the deepest landing reached: { level, floor }. */
-  E.newRecord = () => ({ runs: 0, wins: 0, deep: null });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord() });
+  /* The logbook: finished expeditions, counted since v0.13.0. `wins` counts the ones that came home, `hearts` the ones
+     that brought the Heart home, and `deep` is the deepest landing reached: { level, floor }. */
+  E.newRecord = () => ({ runs: 0, wins: 0, hearts: 0, deep: null });
   E.recordRun = function (meta, run, won) {
     if (!run || run.tutorial) return meta.record;
     const r = meta.record;
     r.runs++;
     if (won) r.wins++;
+    if (won && run.heart) r.hearts = (r.hearts || 0) + 1;
     const lv = run.level || 0, fl = run.floor || 0;
     if (!r.deep || lv > r.deep.level || (lv === r.deep.level && fl > r.deep.floor)) r.deep = { level: lv, floor: fl };
     return r;
+  };
+  /* Currents open once the Heart has come home. The ones chosen are remembered for the next expedition. */
+  E.currentsOpen = (meta) => (meta.record.hearts || 0) > 0;
+  E.toggleCurrent = function (meta, k) {
+    if (!E.CURRENTS[k] || !E.currentsOpen(meta)) return false;
+    const i = meta.currents.indexOf(k);
+    if (i < 0) meta.currents.push(k); else meta.currents.splice(i, 1);
+    return true;
   };
   E.ownsKit = (meta, id) => !!BL.KIT[id] && (!!BL.KIT[id].starter || meta.owned.indexOf(id) >= 0);
   E.kitUnlocked = (meta, id) => { const g = BL.KIT[id]; return !!g && (!g.unlock || meta.ach.indexOf(g.unlock) >= 0); };
@@ -1433,6 +1511,7 @@
     delete m.packed;
     // the Lazaret (v0.13.0): only real keepsakes, one of each, and you can only bring what is kept there
     const uniq = (list) => (Array.isArray(list) ? list : []).filter((k, i, a) => BL.KEEPSAKES[k] && a.indexOf(k) === i);
+    const uniq2 = (list) => (Array.isArray(list) ? list : []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i);
     m.lazaret = uniq(m.lazaret);
     m.bring = uniq(m.bring).filter((k) => m.lazaret.indexOf(k) >= 0);
     m.lazOpen = !!m.lazOpen || m.lazaret.length > 0;
@@ -1440,30 +1519,11 @@
     const rec = E.newRecord(), old = m.record && typeof m.record === 'object' ? m.record : {};
     if (old.runs > 0) rec.runs = Math.floor(old.runs);
     if (old.wins > 0) rec.wins = Math.min(rec.runs, Math.floor(old.wins));
+    if (old.hearts > 0) rec.hearts = Math.min(rec.wins, Math.floor(old.hearts));
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
+    m.currents = uniq2(m.currents);
     return m;
-  };
-  /* A run saved before v0.10.0: the Tide-Bell keepsake becomes the bell, and the keepsakes and gear that
-     are kit now keep working as kit for the rest of that run. */
-  E.migrateRun = function (run) {
-    if (!run) return run;
-    if (!run.kit) {
-      const kit = E.fitKit();
-      kit.bell = null;
-      const extra = [];
-      const add = (id) => { if (id && BL.KIT[id] && extra.indexOf(id) < 0) extra.push(id); };
-      (run.keepsakes || []).forEach((k) => { const to = BL.RETIRED_KEEPSAKES[k]; if (to === 'tidebell') kit.bell = 'tidebell'; else add(to); });
-      (run.gear || []).forEach((g) => { const to = BL.OLD_GEAR[g]; if (to && ['coat', 'pocket', 'ditty'].indexOf(BL.KIT[to].place) >= 0) add(to); });
-      run.kit = kit;
-      if (extra.length) run.kitExtra = extra;
-      delete run.gear;
-      delete run.overburden;
-    }
-    run.keepsakes = (run.keepsakes || []).filter((k) => BL.KEEPSAKES[k]);
-    // a fight saved in v0.13.0, when Thrash was called Scour
-    if (run.combat && run.combat.scour) { run.combat.thrash = run.combat.scour; delete run.combat.scour; }
-    return run;
   };
   E.achievementsMet = (run) => (run.tutorial ? [] : Object.keys(BL.ACHIEVEMENTS).filter((id) => BL.ACHIEVEMENTS[id].met(run)));
   /* Records achievements this run has newly met; returns their ids (also kept on the run for the end screen). */
@@ -1533,7 +1593,9 @@
     if (run.screen === 'rest') m.push('cove');
     if (run.screen === 'treasure') m.push('wreck');
     if (run.screen === 'defeat') m.push('fell');
-    if (run.screen === 'victory') m.push('won:' + (run.level || 0));
+    (run.cleared || []).forEach((lv) => m.push('won:' + lv));
+    if (run.screen === 'victory') m.push('home');
+    if (run.screen === 'victory' && run.heart) m.push('heart');
     if (run.combat) {
       if (run.combat.kind === 'boss') m.push('boss');
       run.combat.enemies.forEach((e) => { if (m.indexOf('en:' + e.id) < 0) m.push('en:' + e.id); });

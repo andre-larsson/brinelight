@@ -49,7 +49,7 @@ test('chapter 1 is the opening and is always open; every other entry is locked b
 });
 
 test('every mark can be earned in the game as it is', () => {
-  const plain = ['fell', 'shop', 'cove', 'wreck', 'boss', 'keepsake', 'roiled'];
+  const plain = ['fell', 'shop', 'cove', 'wreck', 'boss', 'keepsake', 'roiled', 'home', 'heart'];
   E.storyEntries().filter((en) => en.when).forEach((en) => {
     const [kind, id] = en.when.split(':');
     if (kind === 'ev') assert.ok(BL.EVENTS.some((ev) => ev.id === id), en.when);
@@ -57,8 +57,9 @@ test('every mark can be earned in the game as it is', () => {
     else if (kind === 'won') assert.ok(+id >= 0 && +id < E.LEVELS.length, en.when);
     else assert.ok(plain.indexOf(en.when) >= 0, en.when);
   });
-  // one chapter for each depth cleared
+  // one chapter for each pin broken, and the Heart's chapters
   E.LEVELS.forEach((L, i) => assert.ok(S.chapters.some((c) => c.when === 'won:' + i), L.name));
+  assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
 test('there are six chapters and 22 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
@@ -91,20 +92,26 @@ test('a run earns marks from what it meets', () => {
   assert.ok(E.storyMarks(boss).includes('boss') && E.storyMarks(boss).includes('en:bell'));
 });
 
-test('a fall, a win at each depth, a keepsake and a Roiled aether each earn their mark', () => {
+test('a fall, each pin broken, coming home, the Heart, a keepsake and a Roiled aether each earn their mark', () => {
   const fell = E.newRun(7);
   fell.screen = 'defeat';
   assert.deepEqual(E.storyMarks(fell), ['fell']);
-  E.LEVELS.forEach((L, lv) => {
-    const won = E.newRun(7, lv);
-    won.screen = 'victory';
-    assert.deepEqual(E.storyMarks(won), ['won:' + lv]);
-  });
+  const pinned = E.newRun(7);
+  pinned.cleared = [0];
+  pinned.screen = 'pin';
+  assert.deepEqual(E.storyMarks(pinned), ['won:0']);
+  pinned.screen = 'victory';
+  assert.deepEqual(E.storyMarks(pinned), ['won:0', 'home']);
+  const heart = E.newRun(7, 1);
+  heart.cleared = [0, 1];
+  heart.heart = true;
+  heart.screen = 'victory';
+  assert.deepEqual(E.storyMarks(heart), ['won:0', 'won:1', 'home', 'heart']);
   const r = E.newRun(7);
   E.gainKeepsake(r, 'coralcrown');
   assert.deepEqual(E.storyMarks(r), ['keepsake']);
   Object.keys(BL.KEEPSAKES).slice(0, 6).forEach((k) => E.gainKeepsake(r, k));
-  assert.ok(E.charge(r) > E.hold(0) && E.storyMarks(r).includes('roiled'));
+  assert.ok(E.charge(r) > E.hold() && E.storyMarks(r).includes('roiled'));
 });
 
 test('the tutorial earns nothing', () => {
@@ -122,9 +129,9 @@ test('an entry opens only once its mark is earned', () => {
 });
 
 test('the story agrees with the rules and uses the current words', () => {
-  const depths = S.world.flatMap((g) => g.items).find((r) => r[0] === 'Depths')[1];
-  assert.ok(depths.includes('four depths') && E.LEVELS.length === 4);
-  E.LEVELS.forEach((L) => assert.ok(depths.includes(L.name.replace(/^The /, 'the ')), L.name));
+  const exp = S.world.flatMap((g) => g.items).find((r) => r[0] === 'Expeditions')[1];
+  E.LEVELS.forEach((L, i) => assert.ok(exp.includes(i ? L.name : 'the Shallows'), L.name));
+  assert.match(exp, /go home after any pin/);
   const all = texts().join('\n');
   assert.doesNotMatch(all, /Low Water|\bCharge\b|Tide gauge|\bswim|\bdive\b/i);
   ['Swell', 'Crest', 'Strand', 'Roil', 'Hold', 'Seep', 'Calm', 'Roiled'].forEach((w) => assert.ok(all.includes(w), w));

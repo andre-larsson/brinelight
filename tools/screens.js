@@ -133,15 +133,16 @@ const SIZES = {
       await shot(tag, '21_opening_4');
       await page.eval(`document.querySelector('[data-act="opnext"]').click()`);
       // the Lazaret: five keepsakes kept, two chosen (over the Shallows Hold), then the choice before a descent
-      await setup(`B.closeOverlay(true); B.setMaxLevel(1); const m = B.meta; m.lazOpen = true; m.lazaret = ['whaletooth', 'stormbottle', 'moonshard', 'biscuit', 'coralcrown']; m.bring = ['whaletooth', 'stormbottle']; B.saveMeta(); B.run = null; B.render(); document.querySelector('[data-act="lazaret"]').click();`);
+      await setup(`B.closeOverlay(true); const m = B.meta; m.record.hearts = Math.max(1, m.record.hearts || 0); m.record.wins = Math.max(m.record.wins, 1); m.record.runs = Math.max(m.record.runs, 1); m.currents = ['fed']; m.lazOpen = true; m.lazaret = ['whaletooth', 'stormbottle', 'moonshard', 'biscuit', 'coralcrown']; m.bring = ['whaletooth', 'stormbottle']; B.saveMeta(); B.run = null; B.render(); document.querySelector('[data-act="lazaret"]').click();`);
       await shot(tag, '22_lazaret');
       await setup(`B.closeOverlay(true); document.querySelector('[data-act="newrun"]').click();`);
       await sleep(200);
-      await page.eval(`document.querySelector('[data-act="startlevel"][data-lv="0"]').click()`);
       await shot(tag, '23_pack');
       // a win: one new keepsake kept, one the Lazaret already holds
-      await setup(`B.closeOverlay(true); const r = E.newRun(4242, 0, B.meta.kit, B.meta.bring); E.gainKeepsake(r, 'anchor'); E.gainKeepsake(r, 'moonshard'); r.floor = 11; r.screen = 'victory'; B.run = r; B.render();`);
-      await shot(tag, '24_victory');
+      await setup(`B.closeOverlay(true); const r = E.newRun(4242, 0, B.meta.kit, B.meta.bring); E.gainKeepsake(r, 'anchor'); E.gainKeepsake(r, 'moonshard'); r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.run = r; B.render();`);
+      await shot(tag, '24_pin');
+      await setup(`B.run.screen = 'victory'; B.render();`);
+      await shot(tag, '24_home');
       // a fall: the found keepsakes are lost
       await setup(`const r = E.newRun(4242, 0, B.meta.kit, B.meta.bring); E.gainKeepsake(r, 'gullfeather'); E.gainKeepsake(r, 'tidewatch'); r.floor = 6; r.screen = 'defeat'; B.run = r; B.render();`);
       await shot(tag, '25_defeat_lost');
@@ -169,8 +170,10 @@ const SIZES = {
       await shot(tag, '33_dark_buoy');
       await setup(`const r = B.run; E.backToMap(r); r.event = { id: 'garden', stage: 'choose', text: null, next: null }; r.screen = 'event'; B.render();`);
       await shot(tag, '34_dark_event');
-      await setup(`const r = E.newRun(4242, 1); r.floor = 11; r.screen = 'victory'; B.run = r; B.render();`);
+      await setup(`const r = E.newRun(4242, 1); r.landed = [8]; r.floor = 8; r.cleared = [0, 1]; r.heart = true; r.screen = 'victory'; B.run = r; B.render();`);
       await shot(tag, '35_dark_victory');
+      await setup(`const r = E.newRun(4242, 0); r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.run = r; E.goDeeper(r); B.render();`);
+      await shot(tag, '36_stair_cove');
       await setup(`B.run = null; B.render(); document.querySelector('[data-act="help"]').click();`);
       await setup(`document.querySelector('[data-act="helptab"][data-tab="keywords"]').click();`);
       await shot(tag, '36_help_keywords');

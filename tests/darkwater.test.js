@@ -33,7 +33,7 @@ const tough = (c) => c.enemies.forEach((e) => { e.hp = e.maxHp = 500; });
 const idle = (e) => { e.intent = 'none'; };
 const enc = (c) => c.enemies.map((e) => e.id);
 
-test('Dark Water, Riptide and the Abyss draw fights and Fog events from Dark Water; the Shallows keep their own', () => {
+test('each level of an expedition draws fights, its pin and Fog events from its own band', () => {
   assert.equal(BL.BANDS.shallows.enc, BL.ENCOUNTERS);
   assert.deepEqual(BL.BANDS.shallows.events, ['shrine', 'wreck', 'witch', 'pool', 'ghost', 'bottle', 'ambush']);
   const key = (list) => list.map((x) => x.join('+'));
@@ -183,8 +183,9 @@ test('Glimmer Chain: Drink the Light douses your lantern, and you start your nex
   c.player.st.doused = 2;
   run.keepsakes = ['stormbottle'];
   ch.intent = 'glut';
-  while ((c.turn + 1) % 3 !== 0) { c.player.st.doused = 2; E.endTurn(run); }
+  while ((c.turn + 1) % 3 !== 0) { c.player.st.doused = 2; ch.intent = 'glut'; E.endTurn(run); }
   c.player.st.doused = 2;
+  ch.intent = 'glut';
   E.endTurn(run);
   assert.equal(c.turn % 3, 0);
   assert.equal(c.light, 3 + 1 - 2);
@@ -423,12 +424,24 @@ test('Dark Water runs are deterministic, and a fight with a Submerged enemy and 
   assert.deepEqual(E.targets(back.combat).map((e) => e.id), ['gulper']);
 });
 
-test('the bot finishes Dark Water runs at every depth that uses it', () => {
-  [1, 2, 3].forEach((lv) => {
-    for (let seed = 1; seed <= 15; seed++) {
-      const run = E.newRun(seed, lv);
-      playRun(run);
-      assert.ok(run.screen === 'victory' || run.screen === 'defeat', `${lv}/${seed}: ${run.screen}`);
+test('the bot finishes whole expeditions, with and without currents, and every one that reaches Dark Water goes through the Cove at the stair', () => {
+  let deeper = 0;
+  [[], Object.keys(E.CURRENTS)].forEach((cur) => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const run = E.newRun(seed, 0, null, [], cur);
+      const labels = playRun(run, 8000);
+      assert.ok(run.screen === 'victory' || run.screen === 'defeat', `${seed}: ${run.screen}`);
+      const i = labels.indexOf('deeper');
+      if (i >= 0) { deeper++; assert.equal(labels[i + 1], 'rest'); assert.ok(run.level === 1); }
+      if (run.screen === 'victory') assert.ok(run.heart && run.cleared.length === 2);
     }
   });
+  assert.ok(deeper > 0, 'some go deeper');
+  // and a bot told to go home after the Shallows comes home without the Heart
+  for (let seed = 1; seed <= 200; seed++) {
+    const run = E.newRun(seed);
+    playRun(run, 8000, { home: 0 });
+    if (run.cleared.length) { assert.equal(run.screen, 'victory'); assert.ok(!run.heart); return; }
+  }
+  assert.fail('no run broke the Shallows pin');
 });

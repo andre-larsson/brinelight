@@ -128,6 +128,12 @@ function step(run, opts = {}) {
     return 'reward';
   }
   if (s === 'rest') { E.rest(run); E.backToMap(run); return 'rest'; }
+  // after a pin: go on down, unless told to go home after this level (opts.home)
+  if (s === 'pin') {
+    if (opts.home != null && (run.level || 0) >= opts.home) { E.goHome(run); return 'home'; }
+    E.goDeeper(run);
+    return 'deeper';
+  }
   if (s === 'shop') { E.backToMap(run); return 'shop'; }
   if (s === 'treasure') {
     E.openTreasure(run);

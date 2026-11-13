@@ -29,13 +29,13 @@ The keeper's craft has two halves: the light and the bell. Wren plays with both.
 
 Wren is the last lighthouse keeper of Saltmere. The lighthouse went dark on her watch. Far below, the Drowned Bellwether rang with no hand on its rope, and the Lantern Heart went down to it. Wren goes down the coast to bring it back.
 
-The current game tells this story in a shorter shape. Every depth ends with a boss, and defeating it restores the lighthouse by dawn: the Drowned Bellwether in the Shallows, and the Tolling Buoy in Dark Water, Riptide and the Abyss (since v0.15.0). The agreed story puts the Bellwether and the Heart at the end of a longer expedition.
+The current game (v0.19.0) tells this story in a shorter shape: an expedition of two levels. The Drowned Bellwether is the Shallows' pin. When it breaks, the Heart is not in it: its glow goes on down the drained stair. Wren can go home there, or go deeper into Dark Water, where the Tolling Buoy holds the Heart in its cage. Breaking the Buoy brings the Heart home. This is a stopgap: the agreed story puts the Bellwether and the Heart in the Belfry, below a second level, and gives the Shallows a pin of its own (slice B).
 
 - **In the game:** The title screen says an enchanted bell, sunk under the cliffs, has stolen the fire from your lighthouse and is pulling the sea up toward the town. You are the last keeper, and you go down to take the fire back.
 - **In the game:** An opening in four pictures plays before the first descent. It says who Wren is, what the Lantern Heart and the Bellwether are, that the bell rang by itself tonight and pulled the Heart down, and what Wren carries. Its text is in `BL.STORY.opening` in js/data.js.
 - **In the game:** The README says the keepers' great bell rang with no hand on its rope, and that Wren goes down through the Drowned Reach to take the Lantern Heart back from the Drowned Bellwether.
-- **In the game:** On a win, the Bellwether cracks and falls silent, and the sea it held lets go. The Heart is still burning in its bronze wreckage. Wren carries the Heart up the dripping stairs, and Saltmere's great light turns again by dawn. The screen is titled "The Lantern Heart rises" and its button says "Go down again".
-- **In the game (v0.15.0):** On a win in Dark Water, Riptide or the Abyss, the Tolling Buoy goes silent and the water it held runs down the stair. The Heart is caught in the bottom of its cage like a fish in a lobster pot, and the pale things in there have been feeding on it. Wren carries it up, and the light turns again by dawn.
+- **In the game (v0.19.0):** When the Bellwether breaks, it cracks and falls silent, and its water runs away down a stair that has been under the sea for a hundred years. The Heart is not in its bronze. Something far below is still ringing, and the fire's glow goes on down the stair toward it. Going home from there, the screen is titled "Home with your haul": the bells start again behind her and the water creeps back over the landings.
+- **In the game (v0.15.0, the end of the expedition since v0.19.0):** When the Tolling Buoy breaks, it goes silent and the water it held runs down the stair. The Heart is caught in the bottom of its cage like a fish in a lobster pot, and the pale things in there have been feeding on it. Wren carries it up, and the light turns again by dawn. The screen is titled "The Lantern Heart rises" and its button says "Go down again".
 - **In the game:** On a loss, the cold water closes over Wren's lantern and she goes under. The sea carries her back to shore, alive. The lighthouse is still dark, and the water has risen a little higher toward the town. The screen is titled "The tide takes you" and its button says "Try again".
 - **Agreed:** Each boss above the final depth holds water in its own area, covering a stair or tunnel. Defeating the boss drains the area and opens the passage down. The Heart remains deeper down, and the lighthouse is restored by dawn only after Wren clears the final drowned depth.
 - **Agreed:** Wren does not die when she falls. Her lantern burns down to an ember but stays alight, because it holds the last of the Heart's fire. The held water takes her. Past the bell's reach the ordinary sea still gives back what it takes, and it returns her to the Shallows alive.
@@ -110,7 +110,7 @@ Every expedition starts on shore in the Shallows and can continue through every 
 
 ### Initial three-level scope (2026-11-12; agreed, not built)
 
-Plan for three levels initially. More intermediary bands can be added later. These are physical stages of one expedition, separate from the current game's four starting difficulty choices.
+Plan for three levels initially. More intermediary bands can be added later. These are physical stages of one expedition. Since v0.19.0 the game has the first two (the Shallows and Dark Water as the second level), and the old starting depths are gone.
 
 | Level | Story role | Progression |
 |---|---|---|
@@ -133,7 +133,7 @@ The suit still has to be carried home before it can be worn on a later expeditio
 - **Open:** How the rest of what Wren brings home is kept or used between expeditions.
 - **Agreed:** The pack does not grow and cannot be repacked after breaking a pin. If Wren brings the diving suit, it occupies a worn slot from the first band onward and has no effect in fights. Carrying it therefore makes every band above the last harder. She cannot enter the Belfry without it.
 - **Agreed:** Wren finds the suit the first time she clears the last walkable band, initially the second level. She cannot put it on during that expedition, so she has to carry it home. From then on she can pack it on shore. It is an old keeper's diving dress with a sealed lamp. Her open lantern establishes that the bands above the Belfry contain air.
-- **In the game:** The stops down the map are landings. The top bar reads "Landing 3/11", and the boss waits on the last landing. "Depth" means only the Shallows, Dark Water, Riptide, and the Abyss.
+- **In the game:** The stops down the map are landings. The top bar reads "Landing 3/8" (8 a level since v0.19.0), and the pin waits on the last landing. A level is one band of an expedition: the Shallows, then Dark Water.
 - **In the game:** Going down is a descent, and Wren sets out. The game says "dive" only for the flooded hold of the Gilded Gull.
 
 ## People and creatures
@@ -173,7 +173,7 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 - **In the game:** The Glimmering Pool is a warm cave pool with a gentle turquoise glow. Its light seems to listen, a reflection can reach out of the water, and its pearls bite.
 - **In the game:** At Eyes in the Kelp, something in the fronds guards a cache.
 - **In the game:** A faintly glowing glass bottle contains a sailor's notes.
-- **In the game (v0.15.0):** The Shallows and Dark Water have their own creatures, Dreads, boss, Fog and fight paintings. Riptide and the Abyss describe difficulty only: Dark Water with more HP, harder hits, and less rest in the Abyss.
+- **In the game (v0.15.0):** The Shallows and Dark Water have their own creatures, Dreads, boss, Fog and fight paintings. Riptide and the Abyss were difficulty settings on Dark Water until v0.19.0. Their job went to the **currents**, moods of the sea chosen on shore once the Heart is home: Fat Year, Hungry Deep, Cold Coves and Backwash.
 
 ## Words and objects
 
@@ -193,14 +193,14 @@ Wren walks, wades, and climbs while the slow tide is out. Her coat and open lant
 
 ## Story so far
 
-Story so far is a screen on the title and in the menu. Its text is in `BL.STORY` in js/data.js, and everything listed in this section is **In the game**. The existing chapters describe the current four-depth game. Their unlocks and the repeated theft of the Heart need revising when the three-level expedition and continuing story are implemented.
+Story so far is a screen on the title and in the menu. Its text is in `BL.STORY` in js/data.js, and everything listed in this section is **In the game**. The chapters were regated for the two-level expedition in v0.19.0, as a stopgap; slice B rewrites them for the Belfry.
 
-- **Story tab:** Six chapters. Chapter 1 is the opening and is always open. The others open on the first fall and on the first clear of each depth.
+- **Story tab:** Six chapters. Chapter 1 is the opening and is always open. The others open on the first fall, on breaking each level's pin, and on bringing the Heart home.
   - *The sea gives you back* (first fall): Wren wakes on the shingle below the lighthouse with her lantern at an ember. The bell called back the keepsakes she found.
-  - *The Heart comes home* (Shallows): the light turns again by dawn. Before the next tide a bell rings from deeper down, the fire goes back to it, and the caves fill. This currently explains why Wren goes down again after each depth's Bellwether fight. It needs revising for the target where she recovers the Heart at the end of the full expedition and it stays home.
-  - *Why the bell was sunk* (Dark Water): the bell ringing in Dark Water was Saltmere's old bell-buoy, not the Bellwether; when it went silent the water ran down and the Heart was caught in its cage (since v0.15.0). The keepers cast the bell and sank it to hold the water off their low stairs and quay. The Lamplighter was the last to tend it.
-  - *Why the fire followed* (Riptide): hand-bells are tuned to the Bellwether and lanterns are lit from the Heart. The Heart answered the lead bell.
-  - *Under the last stair* (the Abyss): the Belfry lies under the Abyss and does not drain. An old keeper's diving dress hangs on the wall of the hall above it. The chapter says the story stops there for now.
+  - *The stair below* (the Shallows' pin, since v0.19.0; it was *The Heart comes home*): the Bellwether breaks and its water runs down an old stair. The Heart is not in its bronze; its glow goes on down toward something still ringing. Wren can go home with what she carries, but the bell rings again before the next tide and the next expedition starts from the shore.
+  - *Why the bell was sunk* (Dark Water's pin): the bell ringing in Dark Water was Saltmere's old bell-buoy, not the Bellwether; when it went silent the water ran down and the Heart was caught in its cage (since v0.15.0). The keepers cast the bell and sank it to hold the water off their low stairs and quay. The Lamplighter was the last to tend it.
+  - *Why the fire followed* (the Heart, since v0.19.0; Riptide before): hand-bells are tuned to the Bellwether and lanterns are lit from the Heart. The Heart answered the lead bell.
+  - *Under the last stair* (the Heart, since v0.19.0; the Abyss before): the Belfry lies under Dark Water and does not drain. An old keeper's diving dress hangs on the wall of the hall above it. The chapter says the story stops there for now.
 - **The world tab:** A glossary of places, people and magic. It is always open.
 - **Keeper's notes tab:** 22 notes, each opened by first meeting its subject. v0.15.0 added What eats the light (the Glimmer Leech), Lamp Hermits, the Tolling Buoy, the tide-board, the Glimmer Garden and the diving bell, and the Bellwether's note now opens on meeting the Bellwether itself. "A night in the Lazaret" (v0.13.0) opens on the first win in the Shallows. New facts in them: somebody has left a blanket, a kettle and a coil of rope in each Sheltered Cove. Seep is seawater that beads on Wren's gear. Something with one eye and many arms has grown into the Bellwether. The Drowned Deckhands still work their watch. Nobody knows why some lost things turn into keepsakes and others do not.
 - **Agreed:** As depths and the Belfry are built, each gets a chapter. New people, places and enemies get a note.

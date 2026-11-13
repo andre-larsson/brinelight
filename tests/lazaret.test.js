@@ -91,8 +91,8 @@ test('brought keepsakes are carried from the first landing and count toward the 
   E.startCombat(roiled, 'easy', ['kelp']);
   assert.equal(roiled.combat.draw.concat(roiled.combat.hand).filter((c) => c.id === 'seep').length, 1);
   assert.equal(roiled.combat.thrash, 1);
-  // deeper, the same three are within the Hold of 35
-  assert.equal(E.roil(E.newRun(4, 1, null, ['whaletooth', 'moonshard', 'saltedhook'])).steps, 0);
+  // the Hold is the same deeper down: the same three are just as Roiled in Dark Water
+  assert.equal(E.roil(E.newRun(4, 1, null, ['whaletooth', 'moonshard', 'saltedhook'])).steps, 2);
   // Scallop Charm gives its 10 Max HP from the start
   const plain = E.newRun(4);
   const charm = E.newRun(4, 0, null, ['biscuit']);
@@ -171,24 +171,27 @@ test('lasting state from before v0.13.0 gets an empty Lazaret, and a damaged one
 });
 
 /* ---------- The logbook ---------- */
-test('the logbook counts finished runs, wins and the deepest landing reached; the tutorial is not counted', () => {
+test('the logbook counts finished expeditions, those that came home, Hearts brought home and the deepest landing; the tutorial is not counted', () => {
   const meta = E.newMeta();
-  assert.deepEqual(meta.record, { runs: 0, wins: 0, deep: null });
+  assert.deepEqual(meta.record, { runs: 0, wins: 0, hearts: 0, deep: null });
   const a = E.newRun(3, 0); a.floor = 6;
   E.recordRun(meta, a, false);
-  assert.deepEqual(meta.record, { runs: 1, wins: 0, deep: { level: 0, floor: 6 } });
-  const b = E.newRun(3, 0); b.floor = 11;
-  E.recordRun(meta, b, true);
-  assert.deepEqual(meta.record, { runs: 2, wins: 1, deep: { level: 0, floor: 11 } });
-  // a deeper depth beats any landing of a shallower one; a shallower run changes nothing
+  assert.deepEqual(meta.record, { runs: 1, wins: 0, hearts: 0, deep: { level: 0, floor: 6 } });
+  const b = E.newRun(3, 0); b.floor = 8;
+  E.recordRun(meta, b, true); // home after the Shallows' pin: no Heart
+  assert.deepEqual(meta.record, { runs: 2, wins: 1, hearts: 0, deep: { level: 0, floor: 8 } });
+  // a deeper level beats any landing of a shallower one; a shallower run changes nothing
   const c = E.newRun(3, 1); c.floor = 2;
   E.recordRun(meta, c, false);
   assert.deepEqual(meta.record.deep, { level: 1, floor: 2 });
   E.recordRun(meta, b, true);
-  assert.deepEqual(meta.record, { runs: 4, wins: 2, deep: { level: 1, floor: 2 } });
+  assert.deepEqual(meta.record, { runs: 4, wins: 2, hearts: 0, deep: { level: 1, floor: 2 } });
+  const h = E.newRun(3, 1); h.floor = 8; h.heart = true;
+  E.recordRun(meta, h, true);
+  assert.deepEqual(meta.record, { runs: 5, wins: 3, hearts: 1, deep: { level: 1, floor: 8 } });
   E.recordRun(meta, E.newTutorialRun(), true);
-  assert.equal(meta.record.runs, 4);
+  assert.equal(meta.record.runs, 5);
   // lasting state from before v0.13.0 starts an empty logbook, and a damaged one is cleaned
-  assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).record, { runs: 0, wins: 0, deep: null });
-  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], record: { runs: 3.7, wins: 9, deep: { level: 99, floor: 4 } } }).record, { runs: 3, wins: 3, deep: null });
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).record, { runs: 0, wins: 0, hearts: 0, deep: null });
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], record: { runs: 3.7, wins: 9, hearts: 5, deep: { level: 99, floor: 4 } } }).record, { runs: 3, wins: 3, hearts: 3, deep: null });
 });

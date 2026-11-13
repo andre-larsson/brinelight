@@ -4,11 +4,11 @@ A single-player roguelike deckbuilder for the browser. You play Wren, the last l
 
 **Play it:** <https://andre-larsson.github.io/brinelight/>
 
-One run is a complete demo: about 11 stops on a branching map, one on each landing, ending with the boss. It takes roughly 15 to 25 minutes. Winning unlocks deeper, harder starting depths, and every run ends with a score to beat.
+One run is an **expedition** down through the Reach, one level at a time: the Shallows, then Dark Water. Each level is a branching map of 8 landings, and its boss, the **pin**, waits on the last one. After a pin you go home with what you carry, or go deeper. The Shallows take about 15 minutes, and the whole expedition about 35. Every expedition ends with a score to beat.
 
 **New here?** The first time you start a descent, a short opening in four pictures tells the story, and then the game offers a short guided fight (about 2 minutes) that teaches the basics and the Swell. You can skip it, and replay it any time from the title screen or the menu. After that, short hints explain new things the first time you meet them.
 
-**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, and one for each depth you clear. **The world** explains the places, people and magic. **Keeper's notes** are 22 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Bellwether, the Glimmer Leech, the Lamp Hermit, the Tolling Buoy, your first keepsake, the first time you carry more Roil than your Hold, and your first win in the Shallows. The tutorial and debug-cheated runs open nothing.
+**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, one for each pin you break, and two for bringing the Heart home. **The world** explains the places, people and magic. **Keeper's notes** are 22 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Bellwether, the Glimmer Leech, the Lamp Hermit, the Tolling Buoy, your first keepsake, the first time you carry more Roil than your Hold, and the first time you come home. The tutorial and debug-cheated runs open nothing.
 
 ## Running it
 
@@ -17,11 +17,11 @@ It's plain HTML, CSS and JavaScript, with no build step and no dependencies.
 - **Static server (recommended):** from this folder run `npm start` (or `python3 -m http.server 8000`), then open <http://localhost:8000>.
 - **No server:** open `index.html` directly in a browser.
 
-**Debug mode (for testing):** add `?debug` to the address. A DEBUG tab appears at the left edge, and the `` ` `` key opens the same panel. It can add Salvage and kit, unlock achievements and depths, reset progress, give Pearls, cards, keepsakes and tonics, turn on god mode, set the Swell, win or lose a fight, and visit any kind of stop. It can also fill the Lazaret. A run where you use a cheat keeps no best score, unlocks no depth, opens no story and puts nothing in the Lazaret. Two switches at the top of the panel are kept in the browser from run to run. **Skip fights** wins every fight the moment it starts, so you can walk through a whole depth in a minute or two; it waits while a hint or the panel is open. **Cheats count as real runs** stops cheats from marking the run, so a debug run unlocks depths, story and the Lazaret like a real one. Add `?debug=0` to turn the mode off, or use the panel.
+**Debug mode (for testing):** add `?debug` to the address. A DEBUG tab appears at the left edge, and the `` ` `` key opens the same panel. It can add Salvage and kit, unlock achievements, open the currents, reset progress, give Pearls, cards, keepsakes and tonics, turn on god mode, set the Swell, win or lose a fight, and visit any kind of stop. It can also fill the Lazaret. A run where you use a cheat keeps no best score, opens no currents, opens no story and puts nothing in the Lazaret. Two switches at the top of the panel are kept in the browser from run to run. **Skip fights** wins every fight the moment it starts, so you can walk through a whole depth in a minute or two; it waits while a hint or the panel is open. **Cheats count as real runs** stops cheats from marking the run, so a debug run unlocks depths, story and the Lazaret like a real one. Add `?debug=0` to turn the mode off, or use the panel.
 
 Progress is saved automatically in your browser, at the start of every turn and between map stops. **Continue** on the title screen resumes the run. To replay a specific map and card sequence, add `?seed=12345` to the URL before starting a new run.
 
-**Back up or reset progress** is in the menu on the title screen. **Download a backup** saves everything to a `.json` file: Salvage and kit, the Lazaret, achievements, unlocked depths, best score, the Logbook, Story so far, a run in progress and your settings. **Restore from a backup** loads such a file in place of the progress in the browser. It refuses any other file, and it asks before it replaces anything. **Reset progress** asks first, then erases all progress, the hints and the tutorial. Your sound, music and animation settings stay.
+**Back up or reset progress** is in the menu on the title screen. **Download a backup** saves everything to a `.json` file: Salvage and kit, the Lazaret, achievements, the currents, best score, the Logbook, Story so far, a run in progress and your settings. **Restore from a backup** loads such a file in place of the progress in the browser. It refuses any other file, and it asks before it replaces anything. **Reset progress** asks first, then erases all progress, the hints and the tutorial. Your sound, music and animation settings stay.
 
 ## Controls
 
@@ -31,7 +31,7 @@ Progress is saved automatically in your browser, at the start of every turn and 
 | **Touch** | Tap a card to raise it and read it, then tap an enemy, or tap the card again. Dragging works too. | Tap an enemy or the keeper to see HP, intent and effects. Tap a keepsake to read it, or between fights to drop it. |
 | **Keyboard** | `1`-`9`, `0` pick a card; `←` `→` choose the target; `Enter` / `Space` / `↑` play it; `Esc` / `↓` cancel. | `E` end turn, `B` Bail, `S` Stir, `D` view deck, `Z` `X` `C` use tonic slots 1-3. On the map: arrow keys and `Enter` (or `1`-`9`). On reward screens: `1`-`3` pick a card. `Tab` reaches every button. |
 
-The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: descents finished, won and lost, the deepest landing reached, depths cleared, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
+The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: expeditions finished, how many came home and how many fell, Hearts brought home, the deepest landing reached, pins broken, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
 
 The menu (top right) has the tutorial, How to Play, Story so far, sound effects on/off, music on/off and fast animations. During a run it also has save and quit, and abandon run. On the title screen it has Back up or reset progress.
 
@@ -88,7 +88,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Wrecks:** a chest of pearls where you may take 1 of 3 keepsakes.
 
 **Keepsakes, Roil and a Roiled aether.** A keepsake lasts the whole run, and it stirs the aether around you. How much is its **Roil** (shown on each keepsake). Every keepsake you carry counts.
-- The aether around you holds a set amount of Roil, your **Hold**: 20 in the Shallows, 35 in Dark Water, 40 in Riptide and 45 in the Abyss. Up to your Hold the aether is **Calm**.
+- The aether around you holds a set amount of Roil, your **Hold**: 20, the same at every depth. Up to your Hold the aether is **Calm**.
 - Past your Hold the aether is **Roiled**. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight. The steps go round a ladder of three:
   - **Step 1: a Seep.** Seep is an unplayable card shuffled into your draw pile at the start of the fight, and it's gone after the fight. It never joins your deck.
   - **Step 2: Thrash 1.** At the start of each of your turns, you take 1 damage. Ward stops it: Thrash lands before the Ward from your last turn washes away, so Ward left over after the enemies have acted takes the hit. On the first turn of a fight only the Shell Gorget's Ward is there to stop it.
@@ -113,13 +113,15 @@ Fights also pay bonus Pearls for:
 
 Both are announced the moment you earn them. The score counts Crests and Strands, and the best chain of each, the same way.
 
-**Depths and score.** Every run ends with a score, and your best is kept. The top bar counts the landings you have reached on the way down. Beating the boss unlocks the next starting depth:
-- Shallows → Dark Water → Riptide → The Abyss.
-- Each depth is harder than the one above it and has a higher score multiplier (+25% for each depth).
-- The Shallows and Dark Water each have their own creatures, Dreads, boss and Fog events. In the Shallows the boss is the Drowned Bellwether; in Dark Water it is the Tolling Buoy.
-- Riptide and the Abyss are Dark Water made harder. In Riptide its creatures have 5% more HP and hit 10% harder. In the Abyss they have 10% more HP and hit 15% harder, and rests heal 25% of your HP instead of 30%.
+**Expeditions and score.** Every expedition starts on the shore, in the Shallows. The top bar counts the landings you have reached in the level you are in.
+- Each level has 8 landings: 7 rows of stops, then its pin. Every route passes a Wreck on the 4th landing and a Cove on the 7th.
+- The Shallows and Dark Water each have their own creatures, Dreads, pin and Fog events. The Shallows' pin is the Drowned Bellwether; Dark Water's is the Tolling Buoy.
+- After a pin that is not the last, choose: **go home**, which ends the expedition and keeps everything you carry, or **go deeper** with your deck, keepsakes and HP. The stair down starts at a Sheltered Cove, where you rest or upgrade a card, as at any Cove.
+- Breaking the last pin (Dark Water's, for now) brings the Lantern Heart home.
+- The score counts each landing reached: 40 in the Shallows and 60 in Dark Water. Coming home adds 5 for each HP you have left, and the Heart adds 600. Your best score is kept.
+- **Currents** open once the Heart has come home. Choose any of them on shore before an expedition. Each makes the whole expedition harder and adds ×0.25 to the score's multiplier, and they combine (all four: ×2). **Fat Year**: every creature has 10% more HP. **Hungry Deep**: every creature hits 15% harder. **Cold Coves**: Coves heal 20% of your Max HP, not 30%. **Backwash**: at the start of each of your turns after the first, the Swell slips 1 back toward 3.
 
-**The Workshop (lasts across runs).** Every finished run turns its score into **Salvage**: 1 for every 50 points. Abandoning a run earns nothing.
+**The Workshop (lasts across runs).** Every finished expedition turns its score into **Salvage**: 1 for every 50 points. Abandoning one earns nothing.
 - Spend Salvage in the Workshop on the title screen. **Kit** you buy is yours for good. Kit is the mundane gear Wren wears and carries; keepsakes are the magic.
 - Kit goes in five places, one piece each, and you choose before each descent. The game remembers your choice.
   - **Harpoon:** the Honed Harpoon (your first Harpoon Jab in each fight deals 2 more damage) or the Barbed Harpoon (it applies 1 Brine).
@@ -130,11 +132,11 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 - Some kit is locked until an **achievement**, such as Crest three times in one turn or defeat an enemy with Brine. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
 - Kit never changes the map: the same seed gives the same map with any kit.
 
-**The Lazaret (lasts across runs).** The Lazaret is the locked store room at the lighthouse, where keepsakes are kept between runs. It opens after your first win, and it is on the title screen from then on.
-- When you win a run, every keepsake you carry is kept in the Lazaret for good. The win that opens it counts.
+**The Lazaret (lasts across runs).** The Lazaret is the locked store room at the lighthouse, where keepsakes are kept between runs. It opens the first time you come home, and it is on the title screen from then on.
+- When you come home, after any pin, every keepsake you carry is kept in the Lazaret for good. The expedition that opens it counts.
 - The Lazaret holds one of each keepsake. If you bring home one it already holds, it becomes Salvage instead: half its Roil, rounded up (a second Whale Tooth, Roil 19, gives 10).
 - Before each descent you choose which kept keepsakes to bring. You may bring any number. You carry them from the first landing, and each counts toward your Hold as usual, so bringing too many leaves the aether Roiled in every fight. The game remembers your choice.
-- If you fall, you lose the keepsakes you found on that descent. The ones in the Lazaret are never lost, whether you brought them or not.
+- If you fall, you lose the keepsakes you found on that expedition. The ones in the Lazaret are never lost, whether you brought them or not.
 - If you drop a keepsake you brought, it is out of that run, and it is still in the Lazaret afterwards.
 - A run can still offer you a keepsake that is in the Lazaret, as long as you aren't carrying it.
 - Keepsakes you bring never change the map. The tutorial and abandoned runs keep nothing.

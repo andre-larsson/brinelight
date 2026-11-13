@@ -345,7 +345,7 @@
     Chilled: 'Deals 25% less attack damage. Wears off by 1 each turn.',
     Brine: 'Loses that much HP at the start of its turn, then Brine drops by 1.',
     Roil: 'How much a keepsake stirs the aether around it. Every keepsake you carry counts.',
-    Hold: 'How much Roil the aether around you holds while it stays Calm. Deeper depths hold more.',
+    Hold: 'How much Roil the aether around you holds while it stays Calm. It is the same at every depth.',
     Seep: 'Seawater shed by a Roiled aether: an unplayable card shuffled into your draw pile at the start of each fight. It is gone after the fight.',
     Thrash: 'A Roiled aether thrashes, and it strikes you through a fight. Thrash 1: at the start of each of your turns, take 1 damage. Ward you still have from the turn before stops it.',
     Doused: 'Something drank from your lantern: you start your next turn with that much less Light.',
@@ -514,7 +514,7 @@
     },
     // ---------- Boss ----------
     bell: {
-      name: 'The Drowned Bellwether', hp: [160, 160], art: 'bell', scale: 1.55, boss: true,
+      name: 'The Drowned Bellwether', hp: [130, 130], art: 'bell', scale: 1.55, boss: true,
       moves: {
         ring: { name: 'Ring the Deep', ward: 14, addCards: { id: 'seaweed', n: 2, pile: 'draw' } },
         clapper: { name: 'Clapper Swing', dmg: 7, hits: 2 },
@@ -663,18 +663,22 @@
   };
 
   /* Bands: the parts of the Reach, each with its own creatures, Fog events and look. E.LEVELS says which band
-     each starting depth uses. Dark Water's creatures live in still water that has been held for a hundred
-     years; some of the old coast's creatures live there too. Its pin, the Tolling Buoy, waits on the last landing. */
+     each level of an expedition uses. Dark Water's creatures live in still water that has been held for a hundred
+     years; some of the old coast's creatures live there too. Its pin, the Tolling Buoy, waits on the last landing.
+     `pin` is what happens when the band's pin breaks with more of the expedition below it; `win` is the end of
+     the expedition, when the pin of the last level breaks. */
   BL.BANDS = {
     shallows: {
       name: 'the Shallows', boss: 'The Drowned Bellwether', bg: 'bg_battle', bossBg: 'bg_boss',
       win: 'The Bellwether cracks and falls silent, and the sea it held lets go. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up the dripping stairs, and by dawn the great light of Saltmere is turning again.',
+      pin: 'The Bellwether cracks and falls silent, and the water it held runs away down a stair that has been under the sea for a hundred years. The Lantern Heart is not in its bronze. Far below, something is still ringing, and the glow of the fire goes on down the stair toward it.',
       enc: BL.ENCOUNTERS,
       events: ['shrine', 'wreck', 'witch', 'pool', 'ghost', 'bottle', 'ambush'],
     },
     dark: {
       name: 'Dark Water', boss: 'The Tolling Buoy', bg: 'bg_dark', bossBg: 'bg_dark_boss',
       win: 'The Tolling Buoy rocks one last time and goes silent, and the water it held runs away down the stair. The Lantern Heart is caught in the bottom of its cage like a fish in a lobster pot, and the pale things in there have been feeding on it. You carry it up through the dark, and by dawn the great light of Saltmere is turning again.',
+      pin: 'The Tolling Buoy rocks one last time and goes silent, and the water it held runs away down the stair.',
       enc: {
         easy: [['leech', 'leech', 'leech'], ['shrimp', 'leech'], ['hermit'], ['ray'], ['jelly', 'leech'], ['eel', 'leech']],
         hard: [
@@ -710,8 +714,6 @@
     echoconch: { name: 'Conch of Echoes', art: 'k_echoconch', charge: 17, desc: 'The first card you play in each fight is played twice.' },
     anchor: { name: 'Drowned Anchor', art: 'k_anchor', charge: 18, desc: 'A Strand also deals 4 damage to ALL enemies.' },
   };
-  /* Keepsakes from before v0.10.0 that are kit now: a saved run carries them over as kit (E.migrateRun). */
-  BL.RETIRED_KEEPSAKES = { tidebell: 'tidebell', pearlearring: 'pouch', doubloon: 'scales', pearlstrand: 'net', sparewick: 'wick' };
 
   /* ------------------------------------------------------------------ *
    *  TONICS (single-use potions)
@@ -902,23 +904,23 @@
         'The water the bell holds keeps everything it takes. The open sea does not. It carries the drowned back to shore, and it carried you. The keepsakes you found in the caves are gone: the bell called them back.',
         'The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again.',
       ] },
-      { id: 'home', title: 'The Heart comes home', when: 'won:0', lock: 'Clear the Shallows.', text: [
-        'On the last landing the Bellwether cracked and fell silent, and the water it was holding ran out of the caves. The Lantern Heart was still burning in the broken bronze. You carried it up the stairs, and by dawn the great light of Saltmere was turning again.',
-        'It did not last. Before the next tide a bell was ringing below again, from deeper down. The fire answered it and went back, and the caves filled behind you.',
+      { id: 'home', title: 'The stair below', when: 'won:0', lock: "Break the Shallows' pin.", text: [
+        'On the last landing the Bellwether cracked and fell silent, and the water it was holding ran away down a stair that had been under the sea for a hundred years. The Lantern Heart was not in the broken bronze. Far below, something was still ringing, and the glow of the fire went on down the stair toward it.',
+        'You can go home from there, with what you carry. But before the next tide the bell rings again, the water comes back over the landings, and the next expedition starts from the shore.',
         'The keepers\' charts show stairs that go on below the Shallows, into a depth they called Dark Water.',
       ] },
-      { id: 'sunk', title: 'Why the bell was sunk', when: 'won:1', lock: 'Clear Dark Water.', text: [
-        'The bell ringing in Dark Water was not the Bellwether. It was Saltmere\'s old bell-buoy, lost in a storm before the lighthouse was built. It answers the great bell now, and it held the water over the stair. When it went silent the water ran down, and the Lantern Heart was caught in its cage. You carried it home again.',
+      { id: 'sunk', title: 'Why the bell was sunk', when: 'won:1', lock: "Break Dark Water's pin.", text: [
+        'The bell ringing in Dark Water was not the Bellwether. It was Saltmere\'s old bell-buoy, lost in a storm before the lighthouse was built. It answers the great bell now, and it held the water over the stair. When it went silent the water ran down, and the Lantern Heart was caught in its cage. You carried it home.',
         'Below Dark Water the stairs are older, and keepers cut them. The keepers made the Bellwether too. A hand-bell like yours moves the water in a pool. They cast a bell big enough to move the sea, and sank it under the cliffs to hold the water off their low stairs and their quay.',
         'A bell that size has to be tended. Keepers walked down to it at the lowest tides of the year. The last one to go was a lamplighter, a hundred years ago. He drowned on the low stair, and nobody went down after him.',
       ] },
-      { id: 'followed', title: 'Why the fire followed', when: 'won:2', lock: 'Clear Riptide.', text: [
+      { id: 'followed', title: 'Why the fire followed', when: 'heart', lock: 'Bring the Heart home.', text: [
         'Every keeper\'s hand-bell is tuned to the Bellwether, and every keeper\'s lantern is lit from the Lantern Heart. The great bell leads and the small ones follow. That is what a bellwether is: the sheep that wears the bell, and the flock walks behind it.',
         'Nobody rang it that night. The tide swings its clapper, and its ringing holds the tide, so it cannot stop by itself. For a hundred years nobody has gone down to still it, and it has rung a little louder every year.',
         'When it rang loud enough, the Lantern Heart did what a keeper\'s light does. It answered the lead bell and went down.',
       ] },
-      { id: 'belfry', title: 'Under the last stair', when: 'won:3', lock: 'Clear the Abyss.', text: [
-        'The Abyss is the last hall you can walk. Under it there is one more chamber, and its floor is below the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
+      { id: 'belfry', title: 'Under the last stair', when: 'heart', lock: 'Bring the Heart home.', text: [
+        'Dark Water is the last hall you can walk. Under it there is one more chamber, and its floor is below the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
         'The Belfry is full of water and it does not drain. An open lantern cannot go there. On the wall of the hall above it hangs an old keeper\'s diving dress, with a sealed lamp on its helmet.',
         'That is as far as the story goes for now.',
       ] },
@@ -928,10 +930,12 @@
         ['Saltmere', 'A harbour town on a rocky headland. Its lighthouse warns ships off the rocks.'],
         ['The lighthouse', 'It stands above the town, and you keep it. Its lamp burns the Lantern Heart.'],
         ['The Drowned Reach', 'The sea-caves, stairs and rock terraces under the cliffs, below the lighthouse. The Bellwether keeps them flooded.'],
-        ['Depths', 'The Reach goes down in four depths: the Shallows, Dark Water, Riptide and the Abyss. Each is harder than the one above it. Dark Water has creatures of its own, and Riptide and the Abyss are Dark Water made harder.'],
-        ['Dark Water', 'The depth below the Shallows. Its water has been held still for a hundred years, so the brinelight in it has nowhere to go, and things there have learned to live on it.'],
-        ['Landings', 'The stops on the way down through a depth. A boss waits on the last one: the Bellwether in the Shallows, and the Tolling Buoy below them.'],
-        ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. It opens after your first win.'],
+        ['Expeditions', 'Every expedition starts on the shore and goes down through the Reach a level at a time: the Shallows, then Dark Water. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.'],
+        ['Dark Water', 'The level below the Shallows. Its water has been held still for a hundred years, so the brinelight in it has nowhere to go, and things there have learned to live on it.'],
+        ['Landings', 'The stops on the way down through a level. A boss waits on the last one: the Bellwether in the Shallows, and the Tolling Buoy in Dark Water.'],
+        ['Pins', 'A pin is a boss that holds the water over the stair down to the next level. Break it, and the water runs away down the stair.'],
+        ['Currents', 'Moods of the sea that make an expedition harder and its score higher. You choose them on shore, once the Heart has come home.'],
+        ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. It opens the first time you come home.'],
       ] },
       { group: 'People', items: [
         ['Wren', 'You. The last lighthouse keeper of Saltmere.'],
@@ -966,7 +970,7 @@
         text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not.' },
       { id: 'seep', title: 'A Roiled aether', when: 'roiled', lock: 'Carry more Roil than your Hold.',
         text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether thrashes like a hooked fish. It has no aim. It strikes whoever stands nearest, again and again, and each blow takes a little of you unless you are still braced for it. That is Thrash. Further still, and the noise carries. The Bellwether listens for it, and sends a Bell Minnow to find what is calling. Drop a keepsake, or go deeper: near the bell the aether holds more.' },
-      { id: 'lazaret', title: 'A night in the Lazaret', when: 'won:0', lock: 'Clear the Shallows.',
+      { id: 'lazaret', title: 'A night in the Lazaret', when: 'home', lock: 'Come home from an expedition.',
         text: 'A lazaret is a ship\'s store locker, and also a house where the sick are kept apart. The keepers\' Lazaret is a little of both. A keepsake fresh from the Reach still answers the Bellwether, and the bell calls it back if its finder falls. One night shut in the Lazaret breaks that pull. After that the keepsake answers its keeper, and it turns up in the Lazaret again even if she leaves it behind in the caves.' },
       { id: 'kelp', title: 'The old coast', when: 'ev:ambush', lock: 'Found in the Fog.', art: 'scenes/ev_ambush',
         text: 'Not everything in the Reach serves the bell. Crabs, eels, gulls and kelp lived on this coast long before it rang by itself. The flooding gave them more room, and they guard what they find in it.' },

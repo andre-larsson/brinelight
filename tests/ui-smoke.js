@@ -410,13 +410,12 @@ async function debugScenario(page, base) {
   await sleep(150);
   await clickIf(page, '#overlay [data-dbg="salvage"]');
   await clickIf(page, '#overlay [data-dbg="allkit"]');
-  await clickIf(page, '#overlay [data-dbg="depths"]');
+  await clickIf(page, '#overlay [data-dbg="hearts"]');
   const m = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
   if (m.salvage !== 100 || m.owned.length !== Object.keys(await page.eval('window.BL.KIT')).length - 1) failures.push(`debug: Salvage and kit cheats stored ${JSON.stringify(m)}`);
   await clickIf(page, '#overlay [data-act="close"]');
   // a run: god mode holds HP through an enemy turn, the Swell can be set, and Win the fight leads to the rewards
   await page.click('[data-act="newrun"]');
-  await clickIf(page, '#overlay [data-act="startlevel"][data-lv="0"]');
   await clickIf(page, '#overlay [data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map in debug mode');
   await dismissHints(page);
@@ -465,7 +464,6 @@ async function debugScenario(page, base) {
   if (!(await page.eval(`/SKIPPING/.test(document.querySelector('.dbg-tab').textContent)`))) failures.push('debug: the DEBUG tab does not say fights are skipped');
   await clickIf(page, '#overlay [data-act="close"]');
   await page.click('[data-act="newrun"]');
-  await clickIf(page, '#overlay [data-act="startlevel"][data-lv="0"]');
   await clickIf(page, '#overlay [data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the skipped run');
   await dismissHints(page);
@@ -482,8 +480,13 @@ async function debugScenario(page, base) {
   await clickIf(page, '#overlay [data-dbg="go"][data-type="boss"]');
   await sleep(800);
   await dismissHints(page);
-  await page.waitFor('window.Brinelight.run.screen === "victory"', 10000, 'Skip fights to win the boss');
+  await page.waitFor('window.Brinelight.run.screen === "pin"', 10000, 'Skip fights to break the pin');
   await sleep(300);
+  if (!(await page.eval(`!!document.querySelector('[data-act="godeeper"]') && !!document.querySelector('[data-act="gohome"]')`))) failures.push('debug: the broken pin should offer Go deeper and Go home');
+  await page.click('[data-act="gohome"]');
+  await page.waitFor('window.Brinelight.run.screen === "victory"', 5000, 'home after the pin');
+  await sleep(300);
+  if (!/Home with your haul/.test(await page.eval('document.body.innerText'))) failures.push('debug: going home after the Shallows should end the expedition without the Heart');
   if ((await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1')).lazaret.join(',')`)) !== 'moonshard') failures.push('debug: a counted debug win kept nothing in the Lazaret');
   if (await page.eval(`/Debug run/.test(document.body.innerText)`)) failures.push('debug: a counted debug run is still called a debug run');
   // ?debug=0 turns it off again
@@ -697,7 +700,6 @@ async function lazaretScenario(page, base, name, size) {
     await clickIf(page, '[data-act="newrun"]');
     await sleep(200);
     await clickIf(page, '[data-act="confirmnew"]');
-    await clickIf(page, '#overlay [data-act="startlevel"][data-lv="0"]');
     await sleep(200);
     if (!(await count('#overlay [data-act="ksbring"]'))) failures.push(`${name}: no keepsakes to choose before ${what}`);
   };
@@ -706,7 +708,7 @@ async function lazaretScenario(page, base, name, size) {
     await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for ' + what);
     await dismissHints(page);
   };
-  const end = (screen, found) => page.eval(`(() => { const B = window.Brinelight, r = B.run; ${JSON.stringify(found)}.forEach((k) => B.E.gainKeepsake(r, k)); r.combat = null; r.floor = 11; r.screen = ${JSON.stringify(screen)}; B.render(); })()`);
+  const end = (screen, found) => page.eval(`(() => { const B = window.Brinelight, r = B.run; ${JSON.stringify(found)}.forEach((k) => B.E.gainKeepsake(r, k)); r.combat = null; r.floor = 8; if (${JSON.stringify(screen)} === 'victory') r.cleared = [0]; r.screen = ${JSON.stringify(screen)}; B.render(); })()`);
 
   if (await count('[data-act="lazaret"]')) failures.push(`${name}: the Lazaret is on the title screen before the first win`);
   // first win: the Lazaret opens and keeps both keepsakes
@@ -735,7 +737,7 @@ async function lazaretScenario(page, base, name, size) {
   if (levels.second !== 2 || levels.third !== 4) failures.push(`${name}: the title screen should have 2 second-level and 4 third-level buttons (${JSON.stringify(levels)})`);
   await page.click('[data-act="logbook"]');
   await sleep(200);
-  if (!/1 won, 0 lost/.test(await text('#overlay .logbook')) || !/Shallows, landing 11 of 11/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first win (${await text('#overlay .logbook')})`);
+  if (!/1 came home, 0 fell/.test(await text('#overlay .logbook')) || !/The Shallows, landing 8 of 8/.test(await text('#overlay .logbook')) || !/Pins broken1 of 2/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first expedition home (${await text('#overlay .logbook')})`);
   await checkPage(page, name + ' logbook');
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   // second descent: bring both, drop one on the way, then fall with two found keepsakes
@@ -784,16 +786,30 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await page.viewport(size.w, size.h, size);
   page.errors.length = 0;
   await page.goto(base + `?seed=${opts.seed}`);
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.maxlevel.v1', '1'); })()`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); })()`);
   await page.goto(base + `?seed=${opts.seed}`);
   await inject(page);
   await page.click('[data-act="newrun"]');
   await sleep(200);
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
-  if (!(await clickIf(page, '[data-act="startlevel"][data-lv="1"]'))) throw new Error(name + ': no depth choice for Dark Water');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the Shallows map');
+  if (!/Shallows/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name the Shallows`);
+  // the Shallows' pin is broken: go deeper, down the stair, through its Cove, into Dark Water
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.render(); })()`);
+  await sleep(200);
+  await checkPage(page, name + ' pin');
+  await page.click('[data-act="godeeper"]');
+  await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the Cove on the stair down');
+  if (!/The stair down/.test(await page.eval('document.body.innerText'))) failures.push(`${name}: the Cove on the stair down isn't named`);
+  await page.click('[data-act="rest"]');
+  await sleep(200);
+  if (!/Dark Water/.test(await page.eval(`document.querySelector('[data-act="tomap"]').textContent`))) failures.push(`${name}: the Cove's button should say it goes down into Dark Water`);
+  await page.click('[data-act="tomap"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the Dark Water map');
+  await dismissHints(page);
   if ((await page.eval('window.Brinelight.run.level')) !== 1) failures.push(`${name}: the run is not in Dark Water`);
+  if (!/Dark Water/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name Dark Water`);
   const setFight = async (enc, kind, setup) => {
     await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.combat = null; r.screen = 'map'; E.startCombat(r, ${JSON.stringify(kind)}, ${JSON.stringify(enc)}); const c = r.combat; c.enemies.forEach((e) => { e.hp = e.maxHp = 400; }); ${setup || ''}; B.render(); })()`);
     await waitIdle(page);
@@ -905,7 +921,7 @@ async function progressScenario(page, base, name, size) {
   await page.click('[data-act="newrun"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the progress run');
   await dismissHints(page);
-  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.gainKeepsake(r, 'moonshard'); r.stats.kills = 20; r.stats.crests = 7; r.stats.elites = 2; r.combat = null; r.floor = 11; r.screen = 'victory'; B.render(); })()`);
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.gainKeepsake(r, 'moonshard'); r.stats.kills = 20; r.stats.crests = 7; r.stats.elites = 2; r.combat = null; r.landed = [8]; r.level = 1; r.floor = 8; r.cleared = [0, 1]; r.heart = true; r.screen = 'victory'; B.render(); })()`);
   await sleep(200);
   const sums = await page.eval(`(() => { const dd = [...document.querySelectorAll('.score-parts dl div:not(.sum) dd')].map((d) => +d.textContent.replace('+', ''));
     return { lines: dd.length, sum: dd.reduce((a, b) => a + b, 0), shown: +document.querySelector('.score-parts .sum dd').textContent, score: window.Brinelight.run.final.score }; })()`);
@@ -913,7 +929,22 @@ async function progressScenario(page, base, name, size) {
   if (!/1 for every 50 score/.test(await text('.salvage-box'))) failures.push(`${name}: the Salvage line doesn't say how the score turns into Salvage`);
   const bgs = await page.eval(`[...document.querySelectorAll('.unlock-box')].map((el) => getComputedStyle(el).backgroundColor)`);
   if (bgs.length < 2 || new Set(bgs).size !== 1) failures.push(`${name}: the unlock boxes on the end screen aren't all the same colour (${JSON.stringify(bgs)})`);
+  if (!/The Lantern Heart rises/.test(await page.eval('document.body.innerText')) || !/Currents are open/.test(await page.eval('document.body.innerText'))) failures.push(`${name}: the first Heart should say so and open the currents`);
   await checkPage(page, name + ' win');
+  // the currents: chosen on shore, remembered, and they raise the score
+  await page.eval(`document.querySelector('[data-act="newrun"]').scrollIntoView({ block: 'center' })`);
+  await sleep(200);
+  await page.click('[data-act="newrun"]');
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="current"]')`, 3000, 'currents in the pack');
+  await checkPage(page, name + ' currents');
+  const tapSeen = async (sel) => { await page.eval(`document.querySelector(${JSON.stringify(sel)}).scrollIntoView({ block: 'center' })`); await sleep(150); await page.click(sel); await sleep(150); };
+  await tapSeen('#overlay [data-act="current"][data-k="fed"]');
+  await tapSeen('#overlay [data-act="current"][data-k="backwash"]');
+  if (!/score ×1\.5/.test(await page.eval(`document.querySelector('#overlay').innerText`))) failures.push(`${name}: two currents should show score ×1.5`);
+  await page.click('#overlay [data-act="dive"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map with currents');
+  await dismissHints(page);
+  if ((await page.eval('window.Brinelight.run.currents.join(",")')) !== 'fed,backwash' || (await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1')).currents.join(",")`)) !== 'fed,backwash') failures.push(`${name}: the chosen currents didn't reach the run or weren't remembered`);
 
   // a Rite in the hand wears its type; other cards in the hand don't
   await page.eval(`(() => { const B = window.Brinelight, E = B.E; const r = E.newRun(8888, 0); B.run = r; E.startCombat(r, 'easy', ['kelp']); r.combat.hand = ['beam', 'jab', 'moonpull', 'brace'].map((id) => E.newCard(r, id)); B.render(); })()`);

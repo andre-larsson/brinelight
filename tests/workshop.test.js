@@ -276,11 +276,13 @@ test('achievements unlock once, are kept on the run for the end screen, and neve
 });
 
 /* ---------- Roil, the Hold and a Roiled aether ---------- */
-test('the Hold is 20 Roil in the Shallows, 35 in Dark Water, 40 in Riptide and 45 in the Abyss; every 12 Roil over (or part of 12) is one step', () => {
-  assert.deepEqual([0, 1, 2, 3].map(E.hold), [20, 35, 40, 45]);
+test('the Hold is 20 Roil at every depth; every 12 Roil over (or part of 12) is one step', () => {
+  assert.equal(E.hold(), 20);
   assert.equal(E.SEEP_STEP, 12);
-  assert.deepEqual([20, 21, 32, 33, 44, 45].map((ch) => E.roilSteps(ch, 0)), [0, 1, 1, 2, 2, 3]);
-  assert.equal(E.roilSteps(36, 1), 1, 'deeper water holds more');
+  assert.deepEqual([20, 21, 32, 33, 44, 45].map((ch) => E.roilSteps(ch)), [0, 1, 1, 2, 2, 3]);
+  const deep = E.newRun(5, 1);
+  deep.keepsakes = ['whaletooth', 'stormbottle'];
+  assert.equal(E.roil(deep).steps, 2, 'Dark Water holds no more than the Shallows');
   const run = E.newRun(5);
   run.keepsakes = ['whaletooth', 'stormbottle'];
   assert.equal(E.charge(run), BL.KEEPSAKES.whaletooth.charge + BL.KEEPSAKES.stormbottle.charge);
@@ -295,8 +297,8 @@ test('the Hold is 20 Roil in the Shallows, 35 in Dark Water, 40 in Riptide and 4
 });
 
 test('a Roiled aether climbs a ladder: a Seep, then Thrash, then a Bell Minnow, then round again (2 Minnows at most)', () => {
-  const at = (steps) => { const r = E.roilFor(E.hold(0) + 12 * steps, 0); return [r.seep, r.thrash, r.minnows]; };
-  assert.deepEqual(E.roilFor(E.hold(0), 0), { steps: 0, seep: 0, thrash: 0, minnows: 0 });
+  const at = (steps) => { const r = E.roilFor(E.hold() + 12 * steps); return [r.seep, r.thrash, r.minnows]; };
+  assert.deepEqual(E.roilFor(E.hold()), { steps: 0, seep: 0, thrash: 0, minnows: 0 });
   assert.deepEqual(at(1), [1, 0, 0]);
   assert.deepEqual(at(2), [1, 1, 0]);
   assert.deepEqual(at(3), [1, 1, 1]);
@@ -306,7 +308,7 @@ test('a Roiled aether climbs a ladder: a Seep, then Thrash, then a Bell Minnow, 
   assert.deepEqual(at(7), [3, 2, 2]);
   assert.deepEqual(at(9), [3, 3, 2], 'never more than 2 Bell Minnows');
   assert.equal(E.MAX_ROIL_MINNOWS, 2);
-  assert.equal(E.seepFor(E.hold(0) + 4 * 12, 0), 2);
+  assert.equal(E.seepFor(E.hold() + 4 * 12), 2);
 });
 
 test('Seep: shuffled into the draw pile at the start of each fight, unplayable, and gone after the fight', () => {
@@ -382,11 +384,6 @@ test("Thrash and the Shell Gorget: the Gorget's Ward is up before the first turn
   assert.equal(run.hp, hp);
   assert.equal(c.player.ward, 3, '1 of its 4 Ward went to the Thrash');
   assert.equal(c.flags.hpLost, false, 'a stopped Thrash keeps the fight Flawless');
-  // a fight saved in v0.13.0, when Thrash was called Scour, keeps it
-  const old = E.newRun(5);
-  fightIn(old).scour = 2;
-  assert.equal(E.migrateRun(old).combat.thrash, 2);
-  assert.equal(old.combat.scour, undefined);
   // a Calm run never has Thrash
   assert.equal(fightIn(E.newRun(5)).thrash, undefined);
 });
@@ -444,26 +441,4 @@ test('old lasting state carries over: gear becomes kit, and the pack becomes wha
   const n = E.migrateMeta({ salvage: 0, earned: 0, owned: ['cork'], kit: { coat: 'cork' }, ach: [] });
   assert.equal(n.kit.coat, 'cork');
   assert.equal(n.kit.bell, 'tidebell');
-});
-
-test('an old saved run carries over: the Tide-Bell keepsake becomes the bell, and the money keepsakes and gear keep working as kit', () => {
-  const run = E.newRun(3);
-  delete run.kit;
-  run.keepsakes = ['tidebell', 'pearlearring', 'doubloon', 'whaletooth'];
-  run.gear = ['cork', 'floodchart'];
-  E.migrateRun(run);
-  assert.equal(E.bell(run), 'tidebell');
-  assert.deepEqual(run.keepsakes, ['whaletooth']);
-  assert.ok(E.hasKit(run, 'pouch'));
-  assert.ok(E.hasKit(run, 'scales'));
-  assert.ok(E.hasKit(run, 'cork'));
-  assert.equal(run.gear, undefined);
-  const before = E.newRun(3);
-  fightIn(run); win(run);
-  fightIn(before); win(before);
-  assert.equal(run.rewards.pearls, before.rewards.pearls + 10, "the Pearl Earring's effect goes on");
-  // a run that already has a kit is left alone
-  const now = E.newRun(3, 0, ['honed']);
-  E.migrateRun(now);
-  assert.equal(now.kit.harpoon, 'honed');
 });

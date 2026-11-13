@@ -704,29 +704,30 @@ test('bonus Pearls: Flawless, Swift (3 turns, 4 for elites) and Tidal Fury', () 
   assert.equal(slow.run.rewards.keepsakeChoices.length, 2, 'elites offer 1 of 2 keepsakes');
 });
 
-test('the map: about 11 stops, fights first, a wreck halfway, a cove before the boss, and enough variety', () => {
+test('the map: 8 landings a level (7 rows of stops, then the pin), fights first, a wreck halfway, a cove before the pin, and enough variety', () => {
   for (let seed = 1; seed <= 200; seed++) {
     const run = E.newRun(seed);
     const nodes = run.map.grid.flat().filter(Boolean);
-    assert.equal(run.map.rows + 1, 11);
+    assert.equal(run.map.rows + 1, 8);
+    assert.equal(E.LANDINGS, 8);
     assert.ok(run.map.grid[0].filter(Boolean).every((n) => n.type === 'fight'));
-    assert.ok(run.map.grid[5].filter(Boolean).every((n) => n.type === 'treasure'));
-    assert.ok(run.map.grid[9].filter(Boolean).every((n) => n.type === 'rest'));
+    assert.ok(run.map.grid[3].filter(Boolean).every((n) => n.type === 'treasure'));
+    assert.ok(run.map.grid[6].filter(Boolean).every((n) => n.type === 'rest'));
     const count = (t) => nodes.filter((n) => n.type === t).length;
     ['fight', 'elite', 'event', 'shop', 'rest', 'treasure'].forEach((t) => assert.ok(count(t) >= 1, `seed ${seed} has a ${t}`));
-    assert.ok(nodes.every((n) => n.type !== 'elite' || n.row >= 3), 'no elites in the first rows');
+    assert.ok(nodes.every((n) => n.type !== 'elite' || n.row >= 2), 'no elites in the first rows');
   }
 });
 
-test('Sheltered Cove: rest heals 30% of max HP (25% in the Abyss), or upgrade a card', () => {
+test('Sheltered Cove: rest heals 30% of max HP (20% with the Cold Coves current), or upgrade a card', () => {
   const run = E.newRun(3);
   run.hp = 20;
   E.rest(run);
   assert.equal(run.hp, 20 + 21);
-  const deep = E.newRun(3, 3);
-  deep.hp = 20;
-  E.rest(deep);
-  assert.equal(deep.hp, 20 + 17);
+  const cold = E.newRun(3, 0, null, [], ['cold']);
+  cold.hp = 20;
+  E.rest(cold);
+  assert.equal(cold.hp, 20 + 14);
   const card = run.deck.find((c) => c.id === 'jab');
   E.upgradeCard(run, card.uid);
   assert.equal(card.up, 1);
@@ -829,22 +830,132 @@ test('Kelp Bracelet: a Strand gives 8 Ward. Tidal Memory: each Crest gives 1 Lig
 });
 
 /* ---------- Depths and score ---------- */
-test('deeper starting depths: Dark Water has its own creatures; Riptide and the Abyss are Dark Water made harder; each has a higher score multiplier', () => {
-  assert.deepEqual(E.LEVELS.map((l) => l.band), ['shallows', 'dark', 'dark', 'dark']);
-  const hpAt = (lv) => { const r = E.newRun(11, lv); E.startCombat(r, 'easy', ['ray']); return r.combat.enemies[0]; };
-  const base = hpAt(0).maxHp;
-  assert.equal(hpAt(1).maxHp, base, 'Dark Water: no extra HP, its creatures are tougher already');
-  assert.equal(hpAt(2).maxHp, Math.round(base * 1.05));
-  assert.equal(hpAt(3).maxHp, Math.round(base * 1.1));
-  const dmgAt = (lv) => { const r = E.newRun(11, lv); E.startCombat(r, 'easy', ['kelp']); r.combat.enemies[0].intent = 'lash'; return E.intentInfo(r, r.combat.enemies[0]).dmg; };
-  assert.deepEqual([0, 1, 2, 3].map(dmgAt), [8, 8, Math.round(8 * 1.1), Math.round(8 * 1.15)]);
-  assert.equal(E.levelMods(3).rest, 0.25);
-  assert.equal(E.levelMods(2).rest, 0.3);
-  const run0 = E.newRun(1, 0);
-  const run2 = E.newRun(1, 2);
-  run0.floor = run2.floor = 5;
-  assert.equal(E.score(run2, false), Math.round(E.score(run0, false) * 1.5));
-  assert.deepEqual(E.LEVELS.map((l) => l.name), ['Shallows', 'Dark Water', 'Riptide', 'The Abyss']);
+/* Win the boss fight the run is in, the quick way. */
+const beatPin = (run) => { E.startCombat(run, 'boss'); run.combat.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); run.combat.won = true; E.finishCombat(run); };
+
+test('an expedition goes down level by level: after a pin, go home or go deeper; the stair down starts at a Cove; the last pin brings the Heart home', () => {
+  assert.deepEqual(E.LEVELS.map((l) => l.band), ['shallows', 'dark']);
+  const run = E.newRun(5);
+  assert.equal(run.level, 0);
+  run.floor = 8;
+  beatPin(run);
+  assert.equal(run.screen, 'pin');
+  assert.deepEqual(run.cleared, [0]);
+  assert.ok(E.storyMarks(run).includes('won:0'));
+  assert.equal(E.goDeeper(Object.assign({}, run, { screen: 'map' })), false, 'only from a broken pin');
+  // going home ends the expedition: it came home, without the Heart
+  const home = JSON.parse(JSON.stringify(run));
+  assert.ok(E.goHome(home));
+  assert.equal(home.screen, 'victory');
+  assert.ok(!home.heart);
+  assert.ok(E.storyMarks(home).includes('home') && !E.storyMarks(home).includes('heart'));
+  // going deeper keeps the deck, keepsakes and HP, and the stair down starts at a Cove
+  run.hp = 30;
+  E.gainKeepsake(run, 'tidewatch');
+  const deck = run.deck.length, oldMap = run.map;
+  assert.ok(E.goDeeper(run));
+  assert.equal(run.level, 1);
+  assert.equal(run.screen, 'rest');
+  assert.ok(run.passage);
+  assert.equal(run.hp, 30);
+  assert.equal(run.deck.length, deck);
+  assert.ok(E.has(run, 'tidewatch'));
+  assert.notEqual(run.map, oldMap);
+  assert.equal(E.bandId(run), 'dark');
+  E.rest(run);
+  assert.equal(run.hp, 30 + 21);
+  E.backToMap(run);
+  assert.equal(run.screen, 'map');
+  assert.ok(!run.passage);
+  assert.deepEqual(E.availableNodes(run), run.map.grid[0].filter(Boolean), 'the new level starts at its first landing');
+  // the last pin: the Heart comes home, and there is no deeper
+  run.floor = 8;
+  beatPin(run);
+  assert.equal(run.screen, 'victory');
+  assert.ok(run.heart);
+  assert.deepEqual(run.cleared, [0, 1]);
+  ['won:0', 'won:1', 'home', 'heart'].forEach((m) => assert.ok(E.storyMarks(run).includes(m), m));
+  assert.equal(E.goDeeper(run), false);
+  assert.equal(E.goHome(run), false);
+});
+
+test('the score: each landing scores 40 in the Shallows and 60 in Dark Water; coming home adds 5 per HP left; the Heart adds 600', () => {
+  assert.deepEqual(E.LEVELS.map((l) => l.landing), [40, 60]);
+  const run = E.newRun(1);
+  run.floor = 5;
+  const line = (r, won, label) => (E.scoreParts(r, won).parts.find((p) => p.label === label) || {}).pts;
+  assert.equal(line(run, false, 'Landings in the Shallows'), 200);
+  run.floor = 8;
+  beatPin(run);
+  E.goDeeper(run);
+  E.backToMap(run);
+  E.enterNode(run, run.map.grid[0].find(Boolean));
+  run.screen = 'map';
+  assert.deepEqual(E.landed(run), [8, 1]);
+  assert.equal(line(run, false, 'Landings in the Shallows'), 320);
+  assert.equal(line(run, false, 'Landings in Dark Water'), 60);
+  assert.equal(line(run, false, 'HP left'), undefined, 'a fall counts no HP');
+  assert.equal(line(run, true, 'HP left'), run.hp * 5);
+  assert.equal(line(run, true, 'The Lantern Heart brought home'), undefined);
+  run.heart = true;
+  assert.equal(line(run, true, 'The Lantern Heart brought home'), 600);
+  assert.equal(E.scoreParts(run, true).mult, 1);
+});
+
+test('currents: each makes the expedition harder and adds 0.25 to the score multiplier; they combine, and they open once the Heart has come home', () => {
+  assert.deepEqual(Object.keys(E.CURRENTS), ['fed', 'teeth', 'cold', 'backwash']);
+  const hpWith = (cur) => { const r = E.newRun(11, 0, null, [], cur); E.startCombat(r, 'easy', ['ray']); return r.combat.enemies[0].maxHp; };
+  const base = hpWith([]);
+  assert.equal(hpWith(['fed']), Math.round(base * 1.1));
+  const dmgWith = (cur) => { const r = E.newRun(11, 0, null, [], cur); E.startCombat(r, 'easy', ['kelp']); r.combat.enemies[0].intent = 'lash'; return E.intentInfo(r, r.combat.enemies[0]).dmg; };
+  assert.deepEqual([[], ['teeth'], ['fed', 'teeth']].map(dmgWith), [8, Math.round(8 * 1.15), Math.round(8 * 1.15)]);
+  // the score
+  const run = E.newRun(1, 0, null, [], ['fed', 'teeth', 'nope', 'fed']);
+  assert.deepEqual(run.currents, ['fed', 'teeth'], 'unknown and repeated currents are dropped');
+  assert.equal(E.scoreMult(run), 1.5);
+  run.floor = 5;
+  const plain = E.newRun(1); plain.floor = 5;
+  assert.equal(E.score(run, false), Math.round(E.score(plain, false) * 1.5));
+  assert.equal(E.scoreMult(E.newRun(1, 0, null, [], Object.keys(E.CURRENTS))), 2);
+  // opening them
+  const meta = E.newMeta();
+  assert.equal(E.currentsOpen(meta), false);
+  assert.equal(E.toggleCurrent(meta, 'fed'), false);
+  const back = E.newRun(2); back.floor = 8; back.screen = 'victory';
+  E.recordRun(meta, back, true);
+  assert.equal(E.currentsOpen(meta), false, 'coming home without the Heart does not open them');
+  back.heart = true;
+  E.recordRun(meta, back, true);
+  assert.ok(E.currentsOpen(meta));
+  assert.ok(E.toggleCurrent(meta, 'cold'));
+  assert.ok(E.toggleCurrent(meta, 'fed'));
+  assert.ok(E.toggleCurrent(meta, 'cold'));
+  assert.deepEqual(meta.currents, ['fed']);
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], currents: ['fed', 'x', 'fed', 'backwash'] }).currents, ['fed', 'backwash']);
+});
+
+test('the Backwash current: from your second turn on, each turn starts with the Swell 1 step closer to 3', () => {
+  const { run, c } = fight(['kelp'], {});
+  run.currents = ['backwash'];
+  c.enemies.forEach((e) => { e.hp = e.maxHp = 500; e.intent = 'none'; });
+  c.tide = 5;
+  E.endTurn(run);
+  assert.equal(c.tide, 4);
+  c.tide = 1;
+  E.endTurn(run);
+  assert.equal(c.tide, 2);
+  c.tide = 3;
+  E.endTurn(run);
+  assert.equal(c.tide, 3);
+  // without it the Swell stays put between turns, and the first turn of a fight is never pulled
+  const f2 = fight(['kelp'], {});
+  f2.c.enemies.forEach((e) => { e.hp = e.maxHp = 500; e.intent = 'none'; });
+  f2.c.tide = 5;
+  E.endTurn(f2.run);
+  assert.equal(f2.c.tide, 5);
+  const moon = E.newRun(3, 0, null, ['moonshard'], ['backwash']);
+  E.startCombat(moon, 'easy', ['kelp']);
+  assert.equal(moon.combat.tide, 5, 'the Moon Shard still starts a fight at 5');
 });
 
 test('turning down a reward adds to the score: 50 for a card or an event Leave, 20 for a tonic left with a free slot', () => {

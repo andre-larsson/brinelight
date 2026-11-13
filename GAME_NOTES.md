@@ -13,7 +13,7 @@ Working notes for whoever picks this up next. Player-facing rules are in README.
 - **Expedition and depth direction (2026-11-12; not built):** Every run starts in the Shallows and proceeds through the depths in one expedition. A band boss holds water in its own area. Defeating it drains the area and reveals a stair or tunnel down. After a boss, the player can continue or return home, ending the run with everything collected but resetting depth progress. A run also ends on completing its final objective or falling. Starting a new run at a deeper depth is not possible. WORLD.md establishes that Wren survives a fall and loses that expedition's fresh keepsakes; other losses remain open. The initial scope is now three levels, described below.
 - **Return after a boss (2026-11-12; not built):** Wren can always get home safely after defeating a boss. Before the Heart is recovered, the Bellwether starts drawing water back as she retreats, without blocking her way home. Returning ends the expedition. Wren unloads, rests, and prepares, and by her next departure the Bellwether has restored the water and called back the boss or a similar replacement. There is no quick lighthouse visit that resumes the same expedition. Safe return also applies after the Heart comes home; the cause of later water and boss recurrence remains open.
 - **Story direction (2026-11-12; not built):** Subtle environmental themes and cosmic horror, an ambiguous ending with a definite immediate victory, and continued expeditions in the altered Reach afterward. See "Current story and expedition scope" below and WORLD.md.
-- **Current game versus this direction:** The current game still ends a run after one boss and unlocks deeper starting depths. Existing Workshop capacity and depth unlock notes below describe the current implementation or earlier plans, not a decision to retain deeper starting depths.
+- **Current game versus this direction:** Since v0.19.0 the game has expeditions with the two existing levels (slice A of the plan in "Expedition proposal"): every run starts in the Shallows, and after the Shallows' pin the player goes home or goes deeper into Dark Water. Starting depths, Riptide and the Abyss are gone; currents replace them. Depth unlock and per-depth Hold notes further down are history. The third level, the suit and the new Shallows pin are slice B.
 - Keep this build's rules and balance. Don't retune them. (Lifted for Low Water on 2026-11-11: see "Low Water rework".)
 - Add a guided first fight (tutorial).
 - Do a layout and text-size pass.
@@ -54,6 +54,7 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
+- v0.19.0 (2026-11-13, not pushed): expeditions, slice A. See "Expeditions, slice A (v0.19.0, 2026-11-13)". Slice B (the Belfry, the suit, the Shallows' new pin, the story rewrite) is next.
 - v0.18.0 (2026-11-13, not pushed): the user's notes on v0.17.0: Slack Water 4 Ward, the bells pay Light or Ward, a Roil step every 12, the Buoy's Wild Peal, and the Gulper's Retch. See "Playtest notes on v0.17.0 (v0.18.0, 2026-11-13)". The expedition is next and waits for the user's answers: see "Expedition proposal (2026-11-13; waiting for the user)".
 - v0.17.0 (2026-11-13, pushed with v0.15.0 and v0.16.0): Bail and Stir, and Ebb 2 on four cards. See "Bail and Stir (v0.17.0, 2026-11-13)" below.
 - v0.16.0 (2026-11-13): the user's playtest notes on v0.14.0. The Shallows are harder, Dreads give less, the pins call for help sooner, and there are the RITE label, the score lines, purple unlock boxes, and backup, restore and reset. See "Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)" below. Two notes are proposals, not built: Strands are hard to reach, and a weak standard action.
@@ -655,7 +656,7 @@ The user played v0.17.0. Their notes, shortened:
 
 **Open (for the playtest):** Do the bells now feel worth their Salvage? Is a Wild Peal readable (it has a hint, a tip, and an intent number that falls as you make waves)? Does the Gulper's Retch feel like a reward and a threat at once? Is bringing keepsakes now too generous at a step of 12? The first dial is a Hold of 15 in the Shallows.
 
-### Expedition proposal (2026-11-13; waiting for the user)
+### Expedition proposal (2026-11-13; answered the same day)
 
 The user's direction: an expedition is one longer, coherent run through levels in order. "Choose your depth" goes. Enemy HP and damage multipliers move into the current system. Three levels: the Shallows, Dark Water, and an underwater last level that needs the diving suit, found in the second level. More kit and keepsakes after that, and intermediary levels in later updates. Their note on length: starting a run "should feel like a small investment".
 
@@ -684,6 +685,57 @@ From a fresh start the bot clears Dark Water 11.8% of the time. A built deck mak
     - **A:** the expedition flow with the two existing levels: no depth choice, 8 landings, Go deeper or Go home after each pin, the Cove between levels, currents, the new score, Dark Water retuned, old saves carried over, bot and `measure.js` support. The Bellwether stays the Shallows' pin for now.
     - **B:** the last level: the suit, the underwater band (about 6 creatures, 3 Dreads, events, art), the Bellwether moves there, the Shallows' new pin, the repeatable final encounter, and the story chapters rewritten.
     - **C:** more kit and keepsakes.
+
+**The user's answers (2026-11-13):**
+1. 8 landings: "Try this."
+2. The Cove at the stair, no full heal: yes.
+3. Asked what "built deck" means, whether only a built deck should find it harder, and how. Answer (in the v0.19.0 section below): nobody arrives in Dark Water with the starter deck any more, so Dark Water as a whole is tuned for the deck the Shallows built. With 8 landings it measured harder than the Shallows already, so it was not retuned.
+4. Landing scores by level: yes.
+5. Currents: yes. "Could add more currents as well, and allow player to combine currents for even greater challenge/score."
+6. The rising Hold: yes, but the player picks up keepsakes along the way anyway, so "maybe we should have same hold in all levels". Built: 20 everywhere.
+7. The suit: yes.
+8. The Bellwether to the last level and the hermit crab as the Shallows' pin: yes. The final boss "should also have cool special abilities, and be a longer boss fight. Perhaps two phases. Maybe even include healing player (to allow for longer fight)."
+9. No global rule underwater at first: "Yes, try this."
+10. A repeatable final encounter after the first Heart: yes, "could also be even more options".
+11. Slices: yes. "No need to make old saves work. Replace and rewrite, the codebase is ours to update as we see fit."
+
+### Expeditions, slice A (v0.19.0, 2026-11-13)
+
+**Built:**
+- **The expedition** (`E.LEVELS` = Shallows, Dark Water). `E.newRun(seed, level, kit, bring, currents)` always starts at level 0 in the game; `level` stays for tests and the bot. Breaking a pin records it in `run.cleared`. On the last level it sets `run.heart` and ends at 'victory'. Before that the screen is 'pin': `E.goHome` ends at 'victory' without the Heart, and `E.goDeeper` moves to the next level with a new map and the same deck, keepsakes and HP, and opens a Cove (`run.passage`) first. 'victory' now means "came home": the Lazaret, Salvage and the Logbook treat both kinds the same; only the score and the end text differ.
+- **8 landings a level** (`MAP_ROWS` 7, `E.LANDINGS` 8, the Wreck on row 3 (`E.WRECK_ROW`), the Cove on row 6). Elites from row 2, rests in rows 2-4, shops from row 1. With 7 rows a run of Fog and shops could leave a row with no fight, and seed 117 had no Dread at all: each open row now gets a fight from its Fog if it has none, and a Dread may replace a Fog stop when no fight is free.
+- **The score:** landings per level (`E.landed`), 40 in the Shallows and 60 in Dark Water (`E.LEVELS[i].landing`). HP left (×5) for any expedition that comes home, and 600 for the Heart only. The old depth multiplier is gone; `E.scoreMult` is the currents'.
+- **Currents** (`E.CURRENTS`, `E.mods`, `E.scoreMult`): Fat Year (enemy HP ×1.1), Hungry Deep (enemy damage ×1.15), Cold Coves (rests heal 20%), Backwash (from the second turn of a fight, each turn starts with the Swell 1 step closer to 3). Each adds 0.25 to the multiplier and they combine. They open with the first Heart (`meta.record.hearts`), are chosen in the pack screen and remembered in `meta.currents`.
+- **One Hold** (`E.HOLD` 20, `E.hold()`), the user's call.
+- **The Bellwether has 130 HP** (from 160), for the shorter level (below).
+- **Story:** the Shallows chapter is now "The stair below" (won:0): the Bellwether breaks, the Heart is not in it, the glow goes on down. "Why the bell was sunk" opens on won:1. "Why the fire followed" and "Under the last stair" open with the Heart. The Lazaret note opens on coming home. Bands have a `pin` text. This is a stopgap: slice B moves the Bellwether and rewrites the chapters.
+- **Logbook:** expeditions finished (came home or fell), Hearts brought home, pins broken. **Debug:** "Open the currents" replaces "Unlock all depths".
+- **Old saves:** a run saved before v0.19.0 is dropped (`version` 3). The old-run migration (`E.migrateRun`, `BL.RETIRED_KEEPSAKES`, `kitExtra`) is gone. Lasting progress (Salvage, kit, the Lazaret, the Logbook) carries over.
+- **Bot and measure:** the bot goes deeper after every pin unless `opts.home` says which level to go home after. `tools/measure.js` rows take `home` and `currents`, and the table shows home %, the Shallows' pin %, and the share of those that also brought the Heart home.
+
+**The agent's calls (provisional):**
+1. **The Bellwether is 130 HP.** With 8 landings the bot reaches it with 13.2 cards and 0.9 upgrades (15.5 and 1.6 with 11) and beat it on 8% of arrivals, against 23% before: the Shallows fell from 19.2% to 7.7%. Measured Shallows-only: 160 7.7%, 145 12.6%, 135 17.7%, 125 22.6%, 115 29.9%. 130 is about the v0.18.0 level. Slice B gives the Shallows a new pin anyway.
+2. **Dark Water is not retuned** (question 3). Of the expeditions that break the Shallows' pin, the bot also breaks Dark Water's in 16%, against 18.5% for the Shallows from the start: the deeper level is already the harder one for the deck the Shallows built. The prototype's 38.5% was with 11 landings a level. Levers if it should be easier: the Buoy at 150 HP gives 20%, at 140 22%. The Cove at the stair matters most: without its heal, 5%.
+3. **Four currents, not two,** as the user suggested more: the two proposed, plus Cold Coves (the old Abyss rest rule) and Backwash. Backwash is the Swell that moves on its own, which the user accepted as an opt-in current but not as a base rule. It pulls toward 3 from both ends, so it costs a Crest deck and a Strand deck the same. It was named Backwash because the Bellwether already has a move called Undertow.
+4. **Additive multiplier:** ×1.25 with one current, ×1.5 with two, ×2 with all four.
+5. **Going home is a win** for the Lazaret, Salvage and the Logbook (agreed lore: Wren can always get home after a pin and keeps everything). Only the Heart opens the currents.
+
+**Measured** (bot, 2000 seeds a row unless noted):
+
+| | v0.18.0 | v0.19.0 |
+|---|---|---|
+| The Shallows' pin broken | 19.2% | 18.5% |
+| Dark Water's pin, if the Shallows' was broken | (11.8% from a fresh start) | 16.2% |
+| The Heart brought home (whole expedition) | - | 3.0% |
+| Dark Water from a fresh start (bot and tests only) | 11.8% | 4.3% |
+
+- **Where the bot falls** (Bellwether 130): 8% before the Bellwether, and it beats it on 20% of arrivals (61 of 70 HP, 13.2 cards, 1.6 keepsakes). In Dark Water a third fall before the Buoy, and a quarter of the rest beat it (49 of 71 HP, 16.1 cards, 2.6 keepsakes).
+- **The Hold** barely matters to the bot: 15 / 20 / 25 / 30 give 1.8 / 3.0 / 3.0 / 3.5% Hearts. It seldom carries more than it can hold.
+- **Bringing keepsakes is strong in the shorter Shallows:** Whale Tooth + Kelp Bracelet (30 Roil) 35.1%, Whale Tooth + Storm Bottle (37) 22.9%, + Drowned Anchor (55) 36.0%, against 18.5% with nothing. Still the open question from v0.18.0.
+- **Currents** (2000 seeds; Shallows' pin / Dark Water's if the Shallows' broke / the Heart): none 18.4 / 15.7 / 2.9%; Fat Year 10.5 / 8.1 / 0.8%; Hungry Deep 7.4 / 8.8 / 0.7%; Cold Coves 16.1 / 7.2 / 1.1%; Backwash 13.1 / 11.5 / 1.5%; all four 1.4 / 3.6 / 0.1%. Hungry Deep is the hardest, Backwash the mildest. Players who have brought the Heart home also own kit and a stocked Lazaret, which the bot rows here don't use.
+- **The opening is unchanged:** first fight 3.11 turns, 10.3 actions, median HP lost 7.
+
+**Next:** slice B: the Belfry (third level, about 6 creatures, 3 Dreads, events, art), the suit, the Bellwether there as a longer two-phase final fight, the hermit crab as the Shallows' pin, a repeatable final encounter (more than one option, the user suggests), and the chapters rewritten.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -1015,7 +1067,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot, 1000 seeds, the Shallows): win 19.2% in v0.18.0, with the bot that values Swell moves when it guards (17.9% for v0.17.0 with that bot; 15.8% with the old one). Older: 11.4% in v0.16.0, 23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
+- **Bot run outcomes** (careful bot): v0.19.0, 2000 seeds: the Shallows' pin 18.4%, Dark Water's after it 15.7%, the Heart 2.9% (see "Expeditions, slice A"). Before expeditions (1000 seeds, the Shallows): win 19.2% in v0.18.0, with the bot that values Swell moves when it guards (17.9% for v0.17.0 with that bot; 15.8% with the old one). Older: 11.4% in v0.16.0, 23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
 
 ## Tools
 

@@ -5,8 +5,17 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.18.0';
+  BL.VERSION = '0.19.0';
   BL.CHANGELOG = [
+    { v: '0.19.0', date: '2026-11-13', items: [
+      'Expeditions: every run starts in the Shallows and goes down a level at a time. After the Shallows\' pin you choose: go home with everything you carry, or go deeper into Dark Water with your deck, keepsakes and HP. Breaking Dark Water\'s pin brings the Lantern Heart home. Choose your depth is gone.',
+      'Each level is shorter: 8 landings, down from 11. The Drowned Bellwether has 130 HP, down from 160, to match.',
+      'The stair down to Dark Water starts at a Sheltered Cove: rest or upgrade a card.',
+      'The score counts each landing: 40 in the Shallows, 60 in Dark Water. Coming home adds 5 for each HP left, and the Heart adds 600.',
+      'Currents replace Riptide and the Abyss. Once the Heart has come home, choose any of four on shore: Fat Year (creatures have 10% more HP), Hungry Deep (they hit 15% harder), Cold Coves (Coves heal 20%) and Backwash (the Swell slips 1 back toward 3 at the start of each turn). Each adds ×0.25 to the score, and they combine.',
+      'The aether holds 20 Roil at every depth.',
+      'Runs saved by an older version can\'t be continued.',
+    ] },
     { v: '0.18.0', date: '2026-11-13', items: [
       'Slack Water gives 4 Ward instead of 5 (7 upgraded, was 8), so it no longer beats Brace at its own job.',
       'The Flood, Ebb and Cracked Bells give Light or Ward instead of a second card. Flood Bell: a Crest draws 1 card and gives 1 Light. Ebb Bell: a Strand draws 1 card and gives 3 Ward. Cracked Bell: from the second Crest or Strand of a turn, each draws 2 cards and gives 1 Light.',

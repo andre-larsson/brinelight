@@ -4,19 +4,24 @@
    independent, so they are split into jobs and each job runs in its own process. The numbers are the
    same as playing them one after another; only the wait is shorter.
 
-     node tools/measure.js                      the built-in table: each depth Calm, and the Roil ladder
+     node tools/measure.js                      the built-in table: the expedition, each current, and the Roil ladder
      node tools/measure.js my-spec.js           your own rows (see below)
      node tools/measure.js my-spec.js --seeds 300 --workers 8
 
    A spec file exports { seeds, rows }, or a function (E, BL) => ({ seeds, rows }). Each row:
      name     what to print
-     level    depth, 0 = the Shallows (default 0)
+     level    the level to start in, 0 = the Shallows (default 0; a real expedition always starts there)
+     home     go home after this level's pin (default: always go on down, to the Heart)
+     currents current ids, e.g. ['fed', 'teeth']
      kit      Workshop kit ids to wear, e.g. ['honed', 'gorget']
      bring    keepsake ids brought from the Lazaret
      roil     a fixed penalty for every fight, in place of the run's own Roil: a number of ladder
               steps, or { seep, thrash, minnows }
      setup    (E, BL) => {...}, run once before the row is played: change a constant, patch a rule.
-   Rows are built again in every process, so a row must not depend on anything outside the spec file. */
+   Rows are built again in every process, so a row must not depend on anything outside the spec file.
+
+   Columns: home % is the share that came home (after the `home` level's pin, or with the Heart); pin 1 % broke
+   the Shallows' pin; then % is the share of those that also brought the Heart home. */
 'use strict';
 const path = require('path');
 const os = require('os');
@@ -24,9 +29,10 @@ const { fork } = require('child_process');
 const bot = require('./bot.js');
 
 function defaultSpec(E) {
-  const rows = E.LEVELS.map((l, i) => ({ name: `${l.name}, Calm, no kit`, level: i }));
+  const rows = [{ name: 'Expedition, no kit' }, { name: 'Shallows only, then home', home: 0 }, { name: 'Dark Water, from a fresh start', level: 1 }];
+  Object.keys(E.CURRENTS).forEach((k) => rows.push({ name: `Expedition, current: ${E.CURRENTS[k].name}`, currents: [k] }));
   for (let step = 1; step <= 6; step++) {
-    const r = E.roilFor(E.hold(0) + E.SEEP_STEP * step, 0);
+    const r = E.roilFor(E.hold() + E.SEEP_STEP * step);
     rows.push({ name: `Shallows, ladder step ${step}: ${r.seep} Seep, Thrash ${r.thrash}, ${r.minnows} Bell Minnow${r.minnows === 1 ? '' : 's'}`, roil: step });
   }
   return { seeds: 1000, rows };
@@ -46,19 +52,21 @@ function playJob(job) {
   const row = loadSpec(job.file).rows[job.row];
   if (row.setup) row.setup(E, BL);
   if (row.roil != null) {
-    const fixed = typeof row.roil === 'number' ? E.roilFor(E.hold(row.level || 0) + E.SEEP_STEP * row.roil, row.level || 0)
+    const fixed = typeof row.roil === 'number' ? E.roilFor(E.hold() + E.SEEP_STEP * row.roil)
       : Object.assign({ steps: 1, seep: 0, thrash: 0, minnows: 0 }, row.roil);
     E.roil = () => fixed;
   }
-  let wins = 0, taken = 0, floors = 0;
+  let wins = 0, taken = 0, floors = 0, pin1 = 0, hearts = 0;
   for (let seed = job.from; seed <= job.to; seed++) {
-    const run = E.newRun(seed, row.level || 0, row.kit || null, row.bring || []);
-    bot.playRun(run);
+    const run = E.newRun(seed, row.level || 0, row.kit || null, row.bring || [], row.currents || []);
+    bot.playRun(run, 8000, { home: row.home });
     if (run.screen === 'victory') wins++;
+    if (run.cleared.indexOf(0) >= 0) pin1++;
+    if (run.heart && run.screen === 'victory') hearts++;
     taken += run.stats.dmgTaken;
-    floors += run.floor;
+    floors += E.landed(run).reduce((a, b) => a + (b || 0), 0);
   }
-  return { wins, taken, floors, n: job.to - job.from + 1 };
+  return { wins, taken, floors, pin1, hearts, n: job.to - job.from + 1 };
 }
 
 function main(argv) {
@@ -72,14 +80,15 @@ function main(argv) {
   const size = Math.ceil(seeds / parts);
   const jobs = [];
   spec.rows.forEach((row, r) => { for (let from = 1; from <= seeds; from += size) jobs.push({ file, row: r, from, to: Math.min(seeds, from + size - 1) }); });
-  const sum = spec.rows.map(() => ({ wins: 0, taken: 0, floors: 0, n: 0 }));
+  const sum = spec.rows.map(() => ({ wins: 0, taken: 0, floors: 0, pin1: 0, hearts: 0, n: 0 }));
   const t0 = Date.now();
   let next = 0, running = 0, failed = false;
   const finish = () => {
-    console.log(`win %   HP lost  landing  (${seeds} seeds each)`);
+    console.log(`home %  pin 1 %  then %  HP lost  landings  (${seeds} seeds each)`);
+    const pc = (a, b) => (b ? (100 * a / b).toFixed(1) : '-').padStart(6);
     spec.rows.forEach((row, r) => {
-      const s = sum[r];
-      console.log(`${(100 * s.wins / s.n).toFixed(1).padStart(5)}   ${(s.taken / s.n).toFixed(0).padStart(7)}  ${(s.floors / s.n).toFixed(1).padStart(7)}  ${row.name || 'row ' + (r + 1)}`);
+      const s = sum[r], first = !row.level;
+      console.log(`${pc(s.wins, s.n)}   ${first ? pc(s.pin1, s.n) : '     -'}  ${first && row.home == null ? pc(s.hearts, s.pin1) : '     -'}  ${(s.taken / s.n).toFixed(0).padStart(7)}  ${(s.floors / s.n).toFixed(1).padStart(8)}  ${row.name || 'row ' + (r + 1)}`);
     });
     console.log(`${jobs.length} jobs on ${Math.min(workers, jobs.length)} processes, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   };
