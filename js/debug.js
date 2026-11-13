@@ -47,8 +47,8 @@
     const sec = (title, inner) => `<section class="dbg-sec"><h3>${title}</h3><div class="dbg-row">${inner}</div></section>`;
     let html = sec('Playtest <small>kept in this browser</small>',
       btn('skip', `Skip fights: ${opts.skip ? 'On' : 'Off'}`, ` aria-pressed="${opts.skip}"`) + btn('count', `Cheats count as real runs: ${opts.count ? 'On' : 'Off'}`, ` aria-pressed="${opts.count}"`));
-    html += sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · ${meta.record.hearts || 0} Hearts</small>`,
-      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('hearts', 'Open the currents') + btn('allstory', 'Unlock all story') + btn('alllaz', 'Fill the Lazaret') +
+    html += sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · ${meta.record.hearts ? 'the Heart is home' : 'no Heart yet'}</small>`,
+      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('hearts', 'The Heart is home (currents, finals)') + btn('allstory', 'Unlock all story') + btn('alllaz', 'Fill the Lazaret') +
       btn('resetmeta', 'Reset Workshop and Lazaret') + btn('resetall', 'Reset everything'));
     if (live) {
       html += sec(`This run <small>seed ${run.seed} · landing ${run.floor}${run.cheated ? ' · cheated' : ''}</small>`,
@@ -58,7 +58,7 @@
         `<span class="dbg-pair">${select('ks', sorted(BL.KEEPSAKES))}${btn('addks', 'Add keepsake')}</span>` +
         `<span class="dbg-pair">${select('tonic', sorted(BL.TONICS))}${btn('addtonic', 'Add tonic')}</span>` +
         `<span class="dbg-pair">${select('ach', Object.keys(BL.ACHIEVEMENTS).map((k) => [k, BL.ACHIEVEMENTS[k].name]))}${btn('meet', 'Meet in this run')}</span>`);
-      if (!c || c.won || c.lost) html += sec('Go to', GO.map(([t, l]) => btn('go', l, ` data-type="${t}"`)).join(''));
+      if (!c || c.won || c.lost) html += sec('Go to', GO.map(([t, l]) => btn('go', l, ` data-type="${t}"`)).join('') + (b.E.lastLevel(run) ? '' : btn('deeper', `Down to ${b.E.LEVELS[(run.level || 0) + 1].name}`)));
     }
     if (fighting) {
       html += sec('This fight', btn('win', 'Win the fight') + btn('lose', 'Lose the fight') + btn('light', '+3 Light') + btn('draw', 'Draw 3') +
@@ -138,6 +138,20 @@
         b.render();
         return;
       }
+      case 'deeper':
+        // straight down the next stair, as if the pin had broken (wearing the diving dress if the level needs it)
+        cheat((bb, r) => {
+          const E = bb.E, next = E.LEVELS[(r.level || 0) + 1];
+          if (!next) return;
+          if (next.needs && !E.hasKit(r, next.needs)) r.kit[BL.KIT[next.needs].place] = next.needs;
+          bb.closeOverlay(true);
+          r.combat = null;
+          r.screen = 'pin';
+          E.goDeeper(r);
+        });
+        b.save();
+        b.render();
+        return;
       case 'win': winFight(); return;
       case 'lose':
         cheat((bb, r) => { r.hp = 0; r.combat.lost = true; bb.closeOverlay(true); bb.onDefeat(); });

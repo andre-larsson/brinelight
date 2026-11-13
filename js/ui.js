@@ -103,12 +103,22 @@
     doused: svg('<path d="M12 3c2.6 3.4 5 6 5 9.2a5 5 0 0 1-10 0c0-1.5.6-2.8 1.5-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'),
     submerged: svg('<path d="M2 8c2.5-2 5-2 7.5 0s5 2 7.5 0 3.5-1.5 5-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 11v9m0 0-3.5-3.5M12 20l3.5-3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'),
     swallowed: svg('<path d="M3 12c3-6 15-6 18 0-3 6-15 6-18 0z" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="9" width="6" height="7" rx="1"/>'),
+    // the Belfry: a Glimmer Bladder's Burst (a bursting bubble), and Breathless (a diving helmet's window with a crack)
+    burst: svg('<circle cx="12" cy="12" r="5.2" opacity=".85"/><path d="M12 2v3.4M12 18.6V22M2 12h3.4M18.6 12H22M4.9 4.9l2.4 2.4M16.7 16.7l2.4 2.4M4.9 19.1l2.4-2.4M16.7 7.3l2.4-2.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'),
+    air: svg('<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="4.6" opacity=".45"/><path d="M8.5 6.5l2.6 4.2-2 2.2 3.4 4.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'),
     chevron: svg('<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
   const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss };
   const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', boss: 'Boss' };
   const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'Boss' };
-  const bossName = () => E.band(run).boss;
+  /* Who waits on the last landing. After the Heart is home, the Belfry's last landing holds one of several finals,
+     so the map names it vaguely; in the fight it is the boss creature's own name. */
+  const bossName = () => {
+    const c = run.combat, B = E.band(run);
+    const boss = c && c.kind === 'boss' && c.enemies.find((e) => BL.ENEMIES[e.id].boss);
+    if (boss) return boss.name;
+    return run.heartHome && E.lastLevel(run) && B.finalBoss ? B.finalBoss : B.boss;
+  };
 
   /* ================================================================== *
    *  Sound (tiny WebAudio synth, no files)
@@ -321,7 +331,7 @@
       const s = localStorage.getItem(SAVE_KEY);
       if (!s) return null;
       const r = JSON.parse(s);
-      if (!r || r.version !== 3 || !r.map) return null; // a run saved before the expeditions (v0.19.0) is dropped
+      if (!r || r.version !== E.RUN_VERSION || !r.map) return null; // a run saved before the Belfry (v0.20.0) is dropped
       if (r.screen === 'victory' || r.screen === 'defeat') return null;
       r.stats.lastTick = Date.now();
       return r;
@@ -428,7 +438,7 @@
   function statusTip(o, key) {
     const s = BL.STATUSES[key];
     if (!s) return '';
-    const n = o.st[key] > 1 || (s.kind !== 'rite' && key !== 'submerged' && key !== 'shell') ? o.st[key] : '';
+    const n = o.st[key] > 1 || (s.kind !== 'rite' && NO_COUNT.indexOf(key) < 0) ? o.st[key] : '';
     const held = key === 'swallowed' && o.mem && o.mem.swallowed ? `<div class="tip-row">Inside it: ${o.mem.swallowed.map((x) => `<b>${E.cardName(x)}</b>`).join(', ')}.</div>` : '';
     return `<b>${s.name} ${n}</b><br>${s.desc(o.st[key])}${held}`;
   }
@@ -438,7 +448,7 @@
     switch (parts[0]) {
       case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
-      case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.LANDINGS}</b><br>${bossName()} waits on the last landing.${E.lastLevel(run) ? ' Break it to bring the Heart home.' : ' Break it, then go home or go deeper.'}`;
+      case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.LANDINGS}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? ' Break it, then go home or go deeper.' : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}`; }
       case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
       case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
@@ -704,11 +714,14 @@
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
       case 'keywords': return dl(['Bail', 'Stir', 'Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))
-        + `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]]));
+        + `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]]))
+        + `<h3 class="help-sub">In the Belfry</h3>` + dl(['Breathless', 'Burst', 'Heartfire'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
         <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => levelName(i)).join(', then ')}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
         <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. The stair down starts at a Sheltered Cove. Break the last pin to bring the Lantern Heart home.</li>
-        <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => `${L.landing} in ${levelName(i)}`).join(', ')}. Coming home adds 5 for each HP you have left.</li>
+        <li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Coat place. It does nothing in a fight.</li>
+        <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>
+        <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => `${L.landing} in ${levelName(i)}`).join(', ')}. Coming home adds 5 for each HP you have left. Bringing the Heart home, or quieting the Belfry, adds ${E.FINAL_SCORE}.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
         [`${NODE_ICON.elite} Dread`, 'An elite: harder. It pays Pearls, and you may take 1 of 2 keepsakes. No card or tonic.'],
@@ -933,7 +946,7 @@
         <button class="btn ghost third" data-act="tutorial">Tutorial</button>
         <button class="btn ghost third" data-act="help">How to Play</button>
       </div>
-      ${getNum(BEST_KEY) ? `<div class="title-best">Best score ${getNum(BEST_KEY)}${meta.record.hearts ? ` &middot; ${meta.record.hearts} Heart${meta.record.hearts > 1 ? 's' : ''} brought home` : ''}</div>` : ''}
+      ${getNum(BEST_KEY) ? `<div class="title-best">Best score ${getNum(BEST_KEY)}${meta.record.hearts ? ` &middot; The Heart is home${meta.record.quiets ? `, the Belfry quieted ${meta.record.quiets} time${meta.record.quiets > 1 ? 's' : ''}` : ''}` : ''}</div>` : ''}
       <div class="title-foot"><span>A roguelike deckbuilder &middot; mouse, touch or keyboard</span>
         <button class="title-version" data-act="changelog">v${BL.VERSION} &middot; What's new${versionIsNew() ? ' <span class="new-pill">New</span>' : ''}</button></div>
     </div>`;
@@ -1030,8 +1043,8 @@
   }
 
   /* ----- Workshop: kit bought with Salvage, chosen before a descent ----- */
-  const levelName = (lv) => { const n = E.LEVELS[lv].name; return n === 'Shallows' ? 'the Shallows' : n.replace(/^The /, 'the '); };
-  const LevelName = (lv) => levelName(lv).replace(/^the /, 'The ');
+  const levelName = (lv) => E.levelName(lv);
+  const LevelName = (lv) => E.LEVELS[lv || 0].name;
   const gearArt = (g) => `<span class="medal gear"><img src="img/icons/${g.art}.webp" alt=""></span>`;
   const workshopOpen = () => meta.earned > 0 || meta.owned.length > 0;
   const kitIn = (place) => Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === place);
@@ -1043,9 +1056,10 @@
       const open = E.kitUnlocked(meta, id);
       const a = g.unlock ? BL.ACHIEVEMENTS[g.unlock] : null;
       const foot = owned ? '<span class="g-state">Owned</span>'
+        : g.found ? `<span class="g-lock">${ICON.lock}<span><b>Not for sale:</b> found in Dark Water. Break its pin and carry it home.</span></span>`
         : !open ? `<span class="g-lock">${ICON.lock}<span><b>${a.name}:</b> ${a.desc}</span></span>`
           : `<span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span>`;
-      const attrs = !owned && open ? ` tabindex="0" role="button" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
+      const attrs = !owned && open && !g.found ? ` tabindex="0" role="button" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
       return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small>${foot}</div>`;
     };
     const groups = BL.KIT_PLACES.map((pl) => `<h3 class="ws-place">${pl.name} <small>${pl.desc}</small></h3><div class="shop-row">${kitIn(pl.id).filter((id) => !BL.KIT[id].starter).map(tile).join('')}</div>`).join('');
@@ -1064,7 +1078,8 @@
     const kitTotal = Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter).length;
     const rows = [
       ['Expeditions finished', r.runs ? `${r.runs} <small>${r.wins} came home, ${r.runs - r.wins} fell</small>` : '0'],
-      ['Hearts brought home', r.hearts || 0],
+      ['The Lantern Heart', r.hearts ? 'Brought home' : 'Still in the Belfry'],
+      ['Belfry quieted', r.hearts ? `${r.quiets || 0} time${r.quiets === 1 ? '' : 's'}` : 'Bring the Heart home first'],
       ['Deepest landing reached', r.deep ? `${LevelName(r.deep.level)}, landing ${r.deep.floor} of ${E.LANDINGS}` : 'Not recorded yet'],
       ['Pins broken', cleared.length ? `${cleared.length} of ${E.LEVELS.length} <small>${cleared.join(', ')}</small>` : `0 of ${E.LEVELS.length}`],
       ['Best score', getNum(BEST_KEY) || 0],
@@ -1154,7 +1169,7 @@
   function startNewRun(kit) {
     clearSave();
     const m = /[?&]seed=(\d+)/.exec(location.search);
-    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? meta.bring : [], E.currentsOpen(meta) ? meta.currents : []);
+    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? meta.bring : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta));
     save();
     render();
     sfx('bell');
@@ -1265,12 +1280,18 @@
     ui.combatRef = c;
     ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null;
     $('#pz').innerHTML = `<div class="unit player" data-uid="p" data-tip="unit:p">
-        <div class="sprite"><img src="img/units/keeper.webp" alt="Wren, the Keeper"></div>
+        <div class="sprite"><img src="img/units/${E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial ? 'keeper_suit' : 'keeper'}.webp" alt="Wren, the Keeper${E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial ? ', in the diving dress' : ''}"></div>
         <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">Wren, the Keeper</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
     bindHand();
     updateCombat(true);
     const names = c.turn === 1 ? (c.kind === 'boss' ? bossName() : c.kind === 'elite' ? 'Dread: ' + c.enemies[0].name : null) : null;
-    if (c.turn === 1 && c.followers) setTimeout(() => toast(`A Glimmer Leech followed your light into this fight`), names ? 1400 : 300);
+    if (c.turn === 1 && c.followers) {
+      // creatures from a Fog event (the Glimmer Garden's leech, the Bell-Rope's minnows) follow her into this fight
+      const by = {};
+      c.enemies.filter((e) => e.follower).forEach((e) => { by[e.name] = (by[e.name] || 0) + 1; });
+      const who = Object.keys(by).map((n) => (by[n] > 1 ? `${by[n]} ${n}s` : `A ${n}`)).join(' and ');
+      if (who) setTimeout(() => toast(`${who} followed your light into this fight`), names ? 1400 : 300);
+    }
     if (names) {
       c.fx.length = 0;
       banner(names, 'enemy');
@@ -1283,13 +1304,14 @@
     const pct = Math.max(0, Math.min(100, (hp / max) * 100));
     return `${ward > 0 ? `<div class="ward-badge" data-tip="ward">${ward}</div>` : ''}<div class="ghost" style="width:${pct}%"></div><div class="fill" style="width:${pct}%"></div><div class="txt">${hp}/${max}</div>`;
   }
+  const NO_COUNT = ['submerged', 'shell', 'belled', 'echo']; // statuses that are on or off, with no number
   function statusesHTML(o, who) {
     const c = run.combat;
     const echo = who === 'p' && c && c.echo > 0 ? `<span class="st buff echo-chip" data-tip="echo">${ICON.echo}${c.echo > 1 ? c.echo : ''}</span>` : '';
     const thrash = who === 'p' && c && c.thrash ? `<span class="st debuff thrash-chip" data-tip="kw:Thrash" aria-label="Thrash ${c.thrash}">${ICON.vortex}${c.thrash}</span>` : '';
     return echo + thrash + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
       const s = BL.STATUSES[k];
-      const n = (s.kind === 'rite' && o.st[k] === 1 && k !== 'r_beam') || k === 'submerged' || k === 'shell' ? '' : o.st[k];
+      const n = (s.kind === 'rite' && o.st[k] === 1 && k !== 'r_beam') || NO_COUNT.indexOf(k) >= 0 ? '' : o.st[k];
       return `<span class="st ${s.kind}" data-tip="st:${who}:${k}">${ICON[s.icon] || ''}${n}</span>`;
     }).join('');
   }
@@ -1355,8 +1377,9 @@
           <svg class="target-reticle" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="#ffb84d" stroke-width="3" stroke-dasharray="10 8"/></svg></div>
           <div class="info"><div class="uname">${e.name}</div><div class="hpbar"></div><div class="statuses"></div></div>`;
         if (e.dead) el.classList.add('gone');
+        el.dataset.id = e.id;
         ez.appendChild(el);
-      }
+      } else if (el.dataset.id !== e.id) setUnitForm(el, e);
       if (e.dead) {
         if (!el.classList.contains('dead') && !el.classList.contains('gone')) el.classList.add('dead');
         $('.intent-wrap', el).innerHTML = '';
@@ -2006,6 +2029,29 @@
     setTimeout(() => el.remove(), 800);
   }
 
+  /* Ward knocked off enemies (a Strand, or a Crest shaking a creature out of its bell): the badges crack and fall away. */
+  function shatterWard(stripped) {
+    stripped.forEach((x) => {
+      const el = unitEl(x.who);
+      const unit = el && el.closest('.unit');
+      const badge = unit && $('.ward-badge', unit);
+      if (badge) badge.classList.add('shatter');
+      if (unit) $('.hpbar', unit).classList.remove('warded');
+      floatAt(el, `-${x.n} Ward`, 'ward-lost');
+    });
+    if (stripped.length) sfx('strand');
+  }
+  /* A unit element shows the creature it is now: a boss with a second form keeps its uid but changes its id. */
+  function setUnitForm(el, e) {
+    const d = BL.ENEMIES[e.id];
+    el.dataset.id = e.id;
+    el.style.setProperty('--scale', d.scale);
+    el.setAttribute('aria-label', e.name);
+    const img = $('.sprite img', el);
+    if (img) { img.src = `img/units/${d.art}.webp`; img.alt = e.name; }
+    const nm = $('.uname', el);
+    if (nm) nm.textContent = e.name;
+  }
   async function processFx() {
     const c = run.combat;
     if (!c) return;
@@ -2066,6 +2112,7 @@
             anim(field, chain > 1 ? 'impact' : 'shake', 420);
           }
           sfx('crest');
+          if (f.stripped && f.stripped.length) shatterWard(f.stripped);
           if (chain > 1) sfx('chain', chain);
           if (f.fury) setTimeout(() => sfx('fury'), 160);
           await wait(380 + Math.min(chain, 4) * 60 + (f.fury ? 420 : 0));
@@ -2088,15 +2135,7 @@
           }
           sfx('low');
           // stranded: each enemy's Ward badge cracks and falls away
-          stripped.forEach((x) => {
-            const el = unitEl(x.who);
-            const unit = el && el.closest('.unit');
-            const badge = unit && $('.ward-badge', unit);
-            if (badge) badge.classList.add('shatter');
-            if (unit) $('.hpbar', unit).classList.remove('warded');
-            floatAt(el, `-${x.n} Ward`, 'ward-lost');
-          });
-          if (stripped.length) sfx('strand');
+          shatterWard(stripped);
           (f.surfaced || []).forEach((uid) => floatAt(unitEl(uid), 'Stranded: in reach', 'status debuff'));
           if (f.light) {
             const o = $('#orb');
@@ -2138,6 +2177,7 @@
           break;
         }
         case 'echo': {
+          if (f.who) { floatAt(unitEl(f.who), 'Echo!', 'status buff'); sfx('echo'); await wait(320); break; } // a creature's move happens again
           const field = $('#field');
           if (field) {
             const t = document.createElement('div'); t.className = 'echo-text'; t.textContent = 'ECHO!'; field.appendChild(t);
@@ -2163,6 +2203,33 @@
           await wait(900);
           break;
         }
+        case 'rise': {
+          // the boss breaks open, and its second form comes out in its place
+          const el = unitEl(f.who);
+          const unit = el && el.closest('.unit');
+          const field = $('#field');
+          if (el) burstAt(el);
+          sfx('die');
+          await wait(300);
+          if (unit) { setUnitForm(unit, run.combat.enemies.find((x) => x.uid === f.who)); anim(unit, 'reborn', 1000); }
+          if (field) { field.classList.add('phase2'); anim(field, 'impact', 600); }
+          c.phase2 = true;
+          banner(f.text, 'enemy big');
+          sfx('phase');
+          Music.setMood('boss2');
+          await wait(1000);
+          break;
+        }
+        case 'burst': {
+          const el = unitEl(f.who);
+          if (el) burstAt(el);
+          floatAt(el, `Burst ${f.n}`, 'status debuff');
+          anim($('#field'), 'impact', 420);
+          sfx('crest');
+          await wait(260);
+          break;
+        }
+        case 'breathless': { const p = $('#pile-draw'); anim(p, 'pulse', 600); floatAt(unitEl('p'), `Breathless: ${f.n} fewer card${f.n > 1 ? 's' : ''}`, 'status debuff'); sfx('debuff'); break; }
         case 'shuffle': anim($('#pile-draw'), 'pulse', 500); break;
         case 'roil': roilToast(f); break;
         case 'thrash': floatAt(unitEl('p'), 'Thrash', 'status debuff'); break;
@@ -2381,7 +2448,7 @@
         </div>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/scenes/rest.webp)"><div class="scene-inner">
       <h1>${run.passage ? 'The stair down' : 'Sheltered Cove'}</h1>
-      <p class="lead">${run.passage ? `The broken pin's water has run away down the stair, toward ${levelName(run.level)}. Halfway down is a dry hollow above the tide line, the last shelter before the dark.` : 'A dry hollow above the tide line. The lantern burns steady here, and for a little while the deep cannot reach you.'}</p>
+      <p class="lead">${run.passage ? E.band(run).stair || `The broken pin's water has run away down the stair, toward ${levelName(run.level)}. Halfway down is a dry hollow above the tide line, the last shelter before the dark.` : 'A dry hollow above the tide line. The lantern burns steady here, and for a little while the deep cannot reach you.'}</p>
       ${body}
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
@@ -2392,12 +2459,23 @@
   function renderPin() {
     const B = E.band(run), lv = run.level || 0, next = E.LEVELS[lv + 1];
     const found = E.foundKeepsakes(run);
+    // the Belfry's stair needs the diving dress: the first time, it hangs above the stair, to be carried home
+    const can = E.canGoDeeper(run), kit = next.needs ? BL.KIT[next.needs] : null;
+    const newKit = !can && run.found && !E.ownsKit(meta, run.found);
+    const shut = can ? '' : newKit
+      ? `<p class="lead found-kit">${gearArt(kit)}<span>On the wall above the stair hangs an old keeper's diving dress, with a sealed lamp on its helmet. Its seams have rotted and its lamp is dry. Carry it home and mend it, and you can wear it down next time.</span></p>`
+      : `<p class="lead">Your ${kit.name} is at home on its hook. Without it you cannot go down into ${levelName(lv + 1)}.</p>`;
+    const extra = (newKit ? [`the <b>${kit.name}</b>`] : []).concat(found.map((k) => `<b>${BL.KEEPSAKES[k].name}</b>`));
+    const deeper = can
+      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. A Sheltered Cove comes first. Each landing there scores ${next.landing}.</span></button>`
+      : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner">
       <h1>The pin is broken</h1>
       <p class="lead">${B.pin}</p>
+      ${shut}
       <div class="choice-list">
-        <button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. A Sheltered Cove comes first. Each landing there scores ${next.landing}.</span></button>
-        <button class="choice" data-act="gohome"><b>Go home</b><span>End the expedition here and keep what you carry${found.length ? `, ${ksNames(found)} too` : ''}. Each HP you have left adds 5 to the score.</span></button>
+        ${deeper}
+        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here and keep what you carry${extra.length ? `, ${extra.join(', ')} too` : ''}. Each HP you have left adds 5 to the score.</span></button>
       </div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
@@ -2448,7 +2526,7 @@
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="event-art" style="background-image:url(img/scenes/${ev.art}.webp)"></div>
       <h1>${ev.title}</h1>
-      ${st.stage === 'choose' ? `<p class="lead">${ev.text}</p>` : ''}
+      ${st.stage === 'choose' ? `<p class="lead">${typeof ev.text === 'function' ? ev.text(run) : ev.text}</p>` : ''}
       ${body}
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl) || $('.choice:not([disabled])', screenEl);
@@ -2548,7 +2626,9 @@
       if (z.opened) parts.push('<b>The Lazaret is open.</b> It is the locked store room at the lighthouse, on the title screen. Keepsakes kept there are yours for good, and you choose which to bring on each descent.');
       if (z.kept.length) parts.push(`Kept in the Lazaret: ${ksNames(z.kept)}.`);
       if (z.dupes.length) parts.push(`The Lazaret already holds ${ksNames(z.dupes)}, so ${z.dupes.length > 1 ? 'they become' : 'it becomes'} <b>+${z.salvage} ${MT.currency}</b>.`);
-      return parts.length ? `<button class="unlock-box lz-box" data-act="lazaret">${parts.join(' ')}</button>` : '';
+      // kit found on the expedition (the diving dress) is mended at home and joins the Workshop
+      const kit = (z.found || []).map((id) => `<div class="unlock-box found-kit">${gearArt(BL.KIT[id])}<span><b>You carried home the ${BL.KIT[id].name}.</b> You mend it at the lighthouse. Wear it in your ${BL.KIT_PLACES.find((pl) => pl.id === BL.KIT[id].place).name} place, and the stair below Dark Water is open.</span></div>`).join('');
+      return kit + (parts.length ? `<button class="unlock-box lz-box" data-act="lazaret">${parts.join(' ')}</button>` : '');
     }
     if (fin.lost && fin.lost.length) return `<div class="unlock-box lz-box lost">The bell calls back what you found on this descent: ${ksNames(fin.lost)}.${(run.brought || []).length ? ' The keepsakes you brought are safe in the Lazaret.' : ''}</div>`;
     return '';
@@ -2571,7 +2651,7 @@
         if (!run.cheated) E.recordRun(meta, run, win); // the logbook
         fin.currents = !curOpen && E.currentsOpen(meta);
         const wasOpen = lazaretOpen();
-        if (win && !run.cheated) fin.laz = E.storeKeepsakes(meta, run);
+        if (win && !run.cheated) fin.laz = E.carryHome(meta, run);
         else if (!win && wasOpen) fin.lost = E.foundKeepsakes(run);
         if (fin.laz) fin.laz.opened = !wasOpen;
         saveMeta();
@@ -2592,9 +2672,9 @@
       ${lazaretHTML(fin)}
       ${fin.story && fin.story.length ? `<button class="unlock-box story-new" data-act="story">New in Story so far: ${fin.story.map((t) => `<b>${t}</b>`).join(', ')}. <u>Read it</u></button>` : ''}
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
-    const title = win ? (run.heart ? 'The Lantern Heart rises' : 'Home with your haul') : 'The tide takes you';
+    const title = win ? (run.heart ? 'The Lantern Heart rises' : run.quieted ? 'The Belfry is quiet' : 'Home with your haul') : 'The tide takes you';
     const text = win
-      ? (run.heart ? E.band(run).win : 'You climb back up the drained stairs with everything you carry. Behind you the bells start again, and the water creeps back over the landings. The lighthouse is still dark, but you know the way down now.')
+      ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : 'You climb back up the drained stairs with everything you carry. Behind you the bells start again, and the water creeps back over the landings. The lighthouse is still dark, but you know the way down now.')
       : 'The cold water closes over your lantern, and you go under. The sea carries you back to shore, alive. The lighthouse is still dark, and the water has risen a little higher toward the town.';
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
     screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : E.band(run).bossBg}.webp)"><div class="scene-inner" style="padding-top:8vh">
@@ -2716,7 +2796,7 @@
         break;
       case 'confirmabandon': clearSave(); closeOverlay(true); run = null; render(); break;
       case 'progress':
-        openOverlay(modal('Your progress', `<p>Your progress lives in this browser: ${MT.currency} and kit, the Lazaret, achievements, Hearts brought home, best score, the Logbook, Story so far and a run in progress.</p>
+        openOverlay(modal('Your progress', `<p>Your progress lives in this browser: ${MT.currency} and kit, the Lazaret, achievements, the Heart and the Belfry's record, best score, the Logbook, Story so far and a run in progress.</p>
           <div class="choice-list" style="margin:0 auto">
             <button class="choice" data-act="exportsave"><b>Download a backup</b><span>Saves it all to a file, with your settings.</span></button>
             <button class="choice" data-act="importsave"><b>Restore from a backup</b><span>Loads a backup file. It replaces the progress in this browser.</span></button>
@@ -2728,7 +2808,7 @@
       case 'importconfirm': if (ui.pendingBackup) restoreBackup(ui.pendingBackup); break;
       case 'resetask':
         openOverlay(modal('Reset all progress?', `<p>This erases everything you have earned in this browser:</p>
-          <ul class="reset-list"><li>${MT.currency}, and the kit you bought in the ${MT.shop}</li><li>the Lazaret and every keepsake kept there</li><li>achievements, Hearts brought home, best score and the Logbook</li><li>Story so far, the hints and the tutorial</li><li>any run in progress</li></ul>
+          <ul class="reset-list"><li>${MT.currency}, and the kit you bought in the ${MT.shop}</li><li>the Lazaret and every keepsake kept there</li><li>achievements, the Heart and the Belfry's record, best score and the Logbook</li><li>Story so far, the hints and the tutorial</li><li>any run in progress</li></ul>
           <p>Sound, music and animation settings stay. This can't be undone, unless you download a backup first.</p>`,
           '<button class="btn" data-act="close" autofocus>Cancel</button><button class="btn" data-act="exportsave">Download a backup</button><button class="btn danger" data-act="resetconfirm">Reset everything</button>', 'narrow'));
         break;

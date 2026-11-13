@@ -332,7 +332,10 @@
       html: () => `<b>Wild Peal</b>: every Crest or Strand you make this turn muffles it by ${BL.PEAL.quiet}. Make ${Math.ceil(BL.PEAL.dmg / BL.PEAL.quiet)} and it doesn't hit at all.` });
     HINTS.push({ id: 'st-doused', when: (r) => r.screen === 'combat' && r.combat.dousedTurn === r.combat.turn && r.combat.phase === 'player', anchor: '#orb',
       html: () => '<b>Doused</b>: something drank from your lantern, so you have less Light this turn. An enemy\'s intent warns you a turn before.' });
-    ['soaked', 'chilled', 'brine', 'might', 'spines', 'grief', 'submerged', 'shell', 'swallowed'].forEach((key) => HINTS.push({
+    // Breathless shows on the draw pile at the start of the turn it costs you cards
+    HINTS.push({ id: 'st-breathless', when: (r) => r.screen === 'combat' && r.combat.breathlessTurn === r.combat.turn && r.combat.phase === 'player', anchor: '#pile-draw',
+      html: () => '<b>Breathless</b>: something squeezed the air out of your diving dress, so you drew fewer cards this turn. An enemy\'s intent warns you a turn before.' });
+    ['soaked', 'chilled', 'brine', 'might', 'spines', 'grief', 'submerged', 'shell', 'swallowed', 'belled', 'echo', 'burst', 'heartfire'].forEach((key) => HINTS.push({
       id: 'st-' + key,
       // only on a living creature: a dead one's badges fade out with it
       when: (r) => r.screen === 'combat' && !!document.querySelector(`.unit:not(.dead):not(.gone) [data-tip$=":${key}"]`),

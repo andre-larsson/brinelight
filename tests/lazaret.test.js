@@ -25,7 +25,7 @@ test('the Lazaret starts closed and empty, and the first win opens it', () => {
   const lost = E.newRun(3);
   E.gainKeepsake(lost, 'moonshard');
   lost.screen = 'defeat';
-  assert.deepEqual(E.storeKeepsakes(meta, lost), { opened: false, kept: [], dupes: [], salvage: 0 });
+  assert.deepEqual(E.storeKeepsakes(meta, lost), { opened: false, kept: [], dupes: [], salvage: 0, home: false });
   assert.equal(E.lazaretOpen(meta), false);
   // a win does, even with no keepsake to keep
   const res = E.storeKeepsakes(meta, wonRun());
@@ -148,7 +148,7 @@ test('the tutorial keeps nothing, and which keepsakes were brought survives a sa
   const tut = E.newTutorialRun();
   tut.keepsakes.push('moonshard');
   tut.screen = 'victory';
-  assert.deepEqual(E.storeKeepsakes(meta, tut), { opened: false, kept: [], dupes: [], salvage: 0 });
+  assert.deepEqual(E.storeKeepsakes(meta, tut), { opened: false, kept: [], dupes: [], salvage: 0, home: false });
   assert.equal(E.lazaretOpen(meta), false);
   const run = saveLoad(E.newRun(8, 0, null, ['moonshard']));
   E.gainKeepsake(run, 'anchor');
@@ -173,25 +173,29 @@ test('lasting state from before v0.13.0 gets an empty Lazaret, and a damaged one
 /* ---------- The logbook ---------- */
 test('the logbook counts finished expeditions, those that came home, Hearts brought home and the deepest landing; the tutorial is not counted', () => {
   const meta = E.newMeta();
-  assert.deepEqual(meta.record, { runs: 0, wins: 0, hearts: 0, deep: null });
+  assert.deepEqual(meta.record, { runs: 0, wins: 0, hearts: 0, quiets: 0, deep: null });
   const a = E.newRun(3, 0); a.floor = 6;
   E.recordRun(meta, a, false);
-  assert.deepEqual(meta.record, { runs: 1, wins: 0, hearts: 0, deep: { level: 0, floor: 6 } });
+  assert.deepEqual(meta.record, { runs: 1, wins: 0, hearts: 0, quiets: 0, deep: { level: 0, floor: 6 } });
   const b = E.newRun(3, 0); b.floor = 8;
   E.recordRun(meta, b, true); // home after the Shallows' pin: no Heart
-  assert.deepEqual(meta.record, { runs: 2, wins: 1, hearts: 0, deep: { level: 0, floor: 8 } });
+  assert.deepEqual(meta.record, { runs: 2, wins: 1, hearts: 0, quiets: 0, deep: { level: 0, floor: 8 } });
   // a deeper level beats any landing of a shallower one; a shallower run changes nothing
   const c = E.newRun(3, 1); c.floor = 2;
   E.recordRun(meta, c, false);
   assert.deepEqual(meta.record.deep, { level: 1, floor: 2 });
   E.recordRun(meta, b, true);
-  assert.deepEqual(meta.record, { runs: 4, wins: 2, hearts: 0, deep: { level: 1, floor: 2 } });
-  const h = E.newRun(3, 1); h.floor = 8; h.heart = true;
+  assert.deepEqual(meta.record, { runs: 4, wins: 2, hearts: 0, quiets: 0, deep: { level: 1, floor: 2 } });
+  const h = E.newRun(3, 2); h.floor = 8; h.heart = true;
   E.recordRun(meta, h, true);
-  assert.deepEqual(meta.record, { runs: 5, wins: 3, hearts: 1, deep: { level: 1, floor: 8 } });
+  assert.deepEqual(meta.record, { runs: 5, wins: 3, hearts: 1, quiets: 0, deep: { level: 2, floor: 8 } });
+  // after the Heart, beating the Belfry's final quiets it
+  const q = E.newRun(3, 2, null, null, null, true); q.floor = 8; q.quieted = true;
+  E.recordRun(meta, q, true);
+  assert.deepEqual(meta.record, { runs: 6, wins: 4, hearts: 1, quiets: 1, deep: { level: 2, floor: 8 } });
   E.recordRun(meta, E.newTutorialRun(), true);
-  assert.equal(meta.record.runs, 5);
+  assert.equal(meta.record.runs, 6);
   // lasting state from before v0.13.0 starts an empty logbook, and a damaged one is cleaned
-  assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).record, { runs: 0, wins: 0, hearts: 0, deep: null });
-  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], record: { runs: 3.7, wins: 9, hearts: 5, deep: { level: 99, floor: 4 } } }).record, { runs: 3, wins: 3, hearts: 3, deep: null });
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).record, { runs: 0, wins: 0, hearts: 0, quiets: 0, deep: null });
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], record: { runs: 3.7, wins: 9, hearts: 5, quiets: 0, deep: { level: 99, floor: 4 } } }).record, { runs: 3, wins: 3, hearts: 3, quiets: 0, deep: null });
 });

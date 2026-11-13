@@ -737,7 +737,7 @@ async function lazaretScenario(page, base, name, size) {
   if (levels.second !== 2 || levels.third !== 4) failures.push(`${name}: the title screen should have 2 second-level and 4 third-level buttons (${JSON.stringify(levels)})`);
   await page.click('[data-act="logbook"]');
   await sleep(200);
-  if (!/1 came home, 0 fell/.test(await text('#overlay .logbook')) || !/The Shallows, landing 8 of 8/.test(await text('#overlay .logbook')) || !/Pins broken1 of 2/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first expedition home (${await text('#overlay .logbook')})`);
+  if (!/1 came home, 0 fell/.test(await text('#overlay .logbook')) || !/The Shallows, landing 8 of 8/.test(await text('#overlay .logbook')) || !/Pins broken1 of 3/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first expedition home (${await text('#overlay .logbook')})`);
   await checkPage(page, name + ' logbook');
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   // second descent: bring both, drop one on the way, then fall with two found keepsakes
@@ -893,6 +893,100 @@ async function darkwaterScenario(page, base, name, size, opts) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* v0.20.0: the Belfry through the real interface. Dark Water's pin without the diving dress: the stair is shut and the
+   dress hangs above it. Go home carries it to the end screen; the next expedition wears it from the kit, goes down the
+   stair, and Wren wears it in the Belfry's own fights. The Bellwether breaks open into the Thing in the Bell, its
+   sprite and name change in place, and the Heart's light heals her. */
+async function belfryScenario(page, base, name, size, opts) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + `?seed=${opts.seed}`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
+  await page.goto(base + `?seed=${opts.seed}`);
+  await inject(page);
+  const body = () => page.eval('document.body.innerText');
+  const has = (sel) => page.eval(`!!document.querySelector(${JSON.stringify(sel)})`);
+  const tap = async (sel) => { await page.click(sel); await sleep(150); };
+  const toMap = async (what) => {
+    await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, what);
+    await dismissHints(page);
+  };
+  // down to Dark Water's pin, as if both pins had broken, with the dress found above the stair
+  const toDarkPin = `(() => { const B = window.Brinelight, E = B.E, r = B.run; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; E.goDeeper(r); r.floor = 8; r.cleared = [0, 1]; r.found = E.hasKit(r, 'suit') ? null : 'suit'; r.screen = 'pin'; B.render(); })()`;
+
+  await page.click('[data-act="newrun"]');
+  await toMap('the first map');
+  await page.eval(toDarkPin);
+  await sleep(200);
+  if (await has('[data-act="godeeper"]')) failures.push(`${name}: Go deeper is open without the diving dress`);
+  if (!(await has('.scene .found-kit'))) failures.push(`${name}: the dress doesn't hang above the stair on Dark Water's pin`);
+  if (!/Diving Dress/.test(await page.eval(`document.querySelector('[data-act="gohome"]').textContent`))) failures.push(`${name}: Go home doesn't say it carries the dress home`);
+  if (!(await page.eval(`document.activeElement && document.activeElement.dataset.act === 'gohome'`))) failures.push(`${name}: with the stair shut, Go home should have the focus`);
+  await checkPage(page, name + ' pin, no dress');
+  await page.click('[data-act="gohome"]');
+  await sleep(300);
+  if (!/You carried home the Diving Dress/.test(await body())) failures.push(`${name}: the end screen doesn't show the dress carried home`);
+  if (!(await page.eval(`window.Brinelight.meta.owned.includes('suit')`))) failures.push(`${name}: the dress isn't owned after going home`);
+  await checkPage(page, name + ' dress carried home');
+
+  // the next expedition: wear the dress from the kit, and Dark Water's stair down is open
+  await page.eval(`document.querySelector('[data-act="newrun"]').scrollIntoView({ block: 'center' })`);
+  await sleep(200);
+  await page.click('[data-act="newrun"]');
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="kitwear"][data-g="suit"]')`, 3000, 'the dress in the kit');
+  await page.click('#overlay [data-act="kitwear"][data-g="suit"]');
+  await sleep(150);
+  await page.click('#overlay [data-act="dive"]');
+  await toMap('the map in the dress');
+  if (!(await page.eval(`window.Brinelight.E.hasKit(window.Brinelight.run, 'suit')`))) failures.push(`${name}: the dress chosen in the kit isn't worn`);
+  await page.eval(toDarkPin);
+  await sleep(200);
+  if (await has('.scene .found-kit')) failures.push(`${name}: the dress still hangs above the stair while Wren wears it`);
+  await checkPage(page, name + ' pin, in the dress');
+  await page.click('[data-act="godeeper"]');
+  await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the Cove on the stair to the Belfry');
+  await page.click('[data-act="rest"]');
+  await sleep(200);
+  if (!/Belfry/.test(await page.eval(`document.querySelector('[data-act="tomap"]').textContent`))) failures.push(`${name}: the Cove's button should say it goes down into the Belfry`);
+  await page.click('[data-act="tomap"]');
+  await toMap('the Belfry map');
+  if ((await page.eval('window.Brinelight.run.level')) !== 2) failures.push(`${name}: the run is not in the Belfry`);
+  if (!/Belfry/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name the Belfry`);
+
+  const setFight = async (enc, kind, setup) => {
+    await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.combat = null; r.screen = 'map'; E.startCombat(r, ${JSON.stringify(kind)}, ${JSON.stringify(enc)}); const c = r.combat; c.enemies.forEach((e) => { e.hp = e.maxHp = 400; }); ${setup || ''}; B.render(); })()`);
+    await waitIdle(page);
+    await dismissHints(page);
+  };
+  // a Belfry fight: its own background, and Wren in the dress
+  await setFight(['belljelly', 'spawn'], 'easy');
+  const bg = await page.eval(`getComputedStyle(document.getElementById('field')).backgroundImage`);
+  if (!/bg_belfry\.webp/.test(bg)) failures.push(`${name}: Belfry fights should use bg_belfry (got ${bg})`);
+  if (!/keeper_suit\.webp/.test(await page.eval(`document.querySelector('.unit.player .sprite img').src`))) failures.push(`${name}: Wren isn't in the diving dress in the Belfry`);
+  await checkPage(page, name + ' belfry fight');
+
+  // the Bellwether: one jab breaks it open, and the Thing in the Bell comes out where it hung
+  await setFight(['bell'], 'boss', "c.enemies[0].hp = 3; c.enemies[0].ward = 0; c.enemies[0].intent = 'clapper'; r.hp = 30; c.hand.unshift(E.newCard(r, 'jab')); c.light = 3");
+  await sleep(1600);
+  await dismissHints(page);
+  const bell = await page.eval(`window.Brinelight.run.combat.enemies[0].uid`);
+  if (!(await has(`.unit.enemy[data-uid="${bell}"][data-id="bell"]`)) && !(await has(`.unit.enemy[data-id="bell"]`))) failures.push(`${name}: the Bellwether isn't on the field`);
+  const jab = await page.eval(`window.Brinelight.run.combat.hand.find((x) => x.id === 'jab').uid`);
+  await tap(`#hand .card[data-uid="${jab}"]`);
+  await tap(`.unit.enemy .sprite`);
+  await waitIdle(page, 'the Bell breaking');
+  await sleep(1200);
+  const after = await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat, e = c.enemies[0], u = document.querySelector('.unit.enemy');
+    return { id: e.id, hp: e.hp, dead: e.hp <= 0, won: !!c.won, keeper: B.run.hp, domId: u && u.dataset.id, src: u && u.querySelector('.sprite img').src, name: u && u.querySelector('.uname').textContent, phase2: document.getElementById('field').classList.contains('phase2') }; })()`);
+  if (after.id !== 'bellthing' || after.dead || after.won) failures.push(`${name}: the Bellwether should break open into the Thing in the Bell (got ${JSON.stringify(after)})`);
+  if (after.domId !== 'bellthing' || !/bellthing\.webp/.test(after.src || '') || !/Thing in the Bell/.test(after.name || '')) failures.push(`${name}: the boss's sprite and name didn't change to the Thing in the Bell (${JSON.stringify(after)})`);
+  if (!after.phase2) failures.push(`${name}: the field doesn't show the second phase`);
+  if (!(after.keeper > 30)) failures.push(`${name}: the Heart's light should heal Wren when the Bell breaks (HP ${after.keeper})`);
+  await checkPage(page, name + ' thing in the bell');
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 /* v0.16.0: the end screen's score lines and the purple Lazaret box, the Rite pill in the hand, and the title menu's
    backup, restore and reset (a reset keeps the settings; a restore brings everything back). */
 async function progressScenario(page, base, name, size) {
@@ -921,7 +1015,7 @@ async function progressScenario(page, base, name, size) {
   await page.click('[data-act="newrun"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the progress run');
   await dismissHints(page);
-  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.gainKeepsake(r, 'moonshard'); r.stats.kills = 20; r.stats.crests = 7; r.stats.elites = 2; r.combat = null; r.landed = [8]; r.level = 1; r.floor = 8; r.cleared = [0, 1]; r.heart = true; r.screen = 'victory'; B.render(); })()`);
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.gainKeepsake(r, 'moonshard'); r.stats.kills = 20; r.stats.crests = 7; r.stats.elites = 2; r.combat = null; r.landed = [8, 8]; r.level = 2; r.floor = 8; r.cleared = [0, 1, 2]; r.heart = true; r.screen = 'victory'; B.render(); })()`);
   await sleep(200);
   const sums = await page.eval(`(() => { const dd = [...document.querySelectorAll('.score-parts dl div:not(.sum) dd')].map((d) => +d.textContent.replace('+', ''));
     return { lines: dd.length, sum: dd.reduce((a, b) => a + b, 0), shown: +document.querySelector('.score-parts .sum dd').textContent, score: window.Brinelight.run.final.score }; })()`);
@@ -1041,6 +1135,10 @@ async function progressScenario(page, base, name, size) {
     if (!ONLY || ONLY === 'darkwater') {
       await darkwaterScenario(page, base, 'dark water desktop', { w: 1280, h: 800 }, { seed: 4444 });
       await darkwaterScenario(page, base, 'dark water phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 5555 });
+    }
+    if (!ONLY || ONLY === 'belfry') {
+      await belfryScenario(page, base, 'belfry desktop', { w: 1280, h: 800 }, { seed: 6161 });
+      await belfryScenario(page, base, 'belfry phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 6262 });
     }
     if (!ONLY || ONLY === 'progress') {
       await progressScenario(page, base, 'progress desktop', { w: 1280, h: 800 });

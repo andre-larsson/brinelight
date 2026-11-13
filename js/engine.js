@@ -119,11 +119,15 @@
   /* An expedition goes down through the levels in order, from the Shallows (since v0.19.0; before, a run was one
      starting depth of four). Each level uses one band of the Reach (BL.BANDS): its creatures, Fog events and look.
      `landing` is what each landing reached there adds to the score: going deeper has to pay. */
+  /* `the`: the level's name in a sentence. `needs`: kit you have to wear to go down into it (the Belfry is under the
+     sea: Wren needs the diving dress, found the first time Dark Water's pin breaks). */
   E.LEVELS = [
-    { name: 'Shallows', band: 'shallows', landing: 40 },
-    { name: 'Dark Water', band: 'dark', landing: 60 },
+    { name: 'The Shallows', the: 'the Shallows', band: 'shallows', landing: 40 },
+    { name: 'Dark Water', the: 'Dark Water', band: 'dark', landing: 60 },
+    { name: 'The Belfry', the: 'the Belfry', band: 'belfry', landing: 80, needs: 'suit' },
   ];
   E.lastLevel = (run) => (run.level || 0) >= E.LEVELS.length - 1;
+  E.levelName = (lv) => E.LEVELS[lv || 0].the;
   /* Currents: chosen on shore before an expedition, once the Heart has come home. Each makes the whole expedition
      harder and adds CURRENT_SCORE to the score's multiplier; they combine. Riptide and the Abyss were starting depths
      with HP and damage multipliers until v0.19.0. */
@@ -146,12 +150,16 @@
   E.bandId = (run) => (run && !run.tutorial && E.LEVELS[run.level || 0] && E.LEVELS[run.level || 0].band) || 'shallows';
   E.band = (run) => BL.BANDS[E.bandId(run)];
 
-  /* A new expedition. It always starts in the Shallows; `level` starts it deeper, for tests and the bot only. */
-  E.newRun = function (seed, level, kit, bring, currents) {
+  E.RUN_VERSION = 4; // a saved run with another version is dropped (4: v0.20.0, the Belfry)
+  /* A new expedition. It always starts in the Shallows; `level` starts it deeper, for tests and the bot only.
+     `heartHome`: the Heart came home on an earlier expedition, so the Bellwether is silent and the Belfry's last
+     landing is one of its finals (BL.BANDS.belfry.enc.finals). */
+  E.newRun = function (seed, level, kit, bring, currents, heartHome) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
-      version: 3,
+      version: E.RUN_VERSION,
       level: level || 0,
+      heartHome: !!heartHome,
       currents: (currents || []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i),
       cleared: [], // the levels whose pin is broken on this expedition
       seed: seed >>> 0,
@@ -544,7 +552,9 @@
   /* ---------------- Combat ---------------- */
   function pickEncounter(run, kind) {
     const R = makeR(run);
-    const pool = E.band(run).enc[kind];
+    const tables = E.band(run).enc;
+    // once the Heart is home the Bellwether stays silent: the last landing of the last level is one of its finals
+    const pool = kind === 'boss' && run.heartHome && tables.finals ? tables.finals : tables[kind];
     let cands = pool.filter((enc) => run.lastEnc.indexOf(enc.join('+')) < 0);
     if (!cands.length) cands = pool;
     const enc = R.pick(cands);
@@ -692,6 +702,7 @@
   }
 
   function killEnemy(run, c, e) {
+    if (BL.ENEMIES[e.id].next) { rise(run, c, e); return; }
     e.hp = 0;
     e.dead = true;
     e.ward = 0;
@@ -703,12 +714,50 @@
       const d = BL.ENEMIES[o.id];
       if (d.onAllyDeath) d.onAllyDeath(o, e, A);
     });
+    // a Glimmer Bladder bursts: the keeper (her Ward stops it) and every other creature take the burst
+    const burst = e.st.burst || 0;
+    if (burst) {
+      fx(c, { t: 'burst', who: e.uid, n: burst });
+      dealDamage(run, c, c.player, Math.round(burst * (c.dmgMul || 1)), null, false);
+      E.alive(c).forEach((o) => dealDamage(run, c, o, burst, null, false));
+    }
     // when the boss falls, its shoal scatters
-    if (BL.ENEMIES[e.id].boss) E.alive(c).forEach((o) => { o.hp = 0; o.dead = true; fx(c, { t: 'die', who: o.uid }); });
-    if (E.alive(c).length === 0) {
+    if (BL.ENEMIES[e.id].boss) scatter(c, e);
+    if (E.alive(c).length === 0 && !c.lost && !c.won) {
       c.won = true;
       fx(c, { t: 'victory' });
     }
+  }
+  function scatter(c, boss) {
+    E.alive(c).forEach((o) => { if (o !== boss) { o.hp = 0; o.dead = true; fx(c, { t: 'die', who: o.uid }); } });
+  }
+  /* A creature with a second form (`next`) doesn't die when its HP runs out: the second form comes out of it, with
+     its own HP and moves. Its shoal scatters. When the Bellwether's bronze breaks, the Lantern Heart's light heals
+     the keeper and burns in her lantern for the rest of the fight (Heartfire), and two of the thing's arms come out. */
+  function rise(run, c, e) {
+    const R = makeR(run);
+    const d = BL.ENEMIES[e.id];
+    const nd = BL.ENEMIES[d.next];
+    scatter(c, e);
+    const from = e.id;
+    e.id = d.next;
+    e.name = nd.name;
+    e.hp = e.maxHp = Math.round(R.int(nd.hp[0], nd.hp[1]) * E.mods(run).hp);
+    e.ward = 0;
+    e.st = {};
+    e.hist = [];
+    e.mem = {};
+    if (nd.init) nd.init(e, R, 0);
+    c.risen = (c.risen || 0) + 1;
+    fx(c, { t: 'rise', who: e.uid, from, text: d.rise || nd.name });
+    if (from === 'bell') {
+      const healed = E.heal(run, Math.round(run.maxHp * BL.HEART_RISE.heal));
+      fx(c, { t: 'heal', who: 'p', n: healed });
+      applyStatus(run, c, c.player, 'heartfire', BL.HEART_RISE.light, false);
+    }
+    (nd.arrive || []).forEach((id, i) => { if (E.alive(c).length < 5) fx(c, { t: 'summon', who: spawnEnemy(run, c, id, i + 1).uid }); });
+    // mid-turn it picks its first move at once; in the enemies' turn it waits for the next one
+    if (c.phase === 'enemy') { e.intent = null; e.acted = true; } else { e.acted = false; chooseIntent(run, c, e); }
   }
 
   function loseHpDirect(run, c, tgt, n) {
@@ -818,7 +867,10 @@
     run.stats.maxChain = Math.max(run.stats.maxChain || 0, c.turnCrests);
     const dmg = E.crestDamage(run, c, c.turnCrests);
     run.stats.crests++;
-    fx(c, { t: 'crest', n: dmg, chain: c.turnCrests, fury });
+    // a wave rings a bell around the ears of whatever hides in it: it loses its Ward before the wave lands
+    const stripped = [];
+    E.alive(c).forEach((e) => { if (e.st.belled && e.ward > 0) { stripped.push({ who: e.uid, n: e.ward }); e.ward = 0; } });
+    fx(c, { t: 'crest', n: dmg, chain: c.turnCrests, fury, stripped });
     E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, dmg), null, false));
     if (E.hasKit(run, 'net')) { fx(c, { t: 'kit', k: 'ditty' }); gainPearls(run, c, 3); }
     const mem = c.player.st.r_tidalmemory || 0;
@@ -992,9 +1044,13 @@
     // a doused lantern starts the turn with less Light
     const doused = P.st.doused || 0;
     delete P.st.doused;
-    c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) - doused);
+    c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) + (P.st.heartfire || 0) - doused);
     if (doused) { c.dousedTurn = c.turn; fx(c, { t: 'doused', n: doused }); }
-    drawCards(run, c, 5 + (c.turn === 1 && E.has(run, 'gullfeather') ? 2 : 0));
+    // a squeezed suit: fewer cards this turn (never fewer than 1)
+    const breathless = P.st.breathless || 0;
+    delete P.st.breathless;
+    if (breathless) { c.breathlessTurn = c.turn; fx(c, { t: 'breathless', n: breathless }); }
+    drawCards(run, c, Math.max(1, 5 + (c.turn === 1 && E.has(run, 'gullfeather') ? 2 : 0) - breathless));
     if (P.st.r_moonpull) surge(run, c, P.st.r_moonpull);
     fx(c, { t: 'turn', turn: c.turn });
   }
@@ -1171,7 +1227,7 @@
     const e = E.enemyByUid(c, uid);
     if (!e) return false;
     e.acted = true;
-    if (!e.st.shell) e.ward = 0; // a Shell keeps its Ward from turn to turn
+    if (!e.st.shell && !e.st.belled) e.ward = 0; // a Shell keeps its Ward from turn to turn, and so does a crab in its bell
     if (e.st.submerged) delete e.st.submerged; // it comes up to act
     if ((e.st.brine || 0) > 0) {
       loseHpDirect(run, c, e, e.st.brine);
@@ -1188,50 +1244,61 @@
     const m = d.moves[e.intent];
     if (!m) return;
     const P = c.player;
-    fx(c, { t: 'act', who: e.uid, name: m.name, attack: !!m.dmg });
+    const form = e.id; // a creature can rise into its second form partway through a move; the rest of the move is lost
+    const echo = (e.st.echo || 0) > 0;
+    if (echo) delete e.st.echo;
+    fx(c, { t: 'act', who: e.uid, name: m.name, attack: !!m.dmg, echo });
     if (m.phase) fx(c, { t: 'phase', who: e.uid, text: m.phase });
-    if (m.dmg && E.moveDamage(c, e, m) > 0) { // a move whose damage falls to 0 (a muffled Wild Peal) doesn't hit at all
-      const base = E.moveDamage(c, e, m);
-      const hits = m.hits || 1;
-      let took = 0;
-      for (let i = 0; i < hits; i++) {
-        if (c.lost || e.dead) break;
-        took += dealDamage(run, c, P, attackValue(e, P, base), e, true);
+    // Echo: the move happens twice (its attacks, Ward, and what it does to you or itself); calls, growth and echoes once
+    for (let rep = 0; rep < (echo ? 2 : 1); rep++) {
+      if (c.lost || e.dead || e.id !== form) return;
+      if (rep) fx(c, { t: 'echo', who: e.uid, name: m.name });
+      if (m.dmg && E.moveDamage(c, e, m) > 0) { // a move whose damage falls to 0 (a muffled Wild Peal) doesn't hit at all
+        const base = E.moveDamage(c, e, m);
+        const hits = m.hits || 1;
+        let took = 0;
+        for (let i = 0; i < hits; i++) {
+          if (c.lost || e.dead || e.id !== form) break;
+          took += dealDamage(run, c, P, attackValue(e, P, base), e, true);
+        }
+        if (m.drain && took > 0 && !e.dead) healEnemy(c, e, took);
       }
-      if (m.drain && took > 0 && !e.dead) healEnemy(c, e, took);
-    }
-    if (c.lost || e.dead) return;
-    if (m.ward) gainWard(c, e, m.ward);
-    if (m.submerge) { e.st.submerged = 1; fx(c, { t: 'submerge', who: e.uid }); }
-    if (m.swallow) {
-      // it swallows the last card you played this turn, if that card is in the discard pile
-      const i = c.lastPlayed != null ? c.discard.findIndex((x) => x.uid === c.lastPlayed) : -1;
-      if (i >= 0) {
-        const card = c.discard.splice(i, 1)[0];
-        e.mem.swallowed = (e.mem.swallowed || []).concat([card]);
-        e.st.swallowed = e.mem.swallowed.length;
-        fx(c, { t: 'swallow', who: e.uid, name: E.cardName(card) });
+      if (c.lost || e.dead || e.id !== form) return;
+      if (m.ward) gainWard(c, e, m.ward);
+      if (m.submerge) { e.st.submerged = 1; fx(c, { t: 'submerge', who: e.uid }); }
+      if (m.swallow) {
+        // it swallows the last card you played this turn, if that card is in the discard pile
+        const i = c.lastPlayed != null ? c.discard.findIndex((x) => x.uid === c.lastPlayed) : -1;
+        if (i >= 0) {
+          const card = c.discard.splice(i, 1)[0];
+          e.mem.swallowed = (e.mem.swallowed || []).concat([card]);
+          e.st.swallowed = e.mem.swallowed.length;
+          fx(c, { t: 'swallow', who: e.uid, name: E.cardName(card) });
+        }
+      }
+      if (m.buff) Object.keys(m.buff).forEach((k) => applyStatus(run, c, e, k, m.buff[k], false));
+      if (m.expose) applyStatus(run, c, e, 'soaked', m.expose, false); // the Thing's eye opens: it is Soaked until it acts again
+      if (m.debuff) Object.keys(m.debuff).forEach((k) => applyStatus(run, c, P, k, m.debuff[k], false));
+      if (m.douseArms) { const n = E.armsOf(c); if (n) applyStatus(run, c, P, 'doused', n, false); }
+      if (m.addCards) {
+        const R = makeR(run);
+        for (let i = 0; i < m.addCards.n; i++) {
+          const card = E.newCard(run, m.addCards.id);
+          if (m.addCards.pile === 'draw') c.draw.splice(R.int(0, c.draw.length), 0, card);
+          else c.discard.push(card);
+        }
+        fx(c, { t: 'addcards', id: m.addCards.id, n: m.addCards.n, pile: m.addCards.pile });
+      }
+      if (m.tide) {
+        if (m.tide < 0) ebb(run, c, -m.tide);
+        else surge(run, c, m.tide);
+      }
+      if (m.tideSet != null && c.tide !== m.tideSet) {
+        fx(c, { t: 'tide', d: m.tideSet - c.tide });
+        c.tide = m.tideSet;
       }
     }
-    if (m.buff) Object.keys(m.buff).forEach((k) => applyStatus(run, c, e, k, m.buff[k], false));
-    if (m.debuff) Object.keys(m.debuff).forEach((k) => applyStatus(run, c, P, k, m.debuff[k], false));
-    if (m.addCards) {
-      const R = makeR(run);
-      for (let i = 0; i < m.addCards.n; i++) {
-        const card = E.newCard(run, m.addCards.id);
-        if (m.addCards.pile === 'draw') c.draw.splice(R.int(0, c.draw.length), 0, card);
-        else c.discard.push(card);
-      }
-      fx(c, { t: 'addcards', id: m.addCards.id, n: m.addCards.n, pile: m.addCards.pile });
-    }
-    if (m.tide) {
-      if (m.tide < 0) ebb(run, c, -m.tide);
-      else surge(run, c, m.tide);
-    }
-    if (m.tideSet != null && c.tide !== m.tideSet) {
-      fx(c, { t: 'tide', d: m.tideSet - c.tide });
-      c.tide = m.tideSet;
-    }
+    if (c.lost || e.dead || e.id !== form) return;
     if (m.disgorge) disgorge(c, e);
     if (m.summon) {
       m.summon.forEach((id) => {
@@ -1241,8 +1308,21 @@
         }
       });
     }
+    // grow: bring its own kind back, up to `max` of them alive (the Thing's arms, the Cantor's choir)
+    if (m.grow) {
+      const have = E.alive(c).filter((o) => o.id === m.grow.id).length;
+      for (let i = have; i < m.grow.max && E.alive(c).length < 5; i++) fx(c, { t: 'summon', who: spawnEnemy(run, c, m.grow.id, i + 1).uid });
+    }
+    // Echo from a Ringer or a Bell Jelly lands once this turn is over, so the next moves shown are the ones that echo
+    if (m.echoAll) c.echoNext = (c.echoNext || []).concat(E.alive(c).map((o) => o.uid));
+    if (m.echoOne) {
+      const others = E.alive(c).filter((o) => o !== e);
+      c.echoNext = (c.echoNext || []).concat([(others.length ? makeR(run).pick(others) : e).uid]);
+    }
     if (m.after) m.after(e);
   }
+  /* How many of the Thing's arms are alive: each one drinks from the keeper's lantern. */
+  E.armsOf = (c) => E.alive(c).filter((o) => o.id === 'arm').length;
 
   E.endTurnFinish = function (run) {
     const c = run.combat;
@@ -1256,6 +1336,8 @@
       if (e.acted) chooseIntent(run, c, e);
       e.acted = false;
     });
+    (c.echoNext || []).forEach((uid) => { const o = E.enemyByUid(c, uid); if (o && !o.st.echo) { o.st.echo = 1; fx(c, { t: 'status', who: uid, key: 'echo', n: 1 }); } });
+    c.echoNext = null;
     startPlayerTurn(run);
   };
 
@@ -1274,17 +1356,21 @@
     const c = run.combat;
     const m = BL.ENEMIES[e.id].moves[e.intent];
     if (!m) return null;
-    const info = { name: m.name, kinds: [], dmg: 0, hits: 0, ward: m.ward || 0, parts: [] };
+    // Echo: the move happens twice, so its hits and Ward count twice
+    const twice = (e.st.echo || 0) > 0 ? 2 : 1;
+    const info = { name: m.name, kinds: [], dmg: 0, hits: 0, ward: (m.ward || 0) * twice, parts: [], echo: twice > 1 };
+    if (twice > 1) info.parts.push('Echo: it does all of this twice');
     if (m.dmg) {
       const base = E.moveDamage(c, e, m);
       info.dmg = base > 0 ? attackValue(e, c.player, base) : 0;
-      info.hits = m.hits || 1;
+      info.hits = (m.hits || 1) * twice;
       info.kinds.push('attack');
       info.parts.push(`Attack for ${info.dmg}${info.hits > 1 ? ' x' + info.hits : ''}`);
       if (m.drain) info.parts.push('Heal as much HP as the attack takes from you');
       if (m.tip) info.parts.push(m.tip);
     }
-    if (m.ward) { info.kinds.push('defend'); info.parts.push(`Gain ${m.ward} Ward`); }
+    if (m.ward) { info.kinds.push('defend'); info.parts.push(`Gain ${info.ward} Ward`); }
+    if (m.expose) { info.kinds.push('buff'); info.parts.push('Open its eye: until it acts again it is Soaked, and takes 50% more damage from attacks and Crests. Then it Glares'); }
     if (m.submerge) { info.kinds.push('buff'); info.parts.push('Sink out of reach until its next turn: only Crests and waves reach it, and a Strand brings it up'); }
     if (m.swallow) { info.kinds.push('debuff'); info.parts.push('Swallow the last card you play this turn, until it dies'); }
     if (m.buff) {
@@ -1293,9 +1379,14 @@
     }
     if (m.debuff) {
       info.kinds.push('debuff');
-      Object.keys(m.debuff).forEach((k) => info.parts.push(k === 'doused'
-        ? `Douse your lantern: ${m.debuff[k]} less Light next turn`
-        : `Apply ${m.debuff[k]} ${BL.STATUSES[k].name}`));
+      Object.keys(m.debuff).forEach((k) => info.parts.push(k === 'doused' ? `Douse your lantern: ${m.debuff[k] * twice} less Light next turn`
+        : k === 'breathless' ? `Squeeze your suit: draw ${m.debuff[k] * twice} fewer card${m.debuff[k] * twice > 1 ? 's' : ''} next turn`
+          : `Apply ${m.debuff[k] * twice} ${BL.STATUSES[k].name}`));
+    }
+    if (m.douseArms) {
+      const n = E.armsOf(c) * twice;
+      info.kinds.push('debuff');
+      info.parts.push(n ? `Drink through its arms: ${n} less Light next turn, 1 for each Grasping Arm` : 'Drink through its arms: with no arms left, it cannot douse your lantern');
     }
     if (m.addCards) {
       info.kinds.push('debuff');
@@ -1305,6 +1396,12 @@
     if (m.tideSet != null) { info.kinds.push('debuff'); info.parts.push(`Flatten your Swell back to ${m.tideSet}`); }
     if (m.disgorge && e.mem.swallowed && e.mem.swallowed.length) info.parts.push('Bring up the cards it swallowed: they go back to your discard pile');
     if (m.summon) { info.kinds.push('summon'); info.parts.push('Call for help'); }
+    if (m.grow) {
+      const n = Math.max(0, m.grow.max - E.alive(c).filter((o) => o.id === m.grow.id).length);
+      if (n) { info.kinds.push('summon'); info.parts.push(`Bring back ${n} ${BL.ENEMIES[m.grow.id].name}${n > 1 ? 's' : ''}`); }
+    }
+    if (m.echoAll) { info.kinds.push('buff'); info.parts.push('Echo for every creature here: after this turn, each one\'s next move happens twice'); }
+    if (m.echoOne) { info.kinds.push('buff'); info.parts.push('Echo for another creature: after this turn, its next move happens twice'); }
     return info;
   };
 
@@ -1318,10 +1415,20 @@
     if (!c.flags.hpLost) run.stats.flawless = (run.stats.flawless || 0) + 1;
     if (c.kind === 'elite' && run.deck.length <= 12) run.stats.leanDread = true;
     if (c.kind === 'boss') {
-      // the pin is broken: its lock drains. After the last level's pin the Heart comes home; before it, Wren chooses
+      // the pin is broken: its lock drains. The last level's ends the expedition: the Heart comes home the first time,
+      // and the Belfry is quieted after that. Before it, Wren chooses to go home or go deeper
       run.combat = null;
-      if (run.cleared.indexOf(run.level || 0) < 0) run.cleared.push(run.level || 0);
-      if (E.lastLevel(run)) { run.heart = true; run.screen = 'victory'; } else run.screen = 'pin';
+      const lv = run.level || 0;
+      if (run.cleared.indexOf(lv) < 0) run.cleared.push(lv);
+      if (E.lastLevel(run)) {
+        if (run.heartHome) run.quieted = true; else run.heart = true;
+        run.screen = 'victory';
+        return;
+      }
+      // the diving dress hangs above the stair to the next level: found if she isn't wearing one, and carried home
+      const needs = E.LEVELS[lv + 1].needs;
+      if (needs && !E.hasKit(run, needs)) run.found = needs;
+      run.screen = 'pin';
       return;
     }
     const elite = c.kind === 'elite';
@@ -1354,8 +1461,14 @@
     run.screen = 'victory';
     return true;
   };
-  E.goDeeper = function (run) {
+  /* Can Wren go on down from this pin? Not past the last level, and not into a level she lacks the kit for. */
+  E.canGoDeeper = function (run) {
     if (run.screen !== 'pin' || E.lastLevel(run)) return false;
+    const needs = E.LEVELS[(run.level || 0) + 1].needs;
+    return !needs || E.hasKit(run, needs);
+  };
+  E.goDeeper = function (run) {
+    if (!E.canGoDeeper(run)) return false;
     run.landed = E.landed(run); // the landings reached up here still score
     run.level = (run.level || 0) + 1;
     run.map = genMap(run);
@@ -1410,9 +1523,10 @@
   /* Score for the end screen, line by line: what each line counted, its points, and the currents' multiplier.
      `n` is the count shown (null for a flat amount), `each` the points per one. Lines worth nothing are left out.
      `won` means Wren came home: after any pin, or with the Heart. */
+  E.FINAL_SCORE = 600; // the Heart brought home, or the Belfry quieted after it
   E.scoreParts = function (run, won) {
     const st = run.stats, landed = E.landed(run);
-    const lines = E.LEVELS.map((L, i) => [`Landings in ${i ? L.name : 'the Shallows'}`, landed[i] || 0, L.landing]).concat([
+    const lines = E.LEVELS.map((L, i) => [`Landings in ${L.the}`, landed[i] || 0, L.landing]).concat([
       ['Creatures defeated', st.kills || 0, 12],
       ['Dreads defeated', st.elites || 0, 80],
       ['Crests', st.crests || 0, 6],
@@ -1422,7 +1536,8 @@
       ['Bonuses (Flawless, Swift and chains)', st.bonuses || 0, 15],
       ['Rewards turned down', st.declined || 0, null, E.declinePoints(st)],
     ]);
-    if (won && run.heart) lines.push(['The Lantern Heart brought home', null, null, 600]);
+    if (won && run.heart) lines.push(['The Lantern Heart brought home', null, null, E.FINAL_SCORE]);
+    if (won && run.quieted) lines.push(['The Belfry quieted', null, null, E.FINAL_SCORE]);
     if (won) lines.push(['HP left', run.hp, 5]);
     const parts = lines.map(([label, n, each, flat]) => ({ label, n, each, pts: flat != null ? flat : n * each })).filter((p) => p.pts > 0);
     const sum = parts.reduce((a, p) => a + p.pts, 0);
@@ -1448,19 +1563,22 @@
   E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord() });
   /* The logbook: finished expeditions, counted since v0.13.0. `wins` counts the ones that came home, `hearts` the ones
      that brought the Heart home, and `deep` is the deepest landing reached: { level, floor }. */
-  E.newRecord = () => ({ runs: 0, wins: 0, hearts: 0, deep: null });
+  E.newRecord = () => ({ runs: 0, wins: 0, hearts: 0, quiets: 0, deep: null });
   E.recordRun = function (meta, run, won) {
     if (!run || run.tutorial) return meta.record;
     const r = meta.record;
     r.runs++;
     if (won) r.wins++;
     if (won && run.heart) r.hearts = (r.hearts || 0) + 1;
+    if (won && run.quieted) r.quiets = (r.quiets || 0) + 1;
     const lv = run.level || 0, fl = run.floor || 0;
     if (!r.deep || lv > r.deep.level || (lv === r.deep.level && fl > r.deep.floor)) r.deep = { level: lv, floor: fl };
     return r;
   };
+  /* Has the Heart come home? Then later expeditions meet the Belfry's finals, and currents are open. */
+  E.heartIsHome = (meta) => (meta.record.hearts || 0) > 0;
   /* Currents open once the Heart has come home. The ones chosen are remembered for the next expedition. */
-  E.currentsOpen = (meta) => (meta.record.hearts || 0) > 0;
+  E.currentsOpen = (meta) => E.heartIsHome(meta);
   E.toggleCurrent = function (meta, k) {
     if (!E.CURRENTS[k] || !E.currentsOpen(meta)) return false;
     const i = meta.currents.indexOf(k);
@@ -1468,10 +1586,10 @@
     return true;
   };
   E.ownsKit = (meta, id) => !!BL.KIT[id] && (!!BL.KIT[id].starter || meta.owned.indexOf(id) >= 0);
-  E.kitUnlocked = (meta, id) => { const g = BL.KIT[id]; return !!g && (!g.unlock || meta.ach.indexOf(g.unlock) >= 0); };
+  E.kitUnlocked = (meta, id) => { const g = BL.KIT[id]; return !!g && (g.found ? E.ownsKit(meta, id) : !g.unlock || meta.ach.indexOf(g.unlock) >= 0); };
   E.buyKit = function (meta, id) {
     const g = BL.KIT[id];
-    if (!g || E.ownsKit(meta, id) || !E.kitUnlocked(meta, id) || meta.salvage < g.price) return false;
+    if (!g || g.found || E.ownsKit(meta, id) || !E.kitUnlocked(meta, id) || meta.salvage < g.price) return false;
     meta.salvage -= g.price;
     meta.owned.push(id);
     return true;
@@ -1520,6 +1638,7 @@
     if (old.runs > 0) rec.runs = Math.floor(old.runs);
     if (old.wins > 0) rec.wins = Math.min(rec.runs, Math.floor(old.wins));
     if (old.hearts > 0) rec.hearts = Math.min(rec.wins, Math.floor(old.hearts));
+    if (old.quiets > 0) rec.quiets = Math.min(rec.wins, Math.floor(old.quiets));
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
     m.currents = uniq2(m.currents);
@@ -1569,8 +1688,9 @@
   E.duplicateSalvage = (k) => Math.ceil(E.chargeOf(k) / 2); // a keepsake the Lazaret already holds is worth half its Roil in Salvage, rounded up
   /* A won run comes home. Returns { opened, kept: [new in the Lazaret], dupes: [turned into Salvage], salvage }. */
   E.storeKeepsakes = function (meta, run) {
-    const res = { opened: false, kept: [], dupes: [], salvage: 0 };
+    const res = { opened: false, kept: [], dupes: [], salvage: 0, home: false };
     if (!run || run.tutorial || run.screen !== 'victory') return res;
+    res.home = true;
     if (!meta.lazOpen) { meta.lazOpen = true; res.opened = true; }
     run.keepsakes.forEach((k) => {
       if (!BL.KEEPSAKES[k]) return;
@@ -1579,6 +1699,15 @@
     });
     meta.salvage += res.salvage;
     meta.earned += res.salvage;
+    return res;
+  };
+
+  /* Coming home: the keepsakes go to the Lazaret (E.storeKeepsakes), and a diving dress found above the Belfry's stair
+     joins the kit. Returns storeKeepsakes' result with `found`: the kit ids found, new to the Workshop. */
+  E.carryHome = function (meta, run) {
+    const res = E.storeKeepsakes(meta, run);
+    res.found = [];
+    if (res.home && run.found && BL.KIT[run.found] && !E.ownsKit(meta, run.found)) { meta.owned.push(run.found); res.found.push(run.found); }
     return res;
   };
 
@@ -1596,6 +1725,7 @@
     (run.cleared || []).forEach((lv) => m.push('won:' + lv));
     if (run.screen === 'victory') m.push('home');
     if (run.screen === 'victory' && run.heart) m.push('heart');
+    if (run.screen === 'victory' && run.quieted) m.push('quiet');
     if (run.combat) {
       if (run.combat.kind === 'boss') m.push('boss');
       run.combat.enemies.forEach((e) => { if (m.indexOf('en:' + e.id) < 0) m.push('en:' + e.id); });

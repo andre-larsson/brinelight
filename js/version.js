@@ -5,8 +5,19 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.19.0';
+  BL.VERSION = '0.20.0';
   BL.CHANGELOG = [
+    { v: '0.20.0', date: '2026-11-13', items: [
+      'The Belfry: a third level, below Dark Water and under the sea. Bell Jellies give another creature Echo, so its next move happens twice. Bellspawn squeeze the air out of your suit, so you draw a card fewer next turn. Glimmer Bladders burst when they die and hurt everything near them. Its Dreads are the Drowned Ringer and the Crowned Oarfish, and it has three Fog events of its own. Each landing there scores 80.',
+      'The Diving Dress: you can only go down into the Belfry wearing it. The first time you break Dark Water\'s pin, it hangs above the stair. Carry it home, and from then on wear it in your Coat place. It does nothing in a fight.',
+      'The Drowned Bellwether now waits on the Belfry\'s last landing, with 160 HP. When its bronze breaks, the Thing in the Bell comes out with two Grasping Arms, and the Lantern Heart heals you and burns beside you: 1 more Light every turn for the rest of the fight. Beat the Thing to bring the Heart home.',
+      'The Shallows have a new pin: the Harbour Hermit, a hermit crab wearing Saltmere\'s old harbour bell. Inside its bell its Ward stays from turn to turn, until a Crest or a Strand shakes it out.',
+      'Once the Heart is home, the Belfry\'s last landing holds one of two finals: the Thing in the Bell, grown back, or the Drowned Cantor, who leads a drowned choir. Beating either quiets the Belfry, and adds 600 to the score.',
+      'Story so far is rewritten for three levels, and has 11 new keeper\'s notes.',
+      'The Logbook says whether the Heart is home, and how often you have quieted the Belfry since.',
+      'On small phones, a big creature\'s intent no longer hides under the top bar, and the health bars of three creatures no longer overlap.',
+      'Runs saved by an older version can\'t be continued.',
+    ] },
     { v: '0.19.0', date: '2026-11-13', items: [
       'Expeditions: every run starts in the Shallows and goes down a level at a time. After the Shallows\' pin you choose: go home with everything you carry, or go deeper into Dark Water with your deck, keepsakes and HP. Breaking Dark Water\'s pin brings the Lantern Heart home. Choose your depth is gone.',
       'Each level is shorter: 8 landings, down from 11. The Drowned Bellwether has 130 HP, down from 160, to match.',

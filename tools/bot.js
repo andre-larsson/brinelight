@@ -128,9 +128,9 @@ function step(run, opts = {}) {
     return 'reward';
   }
   if (s === 'rest') { E.rest(run); E.backToMap(run); return 'rest'; }
-  // after a pin: go on down, unless told to go home after this level (opts.home)
+  // after a pin: go on down, unless told to go home after this level (opts.home) or the next level needs kit it lacks
   if (s === 'pin') {
-    if (opts.home != null && (run.level || 0) >= opts.home) { E.goHome(run); return 'home'; }
+    if ((opts.home != null && (run.level || 0) >= opts.home) || !E.canGoDeeper(run)) { E.goHome(run); return 'home'; }
     E.goDeeper(run);
     return 'deeper';
   }

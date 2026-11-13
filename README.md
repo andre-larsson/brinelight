@@ -4,11 +4,11 @@ A single-player roguelike deckbuilder for the browser. You play Wren, the last l
 
 **Play it:** <https://andre-larsson.github.io/brinelight/>
 
-One run is an **expedition** down through the Reach, one level at a time: the Shallows, then Dark Water. Each level is a branching map of 8 landings, and its boss, the **pin**, waits on the last one. After a pin you go home with what you carry, or go deeper. The Shallows take about 15 minutes, and the whole expedition about 35. Every expedition ends with a score to beat.
+One run is an **expedition** down through the Reach, one level at a time: the Shallows, Dark Water, then the Belfry, which is under the sea. Each level is a branching map of 8 landings, and its boss, the **pin**, waits on the last one. After a pin you go home with what you carry, or go deeper. The Shallows take about 15 minutes, and each level below takes a little longer. Every expedition ends with a score to beat.
 
 **New here?** The first time you start a descent, a short opening in four pictures tells the story, and then the game offers a short guided fight (about 2 minutes) that teaches the basics and the Swell. You can skip it, and replay it any time from the title screen or the menu. After that, short hints explain new things the first time you meet them.
 
-**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, one for each pin you break, and two for bringing the Heart home. **The world** explains the places, people and magic. **Keeper's notes** are 22 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Bellwether, the Glimmer Leech, the Lamp Hermit, the Tolling Buoy, your first keepsake, the first time you carry more Roil than your Hold, and the first time you come home. The tutorial and debug-cheated runs open nothing.
+**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, one for the Shallows' pin, two for Dark Water's, and three for bringing the Heart home. **The world** explains the places, people and magic. **Keeper's notes** are 33 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Harbour Hermit, the Bellwether, the Glimmer Leech, the Lamp Hermit, the Tolling Buoy, the Thing in the Bell, each of the Belfry's creatures and Dreads, the Drowned Cantor, your first keepsake, the first time you carry more Roil than your Hold, and the first time you come home. The tutorial and debug-cheated runs open nothing.
 
 ## Running it
 
@@ -31,7 +31,7 @@ Progress is saved automatically in your browser, at the start of every turn and 
 | **Touch** | Tap a card to raise it and read it, then tap an enemy, or tap the card again. Dragging works too. | Tap an enemy or the keeper to see HP, intent and effects. Tap a keepsake to read it, or between fights to drop it. |
 | **Keyboard** | `1`-`9`, `0` pick a card; `←` `→` choose the target; `Enter` / `Space` / `↑` play it; `Esc` / `↓` cancel. | `E` end turn, `B` Bail, `S` Stir, `D` view deck, `Z` `X` `C` use tonic slots 1-3. On the map: arrow keys and `Enter` (or `1`-`9`). On reward screens: `1`-`3` pick a card. `Tab` reaches every button. |
 
-The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: expeditions finished, how many came home and how many fell, Hearts brought home, the deepest landing reached, pins broken, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
+The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: expeditions finished, how many came home and how many fell, whether the Lantern Heart is home and how often the Belfry has been quieted since, the deepest landing reached, pins broken, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
 
 The menu (top right) has the tutorial, How to Play, Story so far, sound effects on/off, music on/off and fast animations. During a run it also has save and quit, and abandon run. On the title screen it has Back up or reset progress.
 
@@ -79,6 +79,15 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At two thirds of its health it Slips the Chain (15 Ward and 1 Might). From then on it rings a **Wild Peal** in place of Haul the Chain: 30 damage, 10 less for each Crest or Strand you make that turn. At 0 it doesn't hit at all.
 - **The Glimmer Garden** (a Fog event): if you pick the beads, a Glimmer Leech follows you into your next fight.
 
+**What lives in the Belfry.** The Belfry is under the sea: you need the Diving Dress to go down (see Expeditions and score). Its creatures:
+- **Bell Jelly:** its Chime gives another creature **Echo**: that creature's next move happens twice (its attacks, Ward and what it does to you; a call or a summons only once). The intent shows a move that will echo.
+- **Bellspawn**, and the Thing's **Grasping Arms:** a squeeze makes you **Breathless**: you draw 1 fewer card at the start of your next turn, never fewer than 1.
+- **Glimmer Bladder:** **Burst 8**. When it dies it bursts: 8 damage to you (Ward stops it) and 8 to every other creature.
+- **Drowned Ringer** (a Dread, with a Bell Minnow): Ring Out gives it 8 Ward and gives every creature Echo.
+- **Crowned Oarfish** (a Dread): Spines 2. Coil hits 6 and makes you Breathless, Ribbon Lash hits 3 four times, and Ram hits 13.
+- **The Drowned Bellwether** (the boss, 160 HP): at two thirds of its health it calls a shoal of Bell Minnows. When its HP runs out it does not die: its bronze breaks, the shoal scatters, and **the Thing in the Bell** comes out (150 HP) with two Grasping Arms. The Lantern Heart's light heals you 30% of your Max HP and gives you **Heartfire 1**: 1 more Light at the start of each turn for the rest of the fight. The Thing drinks from your lantern (Doused 1 for each living arm), opens its eye (Soaked 2 on itself, and 8 Ward), Glares for 24, and Reaches (its arms grow back, up to 2, and 12 Ward). Kill the Thing to win; its arms go with it. If the bronze breaks in the enemies' turn, the rest of that move is lost and the Thing acts from the next turn.
+- **The finals.** Once the Heart is home, one of these waits on the Belfry's last landing instead: the Thing in the Bell (170 HP, with two arms), or **the Drowned Cantor** (160 HP). The Cantor's Lead the Peal gives it 12 Ward and gives every creature Echo; its Toll hits 10, and 2 harder each time; and Call the Choir brings a Drowned Ringer, one at a time. When the Cantor falls, the Ringer goes with it.
+
 **Between fights.** Choose your route on the map:
 - **Skirmishes:** normal fights.
 - **Dreads:** elites. They're harder. They pay Pearls, and you may take 1 of 2 keepsakes. A Dread offers no card and no tonic.
@@ -115,10 +124,11 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 
 **Expeditions and score.** Every expedition starts on the shore, in the Shallows. The top bar counts the landings you have reached in the level you are in.
 - Each level has 8 landings: 7 rows of stops, then its pin. Every route passes a Wreck on the 4th landing and a Cove on the 7th.
-- The Shallows and Dark Water each have their own creatures, Dreads, pin and Fog events. The Shallows' pin is the Drowned Bellwether; Dark Water's is the Tolling Buoy.
+- The Shallows, Dark Water and the Belfry each have their own creatures, Dreads, pin and Fog events. The Shallows' pin is the Harbour Hermit, Dark Water's is the Tolling Buoy, and the Belfry's is the Drowned Bellwether.
+- **The Belfry is under the sea.** To go down into it you must wear the **Diving Dress** in your Coat place. The first time you break Dark Water's pin without one, it hangs above the stair: go home, and it is yours in the Workshop. It can't be bought, it does nothing in a fight, and it takes the place of the Cork Vest or the Shell Gorget.
 - After a pin that is not the last, choose: **go home**, which ends the expedition and keeps everything you carry, or **go deeper** with your deck, keepsakes and HP. The stair down starts at a Sheltered Cove, where you rest or upgrade a card, as at any Cove.
-- Breaking the last pin (Dark Water's, for now) brings the Lantern Heart home.
-- The score counts each landing reached: 40 in the Shallows and 60 in Dark Water. Coming home adds 5 for each HP you have left, and the Heart adds 600. Your best score is kept.
+- Breaking the Belfry's pin brings the Lantern Heart home. After that, the Belfry's last landing holds one of its **finals** instead, and beating it quiets the Belfry.
+- The score counts each landing reached: 40 in the Shallows, 60 in Dark Water and 80 in the Belfry. Coming home adds 5 for each HP you have left, and bringing the Heart home, or quieting the Belfry after it, adds 600. Your best score is kept.
 - **Currents** open once the Heart has come home. Choose any of them on shore before an expedition. Each makes the whole expedition harder and adds ×0.25 to the score's multiplier, and they combine (all four: ×2). **Fat Year**: every creature has 10% more HP. **Hungry Deep**: every creature hits 15% harder. **Cold Coves**: Coves heal 20% of your Max HP, not 30%. **Backwash**: at the start of each of your turns after the first, the Swell slips 1 back toward 3.
 
 **The Workshop (lasts across runs).** Every finished expedition turns its score into **Salvage**: 1 for every 50 points. Abandoning one earns nothing.
@@ -126,7 +136,7 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 - Kit goes in five places, one piece each, and you choose before each descent. The game remembers your choice.
   - **Harpoon:** the Honed Harpoon (your first Harpoon Jab in each fight deals 2 more damage) or the Barbed Harpoon (it applies 1 Brine).
   - **Bell:** always one. The Brass Tide-Bell draws 1 card on every Crest and Strand. The Flood Bell draws 1 card and gives 1 Light on a Crest, and nothing on a Strand. The Ebb Bell draws 1 card and gives 3 Ward on a Strand, and nothing on a Crest. The Cracked Bell gives nothing on the first Crest or Strand of a turn, then draws 2 cards and gives 1 Light on every one after.
-  - **Coat:** Cork Vest (+5 Max HP) or Shell Gorget (4 Ward at the start of each fight).
+  - **Coat:** Cork Vest (+5 Max HP) or Shell Gorget (4 Ward at the start of each fight), or the Diving Dress, found in Dark Water (nothing in a fight, but it opens the Belfry).
   - **Pocket:** Coin Purse (+30 Pearls at the start), Gleaner's Pouch (+10 Pearls after each fight) or Barnaby's Marker (your first card removal at Barnaby's is free).
   - **Ditty Bag:** Spare Flask (a tonic at the start), Pearl Scales (Barnaby's prices are 25% lower), Gleaning Net (+3 Pearls whenever you Crest) or Spare Wick (rests heal 10 more HP).
 - Some kit is locked until an **achievement**, such as Crest three times in one turn or defeat an enemy with Brine. Achievements are checked after every fight you win and when a run ends, so they count even if you lose the run later. The tutorial doesn't count.
@@ -154,15 +164,17 @@ Both are announced the moment you earn them. The score counts Crests and Strands
     - Ward (Sea Wall, Deep Guard, Breakwater).
     - Brine (Brine Bloom, Brine Spear, Salt Ward).
     - Might multi-hits.
-- **20 enemies:**
+- **30 enemies:**
   - The Shallows: 8 normal (Kelp Lurker, Brine Crab, Lantern Eel, Drowned Deckhand, Gloom Jelly, Barnacle Mite, Fog Wisp, Salt Gull) and 3 elite encounters. The Kelp Lurker's Lash hits 2 harder each time, and the Barnacle Mite's Burrow gives it 5 Ward and 1 Might. The elites:
     - Reefback Hulk, which has Spines.
     - Hollow Siren, whose lullaby flattens your Swell back to 3.
     - Angler Twins, where the survivor enrages when its twin dies.
-  - The Shallows' boss, The Drowned Bellwether. At two thirds of its health it cracks, calls a shoal of Bell Minnows, and the music shifts. The Bell Minnow also follows a Roiled aether.
+  - The Shallows' boss, the Harbour Hermit (150 HP), a hermit crab wearing Saltmere's old harbour bell. **In its Bell**, its Ward does not wash away from turn to turn. A Crest or a Strand shakes it out: it loses all its Ward, and a Crest's wave then hits its HP. Pull In gives it 20 Ward, Pinch hits 6 twice, and Bell Crush hits 15, 3 harder each time. At two thirds of its health it rings the harbour bell: two Barnacle Mites drop off it, it gains 1 Might, and the music shifts.
+  - The Bell Minnow, the Bellwether's, follows a Roiled aether.
   - Dark Water: 4 new normal creatures (Glimmer Leech, Pistol Shrimp, Murk Ray, Lamp Hermit), with the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp; 3 elite encounters (Glimmer Chain, Pale Gulper and the Angler Twins); and its boss, the Tolling Buoy.
-- **14 keepsakes, 7 tonics, 10 events** (7 in the Shallows; in Dark Water, 3 of its own and 3 from the Shallows).
-- **14 pieces of kit (plus the Brass Tide-Bell) and 7 achievements** in the Workshop.
+  - The Belfry: 3 new normal creatures (Bell Jelly, Bellspawn, Glimmer Bladder), with the Murk Ray, Lantern Eel, Gloom Jelly, Glimmer Leech and Bell Minnow; 3 elite encounters (Drowned Ringer, Crowned Oarfish, Glimmer Chain); its boss, the Drowned Bellwether, and its second form, the Thing in the Bell with its Grasping Arms; and, after the Heart, its finals: the Thing in the Bell or the Drowned Cantor.
+- **14 keepsakes, 7 tonics, 13 events** (7 in the Shallows; in Dark Water, 3 of its own and 3 from the Shallows; in the Belfry, 3 of its own, the Sunken Shrine and the Glimmer Garden).
+- **15 pieces of kit (plus the Brass Tide-Bell) and 7 achievements** in the Workshop. One of them, the Diving Dress, is found, not bought.
 - **Endings:** win and lose screens with the score line by line (and how it turns into Salvage), run stats, best score, unlocks in purple boxes, and a one-click new run.
 
 Sound effects and music are synthesized at runtime with the Web Audio API, so there are no audio files. The music is a generative pad-and-pluck score over an ocean bed, and it changes mood for fights, the boss, and the boss's second phase.

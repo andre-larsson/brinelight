@@ -492,7 +492,7 @@ test('the number on a CREST badge is how many Crests that card makes, not the ch
 });
 
 /* ---------- Bosses and elites ---------- */
-test('the Bellwether calls a shoal of Bell Minnows at two thirds of its health, and the shoal scatters when it falls', () => {
+test('the Bellwether calls a shoal of Bell Minnows at two thirds of its health, and the shoal scatters when its bronze breaks', () => {
   assert.equal(BL.PIN_CALL, 2 / 3);
   const { run, c } = fight(['bell'], { kind: 'boss', deck: ['brace', 'brace', 'brace', 'brace', 'brace'] });
   run.hp = run.maxHp = 999;
@@ -509,8 +509,10 @@ test('the Bellwether calls a shoal of Bell Minnows at two thirds of its health, 
   bell.hp = 1;
   give(run, 'jab');
   play(run, 'jab', bell);
-  assert.ok(c.won);
-  assert.equal(E.alive(c).length, 0);
+  // the shoal scatters, but the fight goes on: the Thing in the Bell comes out (tests/belfry.test.js)
+  assert.ok(!c.won);
+  assert.equal(E.alive(c).filter((e) => e.id === 'minnow').length, 0);
+  assert.equal(bell.id, 'bellthing');
 });
 
 test('a Dread pays Pearls and a pick of 1 of 2 keepsakes, and offers no card and no tonic', () => {
@@ -833,8 +835,9 @@ test('Kelp Bracelet: a Strand gives 8 Ward. Tidal Memory: each Crest gives 1 Lig
 /* Win the boss fight the run is in, the quick way. */
 const beatPin = (run) => { E.startCombat(run, 'boss'); run.combat.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); run.combat.won = true; E.finishCombat(run); };
 
-test('an expedition goes down level by level: after a pin, go home or go deeper; the stair down starts at a Cove; the last pin brings the Heart home', () => {
-  assert.deepEqual(E.LEVELS.map((l) => l.band), ['shallows', 'dark']);
+test('an expedition goes down level by level: after a pin, go home or go deeper; the stair down starts at a Cove; the Belfry needs the diving dress; the last pin brings the Heart home', () => {
+  assert.deepEqual(E.LEVELS.map((l) => l.band), ['shallows', 'dark', 'belfry']);
+  assert.deepEqual(E.LEVELS.map((l) => l.needs || null), [null, null, 'suit']);
   const run = E.newRun(5);
   assert.equal(run.level, 0);
   run.floor = 8;
@@ -868,19 +871,39 @@ test('an expedition goes down level by level: after a pin, go home or go deeper;
   assert.equal(run.screen, 'map');
   assert.ok(!run.passage);
   assert.deepEqual(E.availableNodes(run), run.map.grid[0].filter(Boolean), 'the new level starts at its first landing');
+  // Dark Water's pin: the Belfry below is under the sea. Without the diving dress the stair stays shut, and the
+  // dress hangs above it, to be carried home
+  run.floor = 8;
+  const bare = JSON.parse(JSON.stringify(run));
+  beatPin(bare);
+  assert.equal(bare.screen, 'pin');
+  assert.deepEqual(bare.cleared, [0, 1]);
+  assert.equal(bare.found, 'suit');
+  assert.equal(E.canGoDeeper(bare), false);
+  assert.equal(E.goDeeper(bare), false);
+  // wearing it, nothing is found and the stair is open
+  run.kit.coat = 'suit';
+  beatPin(run);
+  assert.equal(run.screen, 'pin');
+  assert.equal(run.found, undefined);
+  assert.ok(E.goDeeper(run));
+  assert.equal(run.level, 2);
+  assert.equal(E.bandId(run), 'belfry');
+  E.rest(run);
+  E.backToMap(run);
   // the last pin: the Heart comes home, and there is no deeper
   run.floor = 8;
   beatPin(run);
   assert.equal(run.screen, 'victory');
   assert.ok(run.heart);
-  assert.deepEqual(run.cleared, [0, 1]);
-  ['won:0', 'won:1', 'home', 'heart'].forEach((m) => assert.ok(E.storyMarks(run).includes(m), m));
+  assert.deepEqual(run.cleared, [0, 1, 2]);
+  ['won:0', 'won:1', 'won:2', 'home', 'heart'].forEach((m) => assert.ok(E.storyMarks(run).includes(m), m));
   assert.equal(E.goDeeper(run), false);
   assert.equal(E.goHome(run), false);
 });
 
-test('the score: each landing scores 40 in the Shallows and 60 in Dark Water; coming home adds 5 per HP left; the Heart adds 600', () => {
-  assert.deepEqual(E.LEVELS.map((l) => l.landing), [40, 60]);
+test('the score: each landing scores 40 in the Shallows, 60 in Dark Water and 80 in the Belfry; coming home adds 5 per HP left; the Heart, or quieting the Belfry after it, adds 600', () => {
+  assert.deepEqual(E.LEVELS.map((l) => l.landing), [40, 60, 80]);
   const run = E.newRun(1);
   run.floor = 5;
   const line = (r, won, label) => (E.scoreParts(r, won).parts.find((p) => p.label === label) || {}).pts;
@@ -900,6 +923,10 @@ test('the score: each landing scores 40 in the Shallows and 60 in Dark Water; co
   run.heart = true;
   assert.equal(line(run, true, 'The Lantern Heart brought home'), 600);
   assert.equal(E.scoreParts(run, true).mult, 1);
+  run.heart = false;
+  run.quieted = true;
+  assert.equal(line(run, true, 'The Belfry quieted'), 600);
+  assert.equal(line(run, true, 'The Lantern Heart brought home'), undefined);
 });
 
 test('currents: each makes the expedition harder and adds 0.25 to the score multiplier; they combine, and they open once the Heart has come home', () => {
@@ -1075,18 +1102,18 @@ test('the score counts Strands and the best Strand chain the same as Crests', ()
 });
 
 /* ---------- Content (README counts) ---------- */
-test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 20 enemies; 14 keepsakes; 7 tonics; 10 events', () => {
+test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 30 enemies; 14 keepsakes; 7 tonics; 13 events', () => {
   const cards = Object.values(BL.CARDS);
   const by = (r) => cards.filter((c) => c.rarity === r).length;
   assert.deepEqual([by('common'), by('uncommon'), by('rare')], [14, 16, 8]);
   cards.filter((c) => ['common', 'uncommon', 'rare', 'starter'].includes(c.rarity)).forEach((c) => assert.ok(Object.keys(c.up).length > 0, c.id + ' has an upgrade'));
   assert.equal(cards.filter((c) => c.type === 'status').length, 4);
   assert.equal(cards.filter((c) => c.type === 'curse').length, 1);
-  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 20);
+  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 30);
   assert.equal(Object.keys(BL.KEEPSAKES).length, 14);
   Object.values(BL.KEEPSAKES).forEach((k) => assert.ok(k.charge > 0, k.name + ' has a Roil'));
   assert.equal(Object.keys(BL.TONICS).length, 7);
-  assert.equal(BL.EVENTS.length, 10);
+  assert.equal(BL.EVENTS.length, 13);
 });
 
 test('the fight words are Swell, Surge, Ebb, Crest and Strand, and a keepsake has Roil: no card, keepsake, kit, status or achievement text uses the old words', () => {

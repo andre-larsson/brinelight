@@ -222,6 +222,10 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 /* Dark Water has its own chamber and its own lock for the pin */
 .field.band-dark { background-image: url(img/bg/bg_dark.webp); }
 .field.band-dark.boss { background-image: url(img/bg/bg_dark_boss.webp); }
+/* the Shallows' pin is the harbour bell on the hermit crab's back; the Belfry is under the sea, and its boss hangs in the great bell's chamber */
+.field.band-shallows.boss { background-image: url(img/bg/bg_shallows_boss.webp); }
+.field.band-belfry { background-image: url(img/bg/bg_belfry.webp); }
+.field.band-belfry.boss { background-image: url(img/bg/bg_boss.webp); }
 .field::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(5, 15, 24, .25), transparent 30%, transparent 70%, rgba(5, 15, 24, .55)); }
 .sea {
   position: absolute; left: -5%; right: -5%; bottom: 0; z-index: 1; pointer-events: none;
@@ -259,6 +263,12 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   .player { flex-direction: row; align-items: flex-end; gap: 2cqw; }
   .player .sprite { height: 30cqh; width: 22cqh; }
   .enemy.flying .sprite { margin-bottom: 4cqh; }
+}
+/* a small phone (360x640, 375x667): the field is narrow but wider than tall. The big creatures' boxes were taller than
+   the art in them, and pushed their intent up under the top bar. */
+@container field (min-aspect-ratio: 1/1) and (max-width: 600px) {
+  .enemy .sprite { max-height: 52cqh; }
+  .unit.enemy .info { min-width: 0; } /* three creatures get about 80px each: their HP bars overlapped at 96px */
 }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5%); } }
 @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.012, .992); } }
@@ -329,6 +339,9 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 @keyframes redFlash { 50% { filter: drop-shadow(0 0 0 #000) brightness(1.6) sepia(1) hue-rotate(-40deg) saturate(4); } }
 .unit.summoned { animation: rise .6s ease; }
 @keyframes rise { from { opacity: 0; transform: translateY(30px); } }
+/* a boss's second form comes out of the first */
+.unit.reborn .sprite img { animation: reborn 1s ease; }
+@keyframes reborn { 0% { opacity: 0; transform: scale(.55); filter: brightness(3) saturate(0); } 55% { opacity: 1; filter: brightness(1.8); } 100% { transform: scale(1); filter: none; } }
 /* Submerged (the Murk Ray): sunk into the water, dim, and not a target */
 .unit.enemy .sprite img { transition: translate .4s ease, opacity .4s ease; }
 .unit.enemy.submerged .sprite img { translate: 0 22%; opacity: .45; filter: saturate(.5) brightness(.75) drop-shadow(0 0 10px rgba(80, 200, 220, .45)); }
@@ -809,6 +822,9 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 button.unlock-box { font: inherit; cursor: pointer; text-align: center; }
 button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff; }
 .unlock-box { padding: 8px 14px; border-radius: 10px; background: rgba(60, 30, 80, .7); border: 1px solid rgba(200, 160, 255, .55); color: #eadcff; }
+/* kit found on an expedition (the diving dress): its picture beside the words */
+.found-kit { display: flex; align-items: center; gap: 12px; text-align: left; }
+.found-kit .medal { flex: 0 0 auto; width: 56px; height: 56px; cursor: default; }
 .title-best { position: relative; margin-top: 18px; font-size: 14px; color: #f3dfb2; text-shadow: 0 2px 6px #000; }
 
 .pile.pulse { animation: orbPulse .5s ease; }

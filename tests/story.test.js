@@ -49,7 +49,7 @@ test('chapter 1 is the opening and is always open; every other entry is locked b
 });
 
 test('every mark can be earned in the game as it is', () => {
-  const plain = ['fell', 'shop', 'cove', 'wreck', 'boss', 'keepsake', 'roiled', 'home', 'heart'];
+  const plain = ['fell', 'shop', 'cove', 'wreck', 'boss', 'keepsake', 'roiled', 'home', 'heart', 'quiet'];
   E.storyEntries().filter((en) => en.when).forEach((en) => {
     const [kind, id] = en.when.split(':');
     if (kind === 'ev') assert.ok(BL.EVENTS.some((ev) => ev.id === id), en.when);
@@ -57,17 +57,19 @@ test('every mark can be earned in the game as it is', () => {
     else if (kind === 'won') assert.ok(+id >= 0 && +id < E.LEVELS.length, en.when);
     else assert.ok(plain.indexOf(en.when) >= 0, en.when);
   });
-  // one chapter for each pin broken, and the Heart's chapters
-  E.LEVELS.forEach((L, i) => assert.ok(S.chapters.some((c) => c.when === 'won:' + i), L.name));
+  // one chapter for each pin broken on the way down, and the Heart's chapters for the last
+  E.LEVELS.slice(0, -1).forEach((L, i) => assert.ok(S.chapters.some((c) => c.when === 'won:' + i), L.name));
   assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
-test('there are six chapters and 22 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
-  assert.equal(S.chapters.length, 6);
-  assert.equal(S.notes.length, 22);
+test('there are eight chapters and 33 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
+  assert.equal(S.chapters.length, 8);
+  assert.equal(S.notes.length, 33);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));
-  ['shop', 'cove', 'wreck', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit'].forEach((m) => assert.ok(whens.includes(m), m));
+  ['shop', 'cove', 'wreck', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit', 'en:harbour', 'en:bellthing', 'en:cantor'].forEach((m) => assert.ok(whens.includes(m), m));
+  // every boss has a note
+  Object.keys(BL.ENEMIES).filter((id) => BL.ENEMIES[id].boss && !BL.ENEMIES[id].tutorial && id !== 'thing').forEach((id) => assert.ok(whens.includes('en:' + id), id));
   assert.ok(S.chapters.some((c) => c.when === 'fell'));
 });
 
@@ -89,7 +91,7 @@ test('a run earns marks from what it meets', () => {
   assert.ok(!fm.includes('boss'));
   const boss = E.newRun(7);
   E.enterNode(boss, { row: 0, col: 0, type: 'boss' });
-  assert.ok(E.storyMarks(boss).includes('boss') && E.storyMarks(boss).includes('en:bell'));
+  assert.ok(E.storyMarks(boss).includes('boss') && E.storyMarks(boss).includes('en:harbour'));
 });
 
 test('a fall, each pin broken, coming home, the Heart, a keepsake and a Roiled aether each earn their mark', () => {
@@ -130,7 +132,7 @@ test('an entry opens only once its mark is earned', () => {
 
 test('the story agrees with the rules and uses the current words', () => {
   const exp = S.world.flatMap((g) => g.items).find((r) => r[0] === 'Expeditions')[1];
-  E.LEVELS.forEach((L, i) => assert.ok(exp.includes(i ? L.name : 'the Shallows'), L.name));
+  E.LEVELS.forEach((L, i) => assert.ok(exp.includes(E.levelName(i)), L.name));
   assert.match(exp, /go home after any pin/);
   const all = texts().join('\n');
   assert.doesNotMatch(all, /Low Water|\bCharge\b|Tide gauge|\bswim|\bdive\b/i);

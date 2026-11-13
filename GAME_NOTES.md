@@ -737,6 +737,127 @@ From a fresh start the bot clears Dark Water 11.8% of the time. A built deck mak
 
 **Next:** slice B: the Belfry (third level, about 6 creatures, 3 Dreads, events, art), the suit, the Bellwether there as a longer two-phase final fight, the hermit crab as the Shallows' pin, a repeatable final encounter (more than one option, the user suggests), and the chapters rewritten.
 
+### The Belfry, slice B (v0.20.0, 2026-11-13)
+
+**Built:**
+- **The Belfry** (`E.LEVELS[2]`, landing 80, `needs: 'suit'`; `BL.BANDS.belfry`). Easy and hard fights mix 3 new creatures with Dark Water's:
+  - the Bell Jelly: its Chime gives another creature Echo, so that creature's next move happens twice (`echoOne`, `c.echoNext`);
+  - the Bellspawn: its Squeeze makes you Breathless, so you draw 1 card fewer next turn;
+  - the Glimmer Bladder: it has Burst 8 (`BL.BURST`), so when it dies it hits you and every other creature for 8.
+- **The Belfry's Dreads:**
+  - the Drowned Ringer with one Minnow; its Ring Out gives every creature Echo;
+  - the Crowned Oarfish: Spines 2, Coil (Breathless 1), Ribbon Lash, Ram;
+  - the Glimmer Chain from Dark Water.
+- **Fog events:** three new ones (the Lanterns, the Heartglow, the Rope), plus the Shrine and the Garden.
+- **Art:** backgrounds `bg_belfry`, plus `bg_shallows_boss` for the Hermit. Wren wears the dress in the Belfry (`keeper_suit`).
+- **The Diving Dress** (`BL.KIT.suit`, Coat place, `found: true`, never for sale).
+  - Dark Water's pin can only be passed with the dress on (`E.canGoDeeper`).
+  - The first time, the dress hangs above the stair (`run.found`) and Go home carries it home (`E.carryHome` → `res.found`). The end screen says so.
+  - From then on it is worn from the kit like any Coat. The Workshop shows it as "Not for sale".
+- **The Bellwether is the Belfry's pin** (160 HP).
+  - When its HP runs out it doesn't die. It rises (`next: 'bellthing'`): the same unit becomes the Thing in the Bell (150 HP), and its shoal scatters.
+  - At the rise, `BL.HEART_RISE` heals Wren 30% of her Max HP, and she gets Heartfire (1 more Light every turn for the rest of the fight).
+  - The UI swaps the sprite and name in place (`setUnitForm`), plays a 'reborn' animation and switches the music to the second phase.
+  - The Thing in the Bell:
+    - Reach: grows up to 2 Grasping Arms;
+    - Drink the Light: 7 damage, and Wren starts her next turn with 1 less Light for each arm;
+    - The Eye Opens: 8 Ward, and it is Soaked until it acts again, so it takes 50% more damage;
+    - Glare: 26.
+  - Beating the Thing brings the Heart home: 600 points and the currents.
+- **The Harbour Hermit is the Shallows' pin** (150 HP, Belled).
+  - Belled: its Ward stays from turn to turn until a Crest or a Strand shakes it out (`f.stripped`, shown as a shattered ward).
+  - Its moves:
+    - Pull In: 20 Ward;
+    - Pinch: 6 ×2;
+    - Bell Crush: 15, then 3 more each time;
+    - at two thirds of its HP, it rings the Harbour Bell: 2 Barnacle Mites and 1 Might.
+  - The Bellwether's old Shallows place is gone.
+- **Repeatable finals** (`enc.finals`, used once `run.heartHome`):
+  - the Thing in the Bell grown back (170 HP) with two Grasping Arms;
+  - or the Drowned Cantor (160 HP):
+    - Lead the Peal: 12 Ward, and Echo for every creature;
+    - Toll: 10, then 2 more each time;
+    - Call the Choir: grows 1 Drowned Ringer.
+
+  Beating either quiets the Belfry (`run.quieted`): 600 (`E.FINAL_SCORE`). The Logbook counts `record.quiets`.
+- **Story:** Story so far has 8 chapters, rewritten for three levels, and 33 keeper's notes (11 new). WORLD.md has the Hermit, the dress, the Belfry, the Thing and the Cantor.
+- **Old runs:** `E.RUN_VERSION` 4, so a run saved by v0.19.0 is dropped. Lasting progress carries over.
+- **Small phones** (360x640, 375x667). The field there is narrow but wider than tall, so the portrait rules don't apply. Two problems came from that:
+  - Every pin's intent badge and the Oarfish's sat 3 to 13 px under the top bar. The Buoy and the Bellwether had this before v0.20.0.
+  - In three-creature fights the HP bars overlapped.
+
+  A container rule now caps the creatures' height at 52% of the field there (it was 62%) and lets their info shrink below 96 px. The badges now clear the top bar by 14 to 26 px. The 390x844 and 412x915 phones are unchanged. The two Grasping Arms' badges still touch each other at 360 px.
+- **Bug found while testing:** `loadSave` in js/ui.js still checked for version 3. It would have thrown away every new run on reload. It now checks `E.RUN_VERSION`.
+
+**The agent's calls (provisional):**
+1. **Bellwether 160, Thing 150.** The first draft (130 / 120) was won by 49.6% of the bot runs that reached it, more than any other pin. The bot reaches it at 49.8 HP with a Dark Water deck. At 160 / 150, 35.9% win, in 16.8 turns on average. The Buoy is beaten by 26.6% of the runs that reach it. A last boss a bit easier than the Buoy felt right because:
+   - it is the third pin in a row;
+   - a fall there loses the most.
+
+   The heal matters most. Without the heal and Heartfire, 8.4% win. With the heal at 20%, 17.0%.
+2. **The finals at about the Heart's level.**
+   - **The Thing alone at 170 HP** (with its arms): 34.8%.
+   - **The Cantor alone at 160 HP** (calls 1 Ringer, Toll 10 + 2): 35.2%.
+   - **The Cantor's first draft was nearly unwinnable** (1.7%): a Cantor with two Ringers that each gave everything Echo. The Echoes stacked into double Tolls.
+   - **With a Ringer beside the Cantor from the start:** 17.5% at 140 HP. That is why the Cantor fights alone.
+3. **The Belfry's Dreads come down** (they killed 32% of the bot runs that fought them, against 15.8% for Dark Water's):
+   - the Ringer comes with 1 Minnow, not 2;
+   - the Oarfish has 66–70 HP (from 74–78), Coil gives Breathless 1 (from 2), and Ram deals 13 (from 16).
+
+   They now cost about 10 HP a fight, and 23% of fights are lost. Dark Water's cost 8.8 HP, and 15.8% are lost.
+4. **The Chain stays as the easy Dread** (15% lost). Pairing it with a Bell Jelly gave 48% lost, so the Chain fights alone.
+5. **The Hermit: 150 HP, Pull In 20, Bell Crush 15 + 3.** The Shallows' pin is broken in 18.5% of bot runs, the same as with the 130 HP Bellwether in v0.19.0.
+6. **Echo, Breathless and Burst are Belfry-only.** No rule applies everywhere underwater: the user agreed to try that.
+
+**Measured.** Paired replays: one process snapshots the runs that arrive in the Belfry (972 of 30,000 seeds), then replays each variant 3 times on those snapshots (2,916 fights a row). The whole expedition is 2,000 seeds a row with `node tools/measure.js <spec> --workers 1`.
+
+| | |
+|---|---|
+| Belfry arrivals that break its pin | 21.0% |
+| Bellwether fights won (rose in 61.5%, at turn 9.7) | 34.2% |
+| HP at the Bellwether / at the rise / at the end | 49.5 / 48.1 / 26.9 |
+| Finals won (Thing or Cantor) | 33.4%, 9.0 turns |
+| Shallows' pin, whole expedition | 18.5% |
+| Dark Water's pin, if the Shallows' broke | 18.6% |
+| Belfry's pin, if Dark Water's broke | 31.9% (about 69 runs; the replay above is the better number) |
+| The Heart brought home, whole expedition | 1.1% (v0.19.0: 3.0% over two levels) |
+| Home after Dark Water's pin, without the dress | 3.5% |
+
+- **Currents after the Heart.** Each row is Shallows' pin / Dark Water's if the Shallows' broke / the finals if Dark Water's broke / home with the Belfry quiet:
+
+  | Current | Shallows | Dark Water | Finals | Home |
+  |---|---|---|---|---|
+  | none | 18.5 | 18.6 | 20.3 | 0.7% |
+  | Fat Year | 10.3 | 15.5 | 12.5 | 0.2% |
+  | Hungry Deep | 5.7 | 8.8 | 20.0 | 0.1% |
+  | Cold Coves | 15.8 | 12.7 | 12.5 | 0.3% |
+  | Backwash | 13.6 | 18.1 | 20.4 | 0.5% |
+
+  The Belfry columns rest on 10 to 70 runs, so they are rough.
+- **Most bot runs end before a pin, not at it.** Of the runs that reach a pin, 27% beat the Buoy and 34% the Bellwether. I didn't measure the Hermit's share.
+- **Open:** `run.normalFights` carries across levels. After the Shallows, every normal fight is 'hard' at once, so Dark Water and the Belfry have no easy table in an expedition. That is how slice A played too, and it is part of the numbers above. If the deeper levels should open gently, reset it in `E.goDeeper`.
+
+**The crashes during this work.** The machine froze three times on 2026-11-13 (20:43, 20:49 and 21:07), while I ran 22, 22 and then 8 bot processes at once. Each time it stopped responding for over a minute, and the user had to power it off.
+- **Checked:** no memory leak in the engine or the bot. In one capped process over 30,000 seeds:
+  - the heap after GC grew from 6.6 to 13.2 MB;
+  - RSS stayed at 160 MB;
+  - the slowest step took 36 ms;
+  - no run hit the step cap.
+- The kernel log has nothing before the freezes.
+- 7.0.0-43 was the first boot of a new kernel that day. All-core jobs had run fine on it earlier.
+- So the cause is not found.
+- **Since then:** every bot or measure job runs as 1 process, under `systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0 -p CPUQuota=100% nice -n 19`.
+  - `tools/measure.js` gives each worker a 1 GB heap cap.
+  - Use `--workers 1` for one process.
+  - The UI test runs under the same cap with 3 GB, because Chrome needs several processes.
+  - That way the full UI test took 264 s. Once, in the Dark Water descent, the second click on a raised card didn't register ("card 6 (click) was not played"). With the same seeds it passed on the rerun, so it was timing on the one shared CPU. If it happens again, give `playCard` in tests/ui-smoke.js a longer settle time when the CPU is capped.
+
+**Next:** the user's playtest of the Belfry. Open questions:
+- Does the Bellwether's rise read as a second phase?
+- Is the heal enough?
+- Are Echo and Breathless clear from their chips and hints?
+- Do the finals feel different from each other?
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -1067,7 +1188,13 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot): v0.19.0, 2000 seeds: the Shallows' pin 18.4%, Dark Water's after it 15.7%, the Heart 2.9% (see "Expeditions, slice A"). Before expeditions (1000 seeds, the Shallows): win 19.2% in v0.18.0, with the bot that values Swell moves when it guards (17.9% for v0.17.0 with that bot; 15.8% with the old one). Older: 11.4% in v0.16.0, 23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
+- **Bot run outcomes** (careful bot): v0.20.0, 2000 seeds:
+  - the Shallows' pin 18.5%;
+  - Dark Water's after it 18.6%;
+  - the Belfry's after that 34% (paired replay);
+  - the Heart 1.1%.
+
+  See "The Belfry, slice B". v0.19.0, 2000 seeds: the Shallows' pin 18.4%, Dark Water's after it 15.7%, the Heart 2.9% (see "Expeditions, slice A"). Before expeditions (1000 seeds, the Shallows): win 19.2% in v0.18.0, with the bot that values Swell moves when it guards (17.9% for v0.17.0 with that bot; 15.8% with the old one). Older: 11.4% in v0.16.0, 23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
 
 ## Tools
 
@@ -1081,6 +1208,12 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - `tests/workshop.test.js`: the Workshop, kit, Charge, Hold and Seep rules, and old saves carrying over. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: old lasting state carried over, buy, wear, dive, the Charge chip, dropping a keepsake, Seep in a fight, Salvage at the end, and abandoning a run earns nothing.
 - `tests/lazaret.test.js`: the Lazaret rules. `node tests/ui-smoke.js --only lazaret` plays a first win, a fall and a second win in the browser.
 - `tests/darkwater.test.js`: the bands and every Dark Water rule (drain, Submerged, Shell, Doused, swallow, the Rocking Toll, the Garden's follower, the events). `node tests/ui-smoke.js --only darkwater` starts a Dark Water descent on desktop and phone, checks the backgrounds, aims at a Submerged Ray, feeds a card to the Gulper, gets doused, reads the Buoy's intent at two Swells, then plays a few stops. `tools/screens.js` shoots Dark Water as screens 31–36.
+- `tests/belfry.test.js`: the Hermit, Echo, Breathless, Burst, the Bellwether's rise, the dress, the finals, the Cantor and the Belfry's events. `node tests/ui-smoke.js --only belfry` runs these on desktop and phone:
+  - meets Dark Water's pin without the dress, carries the dress home, and wears it from the kit;
+  - goes down the stair, and checks the Belfry's background and Wren in the dress;
+  - breaks the Bellwether, then checks that the Thing in the Bell takes its place and Wren is healed.
+
+  `tools/screens.js` shoots the dress on the pin as screen 35 and the Belfry as screens 40–46.
 - `tests/story.test.js`: the title line, the opening, and what opens each Story so far entry. `node tests/ui-smoke.js --only story` runs only the story flow in the browser. `tools/screens.js` also shoots the three Story so far tabs and the opening.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 

@@ -170,10 +170,31 @@ const SIZES = {
       await shot(tag, '33_dark_buoy');
       await setup(`const r = B.run; E.backToMap(r); r.event = { id: 'garden', stage: 'choose', text: null, next: null }; r.screen = 'event'; B.render();`);
       await shot(tag, '34_dark_event');
-      await setup(`const r = E.newRun(4242, 1); r.landed = [8]; r.floor = 8; r.cleared = [0, 1]; r.heart = true; r.screen = 'victory'; B.run = r; B.render();`);
-      await shot(tag, '35_dark_victory');
+      // v0.20.0: Dark Water's pin with the stair shut and the diving dress hanging above it
+      await setup(`const r = E.newRun(4242, 1); r.landed = [8]; r.floor = 8; r.cleared = [0, 1]; r.found = 'suit'; r.screen = 'pin'; B.run = r; B.render();`);
+      await shot(tag, '35_dark_pin_dress');
       await setup(`const r = E.newRun(4242, 0); r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.run = r; E.goDeeper(r); B.render();`);
       await shot(tag, '36_stair_cove');
+      // v0.20.0: the Belfry: a fight in the diving dress, the Oarfish's Coil, the Bellwether, the Thing in the Bell, the Cantor, a Fog event, the Heart
+      await setup(`const r = E.newRun(4242, 2); r.kit.coat = 'suit'; B.run = r; E.startCombat(r, 'hard', ['belljelly', 'bladder', 'minnow']); const c = r.combat; c.enemies[0].st.belled = 1; c.enemies[0].intent = Object.keys(BL.ENEMIES.belljelly.moves)[0]; B.render();`);
+      await sleep(1800);
+      await shot(tag, '40_belfry_fight');
+      await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'elite', ['oarfish']); r.combat.enemies[0].intent = 'coil'; r.combat.player.st.breathless = 1; B.render();`);
+      await sleep(1800);
+      await shot(tag, '41_belfry_oarfish');
+      await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'boss', ['bell']); r.combat.enemies[0].intent = 'toll'; B.render();`);
+      await sleep(1800);
+      await shot(tag, '42_bellwether');
+      await setup(`const r = B.run, c = r.combat; c.enemies[0].hp = 1; c.enemies[0].ward = 0; const j = E.newCard(r, 'jab'); c.hand.unshift(j); c.light = 3; E.playCard(r, j.uid, c.enemies[0].uid); B.render();`);
+      await sleep(2400);
+      await shot(tag, '43_thing_in_the_bell');
+      await setup(`const r = E.newRun(4242, 2, null, null, [], true); r.kit.coat = 'suit'; B.run = r; E.startCombat(r, 'boss', ['cantor']); B.render();`);
+      await sleep(1800);
+      await shot(tag, '44_cantor');
+      await setup(`const r = B.run; E.backToMap(r); r.event = { id: 'lanterns', stage: 'choose', text: null, next: null }; r.screen = 'event'; B.render();`);
+      await shot(tag, '45_belfry_event');
+      await setup(`const r = E.newRun(4242, 2); r.landed = [8, 8]; r.floor = 8; r.cleared = [0, 1, 2]; r.heart = true; r.screen = 'victory'; B.run = r; B.render();`);
+      await shot(tag, '46_heart_victory');
       await setup(`B.run = null; B.render(); document.querySelector('[data-act="help"]').click();`);
       await setup(`document.querySelector('[data-act="helptab"][data-tab="keywords"]').click();`);
       await shot(tag, '36_help_keywords');

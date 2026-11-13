@@ -50,7 +50,9 @@ test('each level of an expedition draws fights, its pin and Fog events from its 
       assert.ok(band.events.includes(run.event.id), `${L.name}: ${run.event.id}`);
     }
   });
+  assert.deepEqual(BL.BANDS.shallows.enc.boss, [['harbour']]);
   assert.deepEqual(BL.BANDS.dark.enc.boss, [['buoy']]);
+  assert.deepEqual(BL.BANDS.belfry.enc.boss, [['bell']]);
   // every creature in a band's tables is a real, non-tutorial enemy with its picture
   Object.values(BL.BANDS).forEach((b) => Object.values(b.enc).flat(2).forEach((id) => {
     assert.ok(BL.ENEMIES[id] && !BL.ENEMIES[id].tutorial, id);
@@ -285,7 +287,10 @@ test('The Tolling Buoy: at two thirds of its health it slips its chain (15 Ward,
   play(run, 'jab', b);
   assert.ok(c.won);
   E.finishCombat(run);
-  assert.equal(run.screen, 'victory');
+  // Dark Water's pin is not the last: the Belfry is below, and the diving dress hangs above its stair
+  assert.equal(run.screen, 'pin');
+  assert.equal(run.found, 'suit');
+  assert.equal(E.canGoDeeper(run), false);
 });
 
 test('The Wild Peal hits for 30, and each Crest or Strand you make that turn muffles it by 10; at 0 it does not hit at all', () => {
