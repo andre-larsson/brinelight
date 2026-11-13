@@ -5,8 +5,16 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.20.0';
+  BL.VERSION = '0.21.0';
   BL.CHANGELOG = [
+    { v: '0.21.0', date: '2026-11-13', items: [
+      'Each level\'s Dreads are now harder than the level above\'s.',
+      'Dark Water has a Dread of its own: the Garden Strider, a giant sea spider that tends the Glimmer Garden. Its Tend the Garden calls Glimmer Leeches until two are alive and gives it 8 Ward, and its Graze heals it by the HP it takes from you. It takes the Angler Twins\' place; they stay in the Shallows.',
+      'The Pale Gulper\'s Bite hits for 14, up from 12.',
+      'The Reefback Hulk has Spines 2, down from 3, and its Rouse gives it 1 Might, down from 2. It was the deadliest Dread in the game, and it was in the first level.',
+      'Story so far has a keeper\'s note on the Garden Strider.',
+      'An intent that brings in more creatures now says Call, not Bring back.',
+    ] },
     { v: '0.20.0', date: '2026-11-13', items: [
       'The Belfry: a third level, below Dark Water and under the sea. Bell Jellies give another creature Echo, so its next move happens twice. Bellspawn squeeze the air out of your suit, so you draw a card fewer next turn. Glimmer Bladders burst when they die and hurt everything near them. Its Dreads are the Drowned Ringer and the Crowned Oarfish, and it has three Fog events of its own. Each landing there scores 80.',
       'The Diving Dress: you can only go down into the Belfry wearing it. The first time you break Dark Water\'s pin, it hangs above the stair. Carry it home, and from then on wear it in your Coat place. It does nothing in a fight.',

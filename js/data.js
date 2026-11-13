@@ -499,11 +499,11 @@
     // ---------- Elites ----------
     hulk: {
       name: 'Reefback Hulk', hp: [68, 72], art: 'hulk', scale: 1.3, elite: true,
-      init: (e) => { e.st.spines = 3; },
+      init: (e) => { e.st.spines = 2; }, // Spines 3 and Rouse Might 2 until v0.21.0: by far the deadliest Dread in the game
       moves: {
         crush: { name: 'Crush', dmg: 11 },
         grind: { name: 'Grind', dmg: 5, hits: 2 },
-        rouse: { name: 'Rouse', buff: { might: 2 }, ward: 10 },
+        rouse: { name: 'Rouse', buff: { might: 1 }, ward: 10 },
       },
       ai: cycleFrom(['crush', 'grind', 'rouse']),
     },
@@ -577,7 +577,7 @@
     },
     // ---------- Dark Water: what grew in the still, held water, and what eats the light in it ----------
     leech: {
-      name: 'Glimmer Leech', hp: [12, 14], art: 'leech', scale: 0.62,
+      name: 'Glimmer Leech', plural: 'Glimmer Leeches', hp: [12, 14], art: 'leech', scale: 0.62,
       moves: {
         latch: { name: 'Latch', dmg: 5, drain: true },
         gorge: { name: 'Gorge', buff: { might: 1 } },
@@ -627,7 +627,7 @@
       name: 'Pale Gulper', hp: [62, 66], art: 'gulper', scale: 1.2, elite: true,
       init: (e, R) => { e.mem.offset = R.int(0, 2); },
       moves: {
-        bite: { name: 'Bite', dmg: 12 },
+        bite: { name: 'Bite', dmg: 14 },
         gulp: { name: 'Gulp', dmg: 7, swallow: true },
         whip: { name: 'Tail Whip', dmg: 5, hits: 2, debuff: { soaked: 1 } },
         // hurt, it brings up what it has swallowed: two Glimmer Leeches, still alive, and your cards with them
@@ -638,6 +638,17 @@
         const seq = ['bite', 'gulp', 'whip'];
         return seq[((e.mem.offset || 0) + e.hist.filter((h) => h !== 'retch').length) % seq.length];
       },
+    },
+    // a giant sea spider that walks the Glimmer Garden on stilt legs and grazes its beads. It is what tends the garden:
+    // it sows Glimmer Leeches in it, and drinks what it takes. Dark Water's own Dread (v0.21.0), in the Angler Twins' place
+    strider: {
+      name: 'Garden Strider', hp: [72, 76], art: 'strider', scale: 1.35, elite: true,
+      moves: {
+        tend: { name: 'Tend the Garden', grow: { id: 'leech', max: 2 }, ward: 8 },
+        graze: { name: 'Graze', dmg: 10, drain: true },
+        stilts: { name: 'Stilt Legs', dmg: 4, hits: 3 },
+      },
+      ai: cycleFrom(['tend', 'graze', 'stilts']),
     },
     // ---------- Dark Water's pin: it holds the water in Dark Water for the Bellwether ----------
     buoy: {
@@ -829,7 +840,7 @@
           ['ray', 'leech', 'leech'], ['hermit', 'shrimp'], ['sailor', 'leech'], ['shrimp', 'shrimp'], ['wisp', 'ray'],
           ['hermit', 'jelly'], ['eel', 'shrimp'], ['sailor', 'hermit'], ['ray', 'jelly'],
         ],
-        elite: [['chain'], ['gulper'], ['angler', 'angler']],
+        elite: [['chain'], ['gulper'], ['strider']],
         boss: [['buoy']],
       },
       events: ['shrine', 'pool', 'ghost', 'tideboard', 'garden', 'divingbell'],
@@ -1208,6 +1219,8 @@
         text: 'Below the Shallows the water has been held still for a hundred years. The brinelight that soaks into it has no tide to carry it away, so it gathers, and things have learned to live on it. Leeches, pale stalks and long glowing chains all shine with what they have eaten. They all turn toward an open flame. A keeper\'s lantern is the brightest thing they have ever seen. When one drinks from it, you start your next turn with less Light: you are Doused.' },
       { id: 'hermit', title: 'Lamp Hermits', when: 'en:hermit', lock: 'Found in Dark Water.', art: 'units/hermit',
         text: 'Keepers carried lanterns down the stair, and not all of them came back up. The hermit crabs of Dark Water grew too big for whelk shells long ago. They live in the keepers\' lanterns now, and they keep their Ward from turn to turn the way the lanterns kept their glass. A Strand still strips it.' },
+      { id: 'strider', title: 'The Garden Strider', when: 'en:strider', lock: 'Found at a Dread in Dark Water.', art: 'units/strider',
+        text: 'A sea spider is mostly legs. Its body is too small to hold its own gut, so the gut runs down inside the legs. It lives by sucking the soft animals of the sea floor. The one in Dark Water is taller than a man. At night it walks the Glimmer Garden on its stilt legs and grazes the beads, and the light it drinks shows through its skin. It is what tends the garden: it sows Glimmer Leeches among the stalks, and it notices what is taken. The keepers who wrote about it called it the Gardener.' },
       { id: 'buoy', title: 'The Tolling Buoy', when: 'en:buoy', lock: 'Found on the last landing of Dark Water.', art: 'units/buoy',
         text: 'Before there was a lighthouse, Saltmere had a bell-buoy. It rocked on its chain off the harbour rocks and rang in the swell, so ships heard the rocks before they saw them. A storm broke its chain and it sank. Now it rings for the Bellwether. It is a pin: while it rings, it holds the water in Dark Water. It still rocks on the water. The further you push the Swell from the middle, the harder its Toll swings, and every Toll is louder than the last. Hurt, it snaps its chain and swings free, and then it rings wild. A breaking wave smothers a bell, and a bell on dry rock cannot swing.' },
       { id: 'tideboard', title: 'The tide-board', when: 'ev:tideboard', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_tideboard',

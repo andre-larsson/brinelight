@@ -84,6 +84,8 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
+  /* A creature's name for more than one of it: 'Glimmer Leeches', 'Grasping Arms'. */
+  E.plural = (id) => BL.ENEMIES[id].plural || BL.ENEMIES[id].name + 's';
   E.bell = (run) => (run.kit && run.kit.bell) || null;
 
   /* ---------------- Roil, Hold and what a Roiled aether does ----------------
@@ -1398,7 +1400,7 @@
     if (m.summon) { info.kinds.push('summon'); info.parts.push('Call for help'); }
     if (m.grow) {
       const n = Math.max(0, m.grow.max - E.alive(c).filter((o) => o.id === m.grow.id).length);
-      if (n) { info.kinds.push('summon'); info.parts.push(`Bring back ${n} ${BL.ENEMIES[m.grow.id].name}${n > 1 ? 's' : ''}`); }
+      if (n) { info.kinds.push('summon'); info.parts.push(`Call ${n} ${n > 1 ? E.plural(m.grow.id) : BL.ENEMIES[m.grow.id].name}`); }
     }
     if (m.echoAll) { info.kinds.push('buff'); info.parts.push('Echo for every creature here: after this turn, each one\'s next move happens twice'); }
     if (m.echoOne) { info.kinds.push('buff'); info.parts.push('Echo for another creature: after this turn, its next move happens twice'); }

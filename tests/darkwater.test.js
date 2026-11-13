@@ -365,6 +365,43 @@ test('Pale Gulper: at half its health it retches up two Glimmer Leeches and ever
   assert.deepEqual([...new Set(seen)].sort(), ['bite', 'gulp', 'whip']);
 });
 
+test('Garden Strider: Tend the Garden calls Glimmer Leeches until two are alive and gives it 8 Ward; Graze heals it by what it takes', () => {
+  assert.deepEqual(BL.BANDS.dark.enc.elite, [['chain'], ['gulper'], ['strider']], "Dark Water's own Dread, in the Angler Twins' place");
+  assert.deepEqual(BL.BANDS.shallows.enc.elite.map((x) => x.join('+')), ['hulk', 'siren', 'angler+angler'], 'the Twins stay in the Shallows');
+  const { run, c } = fight(['strider'], { kind: 'elite' });
+  const s = c.enemies[0];
+  const leeches = () => E.alive(c).filter((e) => e.id === 'leech');
+  assert.equal(s.intent, 'tend', 'it tends the garden first');
+  assert.match(E.intentInfo(run, s).parts.join('. '), /Call 2 Glimmer Leeches/);
+  E.endTurn(run);
+  assert.equal(leeches().length, 2);
+  assert.equal(s.ward, 8);
+  // with one Leech left, the next Tend calls one more
+  const [l1, l2] = leeches();
+  l1.hp = 0; l1.dead = true;
+  idle(l2);
+  s.intent = 'tend';
+  assert.match(E.intentInfo(run, s).parts.join('. '), /Call 1 Glimmer Leech\b/);
+  E.endTurn(run);
+  assert.equal(leeches().length, 2);
+  // Graze: 10 damage, and it heals by the HP it took
+  leeches().forEach(idle);
+  s.hp = 50;
+  s.intent = 'graze';
+  c.player.ward = 0;
+  const hp0 = run.hp;
+  E.endTurn(run);
+  assert.equal(hp0 - run.hp, 10);
+  assert.equal(s.hp, 60);
+  // Stilt Legs: 4, three times
+  leeches().forEach(idle);
+  s.intent = 'stilts';
+  c.player.ward = 0;
+  const hp1 = run.hp;
+  E.endTurn(run);
+  assert.equal(hp1 - run.hp, 12);
+});
+
 test('The Glimmer Garden: picking the beads pays 45 Pearls, and a Glimmer Leech follows you into your next fight only', () => {
   const ev = BL.EVENTS.find((e) => e.id === 'garden');
   const run = E.newRun(3, 1);
@@ -438,7 +475,8 @@ test('the bot finishes whole expeditions, with and without currents, and every o
       assert.ok(run.screen === 'victory' || run.screen === 'defeat', `${seed}: ${run.screen}`);
       const i = labels.indexOf('deeper');
       if (i >= 0) { deeper++; assert.equal(labels[i + 1], 'rest'); assert.ok(run.level === 1); }
-      if (run.screen === 'victory') assert.ok(run.heart && run.cleared.length === 2);
+      // without the diving dress the expedition ends at Dark Water's pin: home with the dress, not the Heart
+      if (run.screen === 'victory') { assert.deepEqual(run.cleared, [0, 1]); assert.ok(!run.heart); assert.equal(run.found, 'suit'); }
     }
   });
   assert.ok(deeper > 0, 'some go deeper');

@@ -195,6 +195,10 @@ const SIZES = {
       await shot(tag, '45_belfry_event');
       await setup(`const r = E.newRun(4242, 2); r.landed = [8, 8]; r.floor = 8; r.cleared = [0, 1, 2]; r.heart = true; r.screen = 'victory'; B.run = r; B.render();`);
       await shot(tag, '46_heart_victory');
+      // v0.21.0: Dark Water's own Dread, the Garden Strider, after it has tended its garden
+      await setup(`const r = E.newRun(4242, 1); B.run = r; E.startCombat(r, 'elite', ['strider']); E.endTurn(r); r.combat.enemies[0].intent = 'graze'; B.render();`);
+      await sleep(1800);
+      await shot(tag, '47_dark_strider');
       await setup(`B.run = null; B.render(); document.querySelector('[data-act="help"]').click();`);
       await setup(`document.querySelector('[data-act="helptab"][data-tab="keywords"]').click();`);
       await shot(tag, '36_help_keywords');

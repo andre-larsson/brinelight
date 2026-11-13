@@ -849,7 +849,7 @@ From a fresh start the bot clears Dark Water 11.8% of the time. A built deck mak
     - Dark Water's Dreads are easier than the Shallows': the Chain costs 12.0, the Gulper 10.7, and the Angler Twins 9.6. The Twins are the Shallows' own Dread, reused.
     - The Shallows' Hulk is the hardest Dread in the game (26.4 HP lost, 31% of fights lost). The Siren costs 10.1 and the Twins 9.7.
     - The Belfry: the Ringer costs 21.0, the Oarfish 18.2, and the Chain 12.4.
-  - This is a balance call, left to the user. Options: replace Dark Water's Angler Twins with a Dread of its own, strengthen the Chain and the Gulper, or bring the Hulk down toward the other Shallows Dreads.
+  - This is a balance call, left to the user. Options: replace Dark Water's Angler Twins with a Dread of its own, strengthen the Chain and the Gulper, or bring the Hulk down toward the other Shallows Dreads. The user asked for both; done in v0.21.0 (below).
 
 **The crashes during this work.** The machine froze three times on 2026-11-13 (20:43, 20:49 and 21:07), while I ran 22, 22 and then 8 bot processes at once. Each time it stopped responding for over a minute, and the user had to power it off.
 - **Checked:** no memory leak in the engine or the bot. In one capped process over 30,000 seeds:
@@ -871,6 +871,69 @@ From a fresh start the bot clears Dark Water 11.8% of the time. A built deck mak
 - Is the heal enough?
 - Are Echo and Breathless clear from their chips and hints?
 - Do the finals feel different from each other?
+
+### Deeper Dreads are harder (v0.21.0, 2026-11-13)
+
+The user asked for both recommendations from the same-deck table above ("Implement both recommendations"): Dark Water gets a Dread of its own and a stronger Chain or Gulper, and the Hulk comes down toward the other Shallows Dreads.
+
+**Built:**
+- **The Garden Strider** (`strider`, 72–76 HP, Dark Water's Dread table in the Angler Twins' place; the Twins stay in the Shallows).
+  - A giant pale sea spider that walks the Glimmer Garden on stilt legs. The Garden event already said "something in the water tends it, and it notices what you take": this is it.
+  - Tend the Garden: calls Glimmer Leeches until two are alive (`grow`), and 8 Ward.
+  - Graze: 10 damage, and it heals by what it takes (`drain`, like the Leech's Latch).
+  - Stilt Legs: 4, three times.
+  - It opens with Tend the Garden (no random start), so the fight reads at once: it calls two Leeches, then grazes.
+  - It uses only existing move features, so no new rule. Art: `img/units/strider.webp` (variant A of two; the other is kept in `assets-src/units/strider-b.png`). A keeper's note, "The Garden Strider", opens when you meet it (34 notes).
+- **The Pale Gulper's Bite** hits 14, up from 12. I chose Bite over HP because 70–74 HP would have undone the HP cut that came with its Retch in v0.18.0. The Chain stays as it is, because it is also the Belfry's easy Dread.
+- **The Reefback Hulk:** Spines 2 (from 3), and Rouse gives 1 Might (from 2).
+- **The intent text for `grow`** says "Call 2 Glimmer Leeches" instead of "Bring back 2 Glimmer Leechs". `E.plural(id)` uses a creature's `plural` (the Leech has one) or adds an s. The follower toast uses it too.
+- **A test that went stale in v0.20.0:** the bot test in tests/darkwater.test.js expected every win without the dress to bring the Heart home. Without the dress a win ends at Dark Water's pin and carries the dress home. None of its 40 seeds got that far until now.
+
+**Measured.** Each cell is HP lost / fights lost.
+
+- **Same decks:** the 932 runs that arrived in Dark Water, each against every Dread encounter of each level.
+
+  | Dreads | Shallows | Dark Water | Belfry |
+  |---|---|---|---|
+  | v0.20.0 | 15.4 / 10.9% | 10.8 / 3.1% | 17.2 / 11.9% |
+  | v0.21.0 | 13.4 / 5.0% | 15.5 / 10.3% | 17.2 / 11.7% |
+
+  - The Shallows: the Hulk 20.2 / 13.7% (26.4 / 31.3% before), the Siren 10.2, the Twins 9.9.
+  - Dark Water: the Strider 20.5 / 20.7%, the Gulper 13.5 / 5.4% (10.7 before), the Chain 12.6 / 4.7%.
+  - The Belfry: the Ringer 21.4 / 20.4%, the Oarfish 17.8 / 10.5%, the Chain 12.4 / 4.2%.
+  - The Belfry's decks give the same order.
+- **Whole expeditions:** the Shallows' Dreads where they are met, 2,000 seeds a variant.
+
+  | | HP lost / fights lost |
+  |---|---|
+  | The Hulk, v0.20.0 | 40.2 / 19.0% |
+  | Spines 2 | 31.9 / 8.6% |
+  | Rouse Might 1 | 36.0 / 11.0% |
+  | Both (built) | 27.2 / 4.6% |
+  | The Siren | 13.2 / 1.2% |
+  | The Twins | 16.3 / 3.4% |
+
+  In Dark Water the bot arrives with little HP, so there all three Dreads lose 18–26% of their fights: the Strider 26%, the Chain 25%, and the Gulper 18.6% with Bite 14 (12.9% before; 70–74 HP gave 17.1%).
+- **The whole expedition** (`node tools/measure.js <spec> --workers 1`, 2,000 seeds):
+
+  | | v0.20.0 | v0.21.0 |
+  |---|---|---|
+  | The Shallows' pin | 18.5% | 19.9% |
+  | Dark Water's, of those | 18.6% | 15.9% |
+  | The Belfry's, of those | 31.9% | 30.2% |
+  | The Heart | 1.1% | 0.9% |
+  | Home after Dark Water's pin without the dress | 3.5% | 3.1% |
+
+  After the Heart with each current (pins 1/2/3, home): Fat Year 10.9/15.6/14.7, 0.3%; Hungry Deep 5.9/5.9/28.6, 0.1%; Cold Coves 16.9/10.9/13.5, 0.3%; Backwash 14.3/17.5/26.0, 0.7%. The Belfry columns rest on about 20 to 50 runs.
+
+**The agent's calls (provisional):**
+1. **The Strider is the hardest Dread in Dark Water,** as hard as the Belfry's Ringer with the same decks. Dark Water's average is still below the Belfry's. If it should sit lower, its HP is the lever (72–76).
+2. **The Hulk stays the Shallows' hardest Dread,** but it now loses 4.6% of its fights where it is met, near the Twins' 3.4%, against 19% before.
+3. **Dark Water's pin falls from 18.6% to 15.9%** and the Heart from 1.1% to 0.9%. The user asked for deeper levels to be harder; the Shallows' pin rises a little because of the Hulk.
+
+**Open for the playtest:**
+- Does the Strider read as a fight about its Leeches: kill them, or race it?
+- Does the Hulk still feel like the Shallows' hardest Dread?
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -1202,7 +1265,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot): v0.20.0, 2000 seeds:
+- **Bot run outcomes** (careful bot): v0.21.0, 2000 seeds: the Shallows' pin 19.9%, Dark Water's after it 15.9%, the Belfry's after that 30.2%, the Heart 0.9% (see "Deeper Dreads are harder"). v0.20.0, 2000 seeds:
   - the Shallows' pin 18.5%;
   - Dark Water's after it 18.6%;
   - the Belfry's after that 34% (paired replay);
@@ -1227,7 +1290,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
   - goes down the stair, and checks the Belfry's background and Wren in the dress;
   - breaks the Bellwether, then checks that the Thing in the Bell takes its place and Wren is healed.
 
-  `tools/screens.js` shoots the dress on the pin as screen 35 and the Belfry as screens 40–46.
+  `tools/screens.js` shoots the dress on the pin as screen 35, the Belfry as screens 40–46, and the Garden Strider as screen 47.
 - `tests/story.test.js`: the title line, the opening, and what opens each Story so far entry. `node tests/ui-smoke.js --only story` runs only the story flow in the browser. `tools/screens.js` also shoots the three Story so far tabs and the opening.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 

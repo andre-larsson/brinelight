@@ -8,7 +8,7 @@ One run is an **expedition** down through the Reach, one level at a time: the Sh
 
 **New here?** The first time you start a descent, a short opening in four pictures tells the story, and then the game offers a short guided fight (about 2 minutes) that teaches the basics and the Swell. You can skip it, and replay it any time from the title screen or the menu. After that, short hints explain new things the first time you meet them.
 
-**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, one for the Shallows' pin, two for Dark Water's, and three for bringing the Heart home. **The world** explains the places, people and magic. **Keeper's notes** are 33 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Harbour Hermit, the Bellwether, the Glimmer Leech, the Lamp Hermit, the Tolling Buoy, the Thing in the Bell, each of the Belfry's creatures and Dreads, the Drowned Cantor, your first keepsake, the first time you carry more Roil than your Hold, and the first time you come home. The tutorial and debug-cheated runs open nothing.
+**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, one for the Shallows' pin, two for Dark Water's, and three for bringing the Heart home. **The world** explains the places, people and magic. **Keeper's notes** are 34 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Harbour Hermit, the Bellwether, the Glimmer Leech, the Lamp Hermit, the Garden Strider, the Tolling Buoy, the Thing in the Bell, each of the Belfry's creatures and Dreads, the Drowned Cantor, your first keepsake, the first time you carry more Roil than your Hold, and the first time you come home. The tutorial and debug-cheated runs open nothing.
 
 ## Running it
 
@@ -76,6 +76,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Lamp Hermit:** its **Shell** keeps its Ward from turn to turn. A Strand still strips it.
 - **Glimmer Chain** (a Dread): Drink the Light **Douses** your lantern: you start your next turn with 1 less Light.
 - **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies. At half its health it Retches: two Glimmer Leeches come up, and so does every card it swallowed.
+- **Garden Strider** (a Dread): Tend the Garden calls Glimmer Leeches until two are alive, and gives it 8 Ward. Its Graze heals it by the HP it takes from you, like a Leech's Latch.
 - **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At two thirds of its health it Slips the Chain (15 Ward and 1 Might). From then on it rings a **Wild Peal** in place of Haul the Chain: 30 damage, 10 less for each Crest or Strand you make that turn. At 0 it doesn't hit at all.
 - **The Glimmer Garden** (a Fog event): if you pick the beads, a Glimmer Leech follows you into your next fight.
 
@@ -164,14 +165,14 @@ Both are announced the moment you earn them. The score counts Crests and Strands
     - Ward (Sea Wall, Deep Guard, Breakwater).
     - Brine (Brine Bloom, Brine Spear, Salt Ward).
     - Might multi-hits.
-- **30 enemies:**
+- **31 enemies:**
   - The Shallows: 8 normal (Kelp Lurker, Brine Crab, Lantern Eel, Drowned Deckhand, Gloom Jelly, Barnacle Mite, Fog Wisp, Salt Gull) and 3 elite encounters. The Kelp Lurker's Lash hits 2 harder each time, and the Barnacle Mite's Burrow gives it 5 Ward and 1 Might. The elites:
     - Reefback Hulk, which has Spines.
     - Hollow Siren, whose lullaby flattens your Swell back to 3.
     - Angler Twins, where the survivor enrages when its twin dies.
   - The Shallows' boss, the Harbour Hermit (150 HP), a hermit crab wearing Saltmere's old harbour bell. **In its Bell**, its Ward does not wash away from turn to turn. A Crest or a Strand shakes it out: it loses all its Ward, and a Crest's wave then hits its HP. Pull In gives it 20 Ward, Pinch hits 6 twice, and Bell Crush hits 15, 3 harder each time. At two thirds of its health it rings the harbour bell: two Barnacle Mites drop off it, it gains 1 Might, and the music shifts.
   - The Bell Minnow, the Bellwether's, follows a Roiled aether.
-  - Dark Water: 4 new normal creatures (Glimmer Leech, Pistol Shrimp, Murk Ray, Lamp Hermit), with the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp; 3 elite encounters (Glimmer Chain, Pale Gulper and the Angler Twins); and its boss, the Tolling Buoy.
+  - Dark Water: 4 new normal creatures (Glimmer Leech, Pistol Shrimp, Murk Ray, Lamp Hermit), with the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp; 3 elite encounters (Glimmer Chain, Pale Gulper and the Garden Strider, which calls Glimmer Leeches); and its boss, the Tolling Buoy.
   - The Belfry: 3 new normal creatures (Bell Jelly, Bellspawn, Glimmer Bladder), with the Murk Ray, Lantern Eel, Gloom Jelly, Glimmer Leech and Bell Minnow; 3 elite encounters (Drowned Ringer, Crowned Oarfish, Glimmer Chain); its boss, the Drowned Bellwether, and its second form, the Thing in the Bell with its Grasping Arms; and, after the Heart, its finals: the Thing in the Bell or the Drowned Cantor.
 - **14 keepsakes, 7 tonics, 13 events** (7 in the Shallows; in Dark Water, 3 of its own and 3 from the Shallows; in the Belfry, 3 of its own, the Sunken Shrine and the Glimmer Garden).
 - **15 pieces of kit (plus the Brass Tide-Bell) and 7 achievements** in the Workshop. One of them, the Diving Dress, is found, not bought.

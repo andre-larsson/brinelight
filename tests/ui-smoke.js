@@ -862,6 +862,15 @@ async function darkwaterScenario(page, base, name, size, opts) {
   const light = await page.eval(`window.Brinelight.run.combat.light`);
   if (light !== 2) failures.push(`${name}: a doused lantern should give 2 Light, got ${light}`);
 
+  // v0.21.0: the Garden Strider tends its garden, and two Glimmer Leeches come up beside it
+  await setFight(['strider'], 'elite', "c.enemies[0].intent = 'tend'");
+  if (!/strider\.webp/.test(await page.eval(`document.querySelector('.unit.enemy[data-id="strider"] .sprite img').src`))) failures.push(`${name}: the Garden Strider's picture isn't shown`);
+  await endTurn();
+  await sleep(400);
+  const leechesUp = await page.eval(`[...document.querySelectorAll('.unit.enemy[data-id="leech"]')].filter((el) => getComputedStyle(el).visibility !== 'hidden').length`);
+  if (leechesUp !== 2) failures.push(`${name}: Tend the Garden should bring up 2 Glimmer Leeches (got ${leechesUp})`);
+  await checkPage(page, name + ' strider');
+
   // the Tolling Buoy: its name, its lock, and an intent that follows the Swell
   await setFight(['buoy'], 'boss', "c.enemies[0].intent = 'toll'");
   await sleep(1600);

@@ -385,11 +385,11 @@ test('Might adds damage to every hit', () => {
 
 test('Spines deal damage back to attackers', () => {
   const { run, c } = fight(['hulk'], { hand: ['jab', 'oarflurry'], kind: 'elite' });
-  assert.equal(c.enemies[0].st.spines, 3);
+  assert.equal(c.enemies[0].st.spines, 2, 'the Reefback Hulk has Spines 2 (3 until v0.21.0)');
   play(run, 'jab', c.enemies[0]);
-  assert.equal(run.hp, 70 - 3);
+  assert.equal(run.hp, 70 - 2);
   play(run, 'oarflurry', c.enemies[0]);
-  assert.equal(run.hp, 70 - 3 - 9, 'once per hit');
+  assert.equal(run.hp, 70 - 2 - 6, 'once per hit');
 });
 
 test('Soaked: takes 50% more damage from attacks and Crests', () => {
@@ -1102,14 +1102,14 @@ test('the score counts Strands and the best Strand chain the same as Crests', ()
 });
 
 /* ---------- Content (README counts) ---------- */
-test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 30 enemies; 14 keepsakes; 7 tonics; 13 events', () => {
+test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 31 enemies; 14 keepsakes; 7 tonics; 13 events', () => {
   const cards = Object.values(BL.CARDS);
   const by = (r) => cards.filter((c) => c.rarity === r).length;
   assert.deepEqual([by('common'), by('uncommon'), by('rare')], [14, 16, 8]);
   cards.filter((c) => ['common', 'uncommon', 'rare', 'starter'].includes(c.rarity)).forEach((c) => assert.ok(Object.keys(c.up).length > 0, c.id + ' has an upgrade'));
   assert.equal(cards.filter((c) => c.type === 'status').length, 4);
   assert.equal(cards.filter((c) => c.type === 'curse').length, 1);
-  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 30);
+  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 31);
   assert.equal(Object.keys(BL.KEEPSAKES).length, 14);
   Object.values(BL.KEEPSAKES).forEach((k) => assert.ok(k.charge > 0, k.name + ' has a Roil'));
   assert.equal(Object.keys(BL.TONICS).length, 7);

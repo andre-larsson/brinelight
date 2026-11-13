@@ -1288,8 +1288,8 @@
     if (c.turn === 1 && c.followers) {
       // creatures from a Fog event (the Glimmer Garden's leech, the Bell-Rope's minnows) follow her into this fight
       const by = {};
-      c.enemies.filter((e) => e.follower).forEach((e) => { by[e.name] = (by[e.name] || 0) + 1; });
-      const who = Object.keys(by).map((n) => (by[n] > 1 ? `${by[n]} ${n}s` : `A ${n}`)).join(' and ');
+      c.enemies.filter((e) => e.follower).forEach((e) => { by[e.id] = (by[e.id] || 0) + 1; });
+      const who = Object.keys(by).map((id) => (by[id] > 1 ? `${by[id]} ${E.plural(id)}` : `A ${BL.ENEMIES[id].name}`)).join(' and ');
       if (who) setTimeout(() => toast(`${who} followed your light into this fight`), names ? 1400 : 300);
     }
     if (names) {
