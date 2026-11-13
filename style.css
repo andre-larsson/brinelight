@@ -219,6 +219,9 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   background: #0a2030 url(img/bg/bg_battle.webp) center 65%/cover no-repeat;
 }
 .field.boss { background-image: url(img/bg/bg_boss.webp); }
+/* Dark Water has its own chamber and its own lock for the pin */
+.field.band-dark { background-image: url(img/bg/bg_dark.webp); }
+.field.band-dark.boss { background-image: url(img/bg/bg_dark_boss.webp); }
 .field::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(5, 15, 24, .25), transparent 30%, transparent 70%, rgba(5, 15, 24, .55)); }
 .sea {
   position: absolute; left: -5%; right: -5%; bottom: 0; z-index: 1; pointer-events: none;
@@ -326,6 +329,12 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 @keyframes redFlash { 50% { filter: drop-shadow(0 0 0 #000) brightness(1.6) sepia(1) hue-rotate(-40deg) saturate(4); } }
 .unit.summoned { animation: rise .6s ease; }
 @keyframes rise { from { opacity: 0; transform: translateY(30px); } }
+/* Submerged (the Murk Ray): sunk into the water, dim, and not a target */
+.unit.enemy .sprite img { transition: translate .4s ease, opacity .4s ease; }
+.unit.enemy.submerged .sprite img { translate: 0 22%; opacity: .45; filter: saturate(.5) brightness(.75) drop-shadow(0 0 10px rgba(80, 200, 220, .45)); }
+.unit.enemy.submerged { cursor: not-allowed; }
+.light-orb.doused { animation: orbDoused .9s ease; }
+@keyframes orbDoused { 30% { filter: brightness(.45) saturate(.4); transform: scale(.9); } }
 
 /* turn banner & crest wave */
 .banner {
@@ -866,6 +875,7 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .help-dl { display: grid; grid-template-columns: max-content 1fr; gap: 10px 14px; margin: 0 0 12px; font-size: 16px; line-height: 1.45; }
 .help-dl dt { color: var(--amber); font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .help-dl dt svg { width: 20px; height: 20px; }
+.help-sub { margin: 14px 0 8px; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted, #9fb6c2); }
 .help-dl dd { margin: 0; color: #d6e3e0; }
 @media (max-width: 480px) { .help-dl { grid-template-columns: 1fr; gap: 2px; } .help-dl dd { margin-bottom: 8px; } }
 

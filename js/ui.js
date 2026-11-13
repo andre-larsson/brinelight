@@ -102,11 +102,15 @@
     lock: svg('<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/>'),
     pack: svg('<path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="7" width="16" height="14" rx="3" fill="currentColor" opacity=".9"/><path d="M4 12h16M10 12v2.5h4V12" fill="none" stroke="#0b1f2c" stroke-width="1.6"/>'),
     charge: svg('<path d="M12 2.5c3.3 4.3 6.3 7.6 6.3 11.4a6.3 6.3 0 0 1-12.6 0c0-3.8 3-7.1 6.3-11.4z" opacity=".4"/><path d="M12 8.2l1.3 2.8 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z"/>'),
+    doused: svg('<path d="M12 3c2.6 3.4 5 6 5 9.2a5 5 0 0 1-10 0c0-1.5.6-2.8 1.5-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'),
+    submerged: svg('<path d="M2 8c2.5-2 5-2 7.5 0s5 2 7.5 0 3.5-1.5 5-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 11v9m0 0-3.5-3.5M12 20l3.5-3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'),
+    swallowed: svg('<path d="M3 12c3-6 15-6 18 0-3 6-15 6-18 0z" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="9" width="6" height="7" rx="1"/>'),
     chevron: svg('<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
   const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss };
   const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', boss: 'Boss' };
-  const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'The Drowned Bellwether' };
+  const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'Boss' };
+  const bossName = () => E.band(run).boss;
 
   /* ================================================================== *
    *  Sound (tiny WebAudio synth, no files)
@@ -370,7 +374,9 @@
   function statusTip(o, key) {
     const s = BL.STATUSES[key];
     if (!s) return '';
-    return `<b>${s.name} ${o.st[key] > 1 || s.kind !== 'rite' ? o.st[key] : ''}</b><br>${s.desc(o.st[key])}`;
+    const n = o.st[key] > 1 || (s.kind !== 'rite' && key !== 'submerged' && key !== 'shell') ? o.st[key] : '';
+    const held = key === 'swallowed' && o.mem && o.mem.swallowed ? `<div class="tip-row">Inside it: ${o.mem.swallowed.map((x) => `<b>${E.cardName(x)}</b>`).join(', ')}.</div>` : '';
+    return `<b>${s.name} ${n}</b><br>${s.desc(o.st[key])}${held}`;
   }
   function tipContent(key) {
     const parts = key.split(':');
@@ -378,7 +384,7 @@
     switch (parts[0]) {
       case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
-      case 'floor': return `<b>Landing ${run.floor} of ${E.MAP_ROWS + 1}</b><br>The Drowned Bellwether waits on the last landing.`;
+      case 'floor': return `<b>Landing ${run.floor} of ${E.MAP_ROWS + 1}</b><br>${bossName()} waits on the last landing.`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}`; }
       case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
       case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
@@ -416,12 +422,13 @@
         let html = `<b>${isP ? 'Wren, the Keeper' : o.name}</b> ${isP ? run.hp + '/' + run.maxHp : o.hp + '/' + o.maxHp} HP`;
         if (o.ward) html += `, ${o.ward} Ward`;
         if (!isP && o.roil) html += '<div class="tip-row">It followed your Roil here.</div>';
+        if (!isP && o.follower) html += '<div class="tip-row">It followed you from the Glimmer Garden.</div>';
         if (!isP) { const info = E.intentInfo(run, o); if (info) html += `<div class="tip-row"><b>Intends: ${info.name}</b><br>${info.parts.join('. ')}.</div>`; }
         Object.keys(o.st).forEach((k) => { if (o.st[k]) html += `<div class="tip-row">${statusTip(o, k)}</div>`; });
         return html;
       }
       case 'pile': return `<b>${{ draw: 'Draw pile', discard: 'Discard pile', sunk: 'Sunk cards' }[parts[1]]}</b><br>Click to view.`;
-      case 'node': return `<b>${NODE_NAME[parts[1]]}</b>`;
+      case 'node': return `<b>${parts[1] === 'boss' ? bossName() : NODE_NAME[parts[1]]}</b>`;
     }
     return '';
   }
@@ -641,7 +648,8 @@
         <li>Your <b>bell</b> draws when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} draw differently.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
       </ul>`;
-      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]));
+      case 'keywords': return dl(['Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))
+        + `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
         <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
       </ul>${dl([
@@ -658,7 +666,7 @@
         <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens after your first win. When you win a run, every keepsake you carry is kept there, one of each; one it already holds becomes ${MT.currency} instead: half its Roil, rounded up. Before a descent you may bring any number of them, and each counts toward your Hold. If you fall, you lose the keepsakes you found on that descent. The ones in the Lazaret are never lost.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
-        <li>Beat the boss to unlock a deeper starting depth, with tougher enemies and a higher score multiplier.</li>
+        <li>Beat the boss to unlock a deeper starting depth with a higher score multiplier. Dark Water has creatures, Dreads, a boss and Fog events of its own. Riptide and the Abyss are Dark Water made harder.</li>
         <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on <b>${MT.item.toLowerCase()}</b> that lasts across runs: one piece each for your ${BL.KIT_PLACES.map((pl) => pl.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}. Achievements unlock more. Choose what to wear before each descent.</li>
       </ul>`;
       case 'controls': return dl([
@@ -1138,7 +1146,7 @@
       const edge = n.x < 0.16 ? ' lbl-l' : n.x > 0.84 ? ' lbl-r' : '';
       const cls = `node t-${n.type}${visited.has(key) ? ' visited' : ''}${key === cur ? ' current' : ''}${isAvail ? ' avail' + edge : ''}`;
       const style = `left:${n.x * 100}%;top:${yOf(n)}px`;
-      const label = NODE_NAME[n.type];
+      const label = n.type === 'boss' ? bossName() : NODE_NAME[n.type];
       if (isAvail) {
         const idx = avail.findIndex((a) => a.row === n.row && a.col === n.col);
         // the boss already has its name under it, so it gets no second label
@@ -1149,7 +1157,7 @@
     };
     all.forEach((n) => { nodes += nodeHTML(n); });
     nodes += nodeHTML(m.boss);
-    nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${bossY + 50}px">The Drowned Bellwether</div>`;
+    nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${bossY + 50}px">${bossName()}</div>`;
     const legend = ['fight', 'elite', 'event', 'rest', 'shop', 'treasure'].map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
     const sub = !run.pos ? 'Choose where to begin your descent.' : avail.length ? 'Choose your next stop.' : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
@@ -1184,7 +1192,7 @@
   function renderCombat() {
     const c = run.combat;
     screenEl.innerHTML = `<div class="run-screen combat-screen">${hudHTML()}<div class="run-body">
-      <div class="field${c.kind === 'boss' ? ' boss' : ''}${c.phase2 ? ' phase2' : ''}" id="field" data-act="field">
+      <div class="field band-${E.bandId(run)}${c.kind === 'boss' ? ' boss' : ''}${c.phase2 ? ' phase2' : ''}" id="field" data-act="field">
         <div class="sea"></div>
         <div class="bubbles" aria-hidden="true">${Array.from({ length: 12 }, (_, i) => `<span style="left:${(i * 37) % 100}%;--s:${6 + (i * 7) % 12}px;animation-duration:${7 + (i * 5) % 9}s;animation-delay:-${(i * 1.7) % 9}s"></span>`).join('')}</div>
         <div class="vignette" aria-hidden="true"></div>
@@ -1205,7 +1213,8 @@
         <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">Wren, the Keeper</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
     bindHand();
     updateCombat(true);
-    const names = c.turn === 1 ? (c.kind === 'boss' ? 'The Drowned Bellwether' : c.kind === 'elite' ? 'Dread: ' + c.enemies[0].name : null) : null;
+    const names = c.turn === 1 ? (c.kind === 'boss' ? bossName() : c.kind === 'elite' ? 'Dread: ' + c.enemies[0].name : null) : null;
+    if (c.turn === 1 && c.followers) setTimeout(() => toast(`A Glimmer Leech followed your light into this fight`), names ? 1400 : 300);
     if (names) {
       c.fx.length = 0;
       banner(names, 'enemy');
@@ -1224,7 +1233,7 @@
     const thrash = who === 'p' && c && c.thrash ? `<span class="st debuff thrash-chip" data-tip="kw:Thrash" aria-label="Thrash ${c.thrash}">${ICON.vortex}${c.thrash}</span>` : '';
     return echo + thrash + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
       const s = BL.STATUSES[k];
-      const n = s.kind === 'rite' && o.st[k] === 1 && k !== 'r_beam' ? '' : o.st[k];
+      const n = (s.kind === 'rite' && o.st[k] === 1 && k !== 'r_beam') || k === 'submerged' || k === 'shell' ? '' : o.st[k];
       return `<span class="st ${s.kind}" data-tip="st:${who}:${k}">${ICON[s.icon] || ''}${n}</span>`;
     }).join('');
   }
@@ -1299,7 +1308,8 @@
         $('.intent-wrap', el).innerHTML = c.phase === 'enemy' && e.acted ? '' : intentHTML(e);
       }
       updateUnitInfo(el, Math.max(0, e.hp), e.maxHp, e.ward, e, e.uid);
-      const targetable = !e.dead && ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null);
+      el.classList.toggle('submerged', !e.dead && !E.reachable(e));
+      const targetable = E.reachable(e) && ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null);
       el.classList.toggle('targetable', targetable);
       el.classList.toggle('targeted', targetable && ui.target === e.uid);
     });
@@ -1371,7 +1381,7 @@
     // what the selected card's Crests or Strand would really do, chain bonuses included
     let hint = '';
     if (selCard && (preview === 6 || preview === 0)) {
-      const al = E.alive(c);
+      const al = E.targets(c);
       const tgt = E.needsTarget(selCard) ? (ui.target || (al[0] && al[0].uid)) : null;
       const p = E.preview(run, selCard.uid, tgt);
       if (p && p.crests) {
@@ -1427,7 +1437,7 @@
       const d = BL.CARDS[card.id];
       if (d.type === 'status' || d.type === 'curse') return;
       if (!json) json = JSON.stringify(Object.assign({}, run, { map: null, shop: null, event: null, rewards: null, treasure: null }), (k, v) => (k === 'fx' ? [] : v));
-      const targets = E.needsTarget(card) ? (ui.sel === card.uid && ui.target ? [ui.target] : E.alive(c).map((e) => e.uid)) : [null];
+      const targets = E.needsTarget(card) ? (ui.sel === card.uid && ui.target ? [ui.target] : E.targets(c).map((e) => e.uid)) : [null];
       let best = null;
       targets.forEach((t) => {
         const r2 = JSON.parse(json);
@@ -1631,7 +1641,7 @@
       if (card) {
         const p = E.playable(run, card);
         if (!p.ok) msg = p.reason;
-        else if (E.needsTarget(card) && E.alive(c).length > 1) msg = isTouchUI() ? 'Tap an enemy to play' : 'Click an enemy (or use arrow keys + Enter)';
+        else if (E.needsTarget(card) && E.targets(c).length > 1) msg = isTouchUI() ? 'Tap an enemy to play' : 'Click an enemy (or use arrow keys + Enter)';
         else msg = isTouchUI() ? 'Tap the card again to play' : 'Click again or press Enter to play';
       }
     }
@@ -1649,7 +1659,7 @@
     ui.sel = uid;
     const card = c.hand.find((x) => x.uid === uid);
     if (card && E.needsTarget(card)) {
-      const al = E.alive(c);
+      const al = E.targets(c);
       if (!al.some((e) => e.uid === ui.target)) ui.target = ui.kbd ? (al[0] && al[0].uid) : null;
       if (al.length === 1) ui.target = al[0].uid;
     } else ui.target = null;
@@ -1674,7 +1684,7 @@
       return;
     }
     if (E.needsTarget(card)) {
-      const al = E.alive(c);
+      const al = E.targets(c);
       const t = targetUid || ui.target || (al.length === 1 ? al[0].uid : null);
       if (!t) {
         $$('.enemy:not(.dead)', screenEl).forEach((el) => el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 300 }));
@@ -1690,7 +1700,7 @@
     const card = c.hand.find((x) => x.uid === uid);
     const tgt = targetUid ? c.enemies.find((e) => e.uid === targetUid) : null;
     const cardId = card && card.id;
-    const targetId = tgt ? tgt.id : (card && E.needsTarget(card) && E.alive(c).length === 1 ? E.alive(c)[0].id : null);
+    const targetId = tgt ? tgt.id : (card && E.needsTarget(card) && E.targets(c).length === 1 ? E.targets(c)[0].id : null);
     if (Teach.active) {
       const ok = Teach.allows('play', cardId, targetId);
       if (ok !== true) { if (!Teach.nudge(ok)) toast(ok); ui.sel = null; ui.target = null; updateCombat(); return; }
@@ -1790,7 +1800,8 @@
     if (ui.busy) return;
     if (Teach.active) { const why = Teach.allows('tonic'); if (!Teach.nudge(why)) toast(why); return; }
     if (td.target === 'enemy' && !targetUid) {
-      const al = E.alive(c);
+      const al = E.targets(c);
+      if (!al.length) { toast('Nothing in reach'); return; }
       if (al.length === 1) targetUid = al[0].uid;
       else {
         ui.sel = null;
@@ -2001,6 +2012,7 @@
             floatAt(el, `-${x.n} Ward`, 'ward-lost');
           });
           if (stripped.length) sfx('strand');
+          (f.surfaced || []).forEach((uid) => floatAt(unitEl(uid), 'Stranded: in reach', 'status debuff'));
           if (f.light) {
             const o = $('#orb');
             anim(o, 'gain', 700);
@@ -2069,6 +2081,11 @@
         case 'shuffle': anim($('#pile-draw'), 'pulse', 500); break;
         case 'roil': roilToast(f); break;
         case 'thrash': floatAt(unitEl('p'), 'Thrash', 'status debuff'); break;
+        // Dark Water
+        case 'doused': { const o = $('#orb'); anim(o, 'doused', 900); floatAt(o, `-${f.n} Light: doused`, 'status debuff'); sfx('debuff'); break; }
+        case 'submerge': { const el = unitEl(f.who); floatAt(el, 'Submerged', 'status buff'); sfx('tide'); await wait(200); break; }
+        case 'swallow': { const el = unitEl(f.who); floatAt(el, `Swallowed ${f.name}`, 'status debuff'); anim($('#pile-discard'), 'pulse', 500); toast(`It swallowed your ${f.name}. Kill it to get the card back.`); sfx('debuff'); await wait(300); break; }
+        case 'disgorge': toast(`Back in your discard pile: ${f.names.join(', ')}`); anim($('#pile-discard'), 'pulse', 500); break;
         case 'addcards': toast(`${f.n} ${BL.CARDS[f.id].name} shuffled into your draw pile`); break;
         case 'turn': banner(c.turn === 1 ? 'Your Turn' : `Turn ${c.turn}`); sfx('turn'); break;
         case 'light': { const o = $('#orb'); anim(o, 'gain', 700); if (f.n) floatAt(o, `+${f.n} Light`, 'light-gain'); break; }
@@ -2167,7 +2184,7 @@
       const sx = hr.left + L.x + cw / 2;
       const sy = hr.top + L.y + ch - ch * L.s;
       drawArrow(sx, sy, e.clientX, e.clientY);
-      const under = document.elementsFromPoint(e.clientX, e.clientY).find((n) => n.closest && n.closest('.enemy:not(.dead)'));
+      const under = document.elementsFromPoint(e.clientX, e.clientY).find((n) => n.closest && n.closest('.enemy:not(.dead):not(.submerged)'));
       const en = under ? under.closest('.enemy') : null;
       const uid = en ? en.dataset.uid : null;
       if (uid !== ui.target) {
@@ -2255,7 +2272,7 @@
       : ksOpen
         ? '<button class="btn primary wide" disabled>Take a keepsake or leave them</button>'
         : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
-    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner reward-screen">
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner reward-screen">
       <h1>Victory</h1>
       ${summary}
       ${ksPanel}
@@ -2305,7 +2322,7 @@
         <span class="medal" style="display:grid;place-items:center;color:#f1e6cf">${ICON.sunk}</span><b>Scrub a card</b><small>Remove a card from your deck. Once per visit.</small>${s.removed ? '<span class="muted">Done</span>' : `<span class="price${run.pearls < rp ? ' cant' : ''}">${ICON.pearl}${rp}</span>`}</div>`;
     const lines = ['"Pearls for wares, keeper. Fair trades only, no haggling, no biting."', '"Mind the shell. The shop is also my house."', '"Everything here came down with a wreck. Everything still works. Mostly."'];
     const line = lines[(run.floor + run.seed) % lines.length];
-    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/bg_battle.webp)"><div class="scene-inner">
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner">
       <div class="trader"><img src="img/units/trader.webp" alt="Barnaby the hermit crab trader"><div class="speech"><b>Barnaby's Drifting Emporium</b><br>${line}</div>
         <button class="btn small" data-act="tomap" style="align-self:flex-start">Leave</button></div>
       <div class="panel"><h3>Cards</h3><div class="shop-grid">${cards}</div>${keywordLegend(s.cards.map((it) => pseudo(it.id)))}</div>
@@ -2465,10 +2482,10 @@
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? 'The Lantern Heart rises' : 'The tide takes you';
     const text = win
-      ? 'The Bellwether cracks and falls silent, and the sea it held lets go. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up the dripping stairs, and by dawn the great light of Saltmere is turning again.'
+      ? E.band(run).win
       : 'The cold water closes over your lantern, and you go under. The sea carries you back to shore, alive. The lighthouse is still dark, and the water has risen a little higher toward the town.';
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
-    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : 'bg_boss'}.webp)"><div class="scene-inner" style="padding-top:8vh">
+    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : E.band(run).bossBg}.webp)"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
       ${scoreHTML}
       <div class="stats">${stats}</div>
@@ -2746,6 +2763,8 @@
     const uid = t.dataset.uid;
     const en = E.enemyByUid(c, uid);
     if (!en) return;
+    const aiming = ui.tonicSel != null || (ui.sel != null && selNeedsTarget());
+    if (aiming && !E.reachable(en)) { toast(`${en.name} is Submerged: only Crests and waves reach it`); return; }
     if (ui.tonicSel != null) { useTonic(ui.tonicSel, uid); return; }
     if (ui.sel != null) {
       const card = c.hand.find((x) => x.uid === ui.sel);
@@ -2837,7 +2856,7 @@
       e.preventDefault();
       const dir = k === 'ArrowLeft' ? -1 : 1;
       if ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null) {
-        const al = E.alive(c);
+        const al = E.targets(c);
         if (!al.length) return;
         let i = al.findIndex((x) => x.uid === ui.target);
         i = i < 0 ? 0 : (i + dir + al.length) % al.length;

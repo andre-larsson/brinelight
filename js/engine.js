@@ -112,15 +112,20 @@
   E.seepCount = (run, extra) => E.roil(run, extra).seep;
 
   /* ---------------- Run ---------------- */
+  /* The starting depths. Each uses one band of the Reach (BL.BANDS): its creatures, Fog events and look.
+     Dark Water has creatures of its own; Riptide and the Abyss are Dark Water made harder. */
   E.LEVELS = [
-    { name: 'Shallows', desc: 'The standard descent.' },
-    { name: 'Dark Water', desc: 'Enemies have 10% more HP.' },
-    { name: 'Riptide', desc: 'Enemies have 15% more HP and hit 10% harder.' },
-    { name: 'The Abyss', desc: 'Enemies have 20% more HP and hit 15% harder. Rests heal less.' },
+    { name: 'Shallows', band: 'shallows', desc: 'The standard descent.' },
+    { name: 'Dark Water', band: 'dark', desc: 'Below the Shallows: new creatures in still, black water, and a new boss.' },
+    { name: 'Riptide', band: 'dark', desc: "Dark Water's creatures, with 5% more HP, and they hit 10% harder." },
+    { name: 'The Abyss', band: 'dark', desc: "Dark Water's creatures, with 10% more HP, and they hit 15% harder. Rests heal less." },
   ];
   E.levelMods = (lv) => ([
-    { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1.1, dmg: 1, rest: 0.3 }, { hp: 1.15, dmg: 1.1, rest: 0.3 }, { hp: 1.2, dmg: 1.15, rest: 0.25 },
+    { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1, dmg: 1, rest: 0.3 }, { hp: 1.05, dmg: 1.1, rest: 0.3 }, { hp: 1.1, dmg: 1.15, rest: 0.25 },
   ][lv || 0] || { hp: 1, dmg: 1, rest: 0.3 });
+  /* The band a run is in (the tutorial is in the Shallows). */
+  E.bandId = (run) => (run && !run.tutorial && E.LEVELS[run.level || 0] && E.LEVELS[run.level || 0].band) || 'shallows';
+  E.band = (run) => BL.BANDS[E.bandId(run)];
 
   E.newRun = function (seed, level, kit, bring) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
@@ -303,6 +308,23 @@
     const R = makeR(run);
     return R.shuffle(BL.REWARD_POOL[rarity].slice()).slice(0, n);
   };
+  /* Cards that move the Swell: they Surge, Ebb or shift it. Rarity is rolled as for a fight's reward. */
+  E.movesSwell = (id) => { const v = BL.CARDS[id].v || {}; return !!(v.surge || v.ebb || v.shift); };
+  E.swellCards = function (run, n) {
+    const R = makeR(run);
+    const out = [];
+    let guard = 0;
+    while (out.length < (n || 3) && guard++ < 100) {
+      const pool = BL.REWARD_POOL[rollRarity(R, 'normal')].filter(E.movesSwell);
+      const id = pool.length ? R.pick(pool) : null;
+      if (id && out.indexOf(id) < 0) out.push(id);
+    }
+    return out;
+  };
+  /* A creature that follows the keeper into her next fight (the Glimmer Garden). */
+  E.addFollower = function (run, id) {
+    run.followers = (run.followers || []).concat([id]);
+  };
   E.keepsakePool = (run) => Object.keys(BL.KEEPSAKES).filter((k) => !E.has(run, k));
   E.gainKeepsake = function (run, k) {
     if (!k || !BL.KEEPSAKES[k] || E.has(run, k)) return;
@@ -457,10 +479,13 @@
     E.gainKeepsake(run, k);
   };
 
+  /* The Fog events of the run's band. */
+  E.eventPool = (run) => BL.EVENTS.filter((ev) => E.band(run).events.indexOf(ev.id) >= 0);
   E.startEvent = function (run) {
     const R = makeR(run);
-    let pool = BL.EVENTS.filter((ev) => run.seenEvents.indexOf(ev.id) < 0);
-    if (!pool.length) pool = BL.EVENTS.slice();
+    const all = E.eventPool(run);
+    let pool = all.filter((ev) => run.seenEvents.indexOf(ev.id) < 0);
+    if (!pool.length) pool = all.slice();
     const ev = R.pick(pool);
     run.seenEvents.push(ev.id);
     run.event = { id: ev.id, stage: 'choose', text: null, next: null };
@@ -487,7 +512,7 @@
   /* ---------------- Combat ---------------- */
   function pickEncounter(run, kind) {
     const R = makeR(run);
-    const pool = BL.ENCOUNTERS[kind];
+    const pool = E.band(run).enc[kind];
     let cands = pool.filter((enc) => run.lastEnc.indexOf(enc.join('+')) < 0);
     if (!cands.length) cands = pool;
     const enc = R.pick(cands);
@@ -516,6 +541,10 @@
 
   E.alive = (c) => c.enemies.filter((e) => !e.dead);
   E.enemyByUid = (c, uid) => c.enemies.find((e) => e.uid === uid && !e.dead);
+  /* What you can target or attack: a Submerged enemy is out of reach until it acts or a Strand brings it up. */
+  E.reachable = (e) => !e.dead && !(e.st.submerged > 0);
+  E.targets = (c) => c.enemies.filter(E.reachable);
+  E.targetByUid = (c, uid) => c.enemies.find((e) => e.uid === uid && E.reachable(e));
 
   E.startCombat = function (run, kind, enc, opts) {
     if (!enc) enc = pickEncounter(run, kind);
@@ -540,6 +569,12 @@
     // noShuffle (tutorial only): draw the deck in order, and refill from the discard pile in a fixed order
     if (opts && opts.noShuffle) { c.noShuffle = true; c.draw = pile.reverse(); } else c.draw = R.shuffle(pile);
     enc.forEach((id, idx) => spawnEnemy(run, c, id, idx));
+    // creatures that followed the keeper from a Fog event join her next fight (not the tutorial)
+    if (run.followers && run.followers.length && kind !== 'tutorial') {
+      run.followers.forEach((id) => { if (c.enemies.length < 5) spawnEnemy(run, c, id, c.enemies.length).follower = true; });
+      c.followers = run.followers.length;
+      run.followers = [];
+    }
     // Bell Minnows that follow the Roil come after the encounter's own enemies
     for (let i = 0; i < roil.minnows; i++) {
       const e = spawnEnemy(run, c, 'minnow', enc.length + i);
@@ -605,12 +640,29 @@
     return loss;
   }
 
+  /* An enemy heals (a Glimmer Leech drinking what it took). */
+  function healEnemy(c, e, n) {
+    const h = Math.min(n, e.maxHp - e.hp);
+    if (h <= 0 || e.dead) return 0;
+    e.hp += h;
+    fx(c, { t: 'heal', who: e.uid, n: h });
+    return h;
+  }
+
   function killEnemy(run, c, e) {
     e.hp = 0;
     e.dead = true;
     e.ward = 0;
     run.stats.kills = (run.stats.kills || 0) + 1;
     fx(c, { t: 'die', who: e.uid });
+    // whatever it swallowed comes back to the discard pile
+    const back = e.mem && e.mem.swallowed;
+    if (back && back.length) {
+      back.forEach((card) => c.discard.push(card));
+      fx(c, { t: 'disgorge', who: e.uid, names: back.map(E.cardName) });
+      e.mem.swallowed = [];
+      delete e.st.swallowed;
+    }
     const A = api(run, c);
     E.alive(c).forEach((o) => {
       const d = BL.ENEMIES[o.id];
@@ -742,8 +794,11 @@
     run.stats.maxLowChain = Math.max(run.stats.maxLowChain || 0, c.turnLows);
     const stripped = [];
     E.alive(c).forEach((e) => { if (e.ward > 0) { stripped.push({ who: e.uid, n: e.ward }); e.ward = 0; } });
+    // stranded, nothing can stay sunk out of reach
+    const surfaced = [];
+    E.alive(c).forEach((e) => { if (e.st.submerged) { delete e.st.submerged; surfaced.push(e.uid); } });
     c.light += 1;
-    fx(c, { t: 'low', chain: c.turnLows, stripped, light: 1, ebb });
+    fx(c, { t: 'low', chain: c.turnLows, stripped, surfaced, light: 1, ebb });
     if (E.has(run, 'kelpbracelet')) { fx(c, { t: 'ks', k: 'kelpbracelet' }); gainWard(c, c.player, 8); }
     const abyss = (c.player.st.r_abyss || 0) + (E.has(run, 'anchor') ? 4 : 0);
     if (E.has(run, 'anchor')) fx(c, { t: 'ks', k: 'anchor' });
@@ -798,16 +853,17 @@
           dealDamage(run, c, t, attackValue(P, t, base), P, true);
         }
       },
+      // attacks on ALL or on a random enemy reach only what is in reach (not a Submerged enemy)
       hitAll(base, hits) {
         hits = hits || 1;
         for (let i = 0; i < hits; i++) {
           fx(c, { t: 'sweep' });
-          E.alive(c).forEach((e) => dealDamage(run, c, e, attackValue(P, e, base), P, true));
+          E.targets(c).forEach((e) => dealDamage(run, c, e, attackValue(P, e, base), P, true));
         }
       },
       hitRandom(base, hits) {
         for (let i = 0; i < hits; i++) {
-          const al = E.alive(c);
+          const al = E.targets(c);
           if (!al.length || c.lost) break;
           const t = R.pick(al);
           fx(c, { t: 'slash', who: t.uid });
@@ -844,6 +900,7 @@
     c.phase = 'player';
     c.turnCrests = 0;
     c.turnLows = 0;
+    c.lastPlayed = null;
     const P = c.player;
     // Thrash lands before last turn's Ward washes away, so Ward left over after the enemies stops it
     if (c.thrash) {
@@ -857,7 +914,11 @@
       P.st.brine--;
       if (c.lost) return;
     }
-    c.light = c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0);
+    // a doused lantern starts the turn with less Light
+    const doused = P.st.doused || 0;
+    delete P.st.doused;
+    c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) - doused);
+    if (doused) { c.dousedTurn = c.turn; fx(c, { t: 'doused', n: doused }); }
     drawCards(run, c, 5 + (c.turn === 1 && E.has(run, 'gullfeather') ? 2 : 0));
     if (P.st.r_moonpull) surge(run, c, P.st.r_moonpull);
     fx(c, { t: 'turn', turn: c.turn });
@@ -870,6 +931,7 @@
     if (!c || c.phase !== 'player' || c.won || c.lost) return { ok: false, reason: 'Not your turn' };
     if (d.unplayable) return { ok: false, reason: 'Unplayable' };
     if (E.cost(card, c) > c.light) return { ok: false, reason: 'Not enough Light' };
+    if (d.target === 'enemy' && !E.targets(c).length) return { ok: false, reason: 'Nothing in reach' };
     return { ok: true };
   };
 
@@ -891,8 +953,9 @@
     let target = null;
     if (d.target === 'enemy') {
       target = targetUid ? E.enemyByUid(c, targetUid) : null;
+      if (target && !E.reachable(target)) return false; // Submerged: out of reach
       if (!target) {
-        const al = E.alive(c);
+        const al = E.targets(c);
         if (al.length === 1) target = al[0];
         else return false;
       }
@@ -900,6 +963,7 @@
     c.light -= E.cost(card, c);
     c.hand.splice(idx, 1);
     run.stats.cardsPlayed++;
+    c.lastPlayed = card.uid; // what a Pale Gulper swallows
     fx(c, { t: 'play', uid: card.uid, target: target ? target.uid : null, type: d.type });
     const A = api(run, c);
     const harpoon = card.id === 'jab' && !c.jabbed ? (run.kit && run.kit.harpoon) : null;
@@ -910,7 +974,7 @@
     if (c.echo > 0 && !d.givesEcho && d.type !== 'status' && d.type !== 'curse' && !c.won && !c.lost) {
       c.echo--;
       let t2 = target;
-      if (d.target === 'enemy' && (!t2 || t2.dead)) t2 = E.alive(c)[0] || null;
+      if (d.target === 'enemy' && (!t2 || !E.reachable(t2))) t2 = E.targets(c)[0] || null;
       fx(c, { t: 'echo', name: d.name });
       if (d.target !== 'enemy' || t2) d.play(A, E.vals(card), t2);
     }
@@ -964,8 +1028,9 @@
     let target = null;
     if (td.target === 'enemy') {
       target = targetUid ? E.enemyByUid(c, targetUid) : null;
+      if (target && !E.reachable(target)) return false; // Submerged: out of reach
       if (!target) {
-        const al = E.alive(c);
+        const al = E.targets(c);
         if (al.length === 1) target = al[0];
         else return false;
       }
@@ -1031,7 +1096,8 @@
     const e = E.enemyByUid(c, uid);
     if (!e) return false;
     e.acted = true;
-    e.ward = 0;
+    if (!e.st.shell) e.ward = 0; // a Shell keeps its Ward from turn to turn
+    if (e.st.submerged) delete e.st.submerged; // it comes up to act
     if ((e.st.brine || 0) > 0) {
       loseHpDirect(run, c, e, e.st.brine);
       if (e.dead) { run.stats.brineKills = (run.stats.brineKills || 0) + 1; return true; }
@@ -1050,15 +1116,28 @@
     fx(c, { t: 'act', who: e.uid, name: m.name, attack: !!m.dmg });
     if (m.phase) fx(c, { t: 'phase', who: e.uid, text: m.phase });
     if (m.dmg) {
-      const base = Math.round((typeof m.dmg === 'function' ? m.dmg(e) : m.dmg) * (c.dmgMul || 1));
+      const base = E.moveDamage(c, e, m);
       const hits = m.hits || 1;
+      let took = 0;
       for (let i = 0; i < hits; i++) {
         if (c.lost || e.dead) break;
-        dealDamage(run, c, P, attackValue(e, P, base), e, true);
+        took += dealDamage(run, c, P, attackValue(e, P, base), e, true);
       }
+      if (m.drain && took > 0 && !e.dead) healEnemy(c, e, took);
     }
     if (c.lost || e.dead) return;
     if (m.ward) gainWard(c, e, m.ward);
+    if (m.submerge) { e.st.submerged = 1; fx(c, { t: 'submerge', who: e.uid }); }
+    if (m.swallow) {
+      // it swallows the last card you played this turn, if that card is in the discard pile
+      const i = c.lastPlayed != null ? c.discard.findIndex((x) => x.uid === c.lastPlayed) : -1;
+      if (i >= 0) {
+        const card = c.discard.splice(i, 1)[0];
+        e.mem.swallowed = (e.mem.swallowed || []).concat([card]);
+        e.st.swallowed = e.mem.swallowed.length;
+        fx(c, { t: 'swallow', who: e.uid, name: E.cardName(card) });
+      }
+    }
     if (m.buff) Object.keys(m.buff).forEach((k) => applyStatus(run, c, e, k, m.buff[k], false));
     if (m.debuff) Object.keys(m.debuff).forEach((k) => applyStatus(run, c, P, k, m.debuff[k], false));
     if (m.addCards) {
@@ -1111,6 +1190,9 @@
     E.endTurnFinish(run);
   };
 
+  /* A move's damage per hit before Might, Chilled and Soaked. Some moves depend on the fight (the Swell). */
+  E.moveDamage = (c, e, m) => Math.round((typeof m.dmg === 'function' ? m.dmg(e, c) : m.dmg) * (c.dmgMul || 1));
+
   /* Intent as shown to the player. */
   E.intentInfo = function (run, e) {
     const c = run.combat;
@@ -1118,20 +1200,26 @@
     if (!m) return null;
     const info = { name: m.name, kinds: [], dmg: 0, hits: 0, ward: m.ward || 0, parts: [] };
     if (m.dmg) {
-      const base = Math.round((typeof m.dmg === 'function' ? m.dmg(e) : m.dmg) * (c.dmgMul || 1));
+      const base = E.moveDamage(c, e, m);
       info.dmg = attackValue(e, c.player, base);
       info.hits = m.hits || 1;
       info.kinds.push('attack');
       info.parts.push(`Attack for ${info.dmg}${info.hits > 1 ? ' x' + info.hits : ''}`);
+      if (m.drain) info.parts.push('Heal as much HP as the attack takes from you');
+      if (m.tip) info.parts.push(m.tip);
     }
     if (m.ward) { info.kinds.push('defend'); info.parts.push(`Gain ${m.ward} Ward`); }
+    if (m.submerge) { info.kinds.push('buff'); info.parts.push('Sink out of reach until its next turn: only Crests and waves reach it, and a Strand brings it up'); }
+    if (m.swallow) { info.kinds.push('debuff'); info.parts.push('Swallow the last card you play this turn, until it dies'); }
     if (m.buff) {
       info.kinds.push('buff');
       Object.keys(m.buff).forEach((k) => info.parts.push(`Gain ${m.buff[k]} ${BL.STATUSES[k].name}`));
     }
     if (m.debuff) {
       info.kinds.push('debuff');
-      Object.keys(m.debuff).forEach((k) => info.parts.push(`Apply ${m.debuff[k]} ${BL.STATUSES[k].name}`));
+      Object.keys(m.debuff).forEach((k) => info.parts.push(k === 'doused'
+        ? `Douse your lantern: ${m.debuff[k]} less Light next turn`
+        : `Apply ${m.debuff[k]} ${BL.STATUSES[k].name}`));
     }
     if (m.addCards) {
       info.kinds.push('debuff');

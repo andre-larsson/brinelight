@@ -8,7 +8,7 @@ One run is a complete demo: about 11 stops on a branching map, one on each landi
 
 **New here?** The first time you start a descent, a short opening in four pictures tells the story, and then the game offers a short guided fight (about 2 minutes) that teaches the basics and the Swell. You can skip it, and replay it any time from the title screen or the menu. After that, short hints explain new things the first time you meet them.
 
-**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, and one for each depth you clear. **The world** explains the places, people and magic. **Keeper's notes** are 16 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Bellwether, your first keepsake, the first time you carry more Roil than your Hold, and your first win in the Shallows. The tutorial and debug-cheated runs open nothing.
+**Story so far**, on the title screen and in the menu, has three tabs. **Story** holds the chapters: the opening, one that opens the first time you fall, and one for each depth you clear. **The world** explains the places, people and magic. **Keeper's notes** are 22 short notes, and each opens the first time you meet its subject: a shop, a Cove, a Wreck, each Fog event, the Drowned Deckhand, the Hollow Siren, the Bellwether, the Glimmer Leech, the Lamp Hermit, the Tolling Buoy, your first keepsake, the first time you carry more Roil than your Hold, and your first win in the Shallows. The tutorial and debug-cheated runs open nothing.
 
 ## Running it
 
@@ -67,6 +67,15 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Chilled:** deals 25% less attack damage.
 - **Brine:** loses HP each turn, decreasing by 1.
 
+**What lives in Dark Water.** Dark Water's creatures bring rules of their own. Each one's intent says what it is about to do.
+- **Glimmer Leech:** its Latch heals it by the HP it takes from you. Ward stops both.
+- **Murk Ray:** when it Sinks it is **Submerged** until it next acts. You can't target it, your attacks (on one enemy, on ALL or on a random one) can't reach it, and tonics can't be aimed at it. Crests and other waves still hit it, and a Strand brings it up. If nothing else is in reach, cards that need a target can't be played.
+- **Lamp Hermit:** its **Shell** keeps its Ward from turn to turn. A Strand still strips it.
+- **Glimmer Chain** (a Dread): Drink the Light **Douses** your lantern: you start your next turn with 1 less Light.
+- **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies.
+- **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At half health its cage breaks open and two Glimmer Leeches come out.
+- **The Glimmer Garden** (a Fog event): if you pick the beads, a Glimmer Leech follows you into your next fight.
+
 **Between fights.** Choose your route on the map:
 - **Skirmishes:** normal fights.
 - **Dreads:** elites. They're harder, and you may take 1 of 2 keepsakes as the reward.
@@ -103,7 +112,9 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 
 **Depths and score.** Every run ends with a score, and your best is kept. The top bar counts the landings you have reached on the way down. Beating the boss unlocks the next starting depth:
 - Shallows → Dark Water → Riptide → The Abyss.
-- Each depth has tougher enemies and a higher score multiplier.
+- Each depth is harder than the one above it and has a higher score multiplier (+25% for each depth).
+- The Shallows and Dark Water each have their own creatures, Dreads, boss and Fog events. In the Shallows the boss is the Drowned Bellwether; in Dark Water it is the Tolling Buoy.
+- Riptide and the Abyss are Dark Water made harder. In Riptide its creatures have 5% more HP and hit 10% harder. In the Abyss they have 10% more HP and hit 15% harder, and rests heal 25% of your HP instead of 30%.
 
 **The Workshop (lasts across runs).** Every finished run turns its score into **Salvage**: 1 for every 50 points. Abandoning a run earns nothing.
 - Spend Salvage in the Workshop on the title screen. **Kit** you buy is yours for good. Kit is the mundane gear Wren wears and carries; keepsakes are the magic.
@@ -138,14 +149,14 @@ Both are announced the moment you earn them. The score counts Crests and Strands
     - Ward (Sea Wall, Deep Guard, Breakwater).
     - Brine (Brine Bloom, Brine Spear, Salt Ward).
     - Might multi-hits.
-- **13 enemies:**
-  - 8 normal: Kelp Lurker, Brine Crab, Lantern Eel, Drowned Deckhand, Gloom Jelly, Barnacle Mite, Fog Wisp, Salt Gull.
-  - 3 elite encounters:
+- **20 enemies:**
+  - The Shallows: 8 normal (Kelp Lurker, Brine Crab, Lantern Eel, Drowned Deckhand, Gloom Jelly, Barnacle Mite, Fog Wisp, Salt Gull) and 3 elite encounters:
     - Reefback Hulk, which has Spines.
     - Hollow Siren, whose lullaby flattens your Swell back to 3.
     - Angler Twins, where the survivor enrages when its twin dies.
-  - The boss, The Drowned Bellwether. At half health it cracks, calls a shoal of Bell Minnows, and the music shifts.
-- **14 keepsakes, 7 tonics, 7 events.**
+  - The Shallows' boss, The Drowned Bellwether. At half health it cracks, calls a shoal of Bell Minnows, and the music shifts. The Bell Minnow also follows a Roiled aether.
+  - Dark Water: 4 new normal creatures (Glimmer Leech, Pistol Shrimp, Murk Ray, Lamp Hermit), with the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp; 3 elite encounters (Glimmer Chain, Pale Gulper and the Angler Twins); and its boss, the Tolling Buoy.
+- **14 keepsakes, 7 tonics, 10 events** (7 in the Shallows; in Dark Water, 3 of its own and 3 from the Shallows).
 - **14 pieces of kit (plus the Brass Tide-Bell) and 7 achievements** in the Workshop.
 - **Endings:** win and lose screens with run stats and score, best score, depth unlocks, and a one-click new run.
 

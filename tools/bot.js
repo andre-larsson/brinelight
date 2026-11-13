@@ -24,7 +24,7 @@ function snapshot(run) {
 function chooseCombatAction(run) {
   const { BL, E } = load();
   const c = run.combat;
-  const alive = E.alive(c);
+  const alive = E.targets(c); // a Submerged enemy is out of reach
   const playable = c.hand.filter((card) => E.playable(run, card).ok && BL.CARDS[card.id].type !== 'status' && BL.CARDS[card.id].type !== 'curse');
   if (!playable.length) return null;
   const targetsFor = (card) => (E.needsTarget(card) ? alive.map((e) => e.uid) : [null]);
@@ -37,7 +37,7 @@ function chooseCombatAction(run) {
   }
   // 2. block if the enemies would get damage through
   let incoming = 0;
-  alive.forEach((e) => { const info = E.intentInfo(run, e); if (info && info.dmg) incoming += info.dmg * info.hits; });
+  E.alive(c).forEach((e) => { const info = E.intentInfo(run, e); if (info && info.dmg) incoming += info.dmg * info.hits; });
   const unblocked = incoming - c.player.ward;
   const wardOf = (card) => { const v = E.vals(card); return v.ward || 0; };
   if (unblocked > 0) {

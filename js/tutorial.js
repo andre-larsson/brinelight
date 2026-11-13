@@ -303,7 +303,10 @@
       html: () => `<b>${k}</b>: ${KW_TEXT(k)}`,
     }));
     // statuses, the first time one shows on anyone
-    ['soaked', 'chilled', 'brine', 'might', 'spines', 'grief'].forEach((key) => HINTS.push({
+    // Doused shows on the Light orb at the start of the turn it costs you
+    HINTS.push({ id: 'st-doused', when: (r) => r.screen === 'combat' && r.combat.dousedTurn === r.combat.turn && r.combat.phase === 'player', anchor: '#orb',
+      html: () => '<b>Doused</b>: something drank from your lantern, so you have less Light this turn. An enemy\'s intent warns you a turn before.' });
+    ['soaked', 'chilled', 'brine', 'might', 'spines', 'grief', 'submerged', 'shell', 'swallowed'].forEach((key) => HINTS.push({
       id: 'st-' + key,
       // only on a living creature: a dead one's badges fade out with it
       when: (r) => r.screen === 'combat' && !!document.querySelector(`.unit:not(.dead):not(.gone) [data-tip$=":${key}"]`),

@@ -157,6 +157,24 @@ const SIZES = {
       await setup(`B.closeOverlay(true); B.meta.record = { runs: 14, wins: 3, deep: { level: 1, floor: 7 } }; B.saveMeta(); B.run = null; B.render(); document.querySelector('[data-act="logbook"]').click();`);
       await shot(tag, '30_logbook');
       await setup(`B.closeOverlay(true);`);
+      // Dark Water: a Submerged Ray with a Lamp Hermit's Shell, a Gulper holding a card, the Buoy's lock, a Fog event, the win
+      await setup(`const r = E.newRun(4242, 1); B.run = r; E.startCombat(r, 'hard', ['ray', 'leech', 'hermit']); const c = r.combat; c.enemies[0].st.submerged = 1; c.enemies[0].intent = 'rise'; c.enemies[2].ward = 8; c.enemies[2].intent = 'withdraw'; B.render();`);
+      await sleep(1800);
+      await shot(tag, '31_dark_fight');
+      await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'elite', ['gulper']); const g = r.combat.enemies[0]; g.mem.swallowed = [E.newCard(r, 'swell')]; g.st.swallowed = 1; g.intent = 'gulp'; r.combat.player.st.doused = 1; B.render();`);
+      await sleep(1800);
+      await shot(tag, '32_dark_gulper');
+      await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'boss', ['buoy']); r.combat.enemies[0].intent = 'toll'; r.combat.tide = 5; B.render();`);
+      await sleep(1800);
+      await shot(tag, '33_dark_buoy');
+      await setup(`const r = B.run; E.backToMap(r); r.event = { id: 'garden', stage: 'choose', text: null, next: null }; r.screen = 'event'; B.render();`);
+      await shot(tag, '34_dark_event');
+      await setup(`const r = E.newRun(4242, 1); r.floor = 11; r.screen = 'victory'; B.run = r; B.render();`);
+      await shot(tag, '35_dark_victory');
+      await setup(`B.run = null; B.render(); document.querySelector('[data-act="help"]').click();`);
+      await setup(`document.querySelector('[data-act="helptab"][data-tab="keywords"]').click();`);
+      await shot(tag, '36_help_keywords');
+      await setup(`B.closeOverlay(true);`);
       // the title screen with every button: a saved run, the Workshop and the Lazaret
       await setup(`const r = E.newRun(4242, 0); r.floor = 3; B.run = r; B.save(); B.run = null; B.render();`);
       await shot(tag, '26_title_full');

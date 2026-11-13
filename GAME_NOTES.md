@@ -54,6 +54,7 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
+- v0.15.0 (2026-11-12, committed 2026-11-13, not pushed yet): Dark Water is a band of its own, step 1 of the expedition work. See "Dark Water (v0.15.0, 2026-11-12)" below.
 - The live build is v0.14.0, pushed on 2026-11-12: Scour is renamed Thrash, hits every turn from the first, and Ward stops it; `tools/measure.js` measures in parallel. See "Scour changed in v0.14.0".
 - Before it came v0.13.0, pushed the same day: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
 - Before it came v0.12.0 (the opening and Story so far) and v0.11.0 (the lore and names pass), pushed together in one commit on the same day, and v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
@@ -476,6 +477,58 @@ Real runs that bring keepsakes from the Lazaret (the bot picks as usual):
 
 **The Logbook (the user asked for "a very simple stat screen"):** a title-screen button once there is anything to show. It lists descents finished (won and lost), the deepest landing reached, depths cleared, best score, Salvage now and earned in all, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. The name is the agent's: a lighthouse keeper keeps a logbook. `meta.record = { runs, wins, deep }` is new, so descents and the deepest landing are counted from v0.13.0; the rest is read from what was already stored. Abandoned, tutorial and debug-cheated runs are not counted.
 
+### Dark Water (v0.15.0, 2026-11-12)
+
+Step 1 of the expedition work: the second level's content, playable first in the Dark Water slot so it can be balanced before the expedition exists. The user asked for "the best next things to implement", got a ranked list (1: a second level with its own enemies, pin and events; 2: the expedition itself; 3: currents; 4: a bot that shops and uses tonics), and said "Implement step 1."
+
+**Built:**
+- **Bands** (`BL.BANDS` in js/data.js): each has its encounter tables, Fog event list, boss name, two fight paintings and win text. `E.LEVELS[i].band` says which a starting depth uses; `E.band(run)`, `E.bandId(run)`, `E.eventPool(run)`. The Shallows band is `BL.ENCOUNTERS` and the seven old events, unchanged: all 1000 Shallows bot seeds play exactly as in v0.14.0 (checked seed by seed).
+- **Dark Water's creatures:** Glimmer Leech (Latch heals it by the HP it takes), Pistol Shrimp (Cock the Claw 4, then Flash Snap 14), Murk Ray (Sting, Sink: Submerged, Rise 15), Lamp Hermit (Shell: keeps its Ward). With the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp. Dreads: Glimmer Chain (Drink the Light: Doused 1), Pale Gulper (Gulp swallows the last card you played that turn until it dies), and the Angler Twins.
+- **The pin: the Tolling Buoy**, 165 HP. Haul the Chain (12 Ward, Doused 1), Rocking Toll (12 + 2 per earlier Toll + 4 per step the Swell is from 3), Clang (8 x2), Rocking Toll again. At half health The Cage Opens: two Glimmer Leeches and 1 Might.
+- **Three Fog events:** the Tide-Board (1 of 3 cards that Surge or Ebb, or +5 Max HP), the Glimmer Garden (lose 9 HP for a random keepsake, or 45 Pearls and a Glimmer Leech follows you into your next fight), the Diving Bell (heal 18, or 1 of 3 cards). Dark Water's Fog also has the Shrine, the Pool and the Lamplighter.
+- **New rules in the engine:** a move's `drain`, `submerge` and `swallow`; the `shell` status; the keeper's `doused` status (used up at the start of the next turn, `c.dousedTurn` marks it for the hint); move damage that reads the fight (`dmg(e, c)`, `E.moveDamage`); `E.targets(c)` and `E.reachable(e)` for what can be aimed at or attacked; `run.followers` for the Garden's leech.
+- **Riptide and the Abyss** use the Dark Water band, at 5% more HP and 10% harder hits (Riptide) and 10% and 15% (the Abyss, rests 25%). Dark Water itself has no multiplier now.
+- **Story:** the win text per band; chapter 4 opens with the Buoy; glossary entries for Dark Water and pins; six new notes; the Bellwether's note opens on `en:bell` instead of any boss. WORLD.md has the fiction.
+- **Art:** 7 creatures, 2 fight paintings, 3 event scenes (Codex, queue lines in `assets-src/wanted-images.tsv`). The Pale Gulper came back with a grey haze in its alpha; it was cleaned by ramping alpha 60–140 (`assets-src/units/gulper-clean.png`). The Buoy is the second of two variants: its top glows with eaten light instead of a warm lamp.
+- **UI:** fight and reward backgrounds per band, boss names per band, a sunk look and no targeting for a Submerged enemy (with a message), a Swallowed chip listing the card, a doused Light orb, toasts for the swallow and the leech that followed you, and first-time hints for Doused, Submerged, Shell and Swallowed. How to Play lists Doused, Submerged and Shell under "In Dark Water".
+
+**The agent's calls (provisional; each can be undone on its own):**
+1. **The name stays Dark Water.** Players know it and chapter 3 points to it. WORLD.md records it as the second level, which means the suit and chapters 5–6 move there when the expedition is built.
+2. **The Buoy is Dark Water's pin**, from WORLD.md's three pin ideas. The hermit crab wearing a harbour bell is kept for the Shallows' own pin in step 2, and the drowned ringer for later.
+3. **The Shallows keep the Bellwether as their boss for now.** Moving it to the Belfry is part of step 2.
+4. **Riptide and the Abyss use Dark Water's creatures,** because they are deeper. Their multipliers were reset so their bot win rates stay close (table below).
+5. **The Rocking Toll is symmetric:** it punishes a Swell left far from 3 at either end, so Crest and Strand decks both have to finish their waves before ending the turn. It never favours one end (the user's rule from the Low Water rework).
+6. **Submerged blocks all attacks and aiming, not waves.** Crests, Abyssal Pull, Spindrift, Lighthouse Beam and Brine still reach it, and a Strand brings it up, so both ends of the Swell answer it.
+7. **Shell favours Strand decks a little** (a Strand strips it). Allowed as a small one-sided trait on one normal creature; the Pistol Shrimp's spike and the leeches' swarms favour Ward and Crests.
+8. **The Gulper swallows the last card played that turn**, so the player chooses what it eats. Enemies act after the hand is discarded, so "a card from your hand" was not possible. A Rite or a Sink card is not in the discard pile and is safe.
+9. **Event numbers:** the Garden's keepsake costs 9 HP (the Wreck gives one plus a curse); its beads pay 45 Pearls and a leech; the Diving Bell heals 18 (the Pool's drink heals 20); the Tide-Board's +5 Max HP is worth about one small perk.
+10. **Brinelight is older than tonight** (WORLD.md): keepers' lanterns lit from the Heart were lost below for centuries, and the held water keeps light. This answers the chronology question the lore left open.
+
+**Measured** (bot, 1000 seeds, no kit unless named):
+
+| | v0.14.0 | v0.15.0 |
+|---|---|---|
+| Shallows | 23.8% | 23.8% (identical seeds) |
+| Dark Water | 14.2% | 14.5% |
+| Riptide | 3.2% | 3.9% |
+| The Abyss | 1.3% | 1.3% |
+| Dark Water, Honed Harpoon + Cork Vest | 20.0% | 20.9% |
+| Dark Water, Honed Harpoon + Shell Gorget | 21.4% | 18.7% |
+| Dark Water, bring Whale Tooth + Kelp Bracelet | 21.4% | 15.6% |
+| Dark Water, bring Whale Tooth + Storm Bottle (1 Seep) | 20.2% | 21.7% |
+
+Per fight in Dark Water (HP the bot loses, its turns): easy fights 1–7 HP; hard fights 4–23 HP (Lantern Eel + Pistol Shrimp is the worst at 23); Dreads 12.5–19 HP (the Glimmer Chain is the hardest); the Buoy 55.5 HP in 11.4 turns, and 84% of falls are to it. In the Shallows the Bellwether costs 52 HP in 11.2 turns. A first version of the Buoy had 195 HP and lasted 13.4 turns at the same win rate; it was cut to 165 HP and made to hit harder so it isn't a slog.
+
+Single keepsakes brought into Dark Water (points over 14.5%; v0.14.0's Dark Water in brackets): Storm Bottle +8.2 (+5.9), Conch of Echoes +3.9 (+2.9), Kelp Bracelet +3.4 (+5.6), Whispering Conch +2.8 (+4.6), Drowned Anchor +2.5 (+6.0), Scallop Charm +2.5 (+4.3), Whale Tooth +2.0 (+5.5), Tidewatch +1.7 (+3.7), Barnacle Plate +1.0 (+6.9), Moon Shard 0.0 (+3.7). Noise is about ±2 points.
+
+**Open (for the user and the playtest):**
+- **Keepsakes are worth different amounts in different bands.** Roil was set from Shallows values. In Dark Water the Storm Bottle answers Doused, and the Moon Shard starts every fight at Swell 5, which makes the Buoy's Toll hit 8 harder until you Crest. Most others are worth less there, Barnacle Plate and Whale Tooth most of all. Is that variety good, or should Roil differ by band?
+- Does the Rocking Toll read clearly? Its intent number changes as you play Surge and Ebb cards.
+- Is the Murk Ray's sunk turn interesting (build the Swell, or Ward up for its Rise), or just a lost turn?
+- Is the Pale Gulper's "last card played" swallow a real choice, or easy to forget?
+- On the smallest phones (360 px), three enemies' names run into each other and a Ward badge covers part of the next HP bar. The layout already did this for the Shallows' three-enemy fights (`.unit .info` has a minimum width of 84–96 px), but Dark Water has more of them, and the Lamp Hermit's Shell keeps a Ward badge up.
+- No sound of its own for Dark Water, the Buoy, a douse or a swallow, and no music change.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -819,6 +872,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - `tools/build.js`: assembles `_site/` for Pages and checks every referenced file exists.
 - `tests/workshop.test.js`: the Workshop, kit, Charge, Hold and Seep rules, and old saves carrying over. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: old lasting state carried over, buy, wear, dive, the Charge chip, dropping a keepsake, Seep in a fight, Salvage at the end, and abandoning a run earns nothing.
 - `tests/lazaret.test.js`: the Lazaret rules. `node tests/ui-smoke.js --only lazaret` plays a first win, a fall and a second win in the browser.
+- `tests/darkwater.test.js`: the bands and every Dark Water rule (drain, Submerged, Shell, Doused, swallow, the Rocking Toll, the Garden's follower, the events). `node tests/ui-smoke.js --only darkwater` starts a Dark Water descent on desktop and phone, checks the backgrounds, aims at a Submerged Ray, feeds a card to the Gulper, gets doused, reads the Buoy's intent at two Swells, then plays a few stops. `tools/screens.js` shoots Dark Water as screens 31–36.
 - `tests/story.test.js`: the title line, the opening, and what opens each Story so far entry. `node tests/ui-smoke.js --only story` runs only the story flow in the browser. `tools/screens.js` also shoots the three Story so far tabs and the opening.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 

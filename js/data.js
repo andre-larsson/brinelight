@@ -346,6 +346,9 @@
     Hold: 'How much Roil the aether around you holds while it stays Calm. Deeper depths hold more.',
     Seep: 'Seawater shed by a Roiled aether: an unplayable card shuffled into your draw pile at the start of each fight. It is gone after the fight.',
     Thrash: 'A Roiled aether thrashes, and it strikes you through a fight. Thrash 1: at the start of each of your turns, take 1 damage. Ward you still have from the turn before stops it.',
+    Doused: 'Something drank from your lantern: you start your next turn with that much less Light.',
+    Submerged: 'Sunk out of reach until it next acts. You cannot target it, and attacks cannot reach it, but Crests and other waves still hit it. A Strand brings it up.',
+    Shell: 'Its Ward does not wash away from turn to turn. A Strand still strips it.',
     Roiled: 'You carry more Roil than your Hold. Every 5 Roil over (or part of 5) is one step, and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows.',
   };
 
@@ -365,11 +368,18 @@
     r_abyss: { name: 'Abyssal Pull', kind: 'rite', icon: 'anchor', desc: (n) => `Whenever you Strand, deal ${n} damage to ALL enemies.` },
     r_beam: { name: 'Lighthouse Beam', kind: 'rite', icon: 'beam', desc: (n) => `At the end of your turn, deal ${n} damage per Swell to a random enemy.` },
     grief: { name: 'Twin Bond', kind: 'buff', icon: 'bond', desc: () => `When its twin dies, it gains 4 Might.` },
+    // Dark Water
+    doused: { name: 'Doused', kind: 'debuff', icon: 'doused', desc: (n) => `Your lantern is doused: you start your next turn with ${n} less Light.` },
+    submerged: { name: 'Submerged', kind: 'buff', icon: 'submerged', desc: () => 'Sunk out of reach until it acts. You cannot target it, and attacks cannot reach it. Crests and other waves still hit it, and a Strand brings it up.' },
+    shell: { name: 'Shell', kind: 'buff', icon: 'shell', desc: () => 'Its Ward does not wash away from turn to turn. A Strand still strips it.' },
+    swallowed: { name: 'Swallowed', kind: 'buff', icon: 'swallowed', desc: (n) => `It has swallowed ${n} of your card${n > 1 ? 's' : ''}. They come back to your discard pile when it dies.` },
   };
 
   /* ------------------------------------------------------------------ *
    *  ENEMIES
-   *  moves: dmg (number or fn(e)), hits, ward, buff{}, debuff{}, addCards{}, tide, summon[]
+   *  moves: dmg (number or fn(e, c)), hits, ward, buff{}, debuff{}, addCards{}, tide, summon[],
+   *         drain (heals the HP its hits take), submerge (Submerged until it next acts),
+   *         swallow (takes the last card you played this turn, until it dies), tip (a line for the intent)
    *  ai(e, c, R): returns the next move key. e.hist = previous moves, e.mem = memory
    * ------------------------------------------------------------------ */
   function cycleFrom(list) {
@@ -515,6 +525,82 @@
       },
       ai: weighted([['bite', 60], ['nip', 40]], 2),
     },
+    // ---------- Dark Water: what grew in the still, held water, and what eats the light in it ----------
+    leech: {
+      name: 'Glimmer Leech', hp: [12, 14], art: 'leech', scale: 0.62,
+      moves: {
+        latch: { name: 'Latch', dmg: 5, drain: true },
+        gorge: { name: 'Gorge', buff: { might: 1 } },
+      },
+      ai: weighted([['latch', 65], ['gorge', 35]], 2),
+    },
+    shrimp: {
+      name: 'Pistol Shrimp', hp: [20, 23], art: 'shrimp', scale: 0.8,
+      init: (e, R) => { e.mem.offset = R.int(0, 1); },
+      moves: {
+        cock: { name: 'Cock the Claw', dmg: 4 },
+        snap: { name: 'Flash Snap', dmg: 14 },
+      },
+      ai: cycleFrom(['cock', 'snap']),
+    },
+    ray: {
+      name: 'Murk Ray', hp: [28, 32], art: 'ray', scale: 1.0,
+      init: (e, R) => { e.mem.offset = R.int(0, 2); },
+      moves: {
+        sting: { name: 'Sting', dmg: 8 },
+        sink: { name: 'Sink', submerge: true },
+        rise: { name: 'Rise', dmg: 15 },
+      },
+      ai: cycleFrom(['sting', 'sink', 'rise']),
+    },
+    hermit: {
+      name: 'Lamp Hermit', hp: [26, 29], art: 'hermit', scale: 0.9,
+      init: (e, R) => { e.mem.offset = R.int(0, 3); e.st.shell = 1; },
+      moves: {
+        withdraw: { name: 'Withdraw', ward: 8 },
+        pinch: { name: 'Pinch', dmg: 5, hits: 2 },
+        clamp: { name: 'Clamp', dmg: 10 },
+      },
+      ai: cycleFrom(['withdraw', 'pinch', 'withdraw', 'clamp']),
+    },
+    chain: {
+      name: 'Glimmer Chain', hp: [74, 78], art: 'chain', scale: 1.25, elite: true,
+      init: (e, R) => { e.mem.offset = R.int(0, 2); },
+      moves: {
+        lash: { name: 'Lash', dmg: 6, hits: 2 },
+        douse: { name: 'Drink the Light', dmg: 8, debuff: { doused: 1 } },
+        glut: { name: 'Glut', buff: { might: 2 }, ward: 10 },
+      },
+      ai: cycleFrom(['lash', 'douse', 'glut']),
+    },
+    gulper: {
+      name: 'Pale Gulper', hp: [70, 74], art: 'gulper', scale: 1.2, elite: true,
+      init: (e, R) => { e.mem.offset = R.int(0, 2); },
+      moves: {
+        bite: { name: 'Bite', dmg: 12 },
+        gulp: { name: 'Gulp', dmg: 7, swallow: true },
+        whip: { name: 'Tail Whip', dmg: 5, hits: 2, debuff: { soaked: 1 } },
+      },
+      ai: cycleFrom(['bite', 'gulp', 'whip']),
+    },
+    // ---------- Dark Water's pin: it holds the water in Dark Water for the Bellwether ----------
+    buoy: {
+      name: 'The Tolling Buoy', hp: [165, 165], art: 'buoy', scale: 1.5, boss: true,
+      moves: {
+        haul: { name: 'Haul the Chain', ward: 12, debuff: { doused: 1 } },
+        // it rocks on the Swell: the further the water is from 3, the harder it swings
+        toll: { name: 'Rocking Toll', dmg: (e, c) => 12 + 2 * (e.mem.tolls || 0) + 4 * Math.abs(((c && c.tide) == null ? 3 : c.tide) - 3), after: (e) => { e.mem.tolls = (e.mem.tolls || 0) + 1; },
+          tip: 'It hits 4 harder for each step your Swell is away from 3, and every Toll rings 2 harder than the last' },
+        clang: { name: 'Clang', dmg: 8, hits: 2 },
+        spill: { name: 'The Cage Opens', summon: ['leech', 'leech'], buff: { might: 1 }, phase: 'The Cage Breaks Open!' },
+      },
+      ai: (e) => {
+        if (!e.mem.summoned && e.hp <= e.maxHp / 2) { e.mem.summoned = true; return 'spill'; }
+        const seq = ['haul', 'toll', 'clang', 'toll'];
+        e.mem.step = (e.mem.step || 0) + 1;
+        return seq[(e.mem.step - 1) % seq.length];
+      },
+    },
     // ---------- Tutorial only (never in a random encounter) ----------
     tut_mite: {
       name: 'Barnacle Mite', hp: [12, 12], art: 'mite', scale: 0.7, tutorial: true,
@@ -552,6 +638,32 @@
     ],
     elite: [['hulk'], ['siren'], ['angler', 'angler']],
     boss: [['bell']],
+  };
+
+  /* Bands: the parts of the Reach, each with its own creatures, Fog events and look. E.LEVELS says which band
+     each starting depth uses. Dark Water's creatures live in still water that has been held for a hundred
+     years; some of the old coast's creatures live there too. Its pin, the Tolling Buoy, waits on the last landing. */
+  BL.BANDS = {
+    shallows: {
+      name: 'the Shallows', boss: 'The Drowned Bellwether', bg: 'bg_battle', bossBg: 'bg_boss',
+      win: 'The Bellwether cracks and falls silent, and the sea it held lets go. In the wreckage of its bronze, the Lantern Heart still burns. You carry it up the dripping stairs, and by dawn the great light of Saltmere is turning again.',
+      enc: BL.ENCOUNTERS,
+      events: ['shrine', 'wreck', 'witch', 'pool', 'ghost', 'bottle', 'ambush'],
+    },
+    dark: {
+      name: 'Dark Water', boss: 'The Tolling Buoy', bg: 'bg_dark', bossBg: 'bg_dark_boss',
+      win: 'The Tolling Buoy rocks one last time and goes silent, and the water it held runs away down the stair. The Lantern Heart is caught in the bottom of its cage like a fish in a lobster pot, and the pale things in there have been feeding on it. You carry it up through the dark, and by dawn the great light of Saltmere is turning again.',
+      enc: {
+        easy: [['leech', 'leech', 'leech'], ['shrimp', 'leech'], ['hermit'], ['ray'], ['jelly', 'leech'], ['eel', 'leech']],
+        hard: [
+          ['ray', 'leech', 'leech'], ['hermit', 'shrimp'], ['sailor', 'leech'], ['shrimp', 'shrimp'], ['wisp', 'ray'],
+          ['hermit', 'jelly'], ['eel', 'shrimp'], ['sailor', 'hermit'], ['ray', 'jelly'],
+        ],
+        elite: [['chain'], ['gulper'], ['angler', 'angler']],
+        boss: [['buoy']],
+      },
+      events: ['shrine', 'pool', 'ghost', 'tideboard', 'garden', 'divingbell'],
+    },
   };
 
   /* ------------------------------------------------------------------ *
@@ -677,6 +789,39 @@
         { label: 'Sneak past', desc: 'Lose 5 HP.', act: (r, E) => { E.loseHp(r, 5); return { text: 'Thorny kelp scrapes you as you slip by.' }; } },
       ],
     },
+    // ---------- Dark Water ----------
+    {
+      id: 'tideboard', title: 'The Tide-Board', art: 'ev_tideboard',
+      text: 'The keepers cut a tide-board into the wall of the stair: a line and a year for every highest tide. The lowest lines are older than the lighthouse. For the last hundred years each line sits a little above the one before, and the newest is above your head.',
+      options: [
+        { label: 'Read the old notes', desc: 'Choose 1 of 3 cards that Surge or Ebb.',
+          act: (r, E) => ({ text: 'Beside the oldest lines the keepers wrote down how the water moved, and how they moved it.', next: { cards: E.swellCards(r, 3) } }) },
+        { label: "Cut tonight's line", desc: 'Gain 5 Max HP.',
+          act: (r) => { r.maxHp += 5; r.hp += 5; return { text: 'You cut a line at the height of the water tonight, as a keeper should. Somebody has to keep the record. (+5 Max HP)' }; } },
+        { label: 'Leave', desc: 'Climb on down.', decline: true, act: () => ({ text: 'You leave the lines to the dark.' }) },
+      ],
+    },
+    {
+      id: 'garden', title: 'The Glimmer Garden', art: 'ev_garden',
+      text: 'Pale stalks crowd a flooded cellar, each one tipped with a bead of brinelight. When you raise your lantern, every bead in the room turns toward it.',
+      options: [
+        { label: 'Reach into the glow', desc: 'Lose 9 HP. Gain a random keepsake.',
+          act: (r, E) => { E.loseHp(r, 9); const k = E.gainRandomKeepsake(r); return { text: k ? `The stalks bite and drink as your arm goes in. At the roots, where the glow is brightest, your hand closes on the ${BL.KEEPSAKES[k].name}.` : 'The stalks bite and drink as your arm goes in, and there is nothing at the roots.' }; } },
+        { label: 'Pick the brightest beads', desc: 'Gain 45 Pearls. A Glimmer Leech follows you into your next fight.',
+          act: (r, E) => { r.pearls += 45; E.addFollower(r, 'leech'); return { text: 'The beads come away like ripe berries, and they are pearls. Something in the water saw the light go into your pocket. (+45 Pearls)' }; } },
+        { label: 'Leave', desc: 'Shade your lantern and walk past.', decline: true, act: () => ({ text: 'In the dark, the stalks turn back to one another.' }) },
+      ],
+    },
+    {
+      id: 'divingbell', title: 'The Diving Bell', art: 'ev_divingbell',
+      text: 'An old keepers\' diving bell rests on the floor of a flooded alcove, and air is still trapped inside it. Somebody lived in it once: a cot, a cold lamp, and a tally of days scratched into the iron. The tally stops.',
+      options: [
+        { label: 'Rest in the trapped air', desc: 'Heal 18 HP.', act: (r, E) => { const h = E.heal(r, 18); return { text: `The air is old and still, and it is enough. Healed ${h} HP.` }; } },
+        { label: "Read the diver's log", desc: 'Choose 1 of 3 cards.',
+          act: (r, E) => ({ text: 'The log is mostly soundings. The last pages are about something big that came to the bell\'s light at night.', next: { cards: E.rewardCards(r, 'normal') } }) },
+        { label: 'Leave', desc: 'Let the diver rest.', decline: true, act: () => ({ text: 'You add one line to the tally, and go.' }) },
+      ],
+    },
   ];
 
   /* ------------------------------------------------------------------ *
@@ -741,6 +886,7 @@
         'The keepers\' charts show stairs that go on below the Shallows, into a depth they called Dark Water.',
       ] },
       { id: 'sunk', title: 'Why the bell was sunk', when: 'won:1', lock: 'Clear Dark Water.', text: [
+        'The bell ringing in Dark Water was not the Bellwether. It was Saltmere\'s old bell-buoy, lost in a storm before the lighthouse was built. It answers the great bell now, and it held the water over the stair. When it went silent the water ran down, and the Lantern Heart was caught in its cage. You carried it home again.',
         'Below Dark Water the stairs are older, and keepers cut them. The keepers made the Bellwether too. A hand-bell like yours moves the water in a pool. They cast a bell big enough to move the sea, and sank it under the cliffs to hold the water off their low stairs and their quay.',
         'A bell that size has to be tended. Keepers walked down to it at the lowest tides of the year. The last one to go was a lamplighter, a hundred years ago. He drowned on the low stair, and nobody went down after him.',
       ] },
@@ -760,8 +906,9 @@
         ['Saltmere', 'A harbour town on a rocky headland. Its lighthouse warns ships off the rocks.'],
         ['The lighthouse', 'It stands above the town, and you keep it. Its lamp burns the Lantern Heart.'],
         ['The Drowned Reach', 'The sea-caves, stairs and rock terraces under the cliffs, below the lighthouse. The Bellwether keeps them flooded.'],
-        ['Depths', 'The Reach goes down in four depths: the Shallows, Dark Water, Riptide and the Abyss. Each is harder than the one above it.'],
-        ['Landings', 'The stops on the way down through a depth. The Bellwether waits on the last one.'],
+        ['Depths', 'The Reach goes down in four depths: the Shallows, Dark Water, Riptide and the Abyss. Each is harder than the one above it. Dark Water has creatures of its own, and Riptide and the Abyss are Dark Water made harder.'],
+        ['Dark Water', 'The depth below the Shallows. Its water has been held still for a hundred years, so the brinelight in it has nowhere to go, and things there have learned to live on it.'],
+        ['Landings', 'The stops on the way down through a depth. A boss waits on the last one: the Bellwether in the Shallows, and the Tolling Buoy below them.'],
         ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. It opens after your first win.'],
       ] },
       { group: 'People', items: [
@@ -773,6 +920,7 @@
         ['The Lantern Heart', 'The magic fire that burns in the lighthouse lamp. Every keeper\'s lantern is lit from it.'],
         ['Light', 'The fire in your lantern. You spend it to play cards, and it comes back at the start of each turn.'],
         ['The Bellwether', 'An enchanted bronze bell. Its ringing holds seawater in place. Keepers sank it under the cliffs long ago to hold the sea back, and now it rings by itself.'],
+        ['Pins', 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The Tolling Buoy in Dark Water is one.'],
         ['Tide-bell', 'Your hand-bell. Ring it and the water near you moves. Keepers call it a tide-bell because it is tuned to the Bellwether, the bell that holds the tide.'],
         ['The Swell', 'The water around the enemies in a fight. You stand on stone and they stand in the wash. Surge raises the water until a wave breaks on them: a Crest. Ebb pulls it away until they are left on bare rock: a Strand.'],
       ] },
@@ -816,8 +964,21 @@
         text: 'The turquoise glow in the pool is brinelight. There is so much of it here that the water is warm, and the light seems to listen. It mends wounds and sharpens gear. It has also given the pearls in the pool a bite.' },
       { id: 'bottle', title: 'The message in the bottle', when: 'ev:bottle', lock: 'Found in the Fog.', art: 'scenes/ev_bottle',
         text: 'A sailor wrote down what he knew about fighting at sea, corked the note in a bottle and threw it over the side. The open sea would have carried it to a beach. The bell\'s water kept it here, and the glass has started to glow.' },
-      { id: 'bellwether', title: 'The Bellwether, up close', when: 'boss', lock: 'Found on the last landing.', art: 'units/bell',
+      { id: 'bellwether', title: 'The Bellwether, up close', when: 'en:bell', lock: 'Found on the last landing of the Shallows.', art: 'units/bell',
         text: 'A hundred years under the sea have changed the bell. Coral and weed grow on its bronze, and something with one eye and many arms has grown into it. When the bronze cracks, a shoal of Bell Minnows comes to its call.' },
+      // Dark Water
+      { id: 'lighteaters', title: 'What eats the light', when: 'en:leech', lock: 'Found in Dark Water.', art: 'units/leech',
+        text: 'Below the Shallows the water has been held still for a hundred years. The brinelight that soaks into it has no tide to carry it away, so it gathers, and things have learned to live on it. Leeches, pale stalks and long glowing chains all shine with what they have eaten. They all turn toward an open flame. A keeper\'s lantern is the brightest thing they have ever seen. When one drinks from it, you start your next turn with less Light: you are Doused.' },
+      { id: 'hermit', title: 'Lamp Hermits', when: 'en:hermit', lock: 'Found in Dark Water.', art: 'units/hermit',
+        text: 'Keepers carried lanterns down the stair, and not all of them came back up. The hermit crabs of Dark Water grew too big for whelk shells long ago. They live in the keepers\' lanterns now, and they keep their Ward from turn to turn the way the lanterns kept their glass. A Strand still strips it.' },
+      { id: 'buoy', title: 'The Tolling Buoy', when: 'en:buoy', lock: 'Found on the last landing of Dark Water.', art: 'units/buoy',
+        text: 'Before there was a lighthouse, Saltmere had a bell-buoy. It rocked on its chain off the harbour rocks and rang in the swell, so ships heard the rocks before they saw them. A storm broke its chain and it sank. Now it rings for the Bellwether. It is a pin: while it rings, it holds the water in Dark Water. It still rocks on the water. The further you push the Swell from the middle, the harder its Toll swings, and every Toll is louder than the last.' },
+      { id: 'tideboard', title: 'The tide-board', when: 'ev:tideboard', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_tideboard',
+        text: 'For as long as there have been keepers, they cut a line for the highest tide of the year. While they still tended the Bellwether, the lines go up and down. For the last hundred years, with nobody to tend it, every line is higher than the one before. The bell holds the sea off the town by holding it under the cliffs, and the water it holds grows every year.' },
+      { id: 'garden', title: 'The Glimmer Garden', when: 'ev:garden', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_garden',
+        text: 'The stalks are not plants. They are animals rooted to the stone like barnacles, and each bead is a mouth full of brinelight. Picked, a bead hardens into a pearl. The garden grows around whatever glows brightest, and sometimes that is a keepsake. Something in the water tends it, and it notices what you take.' },
+      { id: 'divingbell', title: 'The diving bell', when: 'ev:divingbell', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_divingbell',
+        text: 'Before the lamplighter, keepers went down to the Bellwether in a diving bell, with a pump on the stair above feeding them air. One of them stayed down. His tally runs to two hundred and twelve days. Nobody knows what kept him alive that long, or why he stopped counting.' },
     ],
   };
 

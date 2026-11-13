@@ -719,15 +719,17 @@ test('Kelp Bracelet: a Strand gives 8 Ward. Tidal Memory: each Crest gives 1 Lig
 });
 
 /* ---------- Depths and score ---------- */
-test('deeper starting depths: tougher enemies and a higher score multiplier', () => {
-  const hpAt = (lv) => { const r = E.newRun(11, lv); E.startCombat(r, 'easy', ['kelp']); return r.combat.enemies[0]; };
+test('deeper starting depths: Dark Water has its own creatures; Riptide and the Abyss are Dark Water made harder; each has a higher score multiplier', () => {
+  assert.deepEqual(E.LEVELS.map((l) => l.band), ['shallows', 'dark', 'dark', 'dark']);
+  const hpAt = (lv) => { const r = E.newRun(11, lv); E.startCombat(r, 'easy', ['ray']); return r.combat.enemies[0]; };
   const base = hpAt(0).maxHp;
-  assert.equal(hpAt(1).maxHp, Math.round(base * 1.1));
-  assert.equal(hpAt(3).maxHp, Math.round(base * 1.2));
-  const r = E.newRun(11, 2);
-  E.startCombat(r, 'easy', ['kelp']);
-  r.combat.enemies[0].intent = 'lash';
-  assert.equal(E.intentInfo(r, r.combat.enemies[0]).dmg, Math.round(8 * 1.1));
+  assert.equal(hpAt(1).maxHp, base, 'Dark Water: no extra HP, its creatures are tougher already');
+  assert.equal(hpAt(2).maxHp, Math.round(base * 1.05));
+  assert.equal(hpAt(3).maxHp, Math.round(base * 1.1));
+  const dmgAt = (lv) => { const r = E.newRun(11, lv); E.startCombat(r, 'easy', ['kelp']); r.combat.enemies[0].intent = 'lash'; return E.intentInfo(r, r.combat.enemies[0]).dmg; };
+  assert.deepEqual([0, 1, 2, 3].map(dmgAt), [8, 8, Math.round(8 * 1.1), Math.round(8 * 1.15)]);
+  assert.equal(E.levelMods(3).rest, 0.25);
+  assert.equal(E.levelMods(2).rest, 0.3);
   const run0 = E.newRun(1, 0);
   const run2 = E.newRun(1, 2);
   run0.floor = run2.floor = 5;
@@ -851,18 +853,18 @@ test('the score counts Strands and the best Strand chain the same as Crests', ()
 });
 
 /* ---------- Content (README counts) ---------- */
-test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 13 enemies; 14 keepsakes; 7 tonics; 7 events', () => {
+test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 20 enemies; 14 keepsakes; 7 tonics; 10 events', () => {
   const cards = Object.values(BL.CARDS);
   const by = (r) => cards.filter((c) => c.rarity === r).length;
   assert.deepEqual([by('common'), by('uncommon'), by('rare')], [14, 16, 8]);
   cards.filter((c) => ['common', 'uncommon', 'rare', 'starter'].includes(c.rarity)).forEach((c) => assert.ok(Object.keys(c.up).length > 0, c.id + ' has an upgrade'));
   assert.equal(cards.filter((c) => c.type === 'status').length, 4);
   assert.equal(cards.filter((c) => c.type === 'curse').length, 1);
-  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 13);
+  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 20);
   assert.equal(Object.keys(BL.KEEPSAKES).length, 14);
   Object.values(BL.KEEPSAKES).forEach((k) => assert.ok(k.charge > 0, k.name + ' has a Roil'));
   assert.equal(Object.keys(BL.TONICS).length, 7);
-  assert.equal(BL.EVENTS.length, 7);
+  assert.equal(BL.EVENTS.length, 10);
 });
 
 test('the fight words are Swell, Surge, Ebb, Crest and Strand, and a keepsake has Roil: no card, keepsake, kit, status or achievement text uses the old words', () => {

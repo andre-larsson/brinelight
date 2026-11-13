@@ -4,6 +4,7 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
+          [--only darkwater]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
 'use strict';
 const path = require('path');
@@ -32,7 +33,7 @@ window.__t = {
     const alive = E.alive(c);
     const cards = c.hand.filter((x) => E.playable(r, x).ok && BL.CARDS[x.id].type !== 'status' && BL.CARDS[x.id].type !== 'curse');
     if (!cards.length) return null;
-    const weakest = alive.slice().sort((a, b) => a.hp - b.hp)[0];
+    const weakest = E.targets(c).slice().sort((a, b) => a.hp - b.hp)[0]; // a Submerged enemy is out of reach
     const tgt = (x) => (E.needsTarget(x) ? weakest.uid : null);
     for (const x of cards) { const p = E.preview(r, x.uid, tgt(x)); if (p && p.won) return { uid: x.uid, target: tgt(x) }; }
     let inc = 0; alive.forEach((e) => { const i = E.intentInfo(r, e); if (i && i.dmg) inc += i.dmg * i.hits; });
@@ -760,6 +761,95 @@ async function lazaretScenario(page, base, name, size) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* Dark Water through the real interface: its own background and boss, a Submerged Murk Ray that can't be aimed at,
+   a Pale Gulper that swallows a card and gives it back, a doused lantern, the Buoy's intent following the Swell,
+   then a few stops of a real Dark Water descent. */
+async function darkwaterScenario(page, base, name, size, opts) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + `?seed=${opts.seed}`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.maxlevel.v1', '1'); })()`);
+  await page.goto(base + `?seed=${opts.seed}`);
+  await inject(page);
+  await page.click('[data-act="newrun"]');
+  await sleep(200);
+  await clickIf(page, '[data-act="opskip"]');
+  await clickIf(page, '[data-act="tutorialskip"]');
+  if (!(await clickIf(page, '[data-act="startlevel"][data-lv="1"]'))) throw new Error(name + ': no depth choice for Dark Water');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the Dark Water map');
+  if ((await page.eval('window.Brinelight.run.level')) !== 1) failures.push(`${name}: the run is not in Dark Water`);
+  const setFight = async (enc, kind, setup) => {
+    await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.combat = null; r.screen = 'map'; E.startCombat(r, ${JSON.stringify(kind)}, ${JSON.stringify(enc)}); const c = r.combat; c.enemies.forEach((e) => { e.hp = e.maxHp = 400; }); ${setup || ''}; B.render(); })()`);
+    await waitIdle(page);
+    await dismissHints(page);
+  };
+  const endTurn = async () => { await page.click('#btn-end'); await sleep(300); await waitIdle(page, 'the enemy turn'); await dismissHints(page); };
+  const has = (sel) => page.eval(`!!document.querySelector(${JSON.stringify(sel)})`);
+  const toastText = () => page.eval(`Array.from(document.querySelectorAll('.toast-msg')).map((t) => t.innerText).join(' | ')`);
+  const tap = async (sel) => { await page.click(sel); await sleep(150); }; // a tap on a touch screen
+
+  // the Murk Ray sinks: it looks sunk, can't be aimed at, and the leech beside it can
+  await setFight(['ray', 'leech'], 'easy', "c.enemies[0].intent = 'sink'; c.enemies[1].intent = 'gorge'");
+  const bg = await page.eval(`getComputedStyle(document.getElementById('field')).backgroundImage`);
+  if (!/bg_dark\.webp/.test(bg)) failures.push(`${name}: Dark Water fights should use bg_dark (got ${bg})`);
+  await endTurn();
+  const [ray, leech] = await page.eval(`window.Brinelight.run.combat.enemies.map((e) => e.uid)`);
+  if (!(await has(`.unit.enemy.submerged[data-uid="${ray}"]`))) failures.push(`${name}: the Submerged Ray doesn't look sunk`);
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.combat.hand.unshift(B.E.newCard(r, 'jab')); r.combat.light = 3; B.render(); })()`);
+  await waitIdle(page);
+  const jab = await page.eval(`window.Brinelight.run.combat.hand.find((x) => x.id === 'jab').uid`);
+  const played0 = await page.eval('window.Brinelight.run.stats.cardsPlayed');
+  await tap(`#hand .card[data-uid="${jab}"]`);
+  await tap(`.unit[data-uid="${ray}"] .sprite`);
+  if ((await page.eval('window.Brinelight.run.stats.cardsPlayed')) !== played0) failures.push(`${name}: a card was played on the Submerged Ray`);
+  if (!/Submerged/.test(await toastText())) failures.push(`${name}: aiming at the Submerged Ray should say why it can't`);
+  await tap(`.unit[data-uid="${leech}"] .sprite`);
+  await waitIdle(page);
+  if ((await page.eval('window.Brinelight.run.stats.cardsPlayed')) !== played0 + 1) failures.push(`${name}: the Harpoon Jab on the leech was not played`);
+
+  // the Pale Gulper swallows the last card played, shows it, and gives it back when it dies
+  await setFight(['gulper'], 'elite', "c.enemies[0].intent = 'gulp'; c.hand.unshift(E.newCard(r, 'brace')); c.light = 3");
+  const brace = await page.eval(`window.Brinelight.run.combat.hand.find((x) => x.id === 'brace').uid`);
+  await tap(`#hand .card[data-uid="${brace}"]`); // raise it
+  await tap(`#hand .card[data-uid="${brace}"]`); // and play it
+  await waitIdle(page);
+  const lastWasBrace = await page.eval(`window.Brinelight.run.combat.lastPlayed === ${brace}`);
+  await endTurn();
+  if (lastWasBrace) {
+    if (!(await has('.unit.enemy [data-tip$=":swallowed"]'))) failures.push(`${name}: the Gulper shows no Swallowed chip`);
+    await page.eval(`(() => { const B = window.Brinelight; B.run.combat.enemies[0].st.brine = 999; B.render(); })()`);
+    await endTurn();
+    await sleep(500);
+    if (!(await page.eval(`window.Brinelight.run.combat ? window.Brinelight.run.combat.discard.some((x) => x.uid === ${brace}) || window.Brinelight.run.combat.won : true`))) failures.push(`${name}: the swallowed Brace did not come back`);
+  } else failures.push(`${name}: the Brace was not played before the Gulp`);
+  await page.eval(`(() => { const B = window.Brinelight; B.run.combat = null; B.run.screen = 'map'; B.render(); })()`);
+
+  // the Glimmer Chain douses the lantern: 2 Light next turn
+  await setFight(['chain'], 'elite', "c.enemies[0].intent = 'douse'");
+  await endTurn();
+  const light = await page.eval(`window.Brinelight.run.combat.light`);
+  if (light !== 2) failures.push(`${name}: a doused lantern should give 2 Light, got ${light}`);
+
+  // the Tolling Buoy: its name, its lock, and an intent that follows the Swell
+  await setFight(['buoy'], 'boss', "c.enemies[0].intent = 'toll'");
+  await sleep(1600);
+  await dismissHints(page);
+  const bossBg = await page.eval(`getComputedStyle(document.getElementById('field')).backgroundImage`);
+  if (!/bg_dark_boss\.webp/.test(bossBg)) failures.push(`${name}: the Buoy's fight should use bg_dark_boss (got ${bossBg})`);
+  const intentAt = (tide) => page.eval(`(() => { const B = window.Brinelight; B.run.combat.tide = ${tide}; B.render(); return document.querySelector('.unit.enemy .intent').innerText.replace(/\\s+/g, ''); })()`);
+  const at3 = await intentAt(3), at5 = await intentAt(5);
+  if (at3 !== '12' || at5 !== '20') failures.push(`${name}: the Rocking Toll intent should read 12 at Swell 3 and 20 at Swell 5 (got ${at3}, ${at5})`);
+  await checkPage(page, name + ' buoy');
+
+  // then a few stops of the real descent
+  await page.eval(`(() => { const B = window.Brinelight; B.run.combat = null; B.run.screen = 'map'; B.render(); })()`);
+  const visited = await playStops(page, name, {});
+  log(`  ${name}: visited ${visited.join(', ')}`);
+  await checkPage(page, name + ' after stops');
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 (async () => {
   const server = await serve(PORT, ROOT);
   const page = await launch();
@@ -783,6 +873,10 @@ async function lazaretScenario(page, base, name, size) {
     if (!ONLY || ONLY === 'lazaret') {
       await lazaretScenario(page, base, 'lazaret desktop', { w: 1280, h: 800 });
       await lazaretScenario(page, base, 'lazaret phone', { w: 390, h: 844, mobile: true, touch: true });
+    }
+    if (!ONLY || ONLY === 'darkwater') {
+      await darkwaterScenario(page, base, 'dark water desktop', { w: 1280, h: 800 }, { seed: 4444 });
+      await darkwaterScenario(page, base, 'dark water phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 5555 });
     }
     if (!ONLY || ONLY === 'workshop') {
       await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });

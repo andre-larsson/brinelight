@@ -34,6 +34,7 @@ Object.values(BL.ENEMIES).forEach((e) => check(`img/units/${e.art}.webp`, 'enemy
 Object.values(BL.KEEPSAKES).forEach((k) => check(`img/icons/${k.art}.webp`, 'keepsake ' + k.name));
 Object.values(BL.TONICS).forEach((t) => check(`img/icons/${t.art}.webp`, 'tonic ' + t.name));
 BL.EVENTS.forEach((e) => check(`img/scenes/${e.art}.webp`, 'event ' + e.id));
+Object.values(BL.BANDS).forEach((b) => [b.bg, b.bossBg].forEach((bg) => check(`img/bg/${bg}.webp`, 'band ' + b.name)));
 if (/\b(src|href)="\//.test(html)) missing.push('index.html uses a root-absolute path; use relative paths so /<repo>/ works');
 
 if (missing.length) { console.error('Missing files:\n  ' + missing.join('\n  ')); process.exit(1); }

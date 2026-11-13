@@ -5,8 +5,18 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.14.0';
+  BL.VERSION = '0.15.0';
   BL.CHANGELOG = [
+    { v: '0.15.0', date: '2026-11-12', items: [
+      'Dark Water is a new place, not just the Shallows with more HP. Its water has been held still for a hundred years, and things there live on the brinelight in it.',
+      'Six new creatures. The Glimmer Leech heals by the HP it takes from you. The Pistol Shrimp cocks its claw before a big snap. The Murk Ray sinks out of reach: only Crests and waves hit it then, and a Strand brings it up. The Lamp Hermit keeps its Ward from turn to turn.',
+      'Two new Dreads. The Glimmer Chain drinks from your lantern, so you start your next turn with 1 less Light. The Pale Gulper swallows the last card you played that turn, and you get it back when it dies.',
+      'A new boss on the last landing of Dark Water: the Tolling Buoy. It rocks on your Swell, so its Toll hits harder the further the Swell is from 3. At half health its cage breaks open.',
+      'Three new Fog events in Dark Water: the Tide-Board, the Glimmer Garden and the Diving Bell. The Tide-Witch, the Gilded Gull, the bottle and the eyes in the kelp stay in the Shallows.',
+      'Riptide and the Abyss now use Dark Water\'s creatures and boss, made harder. They are about as hard as before.',
+      'Story so far: Dark Water in the glossary, pins explained, and six new Keeper\'s notes. The chapter for clearing Dark Water starts with the Buoy.',
+      'New paintings for Dark Water\'s chamber, its boss\'s lock, the seven new creatures and the three events.',
+    ] },
     { v: '0.14.0', date: '2026-11-12', items: [
       'Scour is now called Thrash, and it works differently: a Roiled aether thrashes, and it strikes you at the start of every turn of a fight, from the first.',
       'Ward stops Thrash. Any Ward you still have after the enemies have acted takes the hit.',
