@@ -4,7 +4,7 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
-          [--only darkwater]
+          [--only darkwater|progress]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
 'use strict';
 const path = require('path');
@@ -344,23 +344,23 @@ async function workshopScenario(page, base, name, size) {
   await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'whaletooth'); B.E.gainKeepsake(B.run, 'stormbottle'); B.render(); })()`);
   await dismissHints(page);
   const chip = await page.eval(`(() => { const c = document.querySelector('.hud .charge'); return c ? c.className + ' ' + c.innerText : ''; })()`);
-  if (!/over/.test(chip) || !/37\/30/.test(chip)) failures.push(`${name}: the HUD Roil reads "${chip}"`);
+  if (!/over/.test(chip) || !/37\/20/.test(chip)) failures.push(`${name}: the HUD Roil reads "${chip}"`);
   await checkPage(page, name + ' charge');
   await page.click('.hud .medal[data-k="stormbottle"]');
   await page.waitFor(`!!document.querySelector('#overlay [data-act="ksdrop"]')`, 3000, 'the keepsake opens');
   await clickIf(page, '#overlay [data-act="ksdrop"]');
   if (await page.eval('window.Brinelight.run.keepsakes.join()') !== 'whaletooth') failures.push(`${name}: dropping a keepsake didn't work`);
   if (await page.eval(`!!document.querySelector('.hud .charge.over')`)) failures.push(`${name}: still over the Hold after dropping`);
-  // the first fight, 3 steps over the Hold: a Seep, Thrash 1 and a Bell Minnow join it
-  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'anchor'); B.E.gainKeepsake(B.run, 'coralcrown'); B.render(); })()`);
+  // the first fight, 3 steps over the Hold (Roil 19 + 12 = 31 of 20): a Seep, Thrash 1 and a Bell Minnow join it
+  await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'tidewatch'); B.render(); })()`);
   await dismissHints(page);
   await page.click('[data-act="node"]');
   await page.waitFor('window.Brinelight.run.screen !== "map"', 5000, 'the first stop');
   if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
   const seep = await page.eval(`(() => { const c = window.Brinelight.run.combat; return c.hand.concat(c.draw).filter((x) => x.id === 'seep').length; })()`);
-  if (seep !== 1) failures.push(`${name}: ${seep} Seep in a fight at Roil 43 of 30`);
+  if (seep !== 1) failures.push(`${name}: ${seep} Seep in a fight at Roil 31 of 20`);
   const roiled = await page.eval(`(() => { const c = window.Brinelight.run.combat; return { thrash: c.thrash, minnows: c.enemies.filter((e) => e.roil && e.id === 'minnow').length, shown: document.querySelectorAll('.enemy').length, all: c.enemies.length }; })()`);
-  if (roiled.thrash !== 1 || roiled.minnows !== 1 || roiled.shown !== roiled.all) failures.push(`${name}: a fight at Roil 43 of 30 should have Thrash 1 and 1 Bell Minnow on the field (${JSON.stringify(roiled)})`);
+  if (roiled.thrash !== 1 || roiled.minnows !== 1 || roiled.shown !== roiled.all) failures.push(`${name}: a fight at Roil 31 of 20 should have Thrash 1 and 1 Bell Minnow on the field (${JSON.stringify(roiled)})`);
   // Thrash shows on the keeper, and the incoming number counts it on top of what the enemies intend
   const thrashUi = await page.eval(`(() => {
     const B = window.Brinelight, c = B.run.combat;
@@ -728,7 +728,7 @@ async function lazaretScenario(page, base, name, size) {
   await checkPage(page, name + ' pack');
   await clickIf(page, '#overlay [data-act="ksbring"][data-k="moonshard"]');
   await sleep(150);
-  if (!/Calm/.test(await text('#overlay .lz-line'))) failures.push(`${name}: Moon Shard and Drowned Anchor (Roil 26) should be Calm in the Shallows`);
+  if (!/Roiled/.test(await text('#overlay .lz-line'))) failures.push(`${name}: Moon Shard and Drowned Anchor (Roil 26) should be Roiled in the Shallows (Hold 20)`);
   await dive('the second descent');
   if ((await keeps()) !== 'anchor,moonshard' || (await count('.hud .medal[data-k="anchor"]')) !== 1) failures.push(`${name}: the run didn't start with the keepsakes brought (${await keeps()})`);
   await clickIf(page, '.hud .medal[data-k="anchor"]');
@@ -850,6 +850,99 @@ async function darkwaterScenario(page, base, name, size, opts) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* v0.16.0: the end screen's score lines and the purple Lazaret box, the Rite pill in the hand, and the title menu's
+   backup, restore and reset (a reset keeps the settings; a restore brings everything back). */
+async function progressScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  const PREFS = JSON.stringify({ sound: false, music: false, fast: true });
+  await page.goto(base + '?seed=8888');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', ${JSON.stringify(PREFS)}); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
+  await page.goto(base + '?seed=8888');
+  await inject(page);
+  const count = (sel) => page.eval(`document.querySelectorAll(${JSON.stringify(sel)}).length`);
+  const text = (sel) => page.eval(`(document.querySelector(${JSON.stringify(sel)}) || { textContent: '' }).textContent`);
+  const waitReload = async (what) => {
+    const t0 = Date.now();
+    for (;;) {
+      try { if (await page.eval('!window.__beforeReload && !!window.Brinelight && !!document.querySelector(".title-screen")')) break; } catch (e) { /* the page is reloading */ }
+      if (Date.now() - t0 > 8000) throw new Error('timed out waiting for the reload after ' + what);
+      await sleep(100);
+    }
+    await sleep(250);
+    await inject(page);
+  };
+
+  // a won run: the score lines add up to the score, and every unlock box is the same purple
+  await page.click('[data-act="newrun"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the progress run');
+  await dismissHints(page);
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.gainKeepsake(r, 'moonshard'); r.stats.kills = 20; r.stats.crests = 7; r.stats.elites = 2; r.combat = null; r.floor = 11; r.screen = 'victory'; B.render(); })()`);
+  await sleep(200);
+  const sums = await page.eval(`(() => { const dd = [...document.querySelectorAll('.score-parts dl div:not(.sum) dd')].map((d) => +d.textContent.replace('+', ''));
+    return { lines: dd.length, sum: dd.reduce((a, b) => a + b, 0), shown: +document.querySelector('.score-parts .sum dd').textContent, score: window.Brinelight.run.final.score }; })()`);
+  if (sums.lines < 5 || sums.sum !== sums.score || sums.shown !== sums.score) failures.push(`${name}: the score lines don't add up to the score (${JSON.stringify(sums)})`);
+  if (!/1 for every 50 score/.test(await text('.salvage-box'))) failures.push(`${name}: the Salvage line doesn't say how the score turns into Salvage`);
+  const bgs = await page.eval(`[...document.querySelectorAll('.unlock-box')].map((el) => getComputedStyle(el).backgroundColor)`);
+  if (bgs.length < 2 || new Set(bgs).size !== 1) failures.push(`${name}: the unlock boxes on the end screen aren't all the same colour (${JSON.stringify(bgs)})`);
+  await checkPage(page, name + ' win');
+
+  // a Rite in the hand wears its type; other cards in the hand don't
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E; const r = E.newRun(8888, 0); B.run = r; E.startCombat(r, 'easy', ['kelp']); r.combat.hand = ['beam', 'jab', 'moonpull', 'brace'].map((id) => E.newCard(r, id)); B.render(); })()`);
+  await sleep(1500);
+  const pills = await page.eval(`[...document.querySelectorAll('.hand .card')].map((c) => { const t = c.querySelector('.c-type'); const r = t.getBoundingClientRect(); return (getComputedStyle(t).display !== 'none' && r.width > 0 ? t.textContent : '-'); }).join(',')`);
+  if (pills.toLowerCase() !== 'rite,-,rite,-') failures.push(`${name}: only the Rites in the hand should show their type (${pills})`);
+  await page.eval(`(() => { const B = window.Brinelight; B.run = null; B.render(); })()`);
+
+  // the menu during a run has no reset; on the title screen it has backup, restore and reset
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E; B.run = E.newRun(8888, 0); B.render(); })()`);
+  await page.click('[data-act="menu"]');
+  await sleep(150);
+  if (await count('#overlay [data-act="progress"]')) failures.push(`${name}: the menu offers a reset during a run`);
+  await clickIf(page, '#overlay [data-act="close"]');
+  await page.eval(`(() => { const B = window.Brinelight; B.run = null; B.render(); })()`);
+  await page.click('[data-act="menu"]');
+  await sleep(150);
+  await page.eval(`document.querySelector('#overlay [data-act="progress"]').scrollIntoView({ block: 'center' })`);
+  await page.click('#overlay [data-act="progress"]');
+  await sleep(150);
+  if ((await count('#overlay [data-act="exportsave"]')) !== 1 || (await count('#overlay [data-act="importsave"]')) !== 1 || (await count('#overlay [data-act="resetask"]')) !== 1) failures.push(`${name}: the title menu should offer a backup, a restore and a reset`);
+  await checkPage(page, name + ' progress dialog');
+  await page.click('#overlay [data-act="exportsave"]');
+  await sleep(200);
+  if (!/Backup downloaded/.test(await page.eval('document.body.innerText'))) failures.push(`${name}: Download a backup didn't say it downloaded`);
+  const backup = await page.eval('window.Brinelight.backupData()');
+  const meta0 = await page.eval(`localStorage.getItem('brinelight.meta.v1')`);
+  if (backup.kind !== 'brinelight-backup' || backup.data['brinelight.meta.v1'] !== meta0 || !backup.data['brinelight.prefs.v1'] || Object.keys(backup.data).some((k) => !k.startsWith('brinelight.'))) failures.push(`${name}: the backup doesn't hold the progress (${Object.keys(backup.data || {}).join(', ')})`);
+  await page.click('#overlay [data-act="resetask"]');
+  await sleep(150);
+  if (!/can't be undone/.test(await text('#overlay .modal-body')) || (await count('#overlay [data-act="resetconfirm"]')) !== 1) failures.push(`${name}: Reset progress doesn't ask first`);
+  await checkPage(page, name + ' reset dialog');
+  await page.eval('window.__beforeReload = 1');
+  await page.click('#overlay [data-act="resetconfirm"]');
+  await waitReload('the reset');
+  const after = await page.eval(`({ meta: localStorage.getItem('brinelight.meta.v1'), best: localStorage.getItem('brinelight.best.v1'), story: localStorage.getItem('brinelight.story.v1'), prefs: localStorage.getItem('brinelight.prefs.v1'), laz: document.querySelectorAll('[data-act="lazaret"]').length })`);
+  if (after.meta || after.best || after.story || after.laz) failures.push(`${name}: the reset left progress behind (${JSON.stringify(after)})`);
+  if (after.prefs !== PREFS) failures.push(`${name}: the reset changed the settings (${after.prefs})`);
+
+  // a file that isn't a backup changes nothing; the backup brings it all back
+  await page.eval(`window.Brinelight.askRestore('{"kind":"something else"}')`);
+  await sleep(150);
+  if (!/Not a Brinelight backup/.test(await text('#overlay .modal'))) failures.push(`${name}: a wrong file wasn't refused`);
+  await clickIf(page, '#overlay [data-act="close"]');
+  await page.eval(`window.Brinelight.askRestore(${JSON.stringify(JSON.stringify(backup))})`);
+  await sleep(150);
+  if (!/Restore this backup/.test(await text('#overlay .modal'))) failures.push(`${name}: a backup file doesn't ask before restoring`);
+  await page.eval('window.__beforeReload = 1');
+  await page.click('#overlay [data-act="importconfirm"]');
+  await waitReload('the restore');
+  const meta1 = await page.eval(`localStorage.getItem('brinelight.meta.v1')`);
+  if (meta1 !== meta0 || !(await count('[data-act="lazaret"]'))) failures.push(`${name}: the restore didn't bring the progress back`);
+  await checkPage(page, name + ' restored');
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 (async () => {
   const server = await serve(PORT, ROOT);
   const page = await launch();
@@ -877,6 +970,10 @@ async function darkwaterScenario(page, base, name, size, opts) {
     if (!ONLY || ONLY === 'darkwater') {
       await darkwaterScenario(page, base, 'dark water desktop', { w: 1280, h: 800 }, { seed: 4444 });
       await darkwaterScenario(page, base, 'dark water phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 5555 });
+    }
+    if (!ONLY || ONLY === 'progress') {
+      await progressScenario(page, base, 'progress desktop', { w: 1280, h: 800 });
+      await progressScenario(page, base, 'progress phone', { w: 390, h: 844, mobile: true, touch: true });
     }
     if (!ONLY || ONLY === 'workshop') {
       await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });

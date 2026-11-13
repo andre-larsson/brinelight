@@ -21,6 +21,8 @@ It's plain HTML, CSS and JavaScript, with no build step and no dependencies.
 
 Progress is saved automatically in your browser, at the start of every turn and between map stops. **Continue** on the title screen resumes the run. To replay a specific map and card sequence, add `?seed=12345` to the URL before starting a new run.
 
+**Back up or reset progress** is in the menu on the title screen. **Download a backup** saves everything to a `.json` file: Salvage and kit, the Lazaret, achievements, unlocked depths, best score, the Logbook, Story so far, a run in progress and your settings. **Restore from a backup** loads such a file in place of the progress in the browser. It refuses any other file, and it asks before it replaces anything. **Reset progress** asks first, then erases all progress, the hints and the tutorial. Your sound, music and animation settings stay.
+
 ## Controls
 
 | | Play a card | Other |
@@ -31,7 +33,7 @@ Progress is saved automatically in your browser, at the start of every turn and 
 
 The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: descents finished, won and lost, the deepest landing reached, depths cleared, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
 
-The menu (top right) has the tutorial, How to Play, Story so far, sound effects on/off, music on/off, fast animations, save and quit, and abandon run.
+The menu (top right) has the tutorial, How to Play, Story so far, sound effects on/off, music on/off and fast animations. During a run it also has save and quit, and abandon run. On the title screen it has Back up or reset progress.
 
 ## Rules
 
@@ -59,7 +61,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 **Other keywords.**
 - **Sink:** the card is gone for the rest of the fight once played.
 - **Float:** the card stays in your hand at the end of the turn.
-- **Rite:** stays in effect for the rest of the fight.
+- **Rite:** stays in effect for the rest of the fight. A Rite in your hand is labelled RITE.
 - **Echo:** your next card is played twice.
 - **Might:** +damage per hit.
 - **Spines:** damage back to attackers.
@@ -73,19 +75,19 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Lamp Hermit:** its **Shell** keeps its Ward from turn to turn. A Strand still strips it.
 - **Glimmer Chain** (a Dread): Drink the Light **Douses** your lantern: you start your next turn with 1 less Light.
 - **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies.
-- **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At half health its cage breaks open and two Glimmer Leeches come out.
+- **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At two thirds of its health its cage breaks open and two Glimmer Leeches come out.
 - **The Glimmer Garden** (a Fog event): if you pick the beads, a Glimmer Leech follows you into your next fight.
 
 **Between fights.** Choose your route on the map:
 - **Skirmishes:** normal fights.
-- **Dreads:** elites. They're harder, and you may take 1 of 2 keepsakes as the reward.
+- **Dreads:** elites. They're harder. They pay Pearls, and you may take 1 of 2 keepsakes. A Dread offers no card and no tonic.
 - **Fog:** events with choices, some of them gambles.
 - **Barnaby's shop:** buy cards, keepsakes and tonics, or pay to remove a card.
 - **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card.
 - **Wrecks:** a chest of pearls where you may take 1 of 3 keepsakes.
 
 **Keepsakes, Roil and a Roiled aether.** A keepsake lasts the whole run, and it stirs the aether around you. How much is its **Roil** (shown on each keepsake). Every keepsake you carry counts.
-- The aether around you holds a set amount of Roil, your **Hold**: 30 in the Shallows, and 5 more at each deeper depth (Dark Water 35, Riptide 40, The Abyss 45). Up to your Hold the aether is **Calm**.
+- The aether around you holds a set amount of Roil, your **Hold**: 20 in the Shallows, 35 in Dark Water, 40 in Riptide and 45 in the Abyss. Up to your Hold the aether is **Calm**.
 - Past your Hold the aether is **Roiled**. Every 5 Roil over (or part of 5) is one step, and each step adds one thing to every fight. The steps go round a ladder of three:
   - **Step 1: a Seep.** Seep is an unplayable card shuffled into your draw pile at the start of the fight, and it's gone after the fight. It never joins your deck.
   - **Step 2: Thrash 1.** At the start of each of your turns, you take 1 damage. Ward stops it: Thrash lands before the Ward from your last turn washes away, so Ward left over after the enemies have acted takes the hit. On the first turn of a fight only the Shell Gorget's Ward is there to stop it.
@@ -95,11 +97,11 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - A keepsake pick shows what taking it would do to your Roil. You can take one, or leave them.
 - Between fights you can drop a keepsake for good (one you brought from the Lazaret is only out of that run). Scallop Charm takes its 10 Max HP with it.
 
-After each fight you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded, and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
+After each Skirmish you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded, and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
 
 Turning down a reward adds to your final score:
 - **+50** for skipping a card (after a fight or in an event), or choosing an event's Leave or Decline.
-- **+80** for skipping the card after a Dread, or for leaving the keepsakes after a Dread or at a Wreck.
+- **+80** for leaving the keepsakes after a Dread or at a Wreck.
 - **+20** for leaving a tonic behind when you have a free slot.
 
 Fights also pay bonus Pearls for:
@@ -150,15 +152,15 @@ Both are announced the moment you earn them. The score counts Crests and Strands
     - Brine (Brine Bloom, Brine Spear, Salt Ward).
     - Might multi-hits.
 - **20 enemies:**
-  - The Shallows: 8 normal (Kelp Lurker, Brine Crab, Lantern Eel, Drowned Deckhand, Gloom Jelly, Barnacle Mite, Fog Wisp, Salt Gull) and 3 elite encounters:
+  - The Shallows: 8 normal (Kelp Lurker, Brine Crab, Lantern Eel, Drowned Deckhand, Gloom Jelly, Barnacle Mite, Fog Wisp, Salt Gull) and 3 elite encounters. The Kelp Lurker's Lash hits 2 harder each time, and the Barnacle Mite's Burrow gives it 5 Ward and 1 Might. The elites:
     - Reefback Hulk, which has Spines.
     - Hollow Siren, whose lullaby flattens your Swell back to 3.
     - Angler Twins, where the survivor enrages when its twin dies.
-  - The Shallows' boss, The Drowned Bellwether. At half health it cracks, calls a shoal of Bell Minnows, and the music shifts. The Bell Minnow also follows a Roiled aether.
+  - The Shallows' boss, The Drowned Bellwether. At two thirds of its health it cracks, calls a shoal of Bell Minnows, and the music shifts. The Bell Minnow also follows a Roiled aether.
   - Dark Water: 4 new normal creatures (Glimmer Leech, Pistol Shrimp, Murk Ray, Lamp Hermit), with the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp; 3 elite encounters (Glimmer Chain, Pale Gulper and the Angler Twins); and its boss, the Tolling Buoy.
 - **14 keepsakes, 7 tonics, 10 events** (7 in the Shallows; in Dark Water, 3 of its own and 3 from the Shallows).
 - **14 pieces of kit (plus the Brass Tide-Bell) and 7 achievements** in the Workshop.
-- **Endings:** win and lose screens with run stats and score, best score, depth unlocks, and a one-click new run.
+- **Endings:** win and lose screens with the score line by line (and how it turns into Salvage), run stats, best score, unlocks in purple boxes, and a one-click new run.
 
 Sound effects and music are synthesized at runtime with the Web Audio API, so there are no audio files. The music is a generative pad-and-pluck score over an ocean bed, and it changes mood for fights, the boss, and the boss's second phase.
 

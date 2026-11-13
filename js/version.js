@@ -5,8 +5,19 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.15.0';
+  BL.VERSION = '0.16.0';
   BL.CHANGELOG = [
+    { v: '0.16.0', date: '2026-11-13', items: [
+      'The Shallows are harder. The aether there holds 20 Roil, down from 30, so fewer keepsakes from the Lazaret fit before it is Roiled.',
+      'Dreads pay Pearls and let you take 1 of 2 keepsakes. They no longer give a card or a tonic.',
+      'The Drowned Bellwether calls its shoal of Bell Minnows at two thirds of its health instead of half, so the minnows have time to bite. The Tolling Buoy\'s cage opens at two thirds too.',
+      'The Kelp Lurker\'s Lash hits 2 harder each time it lashes. The Barnacle Mite\'s Burrow gives it 5 Ward and 1 Might.',
+      'Lighthouse Beam deals 2 damage for each Swell (3 when upgraded), down from 3 (4).',
+      'Rite cards say RITE in your hand.',
+      'The end screen shows how your score adds up, line by line, and how it turns into Salvage.',
+      'Every unlock on the end screen, the Lazaret included, is in the same purple box.',
+      'Back up or reset progress, in the menu on the title screen: download your progress to a file, load it again, or start over. A reset asks first, and your settings stay.',
+    ] },
     { v: '0.15.0', date: '2026-11-12', items: [
       'Dark Water is a new place, not just the Shallows with more HP. Its water has been held still for a hundred years, and things there live on the brinelight in it.',
       'Six new creatures. The Glimmer Leech heals by the HP it takes from you. The Pistol Shrimp cocks its claw before a big snap. The Murk Ray sinks out of reach: only Crests and waves hit it then, and a Strand brings it up. The Lamp Hermit keeps its Ward from turn to turn.',

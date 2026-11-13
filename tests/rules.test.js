@@ -319,7 +319,8 @@ test('cards that scale with the Swell: Undercurrent, Tsunami, Lighthouse Beam, T
   f.c.tide = 5;
   pacify(f.c);
   E.endTurnStart(f.run);
-  assert.equal(500 - f.c.enemies[0].hp, 3 * 5);
+  assert.equal(500 - f.c.enemies[0].hp, 2 * 5, 'Lighthouse Beam: 2 damage for each Swell');
+  assert.deepEqual([BL.CARDS.beam.v.per, BL.CARDS.beam.up.per], [2, 3]);
 
   f = fight(['kelp'], { hand: ['toppledtower', 'stormsurge'] });
   tough(f.c);
@@ -491,11 +492,16 @@ test('the number on a CREST badge is how many Crests that card makes, not the ch
 });
 
 /* ---------- Bosses and elites ---------- */
-test('the Bellwether calls a shoal of Bell Minnows at half health, and the shoal scatters when it falls', () => {
+test('the Bellwether calls a shoal of Bell Minnows at two thirds of its health, and the shoal scatters when it falls', () => {
+  assert.equal(BL.PIN_CALL, 2 / 3);
   const { run, c } = fight(['bell'], { kind: 'boss', deck: ['brace', 'brace', 'brace', 'brace', 'brace'] });
   run.hp = run.maxHp = 999;
   const bell = c.enemies[0];
-  bell.hp = 80;
+  bell.intent = 'clapper';
+  bell.hp = Math.floor(bell.maxHp * 2 / 3) + 1; // 107 of 160: not yet
+  E.endTurn(run);
+  assert.notEqual(bell.intent, 'shoal');
+  bell.hp = Math.floor(bell.maxHp * 2 / 3); // 106
   E.endTurn(run);
   assert.equal(bell.intent, 'shoal');
   E.endTurn(run);
@@ -505,6 +511,50 @@ test('the Bellwether calls a shoal of Bell Minnows at half health, and the shoal
   play(run, 'jab', bell);
   assert.ok(c.won);
   assert.equal(E.alive(c).length, 0);
+});
+
+test('a Dread pays Pearls and a pick of 1 of 2 keepsakes, and offers no card and no tonic', () => {
+  for (let seed = 1; seed <= 40; seed++) {
+    const f = fight(['hulk'], { kind: 'elite', seed });
+    f.c.enemies[0].dead = true;
+    f.c.won = true;
+    E.finishCombat(f.run);
+    const rw = f.run.rewards;
+    assert.ok(rw.pearls >= 30);
+    assert.equal(rw.keepsakeChoices.length, 2);
+    assert.deepEqual(rw.cards, []);
+    assert.equal(rw.cardTaken, true, 'nothing to pick, and leaving is not a decline');
+    assert.equal(rw.tonic, null);
+    const d0 = f.run.stats.declined;
+    E.takeRewardKeepsake(f.run, rw.keepsakeChoices[0]);
+    E.backToMap(f.run);
+    assert.equal(f.run.stats.declined, d0);
+  }
+});
+
+test('Kelp Lurker: each Lash hits 2 harder than the last', () => {
+  const { run, c } = fight(['kelp'], { deck: ['brace', 'brace', 'brace', 'brace', 'brace'] });
+  run.hp = run.maxHp = 999;
+  const k = c.enemies[0];
+  const hits = [];
+  for (let i = 0; i < 3; i++) {
+    k.intent = 'lash';
+    assert.equal(E.intentInfo(run, k).dmg, 8 + 2 * i, 'the intent shows the next Lash');
+    const hp = run.hp;
+    c.player.ward = 0;
+    E.endTurn(run);
+    hits.push(hp - run.hp);
+  }
+  assert.deepEqual(hits, [8, 10, 12]);
+});
+
+test('Barnacle Mite: Burrow gives it 5 Ward and 1 Might', () => {
+  const { run, c } = fight(['mite']);
+  const m = c.enemies[0];
+  m.intent = 'burrow';
+  E.endTurn(run);
+  assert.equal(m.st.might, 1);
+  assert.equal(m.ward, 5);
 });
 
 test('Hollow Siren: the lullaby flattens your Swell back to 3', () => {
@@ -737,7 +787,7 @@ test('deeper starting depths: Dark Water has its own creatures; Riptide and the 
   assert.deepEqual(E.LEVELS.map((l) => l.name), ['Shallows', 'Dark Water', 'Riptide', 'The Abyss']);
 });
 
-test('turning down a reward adds to the score: 50 for a card or an event Leave, 80 for a Dread card, 20 for a tonic left with a free slot', () => {
+test('turning down a reward adds to the score: 50 for a card or an event Leave, 20 for a tonic left with a free slot', () => {
   const won = (seed, o, enc) => { const f = fight(enc || ['kelp'], Object.assign({ seed }, o)); f.c.enemies.forEach((e) => { e.dead = true; }); f.c.won = true; E.finishCombat(f.run); return f.run; };
   assert.deepEqual(E.DECLINE_SCORE, { card: 50, eliteCard: 80, eventCard: 50, event: 50, tonic: 20, keepsake: 80 });
   // skip the reward card
@@ -746,9 +796,10 @@ test('turning down a reward adds to the score: 50 for a card or an event Leave, 
   E.takeRewardCard(run, null);
   assert.equal(run.stats.declined, 1);
   assert.equal(E.score(run, false), s0 + 50);
-  // a Dread's card is worth more to turn down
+  // a Dread offers no card since v0.16.0; a Dread's card in a reward saved before that was worth 80 to turn down
   run = won(1, { kind: 'elite' }, ['hulk']);
-  assert.equal(run.rewards.elite, true);
+  run.rewards.cards = [{ id: 'jab', up: 0 }];
+  run.rewards.cardTaken = false;
   assert.equal(E.skipCardKind(run.rewards), 'eliteCard');
   const e0 = E.score(run, false);
   E.takeRewardCard(run, null);

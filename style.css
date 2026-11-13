@@ -1086,10 +1086,24 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .lz-missing { opacity: .7; }
 .lz-missing b { color: #a9b9b8; }
 .kit-tile .k-charge { font-size: 13px; }
-.lz-box { font-size: 15px; line-height: 1.45; background: rgba(14, 44, 46, .8); border-color: rgba(140, 220, 205, .55); color: #dff5ee; }
-.lz-box b { color: #ffe2a8; }
+/* every unlock on the end screen is the same purple box; only a loss gets its own colour */
+.unlock-box, button.unlock-box { font-size: 15px; line-height: 1.45; }
+.unlock-box b { color: #ffe2a8; }
 .lz-box.lost { background: rgba(50, 22, 22, .78); border-color: rgba(255, 160, 140, .5); color: #f6dcd6; }
-button.lz-box:hover, button.lz-box:focus-visible { border-color: #bff3e6; }
+/* how the score adds up */
+.score-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 12px 16px; width: 100%; }
+.score-row .score-box { align-self: center; }
+.end-stats { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+.score-parts { width: min(460px, 100%); background: rgba(6, 20, 30, .85); border: 1px solid rgba(201, 162, 74, .3); border-radius: 10px; padding: 6px 14px 8px; text-align: left; }
+.score-parts summary { cursor: pointer; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 4px 0; }
+.score-parts dl { margin: 4px 0 0; }
+.score-parts dl div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 3px 0; border-top: 1px solid rgba(201, 162, 74, .14); font-size: 15px; }
+.score-parts dt { color: #e3eeec; }
+.score-parts dt small { color: var(--muted); font-size: 13px; margin-left: 4px; white-space: nowrap; }
+.score-parts dd { margin: 0; font-variant-numeric: tabular-nums; color: #ffe2a8; white-space: nowrap; }
+.score-parts .mult dt, .score-parts .mult dd { color: #c9b8ff; }
+.score-parts .sum { border-top: 1px solid rgba(201, 162, 74, .5); font-weight: 800; }
+.score-parts .sum dd { font-family: var(--serif); font-size: 18px; }
 .ws-head { margin-top: 22px; padding-top: 14px; border-top: 1px solid rgba(201, 162, 74, .25); }
 
 /* ---------- The logbook ---------- */
@@ -1100,3 +1114,18 @@ button.lz-box:hover, button.lz-box:focus-visible { border-color: #bff3e6; }
 .logbook dd { margin: 0; font-size: 16px; font-weight: 700; color: #ffe2a8; text-align: right; }
 .logbook dd small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
 .log-note { margin: 12px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+
+/* the menu's Reset progress, and the button that confirms it */
+.choice.danger b { color: var(--bad); }
+.btn.danger { background: rgba(120, 24, 24, .9); border-color: rgba(255, 138, 122, .7); color: #ffe9e4; }
+.btn.danger:hover, .btn.danger:focus-visible { background: rgba(150, 30, 30, .95); }
+.reset-list { text-align: left; margin: 6px 0 10px; padding-left: 1.2em; line-height: 1.5; }
+
+/* Rites stay in play, so in the hand they wear their type: a pill on the lower left of the picture, where the next
+   card in a crowded hand never covers it (the other types show theirs only outside the hand) */
+.hand .card.t-rite .c-type, .small-cards .hand .card.t-rite .c-type {
+  display: block; left: .55em; transform: none; font-size: max(12px, .62em); padding: .05em .6em; letter-spacing: .1em;
+  top: calc(var(--cw) * .685 - 1.45em); color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .6);
+}
+.small-cards .hand .card.t-rite .c-type { top: calc(var(--cw) * .635 - 1.45em); }
+.small-cards .hand .card.t-rite.selected .c-type { top: calc(var(--cw) * .575 - 1.45em); }

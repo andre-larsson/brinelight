@@ -175,6 +175,17 @@ const SIZES = {
       await setup(`document.querySelector('[data-act="helptab"][data-tab="keywords"]').click();`);
       await shot(tag, '36_help_keywords');
       await setup(`B.closeOverlay(true);`);
+      // v0.16.0: Rites marked in the hand, and the confirmation before a reset
+      await setup(`const r = E.newRun(4242, 0); B.run = r; E.startCombat(r, 'easy', ['kelp']); const c = r.combat; c.hand = ['beam', 'jab', 'moonpull', 'brace', 'spindrift'].map((id) => E.newCard(r, id)); B.render();`);
+      await sleep(1800);
+      await shot(tag, '37_rite_hand');
+      await setup(`B.run = null; B.render(); document.querySelector('[data-act="menu"]').click();`);
+      await shot(tag, '38_title_menu');
+      await setup(`document.querySelector('[data-act="progress"]').click();`);
+      await shot(tag, '38b_progress');
+      await setup(`document.querySelector('[data-act="resetask"]').click();`);
+      await shot(tag, '39_reset_confirm');
+      await setup(`B.closeOverlay(true);`);
       // the title screen with every button: a saved run, the Workshop and the Lazaret
       await setup(`const r = E.newRun(4242, 0); r.floor = 3; B.run = r; B.save(); B.run = null; B.render();`);
       await shot(tag, '26_title_full');

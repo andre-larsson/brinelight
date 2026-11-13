@@ -342,6 +342,63 @@
   }
   function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
 
+  /* Progress as a whole: every brinelight.* key in this browser. Settings (PREF_KEY), the What's new marker and the
+     debug switches are not progress, so a reset keeps them; a backup carries the settings but not the debug switches. */
+  const BACKUP_KIND = 'brinelight-backup';
+  const NOT_PROGRESS = [PREF_KEY, VERSION_KEY, 'brinelight.debug.v1', 'brinelight.debugopts.v1'];
+  const ourKeys = () => { try { return Object.keys(localStorage).filter((k) => k.indexOf('brinelight.') === 0); } catch (e) { return []; } };
+  function backupData() {
+    const data = {};
+    ourKeys().filter((k) => k.indexOf('brinelight.debug') !== 0).forEach((k) => { data[k] = localStorage.getItem(k); });
+    return { kind: BACKUP_KIND, version: BL.VERSION, saved: new Date().toISOString(), data };
+  }
+  function downloadBackup() {
+    const json = JSON.stringify(backupData(), null, 1);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    a.download = `brinelight-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast('Backup downloaded');
+  }
+  /* A backup file's contents, checked: null unless it is a Brinelight backup with only brinelight.* text entries. */
+  function readBackup(text) {
+    let b;
+    try { b = JSON.parse(text); } catch (e) { return null; }
+    if (!b || b.kind !== BACKUP_KIND || !b.data || typeof b.data !== 'object') return null;
+    const keys = Object.keys(b.data);
+    if (!keys.length || keys.some((k) => k.indexOf('brinelight.') !== 0 || k.indexOf('brinelight.debug') === 0 || typeof b.data[k] !== 'string')) return null;
+    return b;
+  }
+  function wipeProgress() {
+    try { ourKeys().filter((k) => NOT_PROGRESS.indexOf(k) < 0).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* ignore */ }
+  }
+  function restoreBackup(b) {
+    wipeProgress();
+    try { Object.keys(b.data).forEach((k) => localStorage.setItem(k, b.data[k])); } catch (e) { /* ignore */ }
+    location.reload();
+  }
+  function pickBackupFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.addEventListener('change', () => {
+      const f = input.files && input.files[0];
+      if (!f) return;
+      f.text().then(askRestore);
+    });
+    input.click();
+  }
+  function askRestore(text) {
+    const b = readBackup(text);
+    if (!b) { openOverlay(modal('Not a Brinelight backup', '<p>This file is not a backup from Brinelight, or it is damaged. Nothing was changed.</p>', '<button class="btn primary" data-act="close" autofocus>OK</button>', 'narrow')); return; }
+    ui.pendingBackup = b;
+    const when = b.saved ? new Date(b.saved).toLocaleString() : 'an unknown date';
+    openOverlay(modal('Restore this backup?', `<p>A backup from ${when}${b.version ? `, made in v${b.version}` : ''}.</p><p>It replaces all the progress in this browser, and the game starts again from the title screen.</p>`,
+      '<button class="btn" data-act="close" autofocus>Cancel</button><button class="btn primary" data-act="importconfirm">Restore</button>', 'narrow'));
+  }
+
   function toast(msg, ms) {
     const d = document.createElement('div');
     d.className = 'toast-msg';
@@ -654,18 +711,18 @@
         <li>Choose a route up to the boss. Lit stops are where you can go next.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
-        [`${NODE_ICON.elite} Dread`, 'An elite: harder, and then you may take 1 of 2 keepsakes.'],
+        [`${NODE_ICON.elite} Dread`, 'An elite: harder. It pays Pearls, and you may take 1 of 2 keepsakes. No card or tonic.'],
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
         [`${NODE_ICON.rest} Cove`, 'Rest to heal 30% of your max HP, or upgrade a card.'],
         [`${NODE_ICON.treasure} Wreck`, 'Pearls, and you may take 1 of 3 keepsakes.'],
       ])}<ul class="help-list">
-        <li>After a fight: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
+        <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
-        <li><b>Keepsakes</b> last the whole run, and each stirs the aether around you: its <b>Roil</b>. The aether holds ${E.hold(0)} Roil in the Shallows and ${E.HOLD_STEP} more at each deeper depth: your <b>Hold</b>. Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
+        <li><b>Keepsakes</b> last the whole run, and each stirs the aether around you: its <b>Roil</b>. The aether holds ${E.LEVELS.map((l, i) => `${E.hold(i)} Roil in ${levelName(i)}`).join(', ').replace(/, ([^,]*)$/, ' and $1')}: your <b>Hold</b>. Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
         <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens after your first win. When you win a run, every keepsake you carry is kept there, one of each; one it already holds becomes ${MT.currency} instead: half its Roil, rounded up. Before a descent you may bring any number of them, and each counts toward your Hold. If you fall, you lose the keepsakes you found on that descent. The ones in the Lazaret are never lost.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
-        <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card (<b>+${E.DECLINE_SCORE.eliteCard}</b> after a Dread) or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
+        <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li>Beat the boss to unlock a deeper starting depth with a higher score multiplier. Dark Water has creatures, Dreads, a boss and Fog events of its own. Riptide and the Abyss are Dark Water made harder.</li>
         <li>Every finished run turns its score into <b>${MT.currency}</b> (1 per ${E.SALVAGE_PER_SCORE}). Spend it in the <b>${MT.shop}</b> on the title screen on <b>${MT.item.toLowerCase()}</b> that lasts across runs: one piece each for your ${BL.KIT_PLACES.map((pl) => pl.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}. Achievements unlock more. Choose what to wear before each descent.</li>
       </ul>`;
@@ -704,6 +761,7 @@
       <button class="choice" data-act="togglefast"><b>Fast animations: ${prefs.fast ? 'On' : 'Off'}</b><span>Halves the waits between actions.</span></button>
       ${run && !run.tutorial ? '<button class="choice" data-act="totitle"><b>Save and quit to title</b><span>Your run is saved; continue it from the title screen.</span></button>' : ''}
       ${run && !run.tutorial ? '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>' : ''}
+      ${run ? '' : '<button class="choice" data-act="progress"><b>Back up or reset progress</b><span>Save your progress to a file, load it again, or start over.</span></button>'}
     </div>
     <p class="menu-version"><button class="title-version" data-act="changelog">Brinelight v${BL.VERSION} &middot; What's new</button></p>`;
     openOverlay(modal('Menu', body, null, 'narrow'));
@@ -2276,7 +2334,7 @@
       <h1>Victory</h1>
       ${summary}
       ${ksPanel}
-      <section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${keywordLegend(rw.cards.map((rc) => pseudo(rc.id, rc.up)))}</section>
+      ${rw.cards.length ? `<section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${keywordLegend(rw.cards.map((rc) => pseudo(rc.id, rc.up)))}</section>` : ''}
       ${extras.length ? `<div class="reward-list">${extras.join('')}</div>` : ''}
       <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
@@ -2429,6 +2487,16 @@
     const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
     return `${m}:${String(s).padStart(2, '0')}`;
   }
+  /* How the final score adds up, line by line (runs finished before v0.16.0 kept no lines). */
+  function scorePartsHTML(fin) {
+    const sp = fin.parts;
+    if (!sp || !sp.parts.length) return '';
+    const row = (label, how, pts, cls) => `<div${cls ? ` class="${cls}"` : ''}><dt>${label}${how ? ` <small>${how}</small>` : ''}</dt><dd>${pts}</dd></div>`;
+    const rows = sp.parts.map((p) => row(p.label, p.n != null && p.each ? `${p.n} &times; ${p.each}` : p.n ? `${p.n}` : '', `+${p.pts}`));
+    if (sp.mult !== 1) rows.push(row(`${levelName(run.level).replace(/^the /, 'The ')}`, `${sp.sum} &times; ${sp.mult}`, `+${sp.total - sp.sum}`, 'mult'));
+    rows.push(row('Score', '', sp.total, 'sum'));
+    return `<details class="score-parts" open><summary>How the score adds up</summary><dl>${rows.join('')}</dl></details>`;
+  }
   /* What the end of a run did to the Lazaret. */
   function lazaretHTML(fin) {
     const z = fin.laz;
@@ -2446,9 +2514,10 @@
     E.tick(run);
     const st = run.stats;
     if (!run.final) {
-      const score = E.score(run, win);
+      const parts = E.scoreParts(run, win);
+      const score = parts.total;
       const best = getNum(BEST_KEY);
-      const fin = { score, best, newBest: score > best, unlocked: null, salvage: 0 };
+      const fin = { score, parts, best, newBest: score > best, unlocked: null, salvage: 0 };
       if (run.cheated) fin.newBest = false; // a run with debug cheats keeps no best score and unlocks no depth
       if (fin.newBest) setNum(BEST_KEY, score);
       if (!run.tutorial) {
@@ -2470,13 +2539,15 @@
       run.final = fin;
     }
     const fin = run.final;
+    // the score's own lines are in the breakdown; these are the rest of the run
     const stats = [
-      ['Landing reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights / Dreads won', `${st.fights} / ${st.elites}`], ['Rewards declined', st.declined ? `${st.declined} (+${E.declinePoints(st)})` : 0], ['Biggest Crest chain', st.maxChain || 0],
-      ['Damage dealt', st.dmgDealt], ['Crests / Strands', `${st.crests} / ${st.lows || 0}`], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
+      ['Landing reached', `${run.floor}/${E.MAP_ROWS + 1}`], ['Fights won', st.fights], ['Damage dealt', st.dmgDealt], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
-    const scoreHTML = `<div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score or depth unlock</small>' : ''}</div>
+    // on a wide screen the score and its lines sit side by side, so the buttons stay near the top
+    const scoreHTML = `<div class="score-row"><div class="score-box"><span>Score${run.level ? ` (${E.LEVELS[run.level].name})` : ''}</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score or depth unlock</small>' : ''}</div>
+      ${scorePartsHTML(fin)}</div>
       ${fin.unlocked ? `<div class="unlock-box">New depth unlocked: <b>${fin.unlocked}</b>. Choose it when you start your next descent.</div>` : ''}
-      ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b> for the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
+      ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b>, 1 for every ${E.SALVAGE_PER_SCORE} score (${fin.score} &divide; ${E.SALVAGE_PER_SCORE}, rounded down). Spend it in the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
       ${lazaretHTML(fin)}
       ${fin.story && fin.story.length ? `<button class="unlock-box story-new" data-act="story">New in Story so far: ${fin.story.map((t) => `<b>${t}</b>`).join(', ')}. <u>Read it</u></button>` : ''}
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
@@ -2488,7 +2559,7 @@
     screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : E.band(run).bossBg}.webp)"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
       ${scoreHTML}
-      <div class="stats">${stats}</div>
+      <div class="stats end-stats">${stats}</div>
       <div class="row-buttons"><button class="btn primary" data-act="newrun" autofocus>${win ? 'Go down again' : 'Try again'}</button><button class="btn" data-act="totitle">Title screen</button></div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
@@ -2594,6 +2665,24 @@
         openOverlay(modal('Abandon this run?', '<p>Your progress will be lost.</p>', '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmabandon">Abandon</button>', 'narrow'));
         break;
       case 'confirmabandon': clearSave(); closeOverlay(true); run = null; render(); break;
+      case 'progress':
+        openOverlay(modal('Your progress', `<p>Your progress lives in this browser: ${MT.currency} and kit, the Lazaret, achievements, unlocked depths, best score, the Logbook, Story so far and a run in progress.</p>
+          <div class="choice-list" style="margin:0 auto">
+            <button class="choice" data-act="exportsave"><b>Download a backup</b><span>Saves it all to a file, with your settings.</span></button>
+            <button class="choice" data-act="importsave"><b>Restore from a backup</b><span>Loads a backup file. It replaces the progress in this browser.</span></button>
+            <button class="choice danger" data-act="resetask"><b>Reset progress</b><span>Start again as a new keeper. Your settings stay.</span></button>
+          </div>`, null, 'narrow'));
+        break;
+      case 'exportsave': downloadBackup(); break;
+      case 'importsave': pickBackupFile(); break;
+      case 'importconfirm': if (ui.pendingBackup) restoreBackup(ui.pendingBackup); break;
+      case 'resetask':
+        openOverlay(modal('Reset all progress?', `<p>This erases everything you have earned in this browser:</p>
+          <ul class="reset-list"><li>${MT.currency}, and the kit you bought in the ${MT.shop}</li><li>the Lazaret and every keepsake kept there</li><li>achievements, unlocked depths, best score and the Logbook</li><li>Story so far, the hints and the tutorial</li><li>any run in progress</li></ul>
+          <p>Sound, music and animation settings stay. This can't be undone, unless you download a backup first.</p>`,
+          '<button class="btn" data-act="close" autofocus>Cancel</button><button class="btn" data-act="exportsave">Download a backup</button><button class="btn danger" data-act="resetconfirm">Reset everything</button>', 'narrow'));
+        break;
+      case 'resetconfirm': wipeProgress(); location.reload(); break;
       case 'deck': if (run) { ui.allowCancelPick = true; showDeck('view'); } break;
       case 'deckpick': deckPick(+t.dataset.uid); break;
       case 'deckback': {
@@ -2921,5 +3010,7 @@
   window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; }, get meta() { return meta; },
     // for js/debug.js
     save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat, setMaxLevel: (n) => setNum(LEVEL_KEY, n), get maxLevel() { return getNum(LEVEL_KEY); },
-    story, saveStory, showStory, showOpening, showLazaret };
+    story, saveStory, showStory, showOpening, showLazaret,
+    // for the UI test: what a backup holds, and loading one without the file picker
+    backupData, askRestore };
 })();

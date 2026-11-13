@@ -268,9 +268,9 @@ test('achievements unlock once, are kept on the run for the end screen, and neve
 });
 
 /* ---------- Roil, the Hold and a Roiled aether ---------- */
-test('the Hold is 30 Roil in the Shallows and 5 more each depth; every 5 Roil over (or part of 5) is one step', () => {
-  assert.deepEqual([0, 1, 2, 3].map(E.hold), [30, 35, 40, 45]);
-  assert.deepEqual([30, 31, 35, 36, 40, 41].map((ch) => E.roilSteps(ch, 0)), [0, 1, 1, 2, 2, 3]);
+test('the Hold is 20 Roil in the Shallows, 35 in Dark Water, 40 in Riptide and 45 in the Abyss; every 5 Roil over (or part of 5) is one step', () => {
+  assert.deepEqual([0, 1, 2, 3].map(E.hold), [20, 35, 40, 45]);
+  assert.deepEqual([20, 21, 25, 26, 30, 31].map((ch) => E.roilSteps(ch, 0)), [0, 1, 1, 2, 2, 3]);
   assert.equal(E.roilSteps(36, 1), 1, 'deeper water holds more');
   const run = E.newRun(5);
   run.keepsakes = ['whaletooth', 'stormbottle'];
@@ -286,8 +286,8 @@ test('the Hold is 30 Roil in the Shallows and 5 more each depth; every 5 Roil ov
 });
 
 test('a Roiled aether climbs a ladder: a Seep, then Thrash, then a Bell Minnow, then round again (2 Minnows at most)', () => {
-  const at = (steps) => { const r = E.roilFor(30 + 5 * steps, 0); return [r.seep, r.thrash, r.minnows]; };
-  assert.deepEqual(E.roilFor(30, 0), { steps: 0, seep: 0, thrash: 0, minnows: 0 });
+  const at = (steps) => { const r = E.roilFor(E.hold(0) + 5 * steps, 0); return [r.seep, r.thrash, r.minnows]; };
+  assert.deepEqual(E.roilFor(E.hold(0), 0), { steps: 0, seep: 0, thrash: 0, minnows: 0 });
   assert.deepEqual(at(1), [1, 0, 0]);
   assert.deepEqual(at(2), [1, 1, 0]);
   assert.deepEqual(at(3), [1, 1, 1]);
@@ -297,12 +297,12 @@ test('a Roiled aether climbs a ladder: a Seep, then Thrash, then a Bell Minnow, 
   assert.deepEqual(at(7), [3, 2, 2]);
   assert.deepEqual(at(9), [3, 3, 2], 'never more than 2 Bell Minnows');
   assert.equal(E.MAX_ROIL_MINNOWS, 2);
-  assert.equal(E.seepFor(50, 0), 2);
+  assert.equal(E.seepFor(E.hold(0) + 20, 0), 2);
 });
 
 test('Seep: shuffled into the draw pile at the start of each fight, unplayable, and gone after the fight', () => {
   const run = E.newRun(5);
-  run.keepsakes = ['whaletooth', 'stormbottle', 'tidewatch']; // 19 + 18 + 12 = 49: 4 steps past a Hold of 30
+  run.keepsakes = ['whaletooth', 'stormbottle']; // 19 + 18 = 37: 4 steps past a Hold of 20
   assert.deepEqual(E.roil(run), { steps: 4, seep: 2, thrash: 1, minnows: 1 });
   const deck = run.deck.length;
   const c = fightIn(run);

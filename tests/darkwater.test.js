@@ -256,11 +256,16 @@ test('The Tolling Buoy: Rocking Toll hits 12, +4 for each step the Swell is from
   assert.equal(c.light, 2);
 });
 
-test('The Tolling Buoy: at half health its cage opens and two Glimmer Leeches come out; when it falls, they scatter', () => {
+test('The Tolling Buoy: at two thirds of its health its cage opens and two Glimmer Leeches come out; when it falls, they scatter', () => {
   const { run, c } = fight(['buoy'], { kind: 'boss' });
   const b = c.enemies[0];
   b.intent = 'clang';
-  b.hp = Math.floor(b.maxHp / 2);
+  b.hp = Math.floor(b.maxHp * BL.PIN_CALL) + 1; // 111 of 165: not yet
+  c.player.ward = 99;
+  E.endTurn(run);
+  assert.notEqual(b.intent, 'spill');
+  b.intent = 'clang';
+  b.hp = Math.floor(b.maxHp * BL.PIN_CALL); // 110
   c.player.ward = 99;
   E.endTurn(run);
   assert.equal(b.intent, 'spill');

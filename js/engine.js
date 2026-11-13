@@ -92,12 +92,13 @@
        step 2, 5, 8...: one more Thrash, damage at the start of each of your turns, which Ward left from the turn
                         before stops;
        step 3, 6:       one more Bell Minnow joins each fight at half health, drawn by the noise (2 at most). */
-  E.HOLD_BASE = 30;
-  E.HOLD_STEP = 5; // more Hold for each deeper depth
+  /* The Hold at each starting depth. The Shallows held 30 until v0.16.0; 20 leaves room for about one strong keepsake
+     and one small one, so a stocked Lazaret doesn't make the first depth easy. */
+  E.HOLDS = [20, 35, 40, 45];
   E.SEEP_STEP = 5; // Roil over the Hold for each step
   E.MAX_ROIL_MINNOWS = 2;
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
-  E.hold = (level) => E.HOLD_BASE + E.HOLD_STEP * (level || 0);
+  E.hold = (level) => E.HOLDS[Math.min(Math.max(0, level || 0), E.HOLDS.length - 1)];
   E.chargeOf = (k) => (BL.KEEPSAKES[k] && BL.KEEPSAKES[k].charge) || 0;
   /* The Roil you carry, optionally with one more keepsake (to show what taking it would do). */
   E.charge = (run, extra) => run.keepsakes.reduce((a, k) => a + E.chargeOf(k), 0) + (extra ? E.chargeOf(extra) : 0);
@@ -1257,10 +1258,11 @@
     bonuses.forEach((b) => { pearls += b.pearls; });
     run.stats.bonuses = (run.stats.bonuses || 0) + bonuses.length;
     run.pearls += pearls;
-    const upChance = elite ? 0.3 : 0.15 + 0.02 * run.floor;
-    const cards = E.rewardCards(run, elite ? 'elite' : 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
-    const rw = { pearls, bonuses, cards, elite, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
-    if (R.chance(elite ? 0.6 : 0.4)) rw.tonic = E.randomTonic(run);
+    // a Dread pays in Pearls and a pick of keepsakes only (until v0.16.0 it also offered a card and often a tonic)
+    const upChance = 0.15 + 0.02 * run.floor;
+    const cards = elite ? [] : E.rewardCards(run, 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
+    const rw = { pearls, bonuses, cards, elite, cardTaken: elite, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
+    if (!elite && R.chance(0.4)) rw.tonic = E.randomTonic(run);
     if (elite) rw.keepsakeChoices = E.keepsakeChoices(run, 2);
     run.rewards = rw;
     run.combat = null;
@@ -1300,13 +1302,28 @@
     E.gainKeepsake(run, k);
   };
 
-  /* Score for the end screen. */
-  E.score = function (run, won) {
+  /* Score for the end screen, line by line: what each line counted, its points, and the depth's multiplier.
+     `n` is the count shown (null for a flat amount), `each` the points per one. Lines worth nothing are left out. */
+  E.scoreParts = function (run, won) {
     const st = run.stats;
-    let s = run.floor * 40 + (st.kills || 0) * 12 + st.elites * 80 + st.crests * 6 + (st.maxChain || 0) * 30 + (st.lows || 0) * 6 + (st.maxLowChain || 0) * 30 + (st.bonuses || 0) * 15 + E.declinePoints(st);
-    if (won) s += 600 + run.hp * 5;
-    return Math.round(s * (1 + 0.25 * (run.level || 0)));
+    const lines = [
+      ['Landings reached', run.floor, 40],
+      ['Creatures defeated', st.kills || 0, 12],
+      ['Dreads defeated', st.elites || 0, 80],
+      ['Crests', st.crests || 0, 6],
+      ['Most Crests in one turn', st.maxChain || 0, 30],
+      ['Strands', st.lows || 0, 6],
+      ['Most Strands in one turn', st.maxLowChain || 0, 30],
+      ['Bonuses (Flawless, Swift and chains)', st.bonuses || 0, 15],
+      ['Rewards turned down', st.declined || 0, null, E.declinePoints(st)],
+    ];
+    if (won) lines.push(['The Lantern Heart brought home', null, null, 600], ['HP left', run.hp, 5]);
+    const parts = lines.map(([label, n, each, flat]) => ({ label, n, each, pts: flat != null ? flat : n * each })).filter((p) => p.pts > 0);
+    const sum = parts.reduce((a, p) => a + p.pts, 0);
+    const mult = 1 + 0.25 * (run.level || 0);
+    return { parts, sum, mult, total: Math.round(sum * mult) };
   };
+  E.score = (run, won) => E.scoreParts(run, won).total;
   E.takeRewardTonic = function (run) {
     const rw = run.rewards;
     if (!rw || !rw.tonic || rw.tonicTaken) return false;

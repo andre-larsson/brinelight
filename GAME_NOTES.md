@@ -54,6 +54,7 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
 **Where things stand.**
+- v0.16.0 (2026-11-13, committed, not pushed yet): the user's playtest notes on v0.14.0. The Shallows are harder, Dreads give less, the pins call for help sooner, and there are the RITE label, the score lines, purple unlock boxes, and backup, restore and reset. See "Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)" below. Two notes are proposals, not built: Strands are hard to reach, and a weak standard action.
 - v0.15.0 (2026-11-12, committed 2026-11-13, not pushed yet): Dark Water is a band of its own, step 1 of the expedition work. See "Dark Water (v0.15.0, 2026-11-12)" below.
 - The live build is v0.14.0, pushed on 2026-11-12: Scour is renamed Thrash, hits every turn from the first, and Ward stops it; `tools/measure.js` measures in parallel. See "Scour changed in v0.14.0".
 - Before it came v0.13.0, pushed the same day: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
@@ -529,6 +530,54 @@ Single keepsakes brought into Dark Water (points over 14.5%; v0.14.0's Dark Wate
 - On the smallest phones (360 px), three enemies' names run into each other and a Ward badge covers part of the next HP bar. The layout already did this for the Shallows' three-enemy fights (`.unit .info` has a minimum width of 84–96 px), but Dark Water has more of them, and the Lamp Hermit's Shell keeps a Ward badge up.
 - No sound of its own for Dark Water, the Buoy, a douse or a swallow, and no music change.
 
+### Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)
+
+The user played v0.14.0 and sent ten notes. Their words, shortened: a Reset Progress button with a confirmation; Rites marked in the hand; "reducing Swell to Strand still feels too hard to do. Not sure what to do about this"; maybe a weak standard action for a hand with no good cards ("very unsure"); Dread rewards may be too much ("maybe keepsake only is enough"); Lighthouse Beam "a tad too strong"; the Bellwether's backup comes too late to be dangerous; a clearer breakdown of the score and Salvage; the Lazaret's unlock box should be purple like the others; and the first depth is "a bit too easy": add challenge "in a fun way, while preserving pace", no HP sponges, and lower the Shallows' Hold from 30 to "maybe 20". Mid-build they added: "maybe also add option to export save if possible".
+
+**Built:**
+- **Hold:** `E.HOLDS = [20, 35, 40, 45]` (it was 30 + 5 a depth). Only the Shallows changed.
+- **Dreads** pay Pearls and 1 of 2 keepsakes; no card and no tonic. The reward screen leaves out the card section. A Dread reward saved before v0.16.0 with a card still skips for +80.
+- **Pins call sooner:** `BL.PIN_CALL = 2/3`. The Bellwether calls its shoal, and the Buoy opens its cage, at two thirds of their health instead of half.
+- **Lighthouse Beam:** 2 per Swell (upgraded 3), from 3 (4).
+- **The Shallows' challenge:** the Kelp Lurker's Lash hits 2 harder each time (8, 10, 12...), and the Barnacle Mite's Burrow is 5 Ward and 1 Might (was 6 Ward). Only the Shallows' own creatures changed, so Dark Water's tables stay as measured.
+- **RITE label** in the hand: the type pill shows for Rites only, on the lower left of the picture, where the next card in a crowded hand never covers it. Other types still show their pill only outside the hand.
+- **Score lines:** `E.scoreParts(run, won)` gives each line, the sum, the depth multiplier and the total; `E.score` is its total. The end screen lists the lines in an open `<details>`, the Salvage line says "1 for every 50 score (N ÷ 50, rounded down)", and the stats grid keeps only what is not in the score (landing, fights won, damage, deck, time).
+- **Unlock boxes:** the Lazaret box uses the purple `.unlock-box` look; only a fall's "the bell calls back" box keeps its own red.
+- **Back up or reset progress** (title-screen menu only, not during a run): a dialog with Download a backup (a JSON file of every `brinelight.*` key except the debug switches: `{ kind: 'brinelight-backup', version, saved, data }`), Restore from a backup (checks the file, asks, replaces, reloads), and Reset progress (asks, lists what goes, offers a backup, then erases everything but the settings, the What's new marker and the debug switches, and reloads).
+
+**The agent's calls (provisional; each is one constant or one line):**
+1. **Keepsake only for Dreads, as the user suggested,** though it is the biggest cut for the bot (-5.7 points in the Shallows). If Dreads feel thin, the first thing to give back is the card (the tonic costs the bot nothing, because it never drinks one).
+2. **Two thirds for the pins,** not 0.6 (-2.1 points) or three quarters (-6.0). At two thirds the minnows arrive around turn 4 of about 11.
+3. **The Buoy follows the Bellwether** (the user hasn't played it yet). The same pattern had the same problem, and without it Dark Water (12.7%) was no harder than the new Shallows for the bot.
+4. **The Hold of the deeper depths stays** at 35, 40 and 45. Only the first depth was named.
+5. **The Shallows' challenge is pressure, not HP:** a Lurker that tightens rewards killing it first, and a Mite that burrows and comes out bolder makes three Mites a kill-order question (and a Strand strips the Burrow Ward). Brine Crab and Salt Gull number bumps were measured (-0.8 and -1.4 points) and left out as plain stat raises.
+6. **Beam at 2 per Swell** puts it level with the other strong rares instead of above them (table below).
+7. **Backup also restores:** a backup you can't load back isn't much use. Settings travel with a backup but survive a reset.
+
+**Measured** (bot, 1000 seeds a row, no kit; v0.15.0 → v0.16.0):
+
+| | v0.15.0 | v0.16.0 |
+|---|---|---|
+| Shallows | 23.8% | 11.4% |
+| Dark Water | 14.5% | 8.4% |
+| Riptide | 3.9% | 1.2% |
+| The Abyss | 1.3% | 0.6% |
+
+Each Shallows change alone (points off 23.8%): Dread keepsake only -5.7, Bellwether at 2/3 -4.6, Hold 20 -3.6 (the bot takes fewer keepsakes), Kelp Lurker -1.4, Barnacle Mite +0.6 (noise), Beam about -1.4. Dark Water: Dread cut -1.8, the Buoy at 2/3 another -4.1. Per fight in the Shallows (HP lost, turns): easy 3.0 → 3.4 HP in 4.3 → 4.5 turns; hard 8.6 → 10.1 HP in 5.2 → 5.4; Dreads 20.2 → 19.7 in 6.4 → 6.5; the Bellwether 51.7 → 53.6 HP in 11.2 → 10.6 turns. Pace is kept. The first fight (aggressive bot, 500 seeds): 3.22 → 3.19 turns, 10.7 → 10.5 actions, median HP lost 8 → 7. The bot loses most runs to the boss, which a planning player handles far better, so read these as before/after, not as difficulty.
+
+Rares added to the starter deck (Shallows, v0.15.0 rules otherwise): none 23.8%; Lighthouse Beam 55.9%, at 2 per Swell 43.5%, at cost 3 36.7%; Leviathan's Call 45.1, Storm Surge 43.1, Spring Tide 40.3, Gale Heart 39.8, Tsunami 37.9, Moon Pull 35.0, Spindrift 32.9, Abyssal Pull 30.3, Maelstrom 23.7, Toppled Tower 22.7, Tidal Memory 20.0 (the bot doesn't build for the last three).
+
+**Proposals, not built (the user was unsure; these need a choice):**
+- **Strands are hard to reach.** For the bot the two ends are about as common (0.69 Strands and 0.62 Crests a fight). The card pool is about symmetric too. But attacks Surge and Ward cards mostly don't Ebb, so a deck that attacks drifts toward Crest, and a Strand means holding back. Prototypes with the bot (Shallows, v0.15.0 otherwise; scratch `nudge.js`, a hidden 0-cost card the bot plays):
+  - **Bail** (agent's pick): once a turn, spend 1 Light to Ebb 1. A Strand gives 1 Light back, so Bail is free when it completes a Strand. Strands per fight ×2.1 (0.79 → 1.65), win 23.8 → 29.6%, turns per fight 5.20 → 5.37. It also gives spare Light a use, which is part of the standard-action idea. It is Ebb only, on purpose: it helps the end that is harder to reach, and it doesn't push any strategy, because playing for Crest is unchanged.
+  - Both ways (1 Light: Surge 1 or Ebb 1): 29.2%, but it doubles Crests too, so it doesn't close the gap.
+  - Ebb 2 (from 1) on Riptide Cut, Saltspray, Sea Wall and Whirlpool: Strands +16%, win 25.2%. Safe but small.
+  - Rejected: discard a card for Surge 1 or Ebb 1 (52.4%: the card would be discarded at the end of the turn anyway, so it is free); Ebb 1 on Brace (47.2%, Strands ×3, Crests fall to 0.48); sink a card for Ebb 1 (44.3%: thinning the deck is a reward, not a cost).
+- **A weak standard action.** The bot ends only 3% of turns with Light it couldn't spend, so "no playable card" is rare; the user's "no good cards" is about weak hands. A standard attack or Ward for Light (for example 1 Light: 3 Ward) would be a weaker Brace, and every hand would end with it. Bail covers the useful part. If a general action is still wanted: 1 Light, discard a card, draw a card (a mulligan), once a turn. Not measured yet.
+
+**Open (for the playtest):** Is the Shallows now "somewhat" harder, or too much? The dials, in order: give Dreads their card back, then move the pins' call to 0.6. Do the minnows now matter in the Bellwether fight? Is the Kelp Lurker's growing Lash readable from its intent (it shows the next hit's number and a tip)? Does the end screen's score list make the score clear, or is it too long on a phone (it can be folded)?
+- Seen in screenshots, not changed: on phones the Lethal and Crest badges over hand cards render at about 11.5px (the screens check flags them), and a 13px floor made them so wide that the next card covered them. They need a different place, not a bigger size.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -859,7 +908,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot, 1000 seeds): win 24.2% (21.1% before the Low Water rework), average depth 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets.
+- **Bot run outcomes** (careful bot, 1000 seeds, the Shallows): win 11.4% in v0.16.0 (23.8% in v0.14.0 and v0.15.0, 24.2% before v0.10.0, 21.1% before the Low Water rework), average landing 10.5 of 11. Bots aren't people: use these for before/after comparisons, not as difficulty targets. `npm run measure` gives the current table.
 
 ## Tools
 

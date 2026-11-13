@@ -245,7 +245,7 @@
   });
   card('beam', {
     name: 'Lighthouse Beam', type: 'rite', rarity: 'rare', cost: 2, target: 'none',
-    v: { per: 3 }, up: { per: 4 }, art: 'c_beam',
+    v: { per: 2 }, up: { per: 3 }, art: 'c_beam',
     text: (v) => `At the end of your turn, deal ${v.per} damage for each Swell to a random enemy.`,
     play: (A, v) => A.rite('r_beam', v.per),
   });
@@ -400,11 +400,17 @@
     };
   }
 
+  /* A pin (a band's boss) calls for help once it is down to this share of its health. It was half until v0.16.0,
+     which came too late for the help to matter. */
+  BL.PIN_CALL = 2 / 3;
+
   const ENEMIES = {
     kelp: {
       name: 'Kelp Lurker', hp: [27, 31], art: 'kelp', scale: 1.05,
       moves: {
-        lash: { name: 'Lash', dmg: 8 },
+        // the kelp tightens: each Lash hits 2 harder than the last, so a Lurker left alone gets dangerous
+        lash: { name: 'Lash', dmg: (e) => 8 + 2 * (e.mem.lashes || 0), after: (e) => { e.mem.lashes = (e.mem.lashes || 0) + 1; },
+          tip: 'Each Lash hits 2 harder than the last' },
         entangle: { name: 'Entangle', dmg: 4, debuff: { chilled: 1 } },
       },
       ai: weighted([['lash', 55], ['entangle', 45]], 2),
@@ -448,7 +454,7 @@
       name: 'Barnacle Mite', hp: [10, 13], art: 'mite', scale: 0.7,
       moves: {
         nibble: { name: 'Nibble', dmg: 5 },
-        burrow: { name: 'Burrow', ward: 6 },
+        burrow: { name: 'Burrow', ward: 5, buff: { might: 1 } }, // it digs in and comes out bolder
       },
       ai: weighted([['nibble', 70], ['burrow', 30]], 1),
     },
@@ -511,7 +517,7 @@
         shoal: { name: 'Call the Shoal', summon: ['minnow', 'minnow'], buff: { might: 1 }, phase: 'The Bell Cracks!' },
       },
       ai: (e) => {
-        if (!e.mem.summoned && e.hp <= e.maxHp / 2) { e.mem.summoned = true; return 'shoal'; }
+        if (!e.mem.summoned && e.hp <= e.maxHp * BL.PIN_CALL) { e.mem.summoned = true; return 'shoal'; }
         const seq = ['ring', 'clapper', 'toll', 'undertow', 'clapper', 'toll'];
         e.mem.step = (e.mem.step || 0) + 1;
         return seq[(e.mem.step - 1) % seq.length];
@@ -595,7 +601,7 @@
         spill: { name: 'The Cage Opens', summon: ['leech', 'leech'], buff: { might: 1 }, phase: 'The Cage Breaks Open!' },
       },
       ai: (e) => {
-        if (!e.mem.summoned && e.hp <= e.maxHp / 2) { e.mem.summoned = true; return 'spill'; }
+        if (!e.mem.summoned && e.hp <= e.maxHp * BL.PIN_CALL) { e.mem.summoned = true; return 'spill'; }
         const seq = ['haul', 'toll', 'clang', 'toll'];
         e.mem.step = (e.mem.step || 0) + 1;
         return seq[(e.mem.step - 1) % seq.length];
