@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.26.0';
+  BL.VERSION = '0.26.1';
   BL.CHANGELOG = [
+    { v: '0.26.1', date: '2026-11-14', items: [
+      'In a fight, Wren wears the Diving Dress or the Plated Dress, helmet and all, the same as on the Workshop and Pack screens. Before, she carried it rolled up until the Belfry.',
+    ] },
     { v: '0.26.0', date: '2026-11-14', items: [
       'Credits, beside What\'s new on the title screen and at the foot of the menu: who and what made the game, where the music comes from, the source code, and more games and tools at a403.space.',
     ] },

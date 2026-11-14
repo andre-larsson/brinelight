@@ -84,12 +84,14 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
-  /* Wren's picture (img/units) for a kit: her rig's `look`, or its `lookUnder` below the water (the Belfry).
-     The kit screens pass 'kit' as `under`: they show a dress as she wears it, not rolled up as she carries it on the way down. */
+  /* Wren's picture (img/units) for a kit: her rig's `look`, the same in every fight and on the kit screens. A dress is
+     worn, helmet and all, from the first landing (since v0.26.1; before, she carried it rolled up until the Belfry).
+     `under`: below the water (the Belfry), where she shows in the plain diving dress if she has no dress on (only a
+     debug run gets there without one). */
   E.keeperArt = function (kit, under) {
-    const g = kit && kit.coat ? BL.KIT[kit.coat] : null;
-    if (under === 'kit') return (g && (g.lookUnder || g.look)) || 'keeper';
-    return under ? (g && g.lookUnder) || 'keeper_suit' : (g && g.look) || 'keeper';
+    const id = kit && kit.coat, g = id ? BL.KIT[id] : null;
+    if (under && !(g && (id === 'suit' || g.as === 'suit'))) return 'keeper_suit';
+    return (g && g.look) || 'keeper';
   };
   /* Wearing `id` or kit that counts as it (the Plated Dress is a Diving Dress). */
   E.wears = (run, id) => E.kitIds(run).some((k) => k === id || BL.KIT[k].as === id);

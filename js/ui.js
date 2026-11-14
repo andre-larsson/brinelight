@@ -1010,7 +1010,7 @@
   /* The Workshop and Pack for the expedition share one view of the kit: Wren in the middle with a slot for each
      place around her (BL.KIT_PLACES), a line from each slot to where the piece sits on her, and under her a tray
      with every piece of kit for the chosen slot: what she owns (tap to wear or take off), what is for sale, and
-     what is still locked. Her picture follows her rig, and shows a dress worn (E.keeperArt). */
+     what is still locked. Her picture follows her rig, the same one she has in a fight (E.keeperArt). */
   const kitForSale = (id) => { const g = BL.KIT[id]; return !g.starter && !g.found && !E.ownsKit(meta, id) && E.kitUnlocked(meta, id); };
   const canBuyNow = (id) => kitForSale(id) && meta.salvage >= BL.KIT[id].price;
   const placeOf = (id) => BL.KIT_PLACES.find((pl) => pl.id === id);
@@ -1055,7 +1055,7 @@
       <div class="kit-list">${ids.map(kitOpt).join('')}</div></section>`;
   }
   function kitDoll(where) {
-    const sel = kitSlotFor(where), look = E.keeperArt(meta.kit, 'kit');
+    const sel = kitSlotFor(where), look = E.keeperArt(meta.kit);
     // each side lists its slots top to bottom by where they point, so the lines don't cross
     const side = (s) => BL.KIT_PLACES.map((pl, i) => [pl, i]).filter(([pl]) => (pl.side || 'right') === s)
       .sort((x, y) => (x[0].at || [0, 0])[1] - (y[0].at || [0, 0])[1]).map(([pl, i]) => kitSlot(pl, where, pl.id === sel, i)).join('');

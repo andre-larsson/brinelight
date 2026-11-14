@@ -1090,9 +1090,8 @@
      In a diving dress she stands in another pose, with her harpoon raised, her bell lower and no coat pocket. */
   const IN_DRESS = { harpoon: [0.3, 0.335], ditty: [0.47, 0.455], coat: [0.64, 0.34], bell: [0.59, 0.52], pocket: [0.7, 0.55] };
   BL.WREN_POINTS = { keeper_suit: IN_DRESS, keeper_plated: IN_DRESS };
-  /* A rig's `look` is Wren's picture (img/units) on shore and on the open-air levels; a dress also has `lookUnder`,
-     her picture wearing it in the Belfry and on the kit screens (E.keeperArt). Without them she shows as plain Wren
-     (keeper, and keeper_suit underwater). */
+  /* A rig's `look` is Wren's picture (img/units) wearing it, in fights and on the kit screens (E.keeperArt). Without
+     one she shows as plain Wren (keeper, and keeper_suit underwater). */
   BL.KIT = {
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
@@ -1105,9 +1104,9 @@
     cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', look: 'keeper_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
     gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', look: 'keeper_gorget', price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
     /* Found, never bought: the first time Dark Water's pin breaks, Wren finds it and carries it home (E.carryHome). */
-    suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', look: 'keeper_packed', lookUnder: 'keeper_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
+    suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', look: 'keeper_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
     /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */
-    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_plated_packed', lookUnder: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
+    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
     pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, desc: 'Gain 10 extra Pearls after each fight.' },
     marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
