@@ -1067,7 +1067,7 @@
       return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small>${foot}</div>`;
     };
     const groups = BL.KIT_PLACES.map((pl) => `<h3 class="ws-place">${pl.name} <small>${pl.desc}</small></h3><div class="shop-row">${kitIn(pl.id).filter((id) => !BL.KIT[id].starter).map(tile).join('')}</div>`).join('');
-    const body = `<p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. You wear one piece in each place, and choose before each descent.</p>
+    const body = `<div class="ws-art" style="background-image:url(img/scenes/workshop.webp)" role="img" aria-label="The keepers' workshop on the shore"></div><p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. You wear one piece in each place, and choose before each descent.</p>
       <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${groups}`;
     openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
@@ -1117,7 +1117,7 @@
   function showLazaret() {
     const kept = meta.lazaret;
     const missing = Object.keys(BL.KEEPSAKES).filter((k) => kept.indexOf(k) < 0);
-    const lead = `<p class="ws-lead">The locked store room at the lighthouse. When you come home, every keepsake you carry is kept here. Bring any of them on an expedition: each one still counts toward your Hold. If you fall, you lose only the keepsakes you found on that expedition.</p>`;
+    const lead = `<div class="ws-art" style="background-image:url(img/scenes/lazaret.webp)" role="img" aria-label="The Lazaret, a locked store room at the foot of the lighthouse"></div><p class="ws-lead">The locked store room at the lighthouse. When you come home, every keepsake you carry is kept here. Bring any of them on an expedition: each one still counts toward your Hold. If you fall, you lose only the keepsakes you found on that expedition.</p>`;
     const body = kept.length
       ? `${lead}<div class="lz-roil"><span class="chip">You bring <b>${meta.bring.length}</b> of ${kept.length}: <b>Roil ${E.bringCharge(meta)}</b></span><ul><li>Hold ${E.metaHold(meta)}: ${roilAt()}</li></ul></div>
         <h3 class="ws-place">Kept here <small>${kept.length} of ${KS_TOTAL}. Choose what to bring.</small></h3><div class="shop-row">${kept.map((k) => ksTile(k)).join('')}</div>`
@@ -2681,10 +2681,12 @@
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? (run.heart ? 'The Lantern Heart rises' : run.quieted ? 'The Belfry is quiet' : 'Home with your haul') : 'The tide takes you';
     const text = win
-      ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : 'You climb back up the drained stairs with everything you carry. Behind you the bells start again, and the water creeps back over the landings. The lighthouse is still dark, but you know the way down now.')
-      : 'The cold water closes over your lantern, and you go under. The sea carries you back to shore, alive. The lighthouse is still dark, and the water has risen a little higher toward the town.';
+      ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : `You climb back up the drained stairs with everything you carry. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
+      : `The cold water closes over your lantern, and you go under. The sea carries you back to shore, alive. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
+    // once the Heart is home the lighthouse is lit, so a homecoming shows it lit; before that it is still dark
+    const endArt = win ? (run.heart || run.heartHome ? 'scenes/op_lighthouse' : 'bg/bg_title') : `bg/${E.band(run).bossBg}`;
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
-    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${win ? 'bg_title' : E.band(run).bossBg}.webp)"><div class="scene-inner" style="padding-top:8vh">
+    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/${endArt}.webp)"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
       ${scoreHTML}
       <div class="stats end-stats">${stats}</div>

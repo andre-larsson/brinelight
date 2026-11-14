@@ -5,8 +5,16 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.22.0';
+  BL.VERSION = '0.23.0';
   BL.CHANGELOG = [
+    { v: '0.23.0', date: '2026-11-14', items: [
+      'New art where the old pictures told a different story. The Shallows are now a rocky shore at low tide under a dark lighthouse, not the sea floor, and the Harbour Hermit holds its water in a basin above the tide. The Belfry\'s boss fights have their own chamber, with the Heart\'s glow under the floor.',
+      'The Drowned Bellwether now looks like a great bronze bell. Its eye and arms only show when the bronze breaks and the Thing comes out.',
+      'New pictures for the Gilded Gull (high and dry, its hold still flooded), Eyes in the Kelp, the Lost Lamplighter (his lantern is cold), the Sunken Shrine, the message in the bottle and the sea chest in a Wreck. Brace and Deep Guard now show Wren, and Toppled Tower no longer shows a sunken lighthouse.',
+      'The opening has three new pictures: the lighthouse burning, the bell under the cliffs, and the night the fire was pulled down.',
+      'The Workshop and the Lazaret have pictures of their own. Once the Heart is home, the end screen shows the lighthouse lit, and no longer says it is dark.',
+      'Each tonic has its own picture, and eight keepsakes that shared pictures with cards have their own.',
+    ] },
     { v: '0.22.0', date: '2026-11-14', items: [
       'Deeper finds are stronger. Six new keepsakes are found only below the Shallows. In Dark Water: the Hollow Whelk (your Ward no longer washes away at the start of your turn), the Glimmer Bulb (a Strand gives 2 Light) and the Leech Jar (whenever a creature dies, your Max HP rises by 2 and you heal 4). In the Belfry: the Bell Clapper (your first Crest or Strand each turn makes your next card play twice), the Powder Horn (every creature that dies bursts for 12 on the others) and the Heart Cinder (1 more Light on every other turn, starting with the first). They carry more Roil than any keepsake from the Shallows.',
       'In Dark Water and the Belfry, the first keepsake in every Wreck, Dread\'s pick and shop is one of that level\'s own, while any are left.',

@@ -218,14 +218,14 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   position: relative; flex: 1; min-height: 0; overflow: hidden; container-type: size; container-name: field;
   background: #0a2030 url(img/bg/bg_battle.webp) center 65%/cover no-repeat;
 }
-.field.boss { background-image: url(img/bg/bg_boss.webp); }
+.field.boss { background-image: url(img/bg/bg_shallows_boss.webp); }
 /* Dark Water has its own chamber and its own lock for the pin */
 .field.band-dark { background-image: url(img/bg/bg_dark.webp); }
 .field.band-dark.boss { background-image: url(img/bg/bg_dark_boss.webp); }
-/* the Shallows' pin is the harbour bell on the hermit crab's back; the Belfry is under the sea, and its boss hangs in the great bell's chamber */
+/* the Shallows are open air on the foreshore and the Hermit holds its basin full above the tide; the Belfry is under the sea, and its boss hangs over the Heart's glow */
 .field.band-shallows.boss { background-image: url(img/bg/bg_shallows_boss.webp); }
 .field.band-belfry { background-image: url(img/bg/bg_belfry.webp); }
-.field.band-belfry.boss { background-image: url(img/bg/bg_boss.webp); }
+.field.band-belfry.boss { background-image: url(img/bg/bg_belfry_boss.webp); }
 .field::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(5, 15, 24, .25), transparent 30%, transparent 70%, rgba(5, 15, 24, .55)); }
 .sea {
   position: absolute; left: -5%; right: -5%; bottom: 0; z-index: 1; pointer-events: none;
@@ -989,6 +989,8 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 
 /* ---------- Workshop (permanent kit) ---------- */
 .workshop-modal { width: min(760px, 100%); }
+/* a picture of the room above the Workshop's and the Lazaret's lists */
+.ws-art { width: 100%; height: clamp(96px, 24vw, 190px); margin: 0 0 12px; border-radius: 10px; background: #0a1d2b center/cover no-repeat; border: 1px solid rgba(201, 162, 74, .35); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
 .ws-lead { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: #d6e3e0; }
 .ws-bal { display: flex; justify-content: center; margin: 0 0 14px; }
 /* kit is square with a brass corner, so it never reads as a (round) keepsake */

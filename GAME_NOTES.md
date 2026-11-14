@@ -305,8 +305,8 @@ These are earlier expansion ideas. Their named-depth unlocks need revisiting und
 - **More levels**: add intermediary bands after the initial three-level version. See "Current story and expedition scope".
 - **More characters**: unlockable keepers. WORLD.md has the open question about other keepers.
 - **A lore overhaul:** done in v0.11.0 for the story and the names. See "Lore and names (v0.11.0)".
-- **Art and sound to match the new lore (2026-11-12; planned, not built):**
-  - Update the art that tells the old story.
+- **Art and sound to match the new lore (2026-11-12; art done in v0.23.0, sound still planned):**
+  - Update the art that tells the old story. Done: see "Art review (v0.23.0)".
   - Add sound effects, for example for a bell that changes the water.
 - **Rename the fight's Tide words: built in v0.11.0.** The gauge is the Swell and Low Water is a Strand. See "Lore and names (v0.11.0)".
 
@@ -331,7 +331,7 @@ The user handed the world-building and lore to the agent ("it is yours to adapt 
 **A new rule test** fails if card, keepsake, kit, status, tonic or achievement text uses Tide (other than Tide-Bell), Low Water or Charge.
 
 **Still to do:**
-- The Wreck painting shows the Gilded Gull fully underwater, and the title art shows a sea, not stairs. Art and sound for the new lore are still planned.
+- The Wreck painting shows the Gilded Gull fully underwater, and the title art shows a sea, not stairs. Art and sound for the new lore are still planned. (v0.23.0 repainted the Wreck; the title art is unchanged.)
 - The tide bar and the keepsake chip have no new art or sound.
 - Sent but not chosen, for later: names for Roil (Strain, Pressure, Fret, Wake), for the store (the Salt Cellar, the Lamp Room), and for the aether's states (Fair and Foul, Quiet and Unquiet).
 
@@ -355,7 +355,7 @@ The user asked for a title story that is more engaging and higher in stakes, the
 **How it is built:** the text and the unlock marks are in `BL.STORY` (js/data.js). `E.storyMarks(run)` reads marks off a run, and `E.storyOpen(entry, marks)` says whether an entry is open (js/engine.js). The UI stores marks, read entries and "opening seen" in `brinelight.story.v1`. Depths cleared before v0.12.0 count, read from the deepest unlocked depth. The tutorial and debug-cheated runs open nothing. The debug panel has "Unlock all story". `tests/story.test.js` covers the content and the marks, and the UI smoke test has a story scenario.
 
 **Still to do:**
-- The opening has no art of its own. The fourth picture puts the keeper sprite on the Cove painting.
+- The opening has no art of its own. The fourth picture puts the keeper sprite on the Cove painting. (v0.23.0 gave the first three pictures their own art.)
 - "Tonight" in the opening and "by dawn" on the win screen fit one run. The planned expeditions with trips home will need different words.
 - Offered and not built: a different title line after the first win, and a count of stairs lost on the loss screen.
 
@@ -1022,6 +1022,31 @@ The user said "implement phase C": slice C of the expedition plan, "more kit and
 - Can you follow the Powder Horn's chain bursts, and see which card the Bell Clapper doubles?
 - Did you Bail and Stir in one turn with the Bailer?
 
+### Art review (v0.23.0, 2026-11-14)
+
+The user asked to "review game art, fill in any gaps, and fix any art that does not make sense given story/setting". All 152 images were checked against WORLD.md. Most of the art from the starting point was painted for an older story in which Wren swam, so it showed the Shallows under water. The user owns the lore since 2026-11-12, so the picture calls below are the agent's; each image can be reverted on its own from git.
+
+**Replaced because it contradicted the setting:**
+- `bg_battle` (the Shallows' fights and the tutorial): was a sunlit seabed with a sunken lighthouse. Now the foreshore at night at low tide, the keepers' stair on the left, the lighthouse dark on the headland. Its faint lit window was painted out by hand (`assets-src/bg/bg_battle-v2-dark.png`).
+- `bg_shallows_boss` (the Hermit, the pin screen, falls in the Shallows): was under water, made that way on purpose in v0.20.0. Now a rock basin held brim-full above the tide over a drowned stair, with the torn-off bell bracket on the ledge.
+- `units/bell` (the Bellwether): showed the Thing's eye and arms, so the two phases looked the same. Now a cracked bronze bell with a golden glow and only a hint of tendrils.
+- Brace and Deep Guard showed an old bearded man (Brace also had the lighthouse lit). Now Wren. Toppled Tower showed a sunken lighthouse; now a sea tower toppled by a wave.
+- Events: the Gilded Gull (was fully sunk), Eyes in the Kelp (was a diver in a helmet), the Lost Lamplighter (under water, lantern lit; WORLD.md says it has not burned in a hundred years), the Sunken Shrine (sunlit seabed with a shipwreck), the bottle (the lighthouse was shining tonight), and the Wreck's sea chest (gold coins on a sunlit seabed).
+
+**Gaps filled:**
+- The Belfry's boss fights and finals used `bg_boss`, a generic blue cathedral that was not the Belfry. Now `bg_belfry_boss`. `bg_boss` is deleted, and so is `c_coralspines` (unused since the starting point).
+- The opening's first three pictures were crops of the title art and of `bg_boss`. Now `scenes/op_lighthouse`, `op_bell` and `op_fire`.
+- The end screen showed the dark lighthouse even after the Heart was home, and its text said "The lighthouse is still dark". After the Heart, a homecoming shows `op_lighthouse` lit, and the fall and homecoming texts say the great light still turns.
+- The Workshop and the Lazaret have a banner picture (`.ws-art`). The Lazaret's form was an open question; the agent's answer is in WORLD.md (a ship's locker of barred compartments at the foot of the lighthouse).
+- The three keeper's notes without a picture now have one: How a keepsake is made (the Whale Tooth), A Roiled aether (the Seep card), A night in the Lazaret.
+- The 7 tonics were one bottle in 7 colours (and the same picture as the Storm Bottle). 8 keepsakes were crops of card art (Storm Bottle, Moon Shard, Conch of Echoes, Whispering Conch, Salted Hook, Drowned Anchor, Scallop Charm, Coral Branch). Each now has its own icon.
+
+**Kept on purpose:** the title art (a dark lighthouse over a sunken bell; a loose cut-away, but it agrees with the story), Lighthouse Beam (a lit lighthouse is what the card means), Spring Tide's boat, Riptide Cut's blade, the Drowned Deckhand's pirate look.
+
+**Tooling:** `tools/build.js` now also checks the opening and Story so far pictures. The prompts are the last block of `assets-src/wanted-images.tsv`; the style preambles there are the ones to copy.
+
+**Open for the user:** does the new Shallows read well behind the fight (it is lighter and busier than the old seabed)? Do the Workshop and Lazaret banners help, or push the lists too far down on a phone?
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -1390,7 +1415,15 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 
 ## Art
 
-- Painterly underwater scenes: teal deep water, warm lantern and brass highlights, creatures and objects on transparent backgrounds for units. All images are WebP in `img/`.
+- Painterly oil-paint look: deep teal and sea-green, cold turquoise brinelight glows, warm lantern-gold and brass light from the left. Units and gear icons on transparent backgrounds; keepsake and tonic icons are full-bleed squares; cards are full-bleed squares. All images are WebP in `img/`.
+- **Style preambles:** copy them from the latest lines of `assets-src/wanted-images.tsv` (background, scene, unit, card, keepsake icon, tonic icon, gear icon). The queue file and the PNG originals are git-ignored; Codex keeps copies in `~/.codex/generated_images/`.
+- **What the art has to agree with** (WORLD.md; the original art was made for an underwater game and broke these, see "Art review (v0.23.0)"):
+  - The Shallows and Dark Water are open air. Wren stands on stone with an open lantern; the water is pools, held basins and still black water. No sunbeams through water, no divers, no fish in the air. Only the Belfry is under the sea, and there Wren wears the diving dress.
+  - Saltmere's lighthouse is dark (no beam) until the Heart comes home, and lit after.
+  - Wren is a young woman with dark brown hair, an ochre oilskin, a faded red scarf, boots, a harpoon and an open brass lantern.
+  - Money is pearls, not gold coins.
+  - The Bellwether is a bronze bell (crack, clapper, golden glow inside, at most a hint of tendrils). The one eye and the arms belong to the Thing, which comes out only when the bronze breaks.
+  - The Lost Lamplighter's lantern is cold.
 - Gear icons (v0.7.0): see "The Workshop" above.
 
 ## Open questions for the next playtest
