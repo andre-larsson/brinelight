@@ -1515,6 +1515,7 @@ The user asked for the musicbox score and the sound kit to go into the game. The
 - `tests/story.test.js`: the title line, the opening, and what opens each Story so far entry. `node tests/ui-smoke.js --only story` runs only the story flow in the browser. `tools/screens.js` also shoots the three Story so far tabs and the opening.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
 - `tools/wren-art.py`: Wren's shared 400x600 canvas. `input` makes the 1024x1536 edit input from plain Wren, `compose` pastes back only the changed part of an edit inside the given polygons, and `place` puts a whole new picture on the canvas at her scale, or with `--tall` at another keeper's height (needs Python with Pillow and numpy). See "Art" for how it was used.
+- `tools/comfy-gen.py`: runs text-to-image and edit jobs on a local ComfyUI (Qwen-Image 2.1, Z-Image Turbo, FLUX.2 Klein 4B) through its HTTP API. ComfyUI itself is outside the repo. See "Keeper and costume drafts".
 - `tools/swap-shots.js`: screenshots of a desktop fight, a phone fight and the Workshop's kit view with Wren's picture swapped for another 400x600 picture in the browser, to judge a keeper or costume draft in the game. See "Keeper and costume drafts".
 
 ## Determinism and saves
@@ -1596,7 +1597,8 @@ The user asked how more characters could be added, and wanted to judge the look 
     - the lobster suit;
     - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one;
     - the shell bikini, the barbarian and the barrel.
-  - Dropped by the user: ballerina and brass mech. Codex's image tool refused a skimpy fantasy-armour parody.
+  - Dropped by the user: ballerina and brass mech.
+  - The armour: Codex's image tool refused a skimpy fantasy-armour parody (shell pauldrons, a shell bikini, greaves), so it was made on local Qwen-Image 2.1 instead (`wren_armour.webp`). Its licence makes it a draft only (see "Local generation").
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
   - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. In the game a recolour needs 5 pictures: plain, Cork Vest, Shell Gorget and both carried dresses. The worn dresses hide the oilskin.
 - **What the samples showed:**
@@ -1607,7 +1609,22 @@ The user asked how more characters could be added, and wanted to judge the look 
   5. Codex drew every age, body and skin colour asked for.
   6. A knee-high Winkle vanished on a phone, so it is drawn at about half Wren's height.
 - **Originals:** `assets-src/units/samples/*.png` (git-ignored; Codex keeps copies in `~/.codex/generated_images/`). Prompts: the 2026-11-14 sample and edit lines in `assets-src/wanted-images.tsv`.
-- **Local generation:** ComfyUI is installed in `~/code/ComfyUI`, outside the repo, to test Qwen-Image 2.1, Z-Image Turbo and FLUX.2 Klein 4B. It can do masked inpainting and has no refusals. Qwen-Image 2.1 is under the Qwen Research License (check it before selling the game); Z-Image and FLUX.2 Klein 4B are Apache 2.0.
+- **Local generation (ComfyUI, 2026-11-14):**
+  - **Setup:** ComfyUI is installed in `~/code/ComfyUI`, outside the repo, with its own `.venv`. `download-models.sh` there fetches the models (44 GB) into `models/`.
+  - **Running it:** start it as one capped process: `systemd-run --user --scope -p MemoryMax=40G -p MemorySwapMax=0 .venv/bin/python main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch`. `tools/comfy-gen.py JOBS.json` then runs jobs through its HTTP API.
+  - **Speed:** on the RTX 4090, a 1024x1536 picture takes about 8 s on Qwen Turbo and 25 s on the Qwen base model, once loaded. The first job after switching models takes 30 to 50 s.
+  - **Qwen-Image 2.1** works best. It draws RGBA with a real transparent background, and edits keep Wren's face, pose and framing.
+    - Turbo was as good as the base model and three times faster. In the base model's lighthouse edit her arms went missing.
+    - With the same Mateo prompt as Codex, its anatomy was right and the paint looked close to the game. The poses were stiffer than Codex's, and it painted a whole scene of sea monsters until the prompt stopped mentioning what the keeper faces.
+    - With plain Wren as a style reference (image 1), the style matched even better, but her raised lantern was copied and floated with no hand.
+    - It drew the armour parody that Codex refused (`wren_armour.webp`, Turbo seed 1).
+    - For the lighthouse redo, Codex's edit read better at fight size than Qwen's: lit windows and more paint texture. Qwen's version turned dark and greenish on a phone.
+  - **FLUX.2 Klein 4B:** clean and fast, but opaque (it needs a flat background and a cutout step). It copied Wren's raised-lantern pose from the reference.
+  - **Z-Image Turbo:** clean but flatter, more like cartoon concept art than oil paint. It is opaque too.
+  - **Licences:**
+    - Qwen-Image 2.1 is under the Qwen Research License, which allows research and evaluation only. Shipping its pictures in the game would need a commercial licence from Qwen, so treat its pictures as drafts.
+    - Z-Image Turbo, FLUX.2 Klein 4B, and the older and larger Qwen-Image 2512 and Qwen-Image-Edit 2511 are Apache 2.0. Those two Qwen models are not downloaded.
+  - **Originals:** in `assets-src/units/samples/local/` (git-ignored). The edit prompts are in `assets-src/wanted-images.tsv`.
 
 ## Open questions for the next playtest
 
