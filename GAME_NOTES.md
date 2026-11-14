@@ -989,7 +989,7 @@ The user said "implement phase C": slice C of the expedition plan, "more kit and
   | Shell Gorget | 19.0 | Bailer | 19.7 |
   | Plated Dress | 21.5 | Safety Line, 10 / 5 / 1 HP | 33.4 / 30.7 / 29.2 |
 
-  The bot never plans two Swell acts in a turn, so the Bailer is worth nothing to it. Most of the Safety Line's value is the second chance itself: at 1 HP it still gives +8.9.
+  The bot never plans two Swell acts in a turn, so the Bailer is worth nothing to it (it learned to on 2026-11-14; see "The bot shops, drinks tonics and uses the Bailer"). Most of the Safety Line's value is the second chance itself: at 1 HP it still gives +8.9.
 - **The Hold:** the Shallows' pin carrying the Whale Tooth, Storm Bottle and Kelp Bracelet (Roil 48), 2000 seeds: 35.0% at Hold 20, 47.5% at 30, 56.7% at 40 (nothing carried: 19.9%).
 - **The expedition,** wearing the dress, 2000 seeds:
 
@@ -1046,6 +1046,69 @@ The user asked to "review game art, fill in any gaps, and fix any art that does 
 **Tooling:** `tools/build.js` now also checks the opening and Story so far pictures. The prompts are the last block of `assets-src/wanted-images.tsv`; the style preambles there are the ones to copy.
 
 **Open for the user:** does the new Shallows read well behind the fight (it is lighter and busier than the old seabed)? Do the Workshop and Lazaret banners help, or push the lists too far down on a phone?
+
+### The bot shops, drinks tonics and uses the Bailer (2026-11-14; tools only, no version)
+
+The user asked to "teach the bot to shop, drink tonics and use two Swell moves in a turn, for better testing". Before this, the bot never shopped and never drank a tonic. It also Bailed or Stirred only when it had nothing left to play, so it never used a second act. Pearls, the shop, tonics, the money kit (Coin Purse, Gleaner's Pouch, Barnaby's Marker, Pearl Scales), the Spare Flask and the Bailer were all worth zero to it. Nothing in the game changed. The work is in `tools/bot.js`, with tests in `tests/bot.test.js`.
+
+**What the bot does now** (it still keeps no state of its own, so save/continue still plays the same run):
+- **Barnaby's shop:** it buys in this order while the Pearls last, then leaves.
+  1. It takes out a curse or status card.
+  2. It buys the keepsake it values most, if it can afford it.
+  3. It takes out a starter Brace (one removal a visit).
+  4. It buys a rare card.
+  5. It buys a tonic if a slot is free.
+- **Tonics in a fight:**
+  - It drinks any tonic that wins the fight or kills an enemy at once.
+  - If the turn would end with Wren falling, it drinks Shell, Kelp Tea, Ink, or a Squall that kills, in that order.
+  - Other uses are only in a pin or Dread fight, or when all 3 slots are full:
+    - turn 1: Ink on the hardest hitter, Brine on the enemy with the most HP plus Ward, Squall when there are 2 or more enemies;
+    - Lamp Oil when the hand costs more than the Light;
+    - Moonwater at Swell 2 to 4.
+- **Tonics on the map:** Kelp Tea at half HP or less, with at least 15 HP missing.
+- **Swell acts:** the end-of-turn rule is the same as before, but it now looks as far as its acts and Light reach, so with the Bailer it Stirs twice into a Crest, or Bails twice to a Strand. Mid-turn, it Stirs into a Crest when the wave kills, and Bails twice from Swell 2 when an enemy has Ward or is Submerged.
+- **Options** for `step`, `playRun` and a measure row's new `bot` field: `noShop`, `noTonics`, `noSwellActs`, `lateSwellOnly`, `shopOrder`, `removeId`. `{ noShop: true, noTonics: true, lateSwellOnly: true }` plays exactly like the old bot. At 2000 seeds every number matched.
+
+**Before and after** (expedition with the Diving Dress, Hold 20, 2000 seeds; pin 2 and pin 3 are shares of the pin before):
+
+| Bot | Shallows' pin | Dark Water's after it | Belfry's after that | Heart home | Spent at shops a run |
+|---|---|---|---|---|---|
+| old (= all three options) | 19.9 | 17.6 | 40.0 | 1.4 | 0 |
+| new, no tonics | 24.8 | 26.2 | 67.7 | 4.4 | 99 Pearls |
+| new, no shopping | 27.0 | 26.7 | 61.1 | 4.4 | 0 |
+| **new** | **33.8** | **32.9** | **70.7** | **7.8** | 117 Pearls |
+
+Shopping and tonics each give about half of the gain. The new bot finishes a run with 0.12 tonics left on average (the old bot had 1.18). Over 2000 runs its purchases were 1335 removals, 634 tonics, 506 keepsakes and 190 cards. It uses most tonics in pin and Dread fights: Lamp Oil 487, Brine 460, Ink 452, Shell 365, Moonwater 271, Squall 183. Kelp Tea was used 275 times on the map and 188 times in fights.
+
+**Kit with the new bot** (the same expedition, dress plus one piece, 2000 seeds). Noise is about ±1 point on the Heart, ±1.5 on the Shallows' pin, ±2 on Dark Water's share and ±3 on the Belfry's, because fewer runs get that far:
+
+| Kit piece | Shallows' pin | Dark Water's | Belfry's | Heart | Heart, old bot |
+|---|---|---|---|---|---|
+| dress only | 33.8 | 32.9 | 70.7 | 7.8 | 1.4 |
+| Coin Purse | 35.1 | 34.9 | 66.5 | 8.2 | 1.4 |
+| Gleaner's Pouch | 34.0 | 37.6 | 69.9 | 8.9 | 1.4 |
+| Barnaby's Marker | 39.6 | 38.1 | 69.9 | 10.6 | not measured |
+| Pearl Scales | 35.8 | 36.2 | 71.8 | 9.3 | 1.4 |
+| Spare Flask | 37.6 | 31.3 | 69.8 | 8.2 | 1.9 |
+| Gleaning Net | 33.9 | 33.9 | 67.0 | 7.7 | not measured |
+| Spare Wick | 37.0 | 44.5 | 79.3 | 13.1 | not measured |
+| Bailer | 33.5 | 34.0 | 75.0 | 8.6 | 1.4 |
+| Safety Line | 46.2 | 37.4 | 69.1 | 11.9 | not measured |
+
+With the old bot, the Purse, Pouch and Scales played exactly the same runs as the dress alone. Now each piece has a value.
+
+**My calls (each is a dial):**
+1. **Remove a Brace, not a Jab.** This was +3.5 points on the Shallows' pin at 1000 seeds, and the same deeper down.
+2. **Shop order:** none of the orders I tried was clearly better: removal first, tonics first, any card instead of a rare, or no cards. I kept the order above.
+3. **No "Crest as soon as possible" rule.** It added about 0.7 points on the Heart, but with it the Bailer measured below the dress alone. It also changes how the bot plays, which is a separate question from what was asked.
+4. Card picks, routes, rests and events are unchanged. The bot still takes the first card of a reward, goes to the first stop on the map and does not look for shops.
+
+**Findings for the user (not changed):**
+1. **The Spare Wick (12 Workshop coins) is the strongest Ditty Bag piece for the bot**: +5.3 on the Heart, and +11.6 on Dark Water's pin share. It does more than the Safety Line (35) for a whole expedition. The bot rests at every Cove, so it may overvalue resting, but it is a lot for the price.
+2. **Barnaby's Marker** (+2.8 on the Heart) is worth more than the Coin Purse (+0.4, inside the noise) or the Gleaner's Pouch (+1.1).
+3. **The Bailer is still small:** +0.8 on the Heart and +4.3 on the Belfry's pin share, both inside the noise, and nothing on the Shallows' pin. Without the mid-turn rules it made 1983 double acts in 2000 expeditions; with them, 5539.
+4. **The Gleaning Net does nothing** (+0 on every column). 3 Pearls a Crest is too little.
+5. **Every earlier bot number in these notes is from the old bot.** The new bot is much stronger, so compare old numbers only with a measure row that uses `bot: { noShop: true, noTonics: true, lateSwellOnly: true }`. The v0.22.0 balance findings ("The Belfry got easier", the underpriced keepsakes) should be measured again with the new bot before anyone acts on them.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -1377,7 +1440,8 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
-- **Bot run outcomes** (careful bot): v0.22.0, 2000 seeds, first expedition: the Shallows' pin 19.9%, Dark Water's after it 17.9%, the Belfry's after that 45.1%, the Heart 1.6%; with Hold 40 from earlier expeditions 23.2%, 20.7%, 53.1%, 2.5% (see "More kit and keepsakes, slice C"). v0.21.0, 2000 seeds: the Shallows' pin 19.9%, Dark Water's after it 15.9%, the Belfry's after that 30.2%, the Heart 0.9% (see "Deeper Dreads are harder"). v0.20.0, 2000 seeds:
+- **Bot run outcomes** with the bot that shops, drinks tonics and uses the Bailer (2026-11-14), v0.24.0, 2000 seeds, first expedition in the dress: the Shallows' pin 33.8%, Dark Water's after it 32.9%, the Belfry's after that 70.7%, the Heart 7.8%. The same seeds with the old bot: 19.9%, 17.6%, 40.0%, 1.4% (see "The bot shops, drinks tonics and uses the Bailer"). Every number below is from the old bot.
+- **Older bot run outcomes** (careful bot, before 2026-11-14): v0.22.0, 2000 seeds, first expedition: the Shallows' pin 19.9%, Dark Water's after it 17.9%, the Belfry's after that 45.1%, the Heart 1.6%; with Hold 40 from earlier expeditions 23.2%, 20.7%, 53.1%, 2.5% (see "More kit and keepsakes, slice C"). v0.21.0, 2000 seeds: the Shallows' pin 19.9%, Dark Water's after it 15.9%, the Belfry's after that 30.2%, the Heart 0.9% (see "Deeper Dreads are harder"). v0.20.0, 2000 seeds:
   - the Shallows' pin 18.5%;
   - Dark Water's after it 18.6%;
   - the Belfry's after that 34% (paired replay);
@@ -1389,7 +1453,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 
 - `tests/rules.test.js`: every rule in README.md and How to Play, plus determinism and save/continue. `tests/tutorial.test.js`: the scripted tutorial fight.
 - `tests/ui-smoke.js`: headless Chrome through the real UI (desktop mouse and keyboard, phone touch, tutorial with mouse, touch and keyboard, tutorial from inside a run). Checks for JS errors, stuck screens, horizontal overflow, Continue, the keeper's incoming number and End Turn lighting up.
-- `tools/bot.js`: loads the engine in Node and plays runs with a deterministic policy.
+- `tools/bot.js`: loads the engine in Node and plays runs with a deterministic policy that shops, drinks tonics and uses the Bailer. Its options turn each part off, and `{ noShop, noTonics, lateSwellOnly }` plays like the bot before 2026-11-14. A measure row passes them as `bot`. `tests/bot.test.js` checks its shopping, tonics and double Swell acts, and that whole runs stay deterministic across a save.
 - `tools/opening.js`: the opening measurements above.
 - `tools/screens.js`: screenshots of every screen at the four sizes, plus the small-text list. `tools/tutorial-shots.js`: one screenshot per tutorial step.
 - `tools/serve.js`, `tools/cdp.js`: static server and a tiny Chrome DevTools client (launches its own headless Chrome on a free port).
