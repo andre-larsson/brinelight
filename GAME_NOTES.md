@@ -1595,7 +1595,7 @@ The user asked how more characters could be added, and wanted to judge the look 
     - bathing: an 1890s bathing dress, the at-home one;
     - beach: a bikini with her boots on;
     - the lobster suit;
-    - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one;
+    - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one. Its first version was too pale; the user said the real tower is browner, so it was repainted with heavy rust-brown patches over grey-cream stone (3a; 3b is lighter);
     - the shell bikini, the barbarian and the barrel.
   - Dropped by the user: ballerina and brass mech.
   - The armour: Codex's image tool refused a skimpy fantasy-armour parody (shell pauldrons, a shell bikini, greaves), so it was made on local Qwen-Image 2.1 instead (`wren_armour.webp`). Its licence makes it a draft only (see "Local generation").
