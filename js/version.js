@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.24.2';
+  BL.VERSION = '0.24.3';
   BL.CHANGELOG = [
+    { v: '0.24.3', date: '2026-11-14', items: [
+      'The Coat place is now the Rig: what Wren wears over her oilskin. She never takes the oilskin off, because it is proofed with oil from the great lamp and brinelight runs off it. The World tab tells you more.',
+      'On the Workshop and Pack screens, Wren wears the Diving Dress or the Plated Dress you choose, helmet and all, so you can see which one you have on. On the way down she still carries it rolled up until the Belfry.',
+      'The Plated Dress has its own rolled-up picture: a bundle of shell plates, where the plain dress is pale canvas.',
+    ] },
     { v: '0.24.2', date: '2026-11-14', items: [
       'The Plated Dress looks like armour now: broad shell plates from her shoulders to her shins, where before it was a few shells on the chest. In the Belfry you can tell it from the plain Diving Dress at a glance.',
     ] },

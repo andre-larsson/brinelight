@@ -727,7 +727,7 @@
       case 'map': return `<ul class="help-list">
         <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => levelName(i)).join(', then ')}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
         <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. The stair down starts at a Sheltered Cove. Break the last pin to bring the Lantern Heart home.</li>
-        <li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Coat place. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
+        <li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
         <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => `${L.landing} in ${levelName(i)}`).join(', ')}. Coming home adds 5 for each HP you have left. Bringing the Heart home, or quieting the Belfry, adds ${E.FINAL_SCORE}.</li>
       </ul>${dl([
@@ -1063,13 +1063,13 @@
   /* The Workshop and Pack for the expedition share one view of the kit: Wren in the middle with a slot for each
      place around her (BL.KIT_PLACES), a line from each slot to where the piece sits on her, and under her a tray
      with every piece of kit for the chosen slot: what she owns (tap to wear or take off), what is for sale, and
-     what is still locked. Her picture follows her coat (E.keeperArt). */
+     what is still locked. Her picture follows her rig, and shows a dress worn (E.keeperArt). */
   const kitForSale = (id) => { const g = BL.KIT[id]; return !g.starter && !g.found && !E.ownsKit(meta, id) && E.kitUnlocked(meta, id); };
   const canBuyNow = (id) => kitForSale(id) && meta.salvage >= BL.KIT[id].price;
   const placeOf = (id) => BL.KIT_PLACES.find((pl) => pl.id === id);
   function kitWrenAlt(kit) {
     const g = kit.coat ? BL.KIT[kit.coat] : null;
-    return !g ? 'Wren, the Keeper, in her oilskin' : g.lookUnder ? `Wren, the Keeper, carrying the ${g.name}` : `Wren, the Keeper, wearing the ${g.name}`;
+    return !g ? 'Wren, the Keeper, in her oilskin' : `Wren, the Keeper, wearing the ${g.name}`;
   }
   /* The chosen slot: the last one chosen, else the first with something to wear (packing) or to buy (the Workshop). */
   function kitSlotFor(where) {
@@ -1108,7 +1108,7 @@
       <div class="kit-list">${ids.map(kitOpt).join('')}</div></section>`;
   }
   function kitDoll(where) {
-    const sel = kitSlotFor(where), look = E.keeperArt(meta.kit);
+    const sel = kitSlotFor(where), look = E.keeperArt(meta.kit, 'kit');
     // each side lists its slots top to bottom by where they point, so the lines don't cross
     const side = (s) => BL.KIT_PLACES.map((pl, i) => [pl, i]).filter(([pl]) => (pl.side || 'right') === s)
       .sort((x, y) => (x[0].at || [0, 0])[1] - (y[0].at || [0, 0])[1]).map(([pl, i]) => kitSlot(pl, where, pl.id === sel, i)).join('');

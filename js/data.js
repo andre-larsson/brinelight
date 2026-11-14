@@ -1077,20 +1077,22 @@
      The kit screens show Wren with a slot for each place: `side` is the side of her picture the slot sits on,
      and `at` is where its line points on her picture (fractions of its width and height, from the top left).
      Her pictures share one canvas (tools/wren-art.py), so one point fits them all; BL.WREN_POINTS moves a point
-     for a picture where the coat covers it. A new place needs these and a glyph in ui.js (ICON.slot_<id>). */
+     for a picture where her rig covers it. A new place needs these and a glyph in ui.js (ICON.slot_<id>).
+     The Rig place is `coat` in the code and in saves (it was called the Coat until v0.24.3). */
   BL.KIT_PLACES = [
     { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.', none: 'Plain harpoon', side: 'left', at: [0.2, 0.48] },
     { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you get when you Crest or Strand.', side: 'right', at: [0.52, 0.42] },
-    { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.', none: 'Just the oilskin', side: 'right', at: [0.66, 0.29] },
+    { id: 'coat', name: 'Rig', desc: 'What you wear over your oilskin. A keeper never takes the oilskin off: brinelight runs off it.', none: 'Just the oilskin', side: 'right', at: [0.66, 0.29] },
     { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.', none: 'Empty', side: 'right', at: [0.75, 0.515] },
     { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.', none: 'Empty', side: 'left', at: [0.37, 0.49] },
   ];
-  /* Per-picture corrections to the slot points above, where a coat covers a point: { picture: { place: [x, y] } }. */
-  BL.WREN_POINTS = {
-    keeper_packed: { coat: [0.84, 0.38], pocket: [0.625, 0.525] }, // the dress rolled on her back; the helmet covers the coat pocket
-  };
-  /* A coat's `look` is Wren's picture (img/units) on the open-air levels and on the kit screens; `lookUnder` is
-     her picture in the Belfry. A coat without them shows plain Wren (keeper, and keeper_suit underwater). */
+  /* Per-picture corrections to the slot points above, where her rig moves a point: { picture: { place: [x, y] } }.
+     In a diving dress she stands in another pose, with her harpoon raised, her bell lower and no coat pocket. */
+  const IN_DRESS = { harpoon: [0.3, 0.335], ditty: [0.47, 0.455], coat: [0.64, 0.34], bell: [0.59, 0.52], pocket: [0.7, 0.55] };
+  BL.WREN_POINTS = { keeper_suit: IN_DRESS, keeper_plated: IN_DRESS };
+  /* A rig's `look` is Wren's picture (img/units) on shore and on the open-air levels; a dress also has `lookUnder`,
+     her picture wearing it in the Belfry and on the kit screens (E.keeperArt). Without them she shows as plain Wren
+     (keeper, and keeper_suit underwater). */
   BL.KIT = {
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
@@ -1105,7 +1107,7 @@
     /* Found, never bought: the first time Dark Water's pin breaks, Wren finds it and carries it home (E.carryHome). */
     suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', look: 'keeper_packed', lookUnder: 'keeper_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
     /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */
-    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_packed', lookUnder: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
+    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_plated_packed', lookUnder: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
     pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, desc: 'Gain 10 extra Pearls after each fight.' },
     marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
@@ -1152,7 +1154,7 @@
       { id: 'belfry', title: 'The diving dress', when: 'won:1', lock: "Break Dark Water's pin.", text: [
         'Below Dark Water there is one more chamber, and its floor is under the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
         'The Belfry is full of water and it does not drain, and an open lantern cannot go there. But on the wall above its stair hung an old keeper\'s diving dress, with a sealed lamp on its helmet. Its seams had rotted and its lamp was dry, so you carried it home and mended it.',
-        'Pack the dress in your Coat place, and the last stair is open. It does nothing in a fight, and it takes the place of anything else you would wear.',
+        'Pack the dress in your Rig place, and the last stair is open. It does nothing in a fight, and it takes the place of anything else you would wear.',
       ] },
       { id: 'heart', title: 'The Heart comes home', when: 'heart', lock: 'Bring the Heart home.', text: [
         'The Bellwether hung in the Belfry over the Lantern Heart, and it rang with no hand on its rope. When its bronze broke, the Heart\'s light poured out through the water, and something came out of the bell with it: a thing with one eye and many arms, which had grown into the bronze in the hundred years nobody came down.',
@@ -1186,8 +1188,9 @@
       { group: 'People', items: [
         ['Wren', 'You. The last lighthouse keeper of Saltmere.'],
         ['Keepers', 'The people who tend the light and the bell. A keeper carries a lantern lit from the Lantern Heart and a hand-bell tuned to the Bellwether.'],
+        ['The oilskin', 'A keeper\'s coat, proofed with the oil that burns in the great lamp under the Heart\'s fire. Brine runs off it, and so does brinelight, so the Reach never soaks into a keeper the way it soaks into lost things. No keeper goes down without one. Everything else you wear goes over it, in your Rig place.'],
         ['Barnaby', 'A hermit crab who keeps a shop in his shell. He sells cards, keepsakes and tonics for pearls.'],
-        ['The diving dress', 'An old keeper\'s diving suit with a sealed lamp on its helmet. You find it the first time you break Dark Water\'s pin and carry it home. Pack it in your Coat place to go down into the Belfry.'],
+        ['The diving dress', 'An old keeper\'s diving suit with a sealed lamp on its helmet. You find it the first time you break Dark Water\'s pin and carry it home. Pack it in your Rig place to go down into the Belfry.'],
       ] },
       { group: 'Light and bell', items: [
         ['The Lantern Heart', 'The magic fire that burns in the lighthouse lamp. Every keeper\'s lantern is lit from it.'],

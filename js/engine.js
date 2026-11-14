@@ -84,9 +84,11 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
-  /* Wren's picture (img/units) for a kit: her coat's `look`, or its `lookUnder` below the water (the Belfry). */
+  /* Wren's picture (img/units) for a kit: her rig's `look`, or its `lookUnder` below the water (the Belfry).
+     The kit screens pass 'kit' as `under`: they show a dress as she wears it, not rolled up as she carries it on the way down. */
   E.keeperArt = function (kit, under) {
     const g = kit && kit.coat ? BL.KIT[kit.coat] : null;
+    if (under === 'kit') return (g && (g.lookUnder || g.look)) || 'keeper';
     return under ? (g && g.lookUnder) || 'keeper_suit' : (g && g.look) || 'keeper';
   };
   /* Wearing `id` or kit that counts as it (the Plated Dress is a Diving Dress). */

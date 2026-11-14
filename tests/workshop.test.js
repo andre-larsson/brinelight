@@ -32,7 +32,7 @@ test('a finished run earns 1 Salvage per 50 score, rounded down', () => {
 /* ---------- Kit: places, buying, wearing ---------- */
 test('kit goes in five places, one piece each; the Bell always holds a bell, the Brass Tide-Bell to start', () => {
   assert.deepEqual(E.KIT_PLACES, ['harpoon', 'bell', 'coat', 'pocket', 'ditty']);
-  assert.deepEqual(BL.KIT_PLACES.map((p) => p.name), ['Harpoon', 'Bell', 'Coat', 'Pocket', 'Ditty Bag']);
+  assert.deepEqual(BL.KIT_PLACES.map((p) => p.name), ['Harpoon', 'Bell', 'Rig', 'Pocket', 'Ditty Bag']);
   Object.keys(BL.KIT).forEach((id) => assert.ok(E.KIT_PLACES.includes(BL.KIT[id].place), id));
   assert.deepEqual(E.fitKit(), { harpoon: null, bell: 'tidebell', coat: null, pocket: null, ditty: null });
   // a list puts each piece in its own place; a later piece replaces an earlier one in the same place
@@ -46,9 +46,9 @@ test('kit goes in five places, one piece each; the Bell always holds a bell, the
   assert.deepEqual(E.kitIds(run), ['tidebell']);
 });
 
-test("Wren's picture follows her coat, and every place has a slot on the kit screens", () => {
+test("Wren's picture follows her rig, and every place has a slot on the kit screens", () => {
   const fs = require('fs'), path = require('path');
-  // no coat: plain Wren on shore, the plain diving dress underwater
+  // nothing over the oilskin: plain Wren on shore, the plain diving dress underwater
   assert.equal(E.keeperArt(E.fitKit()), 'keeper');
   assert.equal(E.keeperArt(null), 'keeper');
   assert.equal(E.keeperArt(E.fitKit(), true), 'keeper_suit');
@@ -58,6 +58,20 @@ test("Wren's picture follows her coat, and every place has a slot on the kit scr
   assert.equal(E.keeperArt(E.fitKit(['suit'])), 'keeper_packed');
   assert.equal(E.keeperArt(E.fitKit(['suit']), true), 'keeper_suit');
   assert.equal(E.keeperArt(E.fitKit(['plated']), true), 'keeper_plated');
+  // the two dresses look different carried, too
+  assert.equal(E.keeperArt(E.fitKit(['plated'])), 'keeper_plated_packed');
+  // the kit screens show a dress worn, and anything else as on shore
+  assert.equal(E.keeperArt(E.fitKit(['suit']), 'kit'), 'keeper_suit');
+  assert.equal(E.keeperArt(E.fitKit(['plated']), 'kit'), 'keeper_plated');
+  assert.equal(E.keeperArt(E.fitKit(['cork']), 'kit'), 'keeper_cork');
+  assert.equal(E.keeperArt(E.fitKit(), 'kit'), 'keeper');
+  assert.equal(E.keeperArt(null, 'kit'), 'keeper');
+  // every rig piece has its own picture on the kit screens
+  const rigs = Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === 'coat');
+  const looks = rigs.map((id) => E.keeperArt(E.fitKit([id]), 'kit'));
+  assert.equal(new Set(looks.concat('keeper')).size, rigs.length + 1, 'two rig pieces share a picture: ' + looks.join());
+  // a corrected slot point is for a picture the kit screens show
+  Object.keys(BL.WREN_POINTS).forEach((a) => assert.ok(looks.includes(a), a + ' is never on a kit screen'));
   // only a dress opens the Belfry, so every coat that does has a picture for it
   Object.keys(BL.KIT).filter((id) => id === 'suit' || BL.KIT[id].as === 'suit').forEach((id) => assert.ok(BL.KIT[id].lookUnder, id + ' has no Belfry picture'));
   Object.keys(BL.KIT).forEach((id) => [BL.KIT[id].look, BL.KIT[id].lookUnder].filter(Boolean).forEach((a) => assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/units', a + '.webp')), `${id}: img/units/${a}.webp is missing`)));

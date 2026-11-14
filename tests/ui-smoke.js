@@ -1056,6 +1056,8 @@ async function findsScenario(page, base, name, size) {
     ws += await text('#overlay .kit-tray');
   }
   ['Toggle Iron', 'Harbour Bell', 'Plated Dress', 'Bailer', 'Safety Line', "Out of Its Bell"].forEach((w) => { if (ws.indexOf(w) < 0) failures.push(`${name}: the Workshop doesn't show ${w}`); });
+  // the kit screens show the dress worn, not rolled up as she carries it
+  if (!/keeper_suit\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: the Workshop doesn't show Wren wearing the Diving Dress`);
   await checkPage(page, name + ' workshop');
   await close();
 

@@ -268,7 +268,7 @@ test('the Thing in the Bell drinks from your lantern through its arms, opens its
 });
 
 /* ---------- The diving dress ---------- */
-test('the diving dress: not for sale; found above the Belfry\'s stair and carried home; it goes in the Coat place and does nothing in a fight', () => {
+test('the diving dress: not for sale; found above the Belfry\'s stair and carried home; it goes in the Rig place and does nothing in a fight', () => {
   const g = BL.KIT.suit;
   assert.equal(g.place, 'coat');
   assert.ok(g.found);
@@ -293,7 +293,7 @@ test('the diving dress: not for sale; found above the Belfry\'s stair and carrie
   assert.deepEqual(res.found, ['suit']);
   assert.ok(E.ownsKit(meta, 'suit') && E.kitUnlocked(meta, 'suit'));
   assert.deepEqual(E.carryHome(meta, run).found, [], 'only once');
-  // worn, it opens the stair; it takes the Coat place, and changes nothing else
+  // worn, it opens the stair; it takes the Rig place, and changes nothing else
   const worn = E.newRun(5, 0, { coat: 'suit' });
   const bare = E.newRun(5, 0);
   assert.ok(E.hasKit(worn, 'suit'));

@@ -1,6 +1,6 @@
 {
   "name": "brinelight",
-  "version": "0.24.2",
+  "version": "0.24.3",
   "private": true,
   "description": "Brinelight: a roguelike deckbuilder about a lighthouse keeper and the tide. Plain HTML, CSS and JavaScript.",
   "scripts": {
