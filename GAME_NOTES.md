@@ -1598,11 +1598,24 @@ The user asked how more characters could be added, and wanted to judge the look 
     - the lobster suit;
     - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one. Its first version was too pale; the user said the real tower is browner, so it was repainted with heavy rust-brown patches over grey-cream stone (3a; 3b is lighter);
     - the shell bikini, the barbarian and the barrel.
-    - Cheeky ones, where she has lost her clothes but nothing is shown:
-      - steam: dripping wet after a night swim, hidden from collarbones to knees in a comedy censor cloud with an indignant gull on top. Unlock idea: win a fight at Crest 6.
-      - Gulp: Gulp stands in front of her, arms spread and grinning, while she peers over his head. Unlock idea: defeat the Pale Gulper 10 times.
+    - Cheeky but dressed, picked by the user (2026-11-14):
+      - long johns: a baggy red 1890s union suit with a buttoned back flap, a striped nightcap and her boots. The clearest at phone size;
+      - nightgown: woken by the bell, she ran straight out in a frilled nightgown, a nightcap, curl papers and woolly slippers;
+      - brinelit: a plain dark knee-length bathing costume, with glowing brinelight swirls painted on her arms, legs, neck and cheeks. The dark costume fades a little on a phone.
+    - Set aside: a comedy steam cloud and a Gulp-in-front version (they read as "a cloud with legs" and "Gulp with Wren's head"). Also set aside: things in the way (a halibut on her harpoon, gulls, a crab, a pixel block, a sea-glass mosaic), and Abena or Dr. Raman shielding her and scolding the viewer.
     - The gala: a reward for bringing the Heart home the first time, like the costumes fighting games give for finishing arcade mode. The harbour throws a party and she comes as a music-hall showgirl: a sea-green sequinned leotard, opaque stockings, a gull-feather headdress with a brass bell, her scarf as a boa, still in her boots. It is an original design.
   - Dropped by the user: ballerina and brass mech.
+- **Secret costumes for the other keepers** are in `assets-src/drafts/costumes/` too. Each was made from the keeper's own picture and placed with that keeper's eye, head and tall (originals: `assets-src/units/samples/<id>-cheeky.png`).
+  - Kept by the user:
+    - Josiah, behind a blue-and-white signal flag on his boathook, still in his pilot's cap (`josiah_flag`);
+    - Tavita, a leopard-spot circus strongman curling his anchor (`tavita_strongman`);
+    - Abena, in a navy striped 1890s bathing dress and a flowered bathing cap (`abena_seaside`);
+    - Dr. Raman, on holiday in a striped bathing suit, a boater and a rubber ring (`raman_holiday`);
+    - Remedios, at her spa day with a towel, a clay mask and cucumber slices (`remedios_spa`);
+    - Mateo, the cooper in his own barrel (`mateo_barrel`).
+  - The user turned down the first versions for Rook (a happy octopus: "why is there a happy octopus?"), Esi (a sail toga) and the Lamp Engine (trays over its gears). Esi's and the Engine's were too close to their own pictures. Old Lan's mermaid had feet, not a fin. Kamala's pufferfish made no sense and was badly drawn. Those five are being redrawn, each with a gag that fits the keeper.
+  - A rule: Dev and Winkle are children. They get no cheeky costume and never appear in anyone else's. If they get a secret costume, it is a wholesome one, such as Dev in his grandfather's oversized diving dress.
+  - What worked: a gag that comes from the keeper's own trade or habits (the pilot's signal flag, the cooper's barrel, the salt-raker's spa day), and a clear change of silhouette.
   - The armour: Codex's image tool refused a skimpy fantasy-armour parody (shell pauldrons, a shell bikini, greaves), so it was made on local Qwen-Image 2.1 instead (`wren_armour.webp`). Its licence makes it a draft only (see "Local generation").
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
   - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. In the game a recolour needs 5 pictures: plain, Cork Vest, Shell Gorget and both carried dresses. The worn dresses hide the oilskin.
@@ -1619,6 +1632,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   - **Running it:** start it as one capped process: `systemd-run --user --scope -p MemoryMax=40G -p MemorySwapMax=0 .venv/bin/python main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch`. `tools/comfy-gen.py JOBS.json` then runs jobs through its HTTP API.
   - **Speed:** on the RTX 4090, a 1024x1536 picture takes about 8 s on Qwen Turbo and 25 s on the Qwen base model, once loaded. The first job after switching models takes 30 to 50 s.
   - **Qwen-Image 2.1** works best. It draws RGBA with a real transparent background, and edits keep Wren's face, pose and framing.
+    - The user's view (2026-11-14): its pictures are almost as good as Codex's.
     - Turbo was as good as the base model and three times faster. In the base model's lighthouse edit her arms went missing.
     - With the same Mateo prompt as Codex, its anatomy was right and the paint looked close to the game. The poses were stiffer than Codex's, and it painted a whole scene of sea monsters until the prompt stopped mentioning what the keeper faces.
     - With plain Wren as a style reference (image 1), the style matched even better, but her raised lantern was copied and floated with no hand.
