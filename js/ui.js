@@ -1264,7 +1264,8 @@
       const seek = cur && song ? `<div class="juke-seek">
           <button class="btn small" data-act="jukeskip" data-by="-10" aria-label="Back 10 seconds">&minus;10 s</button>
           <input type="range" class="juke-pos" min="0" max="${Math.round(st.secs)}" step="1" value="${Math.floor(st.at)}" aria-label="Position in ${name}">
-          <button class="btn small" data-act="jukeskip" data-by="10" aria-label="Forward 10 seconds">+10 s</button></div>` : '';
+          <button class="btn small" data-act="jukeskip" data-by="10" aria-label="Forward 10 seconds">+10 s</button>${BL.LYRICS && BL.LYRICS[key] ? `
+          <button class="btn small juke-words" data-act="jukewords" data-key="${key}" aria-label="Words of ${name}">Words</button>` : ''}</div>` : '';
       return `<div class="juke-item${cur ? ' cur' : ''}"><button class="juke-row" data-act="jukeplay" data-kind="${kind}" data-key="${key}" aria-pressed="${on}" aria-label="${on ? 'Pause' : 'Play'}: ${name}">
         <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${tag}${time ? `<span class="juke-t">${time}</span>` : ''}</span></button>${seek}</div>`;
     }).join('');
@@ -1284,18 +1285,34 @@
       return;
     }
     const f = document.activeElement;
-    const fk = f && list.contains(f) ? (f.dataset.key ? `[data-act="jukeplay"][data-key="${f.dataset.key}"]` : f.dataset.depth ? `[data-depth="${f.dataset.depth}"]` : f.dataset.by ? `[data-by="${f.dataset.by}"]` : f.classList.contains('juke-pos') ? '.juke-pos' : null) : null;
+    const fk = f && list.contains(f) ? (f.dataset.key ? `[data-act="${f.dataset.act}"][data-key="${f.dataset.key}"]` : f.dataset.depth ? `[data-depth="${f.dataset.depth}"]` : f.dataset.by ? `[data-by="${f.dataset.by}"]` : f.classList.contains('juke-pos') ? '.juke-pos' : null) : null;
     list.innerHTML = jukeList(st);
     ui.jukeSig = sig;
     if (fk) { const g = $(fk, list); if (g) g.focus({ preventScroll: true }); }
   }
-  function showJukebox() {
+  // back from a song's words, the list opens at that song with its Words button in focus
+  function showJukebox(fromWords) {
     const st = Sound.juke.state();
     const body = `<div class="juke-list">${jukeList(st)}</div>`;
     ui.jukeSig = jukeSig(st);
     clearInterval(ui.jukeTick);
-    openOverlay(modal('Jukebox', body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'jukebox-modal'), { onClose: () => clearInterval(ui.jukeTick) });
+    openOverlay(modal('Jukebox', body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'jukebox-modal'),
+      { onClose: () => clearInterval(ui.jukeTick), focus: fromWords ? '.juke-item.cur [data-act="jukewords"]' : null });
+    if (fromWords) { const c = $('.juke-item.cur', overlayEl); if (c) c.scrollIntoView({ block: 'center' }); }
     ui.jukeTick = setInterval(drawJuke, 500);
+  }
+  /* The words of a song (js/lyrics.js), one page a song, opened from the song playing in the Jukebox. The song plays on;
+     Back returns to the Jukebox. A line in [brackets] heads a part of the song. */
+  function showWords(key) {
+    const text = BL.LYRICS && BL.LYRICS[key], S = Sound.juke.SONGS[key];
+    if (!text || !S) return;
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const parts = text.trim().split(/\n\s*\n/).map((p) => {
+      const lines = p.split('\n'), head = /^\[(.+)\]$/.exec(lines[0].trim());
+      const body = (head ? lines.slice(1) : lines).map((l) => `<span>${esc(l)}</span>`).join('');
+      return `<section>${head ? `<h3>${esc(head[1])}</h3>` : ''}<p>${body}</p></section>`;
+    }).join('');
+    openOverlay(modal(S.name, `<div class="lyrics">${parts}</div>`, '<button class="btn primary" data-act="jukeback" autofocus>Back</button>', 'lyrics-modal'));
   }
   // a song that ends in the Jukebox goes on to the next one you have heard (or starts again, if it is the only one)
   Sound.juke.onEnd((key) => {
@@ -3154,6 +3171,8 @@
       }
       case 'jukedepth': Sound.juke.depth(+t.dataset.depth); drawJuke(); break;
       case 'jukeskip': Sound.juke.seek(0, +t.dataset.by); ui.jukeSeekAt = 0; drawJuke(); break;
+      case 'jukewords': showWords(t.dataset.key); break;
+      case 'jukeback': showJukebox(true); break;
       case 'changelog': showChangelog(); break;
       case 'credits': showCredits(); break;
       case 'story': showStory(); break;

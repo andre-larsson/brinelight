@@ -925,10 +925,21 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .juke-item.locked .juke-txt b { color: var(--muted); }
 .juke-item.locked .juke-ic { color: var(--muted); background: transparent; }
 .juke-item.locked .juke-tag { opacity: .6; }
-.juke-seek { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 0 12px 10px 54px; }
+.juke-seek { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; padding: 0 12px 10px 54px; }
 .juke-seek .btn { min-height: 34px; padding: .25em .6em; font-variant-numeric: tabular-nums; }
 .juke-pos { width: 100%; min-width: 0; height: 28px; margin: 0; accent-color: var(--brass); cursor: pointer; }
-@media (max-width: 420px) { .juke-seek { padding-left: 12px; } }
+@media (max-width: 420px) {
+  .juke-seek { grid-template-columns: auto 1fr auto; padding-left: 12px; }
+  .juke-words { grid-column: 1 / -1; justify-self: start; }
+}
+/* a song's words (js/lyrics.js), one page a song */
+.lyrics-modal { width: min(520px, 100%); }
+.lyrics section { margin: 0 0 18px; }
+.lyrics section:last-child { margin-bottom: 4px; }
+.lyrics h3 { margin: 0 0 4px; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lyrics p { margin: 0; font-size: 16px; line-height: 1.55; color: var(--text); }
+/* a line too long for the screen wraps with an indent, so the wrap doesn't read as a new line */
+.lyrics p span { display: block; padding-left: 1em; text-indent: -1em; }
 .help .tabs, .story .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .tab { min-height: 40px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(201, 162, 74, .4); background: rgba(10, 29, 43, .7); color: #cfe0dc; font-size: 15px; font-weight: 650; cursor: pointer; }
 .tab.on { background: #f2c46b; color: #2a1504; border-color: #ffe0a0; }

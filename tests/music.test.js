@@ -12,6 +12,7 @@ require('../js/data.js');
 require('../js/vendor/musicbox/musicbox.js');
 require('../js/music-score.js');
 require('../js/sfx.js');
+require('../js/lyrics.js');
 const BL = globalThis.BL;
 const ui = fs.readFileSync(path.join(root, 'js/ui.js'), 'utf8');
 
@@ -94,4 +95,21 @@ test('the Jukebox lists every song and every cue of the score once, and remember
   assert.deepEqual(E.newMeta().heard, []);
   assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).heard, []);
   assert.deepEqual(E.migrateMeta({ owned: [], ach: [], heard: ['song:shop', 'cue:fight', 'song:shop', 7, 'nonsense', 'cue:<x>'] }).heard, ['song:shop', 'cue:fight']);
+});
+
+test("every song with singing has its words (js/lyrics.js), in parts headed [like this], and the page loads them", () => {
+  const block = ui.slice(ui.indexOf('const SONGS = {'), ui.indexOf('};', ui.indexOf('const SONGS = {')));
+  const keys = [...block.matchAll(/^\s+([a-z]+): \{ src: /gm)].map((m) => m[1]);
+  const WORDLESS = ['bells', 'departure']; // Harbour Bells at Dawn sings without words; High Tide Departure is instrumental
+  assert.deepEqual(keys.filter((k) => !WORDLESS.includes(k) && !BL.LYRICS[k]), [], 'songs with no words');
+  assert.deepEqual(Object.keys(BL.LYRICS).filter((k) => !keys.includes(k) || WORDLESS.includes(k)), [], 'words for no song');
+  for (const [k, text] of Object.entries(BL.LYRICS)) {
+    text.trim().split(/\n\s*\n/).forEach((part, i) => {
+      const lines = part.split('\n');
+      assert.match(lines[0], /^\[[^\]]+\]$/, `${k}, part ${i + 1}: it should start with a [heading]`);
+      assert.ok(lines.length > 1 && lines.slice(1).every((l) => l.trim() && !/[[\]<>]/.test(l)), `${k}, part ${i + 1}: lines of words under its heading`);
+    });
+  }
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  assert.ok(html.indexOf('js/lyrics.js') > 0 && html.indexOf('js/lyrics.js') < html.indexOf('js/ui.js'), 'index.html loads js/lyrics.js before ui.js');
 });

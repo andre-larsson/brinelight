@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.28.0';
+  BL.VERSION = '0.29.0';
   BL.CHANGELOG = [
+    { v: '0.29.0', date: '2026-11-14', items: [
+      'The songs\' words: the song playing in the Jukebox has a Words button. It opens the words on a page of their own while the song plays on, and Back takes you to the list again.',
+    ] },
     { v: '0.28.0', date: '2026-11-14', items: [
       'A new song against the Drowned Bellwether: "The Toll of the Sunken Stair". It keeps playing when the Bell breaks and the Thing in the Bell comes out.',
       'The title screen plays its songs in turn, round and round, starting on one at random each time you open the game. "The Great Light Turning Slow", a new wordless song, "Harbour Bells at Dawn", "The Hermit\'s Heavy Toll" and "Tide Swings Its Tongue" play from the start, and a new song, "It Went Dark on My Watch", joins once you have finished a descent. The music box\'s title tune, "The Keeper\'s Song", is in the Jukebox now.',

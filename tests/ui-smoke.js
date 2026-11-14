@@ -1319,6 +1319,16 @@ async function audioScenario(page, base, name, size) {
   if (locked !== 13) failures.push(`${name}: ${locked} tracks are locked, expected all but the four title songs and the Keeper's Song`);
   if (!(await jb(`/Finish a descent/.test(o.querySelector('.juke-item.locked [aria-label^="It Went Dark"]').textContent)`))) failures.push(`${name}: a locked It Went Dark on My Watch doesn't say a descent opens it`);
   if (!(await jb(`o.querySelector('[data-act="jukedepth"][data-depth="0"]') && !o.querySelector('[data-act="jukedepth"][data-depth="1"]')`))) failures.push(`${name}: the Jukebox's depths beyond the Shallows aren't locked`);
+  // the song playing has a Words button: its words on a page of their own, and Back returns to the Jukebox, the song still playing
+  await page.click('#overlay [data-act="jukewords"][data-key="title"]');
+  await sleep(150);
+  if (!(await jb(`!!o.querySelector('.lyrics-modal') && /Burn low, my lantern/.test(o.textContent) && o.querySelectorAll('.lyrics h3').length >= 6`))) failures.push(`${name}: the title song's Words page doesn't show its words in parts`);
+  await checkPage(page, name + ' words');
+  await page.click('#overlay [data-act="jukeback"]');
+  await sleep(150);
+  if (!(await jb(`!!o.querySelector('.juke-list .juke-item.cur [data-act="jukewords"]')`))) failures.push(`${name}: Back from the words doesn't return to the Jukebox`);
+  if (!(await jb(`document.activeElement === o.querySelector('.juke-item.cur [data-act="jukewords"]')`))) failures.push(`${name}: Back from the words doesn't put the focus back on the Words button`);
+  await expect('the title song, after its words', { song: 'title' });
   // hear more (the Heart home opens High Tide Departure; the Belfry reached opens its depth), then open it again
   await clickIf(page, '#overlay [data-act="close"]');
   await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 1; B.meta.record.hearts = 1; B.meta.reached = 2; B.meta.heard.push('cue:dread'); })()`);
@@ -1327,6 +1337,7 @@ async function audioScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: High Tide Departure', { playing: false, song: 'departure' });
   await plays('High Tide Departure');
+  if (await jb(`!!o.querySelector('[data-act="jukewords"]')`)) failures.push(`${name}: High Tide Departure has no words, but the Jukebox offers them`);
   if (!(await jb(`o.querySelector('.juke-item.cur .juke-t').textContent.includes(' / ') && !!o.querySelector('.juke-item.cur input.juke-pos')`))) failures.push(`${name}: the Jukebox doesn't show the time and a slider for the song playing`);
   // move through it: 10 s on, then the slider to 1:40
   let at = (await audio()).songAt;
