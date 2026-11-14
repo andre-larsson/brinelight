@@ -314,23 +314,38 @@ async function workshopScenario(page, base, name, size) {
   const stored = () => page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
   await page.click('[data-act="workshop"]');
   await sleep(150);
+  // Wren with a slot for each of the five places; a slot opens a tray with all the kit for that place
+  if (await page.eval(`document.querySelectorAll('#overlay .doll .kit-slot').length`) !== 5) failures.push(`${name}: the Workshop doesn't show a slot for each of the five places`);
+  const slot = async (pl) => { await clickIf(page, `#overlay [data-act="kitslot"][data-place="${pl}"]`); await sleep(100); };
+  await slot('bell');
   if (await page.eval(`!!document.querySelector('#overlay [data-act="kitbuy"][data-g="crackedbell"]')`)) failures.push(`${name}: locked kit can be bought`);
-  if (await page.eval(`document.querySelectorAll('#overlay .ws-place').length`) !== 5) failures.push(`${name}: the Workshop doesn't group kit by its five places`);
-  for (const g of ['cork', 'floodbell']) {
+  if (!(await page.eval(`!!document.querySelector('#overlay .kit-tray .kit-opt.locked')`))) failures.push(`${name}: the Bell's tray doesn't show its locked bells`);
+  for (const [pl, g] of [['coat', 'cork'], ['bell', 'floodbell']]) {
+    await slot(pl);
     await clickIf(page, `#overlay [data-act="kitbuy"][data-g="${g}"]`);
     await clickIf(page, '#overlay [data-act="kitbuyconfirm"]');
+    await sleep(100);
+    if (!(await page.eval(`!!document.querySelector('#overlay .kit-tray [data-act="kitwear"][data-g="${g}"]')`))) failures.push(`${name}: after buying ${g}, its tray isn't open again`);
   }
   let m = await stored();
   if (m.owned.join() !== 'purse,cork,floodbell' || m.salvage !== 60 - 12 - 20) failures.push(`${name}: after buying, stored ${JSON.stringify(m)}`);
   if (!m.kit || m.kit.pocket !== 'purse' || m.kit.coat !== 'cork' || m.kit.bell !== 'tidebell') failures.push(`${name}: the old pack or the new Cork Vest isn't worn: ${JSON.stringify(m.kit)}`);
+  // Wren is shown in the coat she wears, and on a wide screen each slot has a line to her
+  if (!/keeper_cork\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: Wren isn't shown in the Cork Vest`);
+  await sleep(150);
+  const lines = await page.eval(`document.querySelectorAll('#overlay .doll-lines g').length`);
+  if (size.w > 600 ? lines !== 5 : lines !== 0) failures.push(`${name}: ${lines} lines from the slots to Wren`);
   await checkPage(page, name + ' workshop');
   await clickIf(page, '#overlay [data-act="close"]');
   // New Descent opens the kit; put on the Flood Bell, take off the Cork Vest
   await page.click('[data-act="newrun"]');
   await page.waitFor(`!!document.querySelector('#overlay [data-act="dive"]')`, 3000, 'the kit before a descent');
   await checkPage(page, name + ' kit');
+  await slot('bell');
   await clickIf(page, '#overlay [data-act="kitwear"][data-g="floodbell"]');
+  await slot('coat');
   await clickIf(page, '#overlay [data-act="kitwear"][data-g="cork"]');
+  if (!/keeper\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: Wren still wears the Cork Vest after taking it off`);
   m = await stored();
   if (m.kit.bell !== 'floodbell' || m.kit.coat !== null) failures.push(`${name}: wearing kit didn't stick: ${JSON.stringify(m.kit)}`);
   await clickIf(page, '#overlay [data-act="dive"]');
@@ -944,6 +959,8 @@ async function belfryScenario(page, base, name, size, opts) {
   await page.eval(`document.querySelector('[data-act="newrun"]').scrollIntoView({ block: 'center' })`);
   await sleep(200);
   await page.click('[data-act="newrun"]');
+  await page.waitFor(`!!document.querySelector('#overlay [data-act="kitslot"][data-place="coat"]')`, 3000, 'the kit before a descent');
+  await page.click('#overlay [data-act="kitslot"][data-place="coat"]');
   await page.waitFor(`!!document.querySelector('#overlay [data-act="kitwear"][data-g="suit"]')`, 3000, 'the dress in the kit');
   await page.click('#overlay [data-act="kitwear"][data-g="suit"]');
   await sleep(150);
@@ -1031,7 +1048,13 @@ async function findsScenario(page, base, name, size) {
   // the Workshop: the five new pieces, the Harbour Bell locked behind its achievement
   await page.click('[data-act="workshop"]');
   await sleep(250);
-  const ws = await text('#overlay');
+  // each slot's tray in turn: together they list every piece
+  let ws = '';
+  for (const pl of ['harpoon', 'bell', 'coat', 'pocket', 'ditty']) {
+    await page.click(`#overlay [data-act="kitslot"][data-place="${pl}"]`);
+    await sleep(150);
+    ws += await text('#overlay .kit-tray');
+  }
   ['Toggle Iron', 'Harbour Bell', 'Plated Dress', 'Bailer', 'Safety Line', "Out of Its Bell"].forEach((w) => { if (ws.indexOf(w) < 0) failures.push(`${name}: the Workshop doesn't show ${w}`); });
   await checkPage(page, name + ' workshop');
   await close();

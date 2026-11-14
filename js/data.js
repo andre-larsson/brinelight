@@ -1073,14 +1073,25 @@
    *  are easy to change.
    * ------------------------------------------------------------------ */
   BL.META_TEXT = { currency: 'Salvage', shop: 'Workshop', item: 'Kit' };
-  /* Where kit goes. The Bell always holds a bell; the others can be empty. */
+  /* Where kit goes. The Bell always holds a bell; the others can be empty (`none` names the empty slot).
+     The kit screens show Wren with a slot for each place: `side` is the side of her picture the slot sits on,
+     and `at` is where its line points on her picture (fractions of its width and height, from the top left;
+     BL.WREN_POINTS can move a point for one picture). A new place needs these and a glyph in ui.js (ICON.slot_<id>). */
   BL.KIT_PLACES = [
-    { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.' },
-    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you get when you Crest or Strand.' },
-    { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.' },
-    { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.' },
-    { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.' },
+    { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.', none: 'Plain harpoon', side: 'left', at: [0.16, 0.31] },
+    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you get when you Crest or Strand.', side: 'right', at: [0.55, 0.37] },
+    { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.', none: 'Just the oilskin', side: 'right', at: [0.66, 0.24] },
+    { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.', none: 'Empty', side: 'right', at: [0.75, 0.48] },
+    { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.', none: 'Empty', side: 'left', at: [0.36, 0.49] },
   ];
+  /* Per-picture corrections to the slot points above, for a Wren picture whose pose differs: { picture: { place: [x, y] } }. */
+  BL.WREN_POINTS = {
+    keeper: { harpoon: [0.2, 0.44], ditty: [0.37, 0.45] }, // the first picture holds the harpoon lower
+    keeper_gorget: { coat: [0.43, 0.23], ditty: [0.31, 0.5] }, // the gorget, at her throat
+    keeper_packed: { coat: [0.8, 0.3], pocket: [0.76, 0.66] }, // the dress rolled on her back; the helmet covers the coat pocket
+  };
+  /* A coat's `look` is Wren's picture (img/units) on the open-air levels and on the kit screens; `lookUnder` is
+     her picture in the Belfry. A coat without them shows plain Wren (keeper, and keeper_suit underwater). */
   BL.KIT = {
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
@@ -1090,12 +1101,12 @@
     ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you Strand, draw 1 card and gain 3 Ward. A Crest gives nothing.' },
     crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Strand each turn gives nothing. Every one after it draws 2 cards and gives 1 Light.' },
     harbourbell: { place: 'bell', name: 'Harbour Bell', art: 'g_harbourbell', price: 25, unlock: 'outofbell', desc: 'The Hermit\'s bell, mended. Whenever you Crest or Strand, gain 3 Ward. It draws nothing.' },
-    cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
-    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
+    cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', look: 'keeper_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
+    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', look: 'keeper_gorget', price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
     /* Found, never bought: the first time Dark Water's pin breaks, Wren finds it and carries it home (E.carryHome). */
-    suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
+    suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', look: 'keeper_packed', lookUnder: 'keeper_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
     /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */
-    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, with shell plates over the chest. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
+    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_packed', lookUnder: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, with shell plates over the chest. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
     pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, desc: 'Gain 10 extra Pearls after each fight.' },
     marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },

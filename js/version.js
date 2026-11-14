@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.23.0';
+  BL.VERSION = '0.24.0';
   BL.CHANGELOG = [
+    { v: '0.24.0', date: '2026-11-14', items: [
+      'The Workshop and Pack for the expedition now show Wren with a slot for each place: Harpoon, Bell, Coat, Pocket and Ditty Bag. Choose a slot to see every piece of kit for it, what you own, what is for sale and what is still locked. An empty slot shows as empty.',
+      'You can wear kit from the Workshop, and buy it while packing.',
+      'Wren\'s picture follows her coat, on the kit screens and in fights: the Cork Vest, the Shell Gorget, and a diving dress carried at her hip and on her back until the Belfry, where she wears it. The Plated Dress has its own picture in the Belfry.',
+    ] },
     { v: '0.23.0', date: '2026-11-14', items: [
       'New art where the old pictures told a different story. The Shallows are now a rocky shore at low tide under a dark lighthouse, not the sea floor, and the Harbour Hermit holds its water in a basin above the tide. The Belfry\'s boss fights have their own chamber, with the Heart\'s glow under the floor.',
       'The Drowned Bellwether now looks like a great bronze bell. Its eye and arms only show when the bronze breaks and the Thing comes out.',

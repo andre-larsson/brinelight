@@ -84,6 +84,11 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
+  /* Wren's picture (img/units) for a kit: her coat's `look`, or its `lookUnder` below the water (the Belfry). */
+  E.keeperArt = function (kit, under) {
+    const g = kit && kit.coat ? BL.KIT[kit.coat] : null;
+    return under ? (g && g.lookUnder) || 'keeper_suit' : (g && g.look) || 'keeper';
+  };
   /* Wearing `id` or kit that counts as it (the Plated Dress is a Diving Dress). */
   E.wears = (run, id) => E.kitIds(run).some((k) => k === id || BL.KIT[k].as === id);
   /* A creature's name for more than one of it: 'Glimmer Leeches', 'Grasping Arms'. */

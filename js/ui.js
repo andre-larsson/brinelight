@@ -19,6 +19,7 @@
   const ui = {
     sel: null, target: null, hover: null, busy: false, tonicSel: null, drag: null,
     mapFocus: 0, lastPointer: (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 'touch' : 'mouse', combatRef: null, cw: 140, overlayOnClose: null, overlayLocked: false, tipFor: null,
+    kitFrom: 'workshop', kitSlot: null, kitScroll: 0, // the kit screens: which one is open, its chosen slot, its scroll while buying
   };
   let prefs = { sound: true, music: true, fast: false };
   const BEST_KEY = 'brinelight.best.v1';
@@ -99,6 +100,12 @@
     close: svg('<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
     salvage: '<img class="salv" src="img/icons/g_salvage.webp" alt="">',
     lock: svg('<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/>'),
+    /* empty kit slots, one per place (BL.KIT_PLACES); a new place falls back to the pack */
+    slot_harpoon: svg('<path d="M5 19 17.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M20.5 3.5 13 6.6l1.6.8.9 1.6.8 1.6z"/><path d="M4 16.5c1.4.2 2.6 1.4 2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.6"/>'),
+    slot_bell: svg('<path d="M12 3.5a1.4 1.4 0 0 1 1.4 1.4v.5a5.6 5.6 0 0 1 4.2 5.4v4.4l2 2.8H4.4l2-2.8v-4.4a5.6 5.6 0 0 1 4.2-5.4v-.5A1.4 1.4 0 0 1 12 3.5z"/><circle cx="12" cy="20" r="1.8"/>'),
+    slot_coat: svg('<path d="M9 3.5 12 6l3-2.5 5 2.3-1.6 6.2-2.2-.7V20.5H7.8V11.3l-2.2.7L4 5.8z"/><path d="M12 6v14.5" stroke="#0b1f2c" stroke-width="1.2" fill="none"/>'),
+    slot_pocket: svg('<path d="M6 6.5h12v6.8a6 6 0 0 1-12 0z"/><path d="M6 9.5h12" stroke="#0b1f2c" stroke-width="1.4" fill="none"/><circle cx="12" cy="9.5" r="1.4" fill="#0b1f2c"/>'),
+    slot_ditty: svg('<path d="M9.5 6.2c-.6-1.6.4-2.7 2.5-2.7s3.1 1.1 2.5 2.7"  fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 6.5h6.8c2.6 2.4 4.1 5.6 4.1 9a5 5 0 0 1-5 5H9.5a5 5 0 0 1-5-5c0-3.4 1.5-6.6 4.1-9z"/><path d="M8.4 9h7.2" stroke="#0b1f2c" stroke-width="1.4" fill="none"/>'),
     pack: svg('<path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="7" width="16" height="14" rx="3" fill="currentColor" opacity=".9"/><path d="M4 12h16M10 12v2.5h4V12" fill="none" stroke="#0b1f2c" stroke-width="1.6"/>'),
     charge: svg('<path d="M12 2.5c3.3 4.3 6.3 7.6 6.3 11.4a6.3 6.3 0 0 1-12.6 0c0-3.8 3-7.1 6.3-11.4z" opacity=".4"/><path d="M12 8.2l1.3 2.8 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z"/>'),
     doused: svg('<path d="M12 3c2.6 3.4 5 6 5 9.2a5 5 0 0 1-10 0c0-1.5.6-2.8 1.5-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'),
@@ -608,7 +615,7 @@
     overlayEl.hidden = false;
     ui.overlayOnClose = opts.onClose || null;
     ui.overlayLocked = !!opts.locked;
-    const f = overlayEl.querySelector('[autofocus]') || overlayEl.querySelector('button, [tabindex="0"]');
+    const f = (opts.focus && overlayEl.querySelector(opts.focus)) || overlayEl.querySelector('[autofocus]') || overlayEl.querySelector('button, [tabindex="0"]');
     if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
   }
   function closeOverlay(force) {
@@ -1053,23 +1060,101 @@
   const workshopOpen = () => meta.earned > 0 || meta.owned.length > 0;
   const kitIn = (place) => Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === place);
 
-  function showWorkshop() {
-    const tile = (id) => {
-      const g = BL.KIT[id];
-      const owned = E.ownsKit(meta, id);
-      const open = E.kitUnlocked(meta, id);
-      const a = g.unlock ? BL.ACHIEVEMENTS[g.unlock] : null;
-      const foot = owned ? '<span class="g-state">Owned</span>'
-        : g.found ? `<span class="g-lock">${ICON.lock}<span><b>Not for sale:</b> found in Dark Water. Break its pin and carry it home.</span></span>`
-        : !open ? `<span class="g-lock">${ICON.lock}<span><b>${a.name}:</b> ${a.desc}</span></span>`
-          : `<span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span>`;
-      const attrs = !owned && open && !g.found ? ` tabindex="0" role="button" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}"` : '';
-      return `<div class="shop-tile gear-tile${owned ? ' owned' : ''}${open ? '' : ' locked'}"${attrs}>${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small>${foot}</div>`;
-    };
-    const groups = BL.KIT_PLACES.map((pl) => `<h3 class="ws-place">${pl.name} <small>${pl.desc}</small></h3><div class="shop-row">${kitIn(pl.id).filter((id) => !BL.KIT[id].starter).map(tile).join('')}</div>`).join('');
-    const body = `<div class="ws-art" style="background-image:url(img/scenes/workshop.webp)" role="img" aria-label="The keepers' workshop on the shore"></div><p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. You wear one piece in each place, and choose before each descent.</p>
-      <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${groups}`;
-    openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
+  /* The Workshop and Pack for the expedition share one view of the kit: Wren in the middle with a slot for each
+     place around her (BL.KIT_PLACES), a line from each slot to where the piece sits on her, and under her a tray
+     with every piece of kit for the chosen slot: what she owns (tap to wear or take off), what is for sale, and
+     what is still locked. Her picture follows her coat (E.keeperArt). */
+  const kitForSale = (id) => { const g = BL.KIT[id]; return !g.starter && !g.found && !E.ownsKit(meta, id) && E.kitUnlocked(meta, id); };
+  const canBuyNow = (id) => kitForSale(id) && meta.salvage >= BL.KIT[id].price;
+  const placeOf = (id) => BL.KIT_PLACES.find((pl) => pl.id === id);
+  function kitWrenAlt(kit) {
+    const g = kit.coat ? BL.KIT[kit.coat] : null;
+    return !g ? 'Wren, the Keeper, in her oilskin' : g.lookUnder ? `Wren, the Keeper, carrying the ${g.name}` : `Wren, the Keeper, wearing the ${g.name}`;
+  }
+  /* The chosen slot: the last one chosen, else the first with something to wear (packing) or to buy (the Workshop). */
+  function kitSlotFor(where) {
+    if (ui.kitSlot && placeOf(ui.kitSlot)) return ui.kitSlot;
+    const first = BL.KIT_PLACES.find((pl) => kitIn(pl.id).some((id) => (where === 'pack' ? E.ownsKit(meta, id) && !BL.KIT[id].starter : canBuyNow(id))));
+    return (first || BL.KIT_PLACES[0]).id;
+  }
+  function kitSlot(pl, where, sel, i) {
+    const id = meta.kit[pl.id], g = id ? BL.KIT[id] : null;
+    const name = g ? g.name : pl.none || 'Empty';
+    const buy = where === 'workshop' && kitIn(pl.id).some(canBuyNow);
+    return `<button class="kit-slot${g ? '' : ' empty'}" style="--o:${i}" data-act="kitslot" data-place="${pl.id}" aria-pressed="${sel}" aria-label="${pl.name}: ${name}${buy ? `. You can buy ${MT.item.toLowerCase()} for it` : ''}">` +
+      `<span class="medal gear${g ? '' : ' empty'}">${g ? `<img src="img/icons/${g.art}.webp" alt="">` : ICON['slot_' + pl.id] || ICON.pack}</span>` +
+      `<span class="ks-txt"><small>${pl.name}</small><b>${name}</b></span>${buy ? `<span class="ks-new" title="For sale">${ICON.salvage}</span>` : ''}</button>`;
+  }
+  function kitOpt(id) {
+    const g = BL.KIT[id];
+    if (E.ownsKit(meta, id)) {
+      const on = meta.kit[g.place] === id;
+      return `<button class="kit-opt${on ? ' worn' : ''}" data-act="kitwear" data-g="${id}" aria-pressed="${on}">${gearArt(g)}<b>${g.name}</b><span class="opt-state">${on ? 'Worn' : 'Wear'}</span><small>${g.desc}</small></button>`;
+    }
+    if (kitForSale(id)) {
+      return `<button class="kit-opt buy" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}">${gearArt(g)}<b>${g.name}</b><span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span><small>${g.desc}</small></button>`;
+    }
+    const a = g.unlock ? BL.ACHIEVEMENTS[g.unlock] : null;
+    const why = g.found ? '<b>Not for sale:</b> found in Dark Water. Break its pin and carry it home.' : `<b>${a.name}:</b> ${a.desc}`;
+    return `<div class="kit-opt locked">${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small><span class="g-lock">${ICON.lock}<span>${why}</span></span></div>`;
+  }
+  function kitTray(place, where) {
+    const pl = placeOf(place);
+    // what she owns first, then what is for sale, then what is locked (each in BL.KIT's order)
+    const rank = (id) => (E.ownsKit(meta, id) ? 0 : kitForSale(id) ? 1 : 2);
+    const ids = kitIn(place).sort((x, y) => rank(x) - rank(y));
+    const bal = where !== 'workshop' && ids.some(kitForSale) ? `<span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span>` : '';
+    return `<section class="kit-tray" aria-label="${pl.name}"><h3 class="ws-place"><span>${pl.name} <small>${pl.desc}</small></span>${bal}</h3>
+      <div class="kit-list">${ids.map(kitOpt).join('')}</div></section>`;
+  }
+  function kitDoll(where) {
+    const sel = kitSlotFor(where), look = E.keeperArt(meta.kit);
+    // each side lists its slots top to bottom by where they point, so the lines don't cross
+    const side = (s) => BL.KIT_PLACES.map((pl, i) => [pl, i]).filter(([pl]) => (pl.side || 'right') === s)
+      .sort((x, y) => (x[0].at || [0, 0])[1] - (y[0].at || [0, 0])[1]).map(([pl, i]) => kitSlot(pl, where, pl.id === sel, i)).join('');
+    return `<div class="doll" data-look="${look}"><svg class="doll-lines" aria-hidden="true"></svg>
+      <div class="doll-side left">${side('left')}</div>
+      <div class="doll-wren"><img src="img/units/${look}.webp" alt="${kitWrenAlt(meta.kit)}"></div>
+      <div class="doll-side right">${side('right')}</div></div>${kitTray(sel, where)}`;
+  }
+  /* Lines from the slots to Wren (wide screens only; on a phone the slots stand in a column beside her). */
+  function drawDollLines() {
+    const doll = $('.doll', overlayEl);
+    if (!doll) return;
+    const lines = $('.doll-lines', doll), img = $('.doll-wren img', doll);
+    lines.innerHTML = '';
+    if (!img.naturalWidth) { img.addEventListener('load', drawDollLines, { once: true }); return; }
+    if (getComputedStyle(lines).display === 'none') return;
+    const box = doll.getBoundingClientRect(), ir = img.getBoundingClientRect();
+    // the picture is drawn bottom-centred inside the img box (object-fit: contain)
+    const k = Math.min(ir.width / img.naturalWidth, ir.height / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
+    const x0 = ir.left - box.left + (ir.width - w) / 2, y0 = ir.top - box.top + ir.height - h;
+    const fix = BL.WREN_POINTS[doll.dataset.look] || {}, n = (v) => v.toFixed(1);
+    lines.setAttribute('viewBox', `0 0 ${n(box.width)} ${n(box.height)}`);
+    lines.innerHTML = BL.KIT_PLACES.map((pl) => {
+      const el = $(`.kit-slot[data-place="${pl.id}"]`, doll), at = fix[pl.id] || pl.at;
+      if (!el || !at) return '';
+      const r = el.getBoundingClientRect(), left = r.left + r.width / 2 < ir.left + ir.width / 2;
+      const sx = (left ? r.right : r.left) - box.left, sy = r.top + r.height / 2 - box.top, ex = x0 + at[0] * w, ey = y0 + at[1] * h;
+      const on = el.getAttribute('aria-pressed') === 'true';
+      return `<g${on ? ' class="on"' : ''}><path d="M${n(sx)} ${n(sy)}H${n(sx + (left ? 12 : -12))}L${n(ex)} ${n(ey)}"/><circle cx="${n(ex)}" cy="${n(ey)}" r="${on ? 4.5 : 3}"/></g>`;
+    }).join('');
+  }
+  /* Redraw whichever kit screen is open, keeping its scroll, with the focus on `focus` (a selector). */
+  function redrawKit(focus) {
+    const sc = $('.modal-body', overlayEl), top = sc ? sc.scrollTop : 0;
+    if (ui.kitFrom === 'pack') showKit(focus); else showWorkshop(focus);
+    const sc2 = $('.modal-body', overlayEl);
+    if (sc2) { sc2.scrollTop = top; updateScrollCue(sc2); }
+  }
+
+  function showWorkshop(focus) {
+    ui.kitFrom = 'workshop';
+    meta.kit = E.fitKit(meta.kit, meta.owned);
+    const body = `<div class="ws-art" style="background-image:url(img/scenes/workshop.webp)" role="img" aria-label="The keepers' workshop on the shore"></div><p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Wren wears one piece in each place: choose a place to see what fits there.</p>
+      <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${kitDoll('workshop')}`;
+    openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'), { focus });
+    requestAnimationFrame(drawDollLines);
   }
 
   /* ----- The logbook: a short record of how far the player has come ----- */
@@ -1132,20 +1217,11 @@
     if (!meta.owned.length && !meta.lazaret.length && !E.currentsOpen(meta)) return startNewRun(meta.kit);
     showKit();
   }
-  function showKit() {
+  function showKit(focus) {
+    ui.kitFrom = 'pack';
     meta.kit = E.fitKit(meta.kit, meta.owned);
-    const rows = BL.KIT_PLACES.map((pl) => {
-      const ids = kitIn(pl.id).filter((id) => E.ownsKit(meta, id));
-      if (!ids.length || (pl.id === 'bell' && ids.length < 2)) return '';
-      const tiles = ids.map((id) => {
-        const g = BL.KIT[id];
-        const on = meta.kit[pl.id] === id;
-        return `<div class="shop-tile gear-tile kit-tile${on ? ' chosen' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="kitwear" data-g="${id}">${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small><span class="g-state">${on ? 'Worn' : 'Not worn'}</span></div>`;
-      }).join('');
-      return `<h3 class="ws-place">${pl.name}</h3><div class="shop-row">${tiles}</div>`;
-    }).join('');
     const ch = E.bringCharge(meta);
-    const keeps = meta.lazaret.length ? `<h3 class="ws-place">Keepsakes <small>from the Lazaret. Bring any number.</small></h3>
+    const keeps = meta.lazaret.length ? `<h3 class="ws-place ws-head">Keepsakes <small>from the Lazaret. Bring any number.</small></h3>
       <p class="lz-line">You bring <b>Roil ${ch}</b>. The aether holds <b>${E.metaHold(meta)}</b>: ${roilAt()}.</p>
       <div class="shop-row">${meta.lazaret.map((k) => ksTile(k, true)).join('')}</div>` : '';
     const curs = E.currentsOpen(meta) ? `<h3 class="ws-place ws-head">Currents <small>Each makes the expedition harder and adds &times;${E.CURRENT_SCORE} to the score. Now: score &times;${E.scoreMult({ currents: meta.currents })}.</small></h3>
@@ -1153,11 +1229,12 @@
         const C = E.CURRENTS[k], on = meta.currents.indexOf(k) >= 0;
         return `<div class="shop-tile gear-tile kit-tile current-tile${on ? ' chosen' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="current" data-k="${k}"><span class="medal">${ICON.wave}</span><b>${C.name}</b><small>${C.desc}</small><span class="g-state">${on ? 'On' : 'Off'}</span></div>`;
       }).join('')}</div>` : '';
-    const parts = [keeps ? 'keepsakes' : '', rows ? MT.item.toLowerCase() : '', curs ? 'currents' : ''].filter(Boolean);
+    const parts = [MT.item.toLowerCase(), keeps ? 'keepsakes' : '', curs ? 'currents' : ''].filter(Boolean);
     const body = `<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
-      ${keeps}${rows ? `<h3 class="ws-place ws-head">${MT.item} <small>One piece in each place.</small></h3>${rows}` : ''}${curs}`;
+      <h3 class="ws-place">${MT.item} <small>One piece in each place.</small></h3>${kitDoll('pack')}${keeps}${curs}`;
     openOverlay(modal('Pack for the expedition', body,
-      `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, 'workshop-modal'));
+      `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, 'workshop-modal'), { focus });
+    requestAnimationFrame(drawDollLines);
   }
 
   /* Achievements reached in this run unlock kit at once, so they're kept even if the run is abandoned. */
@@ -1285,7 +1362,7 @@
     ui.combatRef = c;
     ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null;
     $('#pz').innerHTML = `<div class="unit player" data-uid="p" data-tip="unit:p">
-        <div class="sprite"><img src="img/units/${E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial ? 'keeper_suit' : 'keeper'}.webp" alt="Wren, the Keeper${E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial ? ', in the diving dress' : ''}"></div>
+        <div class="sprite"><img src="img/units/${E.keeperArt(run.tutorial ? null : run.kit, E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial)}.webp" alt="Wren, the Keeper"></div>
         <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">Wren, the Keeper</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
     bindHand();
     updateCombat(true);
@@ -2740,9 +2817,10 @@
         const id = t.dataset.g, g = BL.KIT[id];
         if (!g || E.ownsKit(meta, id)) break;
         if (meta.salvage < g.price) { toast(`Not enough ${MT.currency}`); break; }
+        { const sc = $('.modal-body', overlayEl); ui.kitScroll = sc ? sc.scrollTop : 0; }
         openOverlay(modal(`Buy ${g.name} for ${g.price} ${MT.currency}?`,
           `<div class="buy-item">${gearArt(g)}<div><b>${g.name}</b><p>${g.desc}</p></div></div><p class="buy-left">You have ${meta.salvage} ${MT.currency}; ${meta.salvage - g.price} left after this.</p>`,
-          `<button class="btn" data-act="workshop">Back</button><button class="btn primary" data-act="kitbuyconfirm" data-g="${id}" autofocus>Buy</button>`, 'narrow'));
+          `<button class="btn" data-act="kitback" data-g="${id}">Back</button><button class="btn primary" data-act="kitbuyconfirm" data-g="${id}" autofocus>Buy</button>`, 'narrow'));
         break;
       }
       case 'kitbuyconfirm':
@@ -2754,22 +2832,36 @@
           sfx('coin');
           if (!run) render();
         }
-        showWorkshop();
+        // back to the screen the purchase started from, at the same scroll, on the piece just bought
+        ui.kitFrom === 'pack' ? showKit(`[data-g="${t.dataset.g}"]`) : showWorkshop(`[data-g="${t.dataset.g}"]`);
+        { const sc = $('.modal-body', overlayEl); if (sc) { sc.scrollTop = ui.kitScroll || 0; updateScrollCue(sc); } }
         break;
-      case 'kitwear': {
-        if (E.equipKit(meta, t.dataset.g)) { saveMeta(); sfx('select'); }
-        showKit();
-        { const b = $(`[data-act="kitwear"][data-g="${t.dataset.g}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); }
+      case 'kitback':
+        ui.kitFrom === 'pack' ? showKit(`[data-g="${t.dataset.g}"]`) : showWorkshop(`[data-g="${t.dataset.g}"]`);
+        { const sc = $('.modal-body', overlayEl); if (sc) { sc.scrollTop = ui.kitScroll || 0; updateScrollCue(sc); } }
+        break;
+      case 'kitslot': {
+        ui.kitSlot = t.dataset.place;
+        redrawKit(`[data-act="kitslot"][data-place="${ui.kitSlot}"]`);
+        // when the tray starts low in the view, scroll Wren to the top so her slots and the tray show together
+        const sc = $('.modal-body', overlayEl), tray = $('.kit-tray', overlayEl), doll = $('.doll', overlayEl);
+        if (sc && tray && doll) {
+          const b = sc.getBoundingClientRect();
+          if (tray.getBoundingClientRect().top > b.top + b.height * 0.6) {
+            sc.scrollTo({ top: sc.scrollTop + doll.getBoundingClientRect().top - b.top - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+          }
+        }
         break;
       }
+      case 'kitwear':
+        if (E.equipKit(meta, t.dataset.g)) { saveMeta(); sfx('select'); }
+        redrawKit(`[data-act="kitwear"][data-g="${t.dataset.g}"]`);
+        break;
       case 'dive': closeOverlay(true); startNewRun(meta.kit); break;
       case 'current': {
         const k = t.dataset.k;
         if (E.toggleCurrent(meta, k)) { saveMeta(); sfx('select'); }
-        { const sc = $('.modal-body', overlayEl), top = sc ? sc.scrollTop : 0;
-          showKit();
-          const sc2 = $('.modal-body', overlayEl); if (sc2) sc2.scrollTop = top; }
-        { const b = $(`[data-act="current"][data-k="${k}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); }
+        redrawKit(`[data-act="current"][data-k="${k}"]`);
         break;
       }
       case 'gohome': if (E.goHome(run)) { sfx('victory'); clearSave(); render(); } break;
@@ -2786,10 +2878,13 @@
       case 'ksbring': {
         const k = t.dataset.k, packing = t.dataset.pack;
         if (E.toggleBring(meta, k)) { saveMeta(); sfx('select'); }
-        { const sc = $('.modal-body', overlayEl), top = sc ? sc.scrollTop : 0;
-          if (packing) showKit(); else showLazaret();
-          const sc2 = $('.modal-body', overlayEl); if (sc2) sc2.scrollTop = top; }
-        { const b = $(`[data-act="ksbring"][data-k="${k}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); }
+        if (packing) redrawKit(`[data-act="ksbring"][data-k="${k}"]`);
+        else {
+          const sc = $('.modal-body', overlayEl), top = sc ? sc.scrollTop : 0;
+          showLazaret();
+          const sc2 = $('.modal-body', overlayEl); if (sc2) sc2.scrollTop = top;
+          const b = $(`[data-act="ksbring"][data-k="${k}"]`, overlayEl); if (b) b.focus({ preventScroll: true });
+        }
         break;
       }
       case 'kitinfo': if (ui.lastPointer !== 'mouse') showTip(t, tipContent(t.dataset.tip)); break;
@@ -3138,6 +3233,7 @@
     if (run && run.screen === 'map') renderMap();
     if (run && run.combat) renderGlossary();
     fitScene();
+    drawDollLines();
   });
   window.addEventListener('beforeunload', () => save());
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });

@@ -1195,7 +1195,7 @@ Built from the decisions in "Paused plan and open questions". It replaces the pa
 6. **Leaving the keepsakes scores +80**, the same as a Dread's card. A pick left open by some other path is lost and scores nothing.
 7. **Dropping a keepsake** works only between fights and is for good. Scallop Charm's 10 Max HP go with it, and its text now says "While you carry it".
 8. **New kit is worn as soon as it's bought** if its place is empty. A new bell never replaces the worn bell by itself.
-9. **The kit screen before a dive** shows only the places where you own a choice. It is skipped while you own nothing.
+9. **The kit screen before a dive** is skipped while you own nothing to choose. Since v0.24.0 it and the Workshop show the kit view described under "Kit view" below.
 10. **The HUD:**
     - The bell is a square medal.
     - The rest of the kit sits behind the pack button.
@@ -1425,6 +1425,16 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
   - The Bellwether is a bronze bell (crack, clapper, golden glow inside, at most a hint of tendrils). The one eye and the arms belong to the Thing, which comes out only when the bronze breaks.
   - The Lost Lamplighter's lantern is cold.
 - Gear icons (v0.7.0): see "The Workshop" above.
+- **Wren's pictures (v0.24.0):** her picture follows her coat (`E.keeperArt`). A coat's `look` is her picture on shore and on the open-air levels; a dress also has `lookUnder` for the Belfry. Pictures: `keeper` (no coat), `keeper_cork`, `keeper_gorget`, `keeper_packed` (a dress carried: helmet at her hip, suit rolled on her back), `keeper_suit` and `keeper_plated` (in the Belfry). **A new coat needs its own picture** (two for a dress), made with the unit preamble from the 2026-11-14 lines of the queue file and the same pose: three-quarter view facing right, harpoon in her right hand, lantern raised in her left. Without one she shows as plain Wren, and the build fails if a named picture is missing. Other places never change her picture: that is deliberate, so a new harpoon, bell or pocket item needs only its icon. Painting Wren in stacked layers was rejected: layers from the image generator don't line up, and the cost grows with items times pictures.
+
+### Kit view (v0.24.0, 2026-11-14)
+
+- The Workshop and Pack for the expedition share one view (`kitDoll` in `js/ui.js`): Wren in the middle, a slot for each place (`BL.KIT_PLACES`) around her, and a tray under her with every piece for the chosen slot. Owned pieces come first (tap to wear, tap again to take off), then those for sale (tap to buy), then locked ones with their achievement.
+- On a wide screen each slot has a line to where the piece sits on her: `side` and `at` on each place in `BL.KIT_PLACES`, with `BL.WREN_POINTS` to correct a point for one picture. On a phone (600px and narrower) the slots stand in one column beside her and there are no lines.
+- In the Workshop, a slot with something you can afford shows a small Salvage badge.
+- Changes from before: you can wear kit in the Workshop and buy it while packing; the Pack screen puts the kit first, then keepsakes and currents.
+- A new piece of kit in an existing place needs no screen work. A new place needs `side`, `at`, `none` (the empty slot's name) and an empty-slot glyph (`ICON.slot_<id>` in `js/ui.js`).
+- Open: do the trays read well on a small phone, and is choosing a slot first slower than the old long list when you change several pieces?
 
 ## Open questions for the next playtest
 

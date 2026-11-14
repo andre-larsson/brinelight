@@ -34,6 +34,8 @@ Object.values(BL.ENEMIES).forEach((e) => check(`img/units/${e.art}.webp`, 'enemy
 Object.values(BL.KEEPSAKES).forEach((k) => check(`img/icons/${k.art}.webp`, 'keepsake ' + k.name));
 Object.values(BL.TONICS).forEach((t) => check(`img/icons/${t.art}.webp`, 'tonic ' + t.name));
 BL.EVENTS.forEach((e) => check(`img/scenes/${e.art}.webp`, 'event ' + e.id));
+// Wren's picture for each coat, on shore and in the Belfry
+Object.values(BL.KIT).forEach((k) => [k.look, k.lookUnder].filter(Boolean).forEach((a) => check(`img/units/${a}.webp`, 'kit ' + k.name)));
 Object.values(BL.BANDS).forEach((b) => [b.bg, b.bossBg].forEach((bg) => check(`img/bg/${bg}.webp`, 'band ' + b.name)));
 // Story so far and the opening name their pictures by path under img/
 [...BL.STORY.opening, ...BL.STORY.chapters, ...BL.STORY.notes].forEach((x) => [x.art, x.fig].filter(Boolean).forEach((a) => check(`img/${a}.webp`, 'story ' + (x.title || 'opening'))));

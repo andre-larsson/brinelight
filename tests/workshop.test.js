@@ -46,6 +46,29 @@ test('kit goes in five places, one piece each; the Bell always holds a bell, the
   assert.deepEqual(E.kitIds(run), ['tidebell']);
 });
 
+test("Wren's picture follows her coat, and every place has a slot on the kit screens", () => {
+  const fs = require('fs'), path = require('path');
+  // no coat: plain Wren on shore, the plain diving dress underwater
+  assert.equal(E.keeperArt(E.fitKit()), 'keeper');
+  assert.equal(E.keeperArt(null), 'keeper');
+  assert.equal(E.keeperArt(E.fitKit(), true), 'keeper_suit');
+  assert.equal(E.keeperArt(E.fitKit(['cork'])), 'keeper_cork');
+  assert.equal(E.keeperArt(E.fitKit(['gorget'])), 'keeper_gorget');
+  // a dress is carried on the open-air levels and worn in the Belfry
+  assert.equal(E.keeperArt(E.fitKit(['suit'])), 'keeper_packed');
+  assert.equal(E.keeperArt(E.fitKit(['suit']), true), 'keeper_suit');
+  assert.equal(E.keeperArt(E.fitKit(['plated']), true), 'keeper_plated');
+  // only a dress opens the Belfry, so every coat that does has a picture for it
+  Object.keys(BL.KIT).filter((id) => id === 'suit' || BL.KIT[id].as === 'suit').forEach((id) => assert.ok(BL.KIT[id].lookUnder, id + ' has no Belfry picture'));
+  Object.keys(BL.KIT).forEach((id) => [BL.KIT[id].look, BL.KIT[id].lookUnder].filter(Boolean).forEach((a) => assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/units', a + '.webp')), `${id}: img/units/${a}.webp is missing`)));
+  // each place says which side of Wren its slot is on and where its line points
+  BL.KIT_PLACES.forEach((pl) => {
+    assert.ok(pl.side === 'left' || pl.side === 'right', pl.id);
+    assert.ok(pl.at.length === 2 && pl.at.every((v) => v >= 0 && v <= 1), pl.id);
+    assert.ok(pl.id === 'bell' || pl.none, pl.id + ' names its empty slot');
+  });
+});
+
 test('kit costs Salvage, is bought once, and locked kit waits for its achievement', () => {
   const meta = metaWith({ salvage: 30 });
   assert.equal(E.ownsKit(meta, 'tidebell'), true, 'everyone has the Brass Tide-Bell');

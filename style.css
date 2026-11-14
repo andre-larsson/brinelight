@@ -996,13 +996,77 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 /* kit is square with a brass corner, so it never reads as a (round) keepsake */
 .medal.gear { border-radius: 10px; border-color: #b8893a; background: radial-gradient(circle at 50% 40%, #3a3322, #14120c 75%); }
 .gear-tile .medal.gear { width: 64px; height: 64px; }
-.gear-tile.owned { cursor: default; border-color: rgba(159, 240, 181, .45); }
 .gear-tile.locked { cursor: default; }
 .gear-tile.locked .medal img { filter: grayscale(1) brightness(.55); }
 .g-state { font-size: 13px; font-weight: 700; color: #9ff0b5; }
 .g-lock { display: flex; gap: 6px; align-items: flex-start; text-align: left; font-size: 13px; line-height: 1.35; color: #cbbfa8; }
 .g-lock svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 2px; color: #a8987a; }
 .g-lock b { color: #e6d3a8; }
+/* The kit view (Workshop and Pack): Wren with a slot for each place around her, lines to where each piece sits,
+   and a tray with every piece for the chosen slot. On a phone the slots stand in one column beside her, no lines. */
+.doll { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: 'left wren right'; align-items: center; gap: 0 22px; margin: 2px 0 12px; }
+.doll-wren { grid-area: wren; width: clamp(150px, 26vw, 220px); height: clamp(220px, 40vh, 320px); }
+.doll-wren img { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .6)); }
+.doll-side { display: flex; flex-direction: column; gap: 18px; position: relative; z-index: 2; }
+.doll-side.left { grid-area: left; align-items: flex-end; }
+.doll-side.right { grid-area: right; align-items: flex-start; }
+/* over Wren (her drop-shadow filter would otherwise paint her on top), under the slots */
+.doll-lines { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; overflow: visible; filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9)); }
+.doll-lines path { fill: none; stroke: rgba(201, 162, 74, .45); stroke-width: 1.4; }
+.doll-lines circle { fill: rgba(201, 162, 74, .7); }
+.doll-lines .on path { stroke: var(--amber); stroke-width: 2; }
+.doll-lines .on circle { fill: var(--amber); }
+.kit-slot { position: relative; display: flex; align-items: center; gap: 10px; width: min(100%, 220px); min-height: 60px; padding: 6px 12px 6px 6px; border-radius: 12px; background: rgba(6, 20, 30, .88); border: 1px solid rgba(201, 162, 74, .35); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.doll-side.left .kit-slot { flex-direction: row-reverse; text-align: right; padding: 6px 6px 6px 12px; }
+.kit-slot:hover { border-color: rgba(255, 184, 77, .7); }
+.kit-slot[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber), 0 0 16px rgba(255, 184, 77, .4); }
+.kit-slot .medal { width: 48px; height: 48px; cursor: pointer; }
+.kit-slot .medal.empty { color: rgba(201, 162, 74, .5); }
+.kit-slot .medal.empty svg { width: 60%; height: 60%; }
+.ks-txt { display: flex; flex-direction: column; min-width: 0; }
+.ks-txt small { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ks-txt b { font-size: 15px; line-height: 1.25; color: #f3dfb2; }
+.kit-slot.empty .ks-txt b { font-weight: 600; color: #9fb4b4; }
+/* something in this place can be bought now */
+.ks-new { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #14120c; border: 1px solid var(--amber); }
+.doll-side.left .ks-new { right: auto; left: -7px; }
+.ks-new .salv { width: 15px; height: 15px; }
+.kit-tray { padding: 12px; border-radius: 12px; background: rgba(4, 14, 22, .6); border: 1px solid rgba(201, 162, 74, .25); }
+.kit-tray .ws-place { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin: 0 0 10px; scroll-margin: 12px; }
+.kit-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+.kit-opt { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; align-content: start; gap: 2px 12px; padding: 8px 12px 8px 8px; border-radius: 12px; background: rgba(6, 20, 30, .88); border: 1px solid rgba(201, 162, 74, .35); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.kit-opt:hover { border-color: rgba(255, 184, 77, .7); }
+.kit-opt .medal.gear { width: 52px; height: 52px; grid-row: span 2; align-self: start; cursor: inherit; }
+.kit-opt b { font-size: 15px; color: #f3dfb2; }
+.kit-opt small { grid-column: 2 / span 2; font-size: 14px; line-height: 1.35; color: #b9cfd0; }
+.kit-opt .opt-state, .kit-opt .price { justify-self: end; }
+.kit-opt .opt-state { font-size: 13px; font-weight: 700; color: var(--muted); }
+.kit-opt.worn { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber), 0 0 16px rgba(255, 184, 77, .35); }
+.kit-opt.worn .opt-state { color: var(--amber); }
+.kit-opt.locked { cursor: default; background: rgba(6, 20, 30, .55); }
+.kit-opt.locked:hover { border-color: rgba(201, 162, 74, .35); }
+.kit-opt.locked .medal img { filter: grayscale(1) brightness(.55); }
+.kit-opt.locked b { color: #c9bfa9; }
+.kit-opt .g-lock { grid-column: 2 / span 2; margin-top: 4px; }
+@media (max-width: 600px) {
+  .doll { grid-template-columns: minmax(0, 40%) minmax(0, 1fr); grid-template-areas: none; gap: 8px 10px; }
+  .doll-side { display: contents; }
+  .doll-wren { grid-column: 1; grid-row: 1 / span 5; width: 100%; height: 100%; min-height: 230px; }
+  .doll-wren img { object-position: 50% 50%; }
+  /* one column in BL.KIT_PLACES order */
+  .kit-slot, .doll-side.left .kit-slot { order: var(--o); grid-column: 2; width: 100%; min-height: 54px; flex-direction: row; text-align: left; padding: 5px 10px 5px 5px; }
+  .kit-slot .medal { width: 42px; height: 42px; }
+  .doll-side.left .ks-new { left: auto; right: -7px; }
+  .doll-lines { display: none; }
+  .kit-tray { padding: 10px 8px; }
+}
+/* a phone on its side: a shorter Wren and tighter slots, so she and the tray fit the short view */
+@media (max-height: 500px) and (min-width: 601px) {
+  .doll-wren { height: 200px; width: 140px; }
+  .doll-side { gap: 8px; }
+  .kit-slot { min-height: 50px; padding-top: 4px; padding-bottom: 4px; }
+  .kit-slot .medal { width: 40px; height: 40px; }
+}
 .ws-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .ws-btn svg { width: 20px; height: 20px; flex: 0 0 auto; }
 .ws-btn small { font-size: 14px; font-weight: 700; color: #e6d3a8; white-space: nowrap; }
