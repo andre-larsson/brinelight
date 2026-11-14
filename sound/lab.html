@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brinelight sound lab</title>
+<style>
+  :root {
+    --bg: #f3f1ea; --panel: #fffdf7; --ink: #1d2a33; --muted: #5d6a72; --line: #d9d4c7;
+    --accent: #1f6f78; --accent-ink: #fff; --old: #8a6d3b; --on: #e3efe9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0e1a22; --panel: #15252f; --ink: #e6edf0; --muted: #93a4ad; --line: #26394550;
+      --accent: #5fb7bd; --accent-ink: #0e1a22; --old: #d2b072; --on: #1d3a40; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  p.lead { color: var(--muted); margin: 0 0 16px; max-width: 70ch; }
+  .bar { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-right: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 12px; font: inherit; cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  label.tog { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .item { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .item b { font-size: 15px; }
+  .item small { color: var(--muted); min-height: 1.4em; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+  .row button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
+  .row button.play { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .row button.old { color: var(--old); }
+  .row button:active { transform: translateY(1px); }
+  .amb { font-size: 13px; font-weight: normal; }
+  code { font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Brinelight sound lab</h1>
+  <p class="lead">Draft sound effects from <code>sound/sfx.js</code>, all synthesized in the browser. <b>Play</b> plays the new sound,
+    <b>×3</b> plays it three times so you can hear how much it varies, and <b>Now</b> plays the sound the game uses there today.
+    Depth muffles the world and lengthens its echo; interface clicks stay clear.</p>
+  <div class="bar">
+    <span>Depth <span class="seg" id="depth">
+      <button data-d="0" aria-pressed="true">Shallows</button><button data-d="1" aria-pressed="false">Dark Water</button><button data-d="2" aria-pressed="false">Belfry</button>
+    </span></span>
+    <label class="tog"><input type="checkbox" id="sea"> Sea underneath</label>
+    <label class="tog"><input type="checkbox" id="amb"> Ambience for this depth</label>
+    <label class="tog">Volume <input type="range" id="vol" min="0" max="1.5" step="0.05" value="1"></label>
+  </div>
+  <div id="groups"></div>
+</main>
+<script src="sfx.js"></script>
+<script>
+(function () {
+  'use strict';
+  let ctx = null, out = null, sfx = null, old = null, depth = 0, sea = null;
+  const BANDS = ['shallows', 'dark', 'belfry'];
+
+  function audio() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    out = ctx.createGain(); out.gain.value = +document.getElementById('vol').value; out.connect(ctx.destination);
+    sfx = BL.SFX.create(ctx, out);
+    sfx.setDepth(depth);
+    old = makeOld(ctx, out);
+  }
+
+  /* The game's current effects, copied from js/ui.js (v0.24.0) so the two can be compared. */
+  function makeOld(ac, dest) {
+    const master = ac.createGain(); master.gain.value = 0.55; master.connect(dest);
+    function tone(f, dur, type, vol, slide, delay) {
+      const t = ac.currentTime + (delay || 0);
+      const o = ac.createOscillator(); const g = ac.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+    }
+    let noiseBuf = null;
+    function noise(dur, vol, freq, ftype, slide, delay, q) {
+      if (!noiseBuf) {
+        noiseBuf = ac.createBuffer(1, ac.sampleRate * 1.5, ac.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      const t = ac.currentTime + (delay || 0);
+      const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+      const f = ac.createBiquadFilter(); f.type = ftype || 'lowpass'; f.frequency.setValueAtTime(freq, t); f.Q.value = q || 1;
+      if (slide) f.frequency.exponentialRampToValueAtTime(slide, t + dur);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.05, dur / 3));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + 0.05);
+    }
+    return {
+      card: () => noise(0.16, 0.18, 2400, 'bandpass', 900),
+      select: () => tone(880, 0.06, 'triangle', 0.05),
+      hit: () => { tone(150, 0.18, 'sine', 0.3, 55); noise(0.12, 0.2, 1400, 'lowpass', 300); },
+      hurt: () => { tone(110, 0.25, 'sawtooth', 0.12, 50); noise(0.2, 0.25, 900, 'lowpass', 200); },
+      block: () => { tone(1250, 0.12, 'triangle', 0.08); tone(1870, 0.1, 'sine', 0.04); },
+      ward: () => tone(620, 0.16, 'triangle', 0.07, 900),
+      crest: () => { noise(1.1, 0.35, 300, 'bandpass', 1800, 0, 0.8); noise(0.9, 0.25, 2000, 'lowpass', 200, 0.35); },
+      low: () => noise(0.9, 0.22, 1500, 'lowpass', 120),
+      buff: () => { tone(440, 0.12, 'triangle', 0.08, 660); tone(660, 0.14, 'triangle', 0.06, 880, 0.08); },
+      debuff: () => tone(520, 0.25, 'sawtooth', 0.05, 220),
+      die: () => { noise(0.5, 0.25, 800, 'lowpass', 90); tone(200, 0.4, 'sine', 0.15, 60); },
+      turn: () => { tone(660, 0.9, 'sine', 0.07); tone(990, 0.7, 'sine', 0.035); },
+      coin: () => { tone(1320, 0.08, 'square', 0.04); tone(1760, 0.14, 'square', 0.035, null, 0.07); },
+      victory: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.5, 'triangle', 0.09, null, i * 0.12)),
+      defeat: () => [392, 311, 262, 196].forEach((f, i) => tone(f, 0.7, 'sine', 0.1, null, i * 0.22)),
+      bell: () => { tone(196, 2.2, 'sine', 0.2); tone(392, 1.6, 'sine', 0.08); tone(587, 1.2, 'sine', 0.05); },
+      tonic: () => { noise(0.25, 0.12, 600, 'bandpass', 2400); tone(700, 0.2, 'sine', 0.05, 1100, 0.1); },
+      tide: () => tone(300, 0.18, 'sine', 0.05, 420),
+      draw: () => noise(0.07, 0.07, 3000, 'highpass'),
+      chain: (n) => { const b = 440 * Math.pow(2, (n || 1) * 3 / 12); tone(b, 0.5, 'triangle', 0.09); tone(b * 1.5, 0.6, 'sine', 0.05, null, 0.06); tone(b * 2, 0.7, 'sine', 0.035, null, 0.12); },
+      kill: () => { noise(0.35, 0.3, 2400, 'bandpass', 300, 0, 0.7); tone(330, 0.25, 'triangle', 0.08, 660); },
+      echo: () => { tone(660, 0.4, 'sine', 0.07); tone(660, 0.4, 'sine', 0.04, null, 0.18); tone(990, 0.5, 'sine', 0.03, null, 0.3); },
+      pearl: () => { tone(1568, 0.09, 'sine', 0.05); tone(2093, 0.16, 'sine', 0.045, null, 0.08); },
+      fury: (down) => {
+        (down ? [784, 587, 392, 294] : [523, 659, 784, 1046]).forEach((f, i) => tone(f, 0.55, 'triangle', 0.08, null, i * 0.09));
+        tone(2093, 0.25, 'sine', 0.04, null, 0.42); tone(2637, 0.3, 'sine', 0.03, null, 0.5);
+      },
+      strand: () => { noise(0.22, 0.18, 2600, 'bandpass', 700); tone(520, 0.28, 'triangle', 0.06, 190); },
+      lightgain: () => { tone(880, 0.18, 'sine', 0.06, 1320); tone(1760, 0.22, 'sine', 0.025, null, 0.08); },
+      phase: () => { tone(98, 2.5, 'sawtooth', 0.12, 49); noise(1.6, 0.3, 200, 'lowpass', 60); tone(196, 2.4, 'sine', 0.18); },
+      danger: () => { tone(220, 0.18, 'square', 0.03); tone(208, 0.18, 'square', 0.03, null, 0.2); },
+    };
+  }
+
+  /* the game's ocean bed: looping brown noise, low-passed, slowly swelling */
+  function toggleSea(on) {
+    audio();
+    if (!on) { if (sea) { sea.g.gain.setTargetAtTime(0, ctx.currentTime, 0.3); const s = sea; setTimeout(() => s.src.stop(), 1500); sea = null; } return; }
+    const len = ctx.sampleRate * 6, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.2; }
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380;
+    const g = ctx.createGain(); g.gain.value = 0;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.08;
+    const lg = ctx.createGain(); lg.gain.value = 0.06;
+    lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    src.connect(lp); lp.connect(g); g.connect(out); src.start();
+    g.gain.setTargetAtTime(0.09, ctx.currentTime, 0.5);
+    sea = { src, g };
+  }
+
+  function playNew(it) { audio(); sfx.play(it.name, it.opts ? Object.assign({}, it.opts) : undefined); }
+  function playOld(it) {
+    audio();
+    const fn = old[it.now];
+    if (!fn) return;
+    fn(it.oldOpts ? true : it.opts && it.opts.n);
+  }
+
+  const groups = document.getElementById('groups');
+  BL.SFX.CATALOG.forEach((g) => {
+    const h = document.createElement('h2');
+    h.textContent = g.group;
+    if (g.ambience) {
+      const b = document.createElement('span');
+      b.className = 'amb';
+      b.textContent = '(ambience: one of these every 4 to 11 seconds)';
+      h.appendChild(b);
+    }
+    groups.appendChild(h);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    g.items.forEach((it) => {
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.innerHTML = `<b></b><small></small><div class="row"><button class="play">Play</button><button class="x3">×3</button>${it.now ? '<button class="old">Now</button>' : ''}</div>`;
+      el.querySelector('b').textContent = it.label;
+      el.querySelector('small').textContent = it.when || '';
+      el.querySelector('.play').onclick = () => playNew(it);
+      el.querySelector('.x3').onclick = () => { playNew(it); setTimeout(() => playNew(it), 900); setTimeout(() => playNew(it), 1800); };
+      if (it.now) {
+        const ob = el.querySelector('.old');
+        ob.title = `The game plays sfx('${it.now}') here today`;
+        ob.onclick = () => playOld(it);
+      }
+      grid.appendChild(el);
+    });
+    groups.appendChild(grid);
+  });
+
+  document.querySelectorAll('#depth button').forEach((b) => b.onclick = () => {
+    depth = +b.dataset.d;
+    document.querySelectorAll('#depth button').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    audio(); sfx.setDepth(depth);
+    if (document.getElementById('amb').checked) sfx.ambience(BANDS[depth]);
+  });
+  document.getElementById('sea').onchange = (e) => toggleSea(e.target.checked);
+  document.getElementById('amb').onchange = (e) => { audio(); sfx.ambience(e.target.checked ? BANDS[depth] : null); };
+  document.getElementById('vol').oninput = (e) => { if (out) out.gain.value = +e.target.value; };
+})();
+</script>
+</body>
+</html>
