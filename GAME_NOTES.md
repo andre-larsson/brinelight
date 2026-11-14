@@ -1594,7 +1594,6 @@ The user asked how more characters could be added, and wanted to judge the look 
   - Oilskin recolours (tarred, harbour blue, the Lamplighter's green). The user wants these as a cheap unlock or open from the start.
   - Secret joke costumes:
     - bathing: an 1890s bathing dress, the at-home one;
-    - beach: a bikini with her boots on;
     - the lobster suit;
     - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one. Its first version was too pale; the user said the real tower is browner, so it was repainted with heavy rust-brown patches over grey-cream stone (3a; 3b is lighter);
     - the shell bikini, the barbarian and the barrel.
@@ -1613,10 +1612,16 @@ The user asked how more characters could be added, and wanted to judge the look 
     - Dr. Raman, on holiday in a striped bathing suit, a boater and a rubber ring (`raman_holiday`);
     - Remedios, at her spa day with a towel, a clay mask and cucumber slices (`remedios_spa`);
     - Mateo, the cooper in his own barrel (`mateo_barrel`).
-  - The user turned down the first versions for Rook (a happy octopus: "why is there a happy octopus?"), Esi (a sail toga) and the Lamp Engine (trays over its gears). Esi's and the Engine's were too close to their own pictures. Old Lan's mermaid had feet, not a fin. Kamala's pufferfish made no sense and was badly drawn. Those five are being redrawn, each with a gag that fits the keeper.
+  - The user turned down the first versions for Rook (a happy octopus: "why is there a happy octopus?"), Esi (a sail toga) and the Lamp Engine (trays over its gears). Esi's and the Engine's were too close to their own pictures. Old Lan's mermaid had feet, not a fin. Kamala's pufferfish made no sense and was badly drawn. All five redraws were kept, each with a gag that has a reason:
+    - Rook, in the whale costume the harbour children sewed for the whaler, peg leg underneath (`rook_whale`);
+    - Esi, the rigging runner as a music-hall tightrope walker on tiptoe with a parasol (`esi_highwire`);
+    - the Lamp Engine, in a giant knitted tea cosy that keeps the damp out of its clockwork. It is placed at Wren's height (eye 90, head 595, tall 1.0) so its width fits the canvas (`engine_teacosy`);
+    - Old Lan, a fete mermaid with a real tail fin and no feet (`lan_mermaid`);
+    - Kamala, woken by the bell and hopping out still wrapped in her ship's hammock (`kamala_hammock`; head 575, so her lantern stays on the canvas).
+  - Gulp's first one, a frilly bathing dress, was not picked, and new Gulp costumes are being drawn.
   - A rule: Dev and Winkle are children. They get no cheeky costume and never appear in anyone else's. If they get a secret costume, it is a wholesome one, such as Dev in his grandfather's oversized diving dress.
   - What worked: a gag that comes from the keeper's own trade or habits (the pilot's signal flag, the cooper's barrel, the salt-raker's spa day), and a clear change of silhouette.
-  - The armour: Codex's image tool refused a skimpy fantasy-armour parody (shell pauldrons, a shell bikini, greaves), so it was made on local Qwen-Image 2.1 instead (`wren_armour.webp`). Its licence makes it a draft only (see "Local generation").
+  - Set aside by the user: Beach Day (a bikini with her boots) and the fantasy armour, both too close to the shell bikini, which is more fun. The armour had been drawn on local Qwen-Image 2.1 after Codex refused it; its original is `assets-src/units/samples/wren-armour-qwen.png`.
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
   - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. In the game a recolour needs 5 pictures: plain, Cork Vest, Shell Gorget and both carried dresses. The worn dresses hide the oilskin.
 - **What the samples showed:**
@@ -1636,7 +1641,7 @@ The user asked how more characters could be added, and wanted to judge the look 
     - Turbo was as good as the base model and three times faster. In the base model's lighthouse edit her arms went missing.
     - With the same Mateo prompt as Codex, its anatomy was right and the paint looked close to the game. The poses were stiffer than Codex's, and it painted a whole scene of sea monsters until the prompt stopped mentioning what the keeper faces.
     - With plain Wren as a style reference (image 1), the style matched even better, but her raised lantern was copied and floated with no hand.
-    - It drew the armour parody that Codex refused (`wren_armour.webp`, Turbo seed 1).
+    - It drew the armour parody that Codex refused (Turbo seed 1; set aside later).
     - For the lighthouse redo, Codex's edit read better at fight size than Qwen's: lit windows and more paint texture. Qwen's version turned dark and greenish on a phone.
   - **FLUX.2 Klein 4B:** clean and fast, but opaque (it needs a flat background and a cutout step). It copied Wren's raised-lantern pose from the reference.
   - **Z-Image Turbo:** clean but flatter, more like cartoon concept art than oil paint. It is opaque too.
