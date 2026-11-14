@@ -1075,20 +1075,19 @@
   BL.META_TEXT = { currency: 'Salvage', shop: 'Workshop', item: 'Kit' };
   /* Where kit goes. The Bell always holds a bell; the others can be empty (`none` names the empty slot).
      The kit screens show Wren with a slot for each place: `side` is the side of her picture the slot sits on,
-     and `at` is where its line points on her picture (fractions of its width and height, from the top left;
-     BL.WREN_POINTS can move a point for one picture). A new place needs these and a glyph in ui.js (ICON.slot_<id>). */
+     and `at` is where its line points on her picture (fractions of its width and height, from the top left).
+     Her pictures share one canvas (tools/wren-art.py), so one point fits them all; BL.WREN_POINTS moves a point
+     for a picture where the coat covers it. A new place needs these and a glyph in ui.js (ICON.slot_<id>). */
   BL.KIT_PLACES = [
-    { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.', none: 'Plain harpoon', side: 'left', at: [0.16, 0.31] },
-    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you get when you Crest or Strand.', side: 'right', at: [0.55, 0.37] },
-    { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.', none: 'Just the oilskin', side: 'right', at: [0.66, 0.24] },
-    { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.', none: 'Empty', side: 'right', at: [0.75, 0.48] },
-    { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.', none: 'Empty', side: 'left', at: [0.36, 0.49] },
+    { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.', none: 'Plain harpoon', side: 'left', at: [0.2, 0.48] },
+    { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you get when you Crest or Strand.', side: 'right', at: [0.52, 0.42] },
+    { id: 'coat', name: 'Coat', desc: 'What you wear over your oilskin.', none: 'Just the oilskin', side: 'right', at: [0.66, 0.29] },
+    { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.', none: 'Empty', side: 'right', at: [0.75, 0.515] },
+    { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.', none: 'Empty', side: 'left', at: [0.37, 0.49] },
   ];
-  /* Per-picture corrections to the slot points above, for a Wren picture whose pose differs: { picture: { place: [x, y] } }. */
+  /* Per-picture corrections to the slot points above, where a coat covers a point: { picture: { place: [x, y] } }. */
   BL.WREN_POINTS = {
-    keeper: { harpoon: [0.2, 0.44], ditty: [0.37, 0.45] }, // the first picture holds the harpoon lower
-    keeper_gorget: { coat: [0.43, 0.23], ditty: [0.31, 0.5] }, // the gorget, at her throat
-    keeper_packed: { coat: [0.8, 0.3], pocket: [0.76, 0.66] }, // the dress rolled on her back; the helmet covers the coat pocket
+    keeper_packed: { coat: [0.84, 0.38], pocket: [0.625, 0.525] }, // the dress rolled on her back; the helmet covers the coat pocket
   };
   /* A coat's `look` is Wren's picture (img/units) on the open-air levels and on the kit screens; `lookUnder` is
      her picture in the Belfry. A coat without them shows plain Wren (keeper, and keeper_suit underwater). */

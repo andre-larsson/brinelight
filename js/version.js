@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.24.0';
+  BL.VERSION = '0.24.1';
   BL.CHANGELOG = [
+    { v: '0.24.1', date: '2026-11-14', items: [
+      'Wren is the same size in every picture. Before, she grew or shrank a little with her coat, and most of all in the Belfry\'s diving dresses.',
+      'She carries her Tide-Bell on her belt, so the Bell line on the kit screens points at it.',
+      'The coats are easier to tell apart: the Cork Vest is bulkier, the Shell Gorget is a wide collar of shells over her shoulders, and the rolled diving dress and its helmet are bigger. Her face and pose stay the same whatever she wears.',
+    ] },
     { v: '0.24.0', date: '2026-11-14', items: [
       'The Workshop and Pack for the expedition now show Wren with a slot for each place: Harpoon, Bell, Coat, Pocket and Ditty Bag. Choose a slot to see every piece of kit for it, what you own, what is for sale and what is still locked. An empty slot shows as empty.',
       'You can wear kit from the Workshop, and buy it while packing.',
