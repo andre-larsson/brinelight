@@ -135,6 +135,9 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .tab.on .new-pill { background: #2a1504; color: #f2c46b; }
 .new-pill { padding: 1px 7px; border-radius: 9px; background: #f2c46b; color: #2a1504; font-size: 12px; font-weight: 800; letter-spacing: .03em; }
 .title-buttons .btn.span { grid-column: 1 / -1; }
+/* the third level flows in centred rows, so five fit in two rows on a phone */
+.title-third { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 6px; }
+.title-third .btn { flex: 0 1 auto; }
 /* the smaller buttons sit two to a row at every size, so seven buttons fit; narrow phones get tighter ones */
 @media (max-width: 480px) {
   .title-screen .tagline { margin-bottom: 20px; }
@@ -892,6 +895,26 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 
 /* How to Play: tabs */
 .help-modal { width: min(640px, 100%); }
+/* the Jukebox: a row for each song and each piece of the score; the one playing is brass, with its time and a bar */
+.jukebox-modal { width: min(560px, 100%); }
+.juke-lead { margin: 0 0 4px; font-size: 15px; line-height: 1.45; color: var(--muted); }
+.juke-h { margin: 16px 0 8px; font-size: 18px; color: #f3dfb2; }
+.juke-note { margin: -4px 0 8px; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.juke-row { position: relative; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: 54px; margin: 0 0 6px; padding: 8px 12px 10px 10px; font: inherit; text-align: left; color: var(--text); background: rgba(10, 29, 43, .6); border: 1px solid rgba(212, 236, 232, .14); border-radius: 10px; cursor: pointer; }
+.juke-row:hover, .juke-row:focus-visible { background: rgba(18, 53, 72, .75); border-color: rgba(212, 236, 232, .45); outline: none; }
+.juke-row.cur { background: rgba(201, 162, 74, .13); border-color: var(--brass); }
+.juke-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--foam); background: rgba(212, 236, 232, .1); }
+.juke-ic svg { width: 16px; height: 16px; }
+.juke-row.cur .juke-ic { color: var(--ink); background: var(--brass); }
+.juke-txt { min-width: 0; }
+.juke-txt b { display: block; font-size: 16px; line-height: 1.25; }
+.juke-txt small { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.juke-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.juke-row.cur .juke-time { color: #f3dfb2; }
+.juke-bar { position: absolute; left: 54px; right: 12px; bottom: 5px; height: 3px; overflow: hidden; border-radius: 2px; background: rgba(212, 236, 232, .16); }
+.juke-bar i { display: block; height: 100%; background: var(--brass); }
+.juke-depth { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.juke-depth .btn[aria-pressed="true"] { color: var(--ink); background: var(--brass); border-color: var(--brass); }
 .help .tabs, .story .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .tab { min-height: 40px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(201, 162, 74, .4); background: rgba(10, 29, 43, .7); color: #cfe0dc; font-size: 15px; font-weight: 650; cursor: pointer; }
 .tab.on { background: #f2c46b; color: #2a1504; border-color: #ffe0a0; }

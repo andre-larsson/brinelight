@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.26.1';
+  BL.VERSION = '0.27.0';
   BL.CHANGELOG = [
+    { v: '0.27.0', date: '2026-11-14', items: [
+      'Songs with singing, in four places: "The Great Light Turning Slow" on the title screen, "No Haggling, No Biting" in Barnaby\'s shop, "The Hermit\'s Heavy Toll" against the Harbour Hermit, and "Tide Swings Its Tongue" against the Tolling Buoy. Everywhere else the music box plays as before, and it takes over when a song ends.',
+      'A Jukebox on the title screen plays every song and every piece of the music box\'s score, and one more song, "High Tide Departure", that you can hear only there. Choose a depth to hear the score darken the way it does on the way down. What you choose keeps playing until you set out.',
+      'The Lazaret\'s picture is fixed: the keepsakes sit inside their cages, behind the bars. Before, the bars stopped short and the keepsakes looked as if they were outside.',
+    ] },
     { v: '0.26.1', date: '2026-11-14', items: [
       'In a fight, Wren wears the Diving Dress or the Plated Dress, helmet and all, the same as on the Workshop and Pack screens. Before, she carried it rolled up until the Belfry.',
     ] },
@@ -217,13 +222,15 @@
       '[github.com/andre-larsson](https://github.com/andre-larsson)',
     ] },
     { head: 'Made with', lines: [
-      'Claude Code (Anthropic): the code, the rules, the story text, the music score and the sound effects.',
+      'Claude Code (Anthropic): the code, the rules, the story text, the music score, the sound effects, and the words and prompts for the songs.',
+      'Google Gemini: the recorded songs.',
       'Grok (xAI, in the Cursor agent CLI), and Terra and Sol (OpenAI, in Codex): discussions of the world and its lore.',
       'Codex (OpenAI): the pictures, which were then cropped, cleaned and recoloured.',
     ] },
     { head: 'Music', lines: [
-      'Played by [musicbox](https://a403.space/musicbox/), a fork of [Scrimshaw Jukebox](https://tools.simonwillison.net/scrimshaw-jukebox) by Simon Willison. Its synthesizer comes from Scrimshaw, and the score is plain text in Scrimshaw\'s format. Apache License 2.0.',
-      'The music and the sound effects are made in your browser as you play. There are no audio files.',
+      'The score is played by [musicbox](https://a403.space/musicbox/), a fork of [Scrimshaw Jukebox](https://tools.simonwillison.net/scrimshaw-jukebox) by Simon Willison. Its synthesizer comes from Scrimshaw, and the score is plain text in Scrimshaw\'s format. Apache License 2.0.',
+      'The score and the sound effects are made in your browser as you play.',
+      'Four songs are recordings, made with Google Gemini from words and prompts written with Claude Code: "The Great Light Turning Slow" (the title screen), "Tide Swings Its Tongue" (the Tolling Buoy), "No Haggling, No Biting" (Barnaby\'s) and "The Hermit\'s Heavy Toll" (the Harbour Hermit).',
     ] },
     { head: 'More', lines: [
       'Source code: [github.com/andre-larsson/brinelight](https://github.com/andre-larsson/brinelight)',

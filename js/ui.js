@@ -64,6 +64,8 @@
    * ================================================================== */
   const svg = (inner, vb) => `<svg viewBox="${vb || '0 0 24 24'}" aria-hidden="true" fill="currentColor">${inner}</svg>`;
   const ICON = {
+    play: svg('<path d="M8 5.5v13l10.5-6.5z"/>'),
+    pause: svg('<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/>'),
     heart: svg('<path d="M12 21s-7.6-4.6-9.6-9.4C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.6 1.2 4.4 2.6.8-1.4 2.3-2.6 4.4-2.6 3.6 0 5.7 3.7 4.2 7.1C19.6 16.4 12 21 12 21z"/>'),
     pearl: svg('<circle cx="12" cy="12" r="8.5" fill="#e9dfcf"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="#a89b85" stroke-width="1"/><circle cx="9" cy="9" r="2.6" fill="#fff" opacity=".85"/>'),
     anchor: svg('<circle cx="12" cy="5" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v13M7 11h10M4 14c1 4 4.5 6 8 6s7-2 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
@@ -140,14 +142,37 @@
     // -16 LUFS, and buries the sound effects; 0.12 puts a fight at about -32 LUFS, under an ordinary blow,
     // as the old music sat. GAME_NOTES.md has the measurements.
     const MUSIC_LEVEL = 0.12;
-    const now = { cue: 'title', depth: 0, band: null, density: 0 };
+    const now = { cue: 'title', depth: 0, band: null, density: 0, song: null };
     // a slider position to a level: 80% (the default) is the balance above, 100% is +4 dB, 50% is -8 dB, 0 is silent
     const gain = (v) => { v = Math.max(0, Math.min(1, +v || 0)) / 0.8; return v * v; };
+    /* Recorded songs (music/songs, made with Google Gemini). A screen with a song plays it in place of the score
+       (updateSound says which). Leaving fades it out; a song that `resume`s carries on from there next time, and a
+       pin's starts again with each fight. When a song ends, the score plays for the rest of that visit. The Jukebox
+       plays them all, and High Tide Departure only there. The files are normalised to -16 LUFS, and SONG_LEVEL plays
+       them at about -30 LUFS, level with the score. They play through the music bus, so its switch and slider work,
+       on a phone too (iOS ignores an <audio> element's own volume). From file:// the browser won't let Web Audio read
+       the file, so there the element plays straight out at a volume set from the slider, with no fades.
+       `secs` is the length, for the Jukebox's list before a file has loaded. */
+    const SONGS = {
+      title: { src: 'music/songs/the-great-light-turning-slow.mp3', resume: true, secs: 177, name: 'The Great Light Turning Slow', where: 'The title screen' },
+      shop: { src: 'music/songs/no-haggling-no-biting.mp3', resume: true, secs: 176, name: 'No Haggling, No Biting', where: "Barnaby's shop" },
+      hermit: { src: 'music/songs/the-hermits-heavy-toll.mp3', resume: false, secs: 178, name: "The Hermit's Heavy Toll", where: 'The Harbour Hermit' },
+      buoy: { src: 'music/songs/tide-swings-its-tongue.mp3', resume: false, secs: 148, name: 'Tide Swings Its Tongue', where: 'The Tolling Buoy' }, // the swell swings its clapper
+      departure: { src: 'music/songs/high-tide-departure.mp3', resume: true, secs: 179, name: 'High Tide Departure', where: 'Only in the Jukebox', jukeOnly: true },
+    };
+    const SONG_LEVEL = 0.2, SONG_FADE = 1.2;
+    const songs = {}; // the songs loaded so far: { el, amp (its gain into the music bus, or null), done, broken, timer, out }
+    let songOn = null; // the song playing or fading in
+    /* The Jukebox's pick, from the moment one is made until a descent starts: { song or cue, paused, depth }. While
+       it holds, nothing else plays. A song that ends goes on to the next (jukeEnd); a piece of the score loops. */
+    let juke = null, jukeEnd = null;
+    const songVol = () => Math.min(1, (prefs.music ? gain(prefs.musicVol) : 0) * SONG_LEVEL); // an element's own volume
     const levels = () => {
       if (!ctx) return;
       const t = ctx.currentTime;
       sfxBus.gain.setTargetAtTime(prefs.sound ? gain(prefs.soundVol) : 0, t, 0.03);
       musicBus.gain.setTargetAtTime(prefs.music ? gain(prefs.musicVol) : 0, t, 0.05);
+      for (const k in songs) if (!songs[k].amp && !songs[k].el.paused) songs[k].el.volume = songVol();
     };
     function ac() {
       if (!ctx) {
@@ -164,18 +189,86 @@
       if (ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
       return ctx;
     }
-    function startMusic() {
-      if (playing || musicBroken || !prefs.music || !ac()) return;
-      try {
-        if (!music) {
-          music = new window.Musicbox.MusicPlayer({ context: ctx, destination: musicBus, volume: MUSIC_LEVEL, intensity: now.depth });
-          music.load(BL.MUSIC_SCORE);
-        }
-        music.play(now.cue, { intensity: now.depth });
-        playing = true;
-      } catch (e) { musicBroken = true; music = null; } // no Web Audio, or a broken score: play on without music
+    // a song that can't play: the Jukebox stops on it, and a screen plays the score for the rest of the visit
+    function songFailed(key) {
+      if (juke && juke.song === key) juke.paused = true;
+      else if (songs[key]) songs[key].done = true;
+      sync();
     }
-    function stopMusic() { if (music && playing) music.stop(1.2); playing = false; }
+    function loadSong(key) {
+      if (songs[key]) return songs[key];
+      const s = (songs[key] = { el: new Audio(), amp: null, done: false, broken: false, timer: 0, out: false });
+      s.el.preload = 'auto';
+      if (location.protocol !== 'file:') {
+        try {
+          const src = ctx.createMediaElementSource(s.el);
+          s.amp = ctx.createGain();
+          s.amp.gain.value = 0;
+          src.connect(s.amp);
+          s.amp.connect(musicBus);
+        } catch (e) { s.amp = null; }
+      }
+      s.el.addEventListener('ended', () => {
+        s.el.currentTime = 0;
+        if (juke && juke.song === key) { if (jukeEnd) jukeEnd(key); else { juke.paused = true; sync(); } return; }
+        if (now.song === key) { s.done = true; sync(); }
+      });
+      s.el.addEventListener('error', () => { s.broken = true; songFailed(key); });
+      s.el.src = SONGS[key].src;
+      return s;
+    }
+    function fadeSong(s, to, secs) {
+      if (!s.amp) { s.el.volume = to ? songVol() : 0; return; }
+      const g = s.amp.gain, t = ctx.currentTime;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      g.linearRampToValueAtTime(to, t + secs);
+    }
+    function songPlay(key) {
+      const s = loadSong(key);
+      clearTimeout(s.timer);
+      s.out = false;
+      fadeSong(s, SONG_LEVEL, SONG_FADE);
+      if (!s.el.paused) return;
+      const p = s.el.play();
+      // refused (no click yet) or unplayable; a pause while it starts is fine
+      if (p && p.catch) p.catch((e) => { if (!e || e.name !== 'AbortError') songFailed(key); });
+    }
+    function songStop(key, secs) {
+      const s = songs[key];
+      if (!s) return;
+      clearTimeout(s.timer);
+      s.out = true; // fading out
+      fadeSong(s, 0, secs);
+      s.timer = setTimeout(() => { s.el.pause(); if (!SONGS[key].resume) s.el.currentTime = 0; }, s.amp ? secs * 1000 + 50 : 0);
+    }
+    /* Make what plays match what should: with the music on, the Jukebox's pick (or nothing while it's paused), else the
+       screen's song unless it has played out this visit or can't play, else the score's cue for the screen. */
+    function sync() {
+      if (!ctx) return;
+      let want = null, cue = null, depth = now.depth;
+      if (prefs.music) {
+        if (juke) {
+          if (juke.paused) { /* silence */ } else if (juke.song) want = juke.song; else if (juke.cue) { cue = juke.cue; depth = juke.depth; }
+        } else {
+          const s = now.song && songs[now.song];
+          if (now.song && !(s && (s.done || s.broken))) want = now.song; else cue = now.cue;
+        }
+      }
+      if (songOn && songOn !== want) { songStop(songOn, juke ? 0.4 : SONG_FADE); songOn = null; }
+      if (want) { songPlay(want); songOn = want; }
+      if (cue && !musicBroken) {
+        try {
+          if (!music) {
+            music = new window.Musicbox.MusicPlayer({ context: ctx, destination: musicBus, volume: MUSIC_LEVEL, intensity: depth });
+            music.load(BL.MUSIC_SCORE);
+          }
+          if (playing) { music.setIntensity(depth); music.goto(cue); } else { music.play(cue, { intensity: depth }); playing = true; }
+        } catch (e) { musicBroken = true; music = null; playing = false; } // no Web Audio, or a broken score: play on without music
+      } else if (playing) { music.stop(want ? SONG_FADE : 0.8); playing = false; }
+    }
+    // what is playing, or chosen, now: a song or a cue of the score
+    const current = () => juke || { song: songOn, cue: songOn ? null : playing ? now.cue : null, paused: false, depth: now.depth };
     // the place's own sounds (gulls, drips, the bell's hum) every few seconds: fewer in a fight, none in a pin
     let ambOn = ''; // what the kit's ambience plays now, 'band/density', or '' for none
     function ambience() {
@@ -187,28 +280,66 @@
     }
     return {
       play(name, arg) { if (!prefs.sound || !ac()) return; try { kit.play(name, arg); } catch (e) { /* audio unavailable */ } },
-      /* where Wren is: a cue of the score, the depth (0 the Shallows, 1 Dark Water, 2 the Belfry) and the ambience */
-      scene(cue, depth, band, density) {
+      /* where Wren is: a cue of the score, the depth (0 the Shallows, 1 Dark Water, 2 the Belfry), the ambience,
+         and the screen's recorded song, if it has one (a key of SONGS) */
+      scene(cue, depth, band, density, song) {
         now.band = density ? band : null; now.density = density || 0;
         if (kit && depth !== now.depth) kit.setDepth(depth);
         now.cue = cue; now.depth = depth;
-        if (music && playing) { music.setIntensity(depth); music.goto(cue); }
+        song = song && SONGS[song] ? song : null;
+        if (song !== now.song) {
+          if (song && songs[song]) songs[song].done = false; // a new visit plays it again
+          now.song = song;
+        }
+        if (juke && song !== 'title') juke = null; // a descent has started: the game chooses the music again
+        sync();
         ambience();
       },
       unlock() {
         if (!prefs.sound && !prefs.music) return;
         if (!ac()) return;
-        startMusic();
+        sync();
         ambience();
       },
       /* the menu's switches and sliders (a click, so audio may start here) */
       changed() {
         if (prefs.sound || prefs.music) ac();
         levels();
-        if (prefs.music) startMusic(); else stopMusic();
+        sync();
         ambience();
       },
-      state: () => ({ ctx: ctx ? ctx.state : null, music: playing ? music.state : null, cue: now.cue, depth: now.depth, ambience: ambOn }),
+      /* The Jukebox on the title screen. pick(): the playing one again pauses or carries on (or always plays, with
+         `play`); another starts from the top. depth(): the score's depth, 0 to 2. */
+      juke: {
+        SONGS,
+        pick(kind, key, play) {
+          if (!ac()) return;
+          const cur = current(), same = kind === 'song' ? cur.song === key : !cur.song && cur.cue === key;
+          if (same) juke = Object.assign({}, cur, { paused: play ? false : !cur.paused });
+          else {
+            juke = { song: kind === 'song' ? key : null, cue: kind === 'song' ? null : key, paused: false, depth: cur.depth };
+            if (kind === 'song') {
+              const s = loadSong(key);
+              clearTimeout(s.timer);
+              s.el.currentTime = 0;
+              s.done = false;
+            }
+          }
+          sync();
+        },
+        depth(n) { juke = Object.assign({}, current(), { depth: Math.max(0, Math.min(2, n | 0)) }); sync(); },
+        onEnd(fn) { jukeEnd = fn; },
+        state() {
+          const cur = current(), s = cur.song && songs[cur.song];
+          return { song: cur.song, cue: cur.cue, paused: !!cur.paused || !prefs.music, depth: cur.depth,
+            at: s ? s.el.currentTime : 0, secs: s && s.el.duration > 0 ? s.el.duration : cur.song ? SONGS[cur.song].secs : 0 };
+        },
+      },
+      state: () => {
+        const s = songOn && songs[songOn], on = !!(s && !s.el.paused && !s.out);
+        return { ctx: ctx ? ctx.state : null, music: playing ? music.state : null, cue: now.cue, depth: now.depth, ambience: ambOn,
+          song: on ? songOn : null, songAt: on ? s.el.currentTime : 0 };
+      },
     };
   })();
   const sfx = (n, arg) => Sound.play(n, arg);
@@ -847,17 +978,25 @@
   /* The music and the place's own sounds follow the screen: the score has a cue for each kind of screen
      (see music/brinelight.scrim), and its intensity is the depth, as is the echo on the sound effects. */
   function updateSound() {
-    let cue = 'title', depth = 0, band = null, density = 0;
+    // a recorded song (on trial) on the title screen, at Barnaby's, and in the Harbour Hermit's and the Tolling Buoy's fights
+    let cue = 'title', depth = 0, band = null, density = 0, song = 'title';
     if (run) {
+      song = null;
       band = E.bandId(run);
       depth = Math.max(0, ['shallows', 'dark', 'belfry'].indexOf(band));
       const c = run.screen === 'combat' && run.combat;
       if (run.screen === 'victory') cue = 'home';
       else if (run.screen === 'defeat') cue = 'fallen';
-      else if (c) { cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5; }
-      else { cue = 'reach'; density = 1; }
+      else if (c) {
+        cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
+        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'harbour')) song = 'hermit';
+        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'buoy')) song = 'buoy';
+      } else {
+        cue = 'reach'; density = 1;
+        if (run.screen === 'shop') song = 'shop';
+      }
     }
-    Sound.scene(cue, depth, band, density);
+    Sound.scene(cue, depth, band, density, song);
   }
   function renderScreen() {
     hideTip();
@@ -890,10 +1029,13 @@
         <button class="btn ${saved ? '' : 'primary solo'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
         ${workshopOpen() ? `<button class="btn ghost second ws-btn${lazaretOpen() ? '' : ' span'}" data-act="workshop" aria-label="${MT.shop}: ${meta.salvage} ${MT.currency}">${ICON.salvage}${MT.shop} <small>${meta.salvage}</small></button>` : ''}
         ${lazaretOpen() ? `<button class="btn ghost second${workshopOpen() ? '' : ' span'}" data-act="lazaret" aria-label="Lazaret: ${meta.lazaret.length} of ${KS_TOTAL} keepsakes">Lazaret <small class="btn-count">${meta.lazaret.length}/${KS_TOTAL}</small></button>` : ''}
-        <button class="btn ghost third${logbookOpen() ? '' : ' span'}" data-act="story">Story so far${storyUnread().length ? ' <span class="new-pill">New</span>' : ''}</button>
-        ${logbookOpen() ? '<button class="btn ghost third" data-act="logbook">Logbook</button>' : ''}
-        <button class="btn ghost third" data-act="tutorial">Tutorial</button>
-        <button class="btn ghost third" data-act="help">How to Play</button>
+        <div class="title-third">
+          <button class="btn ghost third" data-act="story">Story so far${storyUnread().length ? ' <span class="new-pill">New</span>' : ''}</button>
+          ${logbookOpen() ? '<button class="btn ghost third" data-act="logbook">Logbook</button>' : ''}
+          <button class="btn ghost third" data-act="tutorial">Tutorial</button>
+          <button class="btn ghost third" data-act="help">How to Play</button>
+          <button class="btn ghost third" data-act="jukebox">Jukebox</button>
+        </div>
       </div>
       ${getNum(BEST_KEY) ? `<div class="title-best">Best score ${getNum(BEST_KEY)}${meta.record.hearts ? ` &middot; The Heart is home${meta.record.quiets ? `, the Belfry quieted ${meta.record.quiets} time${meta.record.quiets > 1 ? 's' : ''}` : ''}` : ''}</div>` : ''}
       <div class="title-foot"><span>A roguelike deckbuilder &middot; mouse, touch or keyboard</span>
@@ -999,6 +1141,67 @@
       ${sec.lines.map((l) => `<p>${creditLinks(l)}</p>`).join('')}</section>`).join('')}</div>`;
     openOverlay(modal('Credits', body, '<button class="btn primary" data-act="close" autofocus>Close</button>', 'help-modal'));
   }
+
+  /* ----- Jukebox (the title screen): every recorded song and every piece of the score. A pick plays until a descent
+     starts: a song that ends goes on to the next, and a piece of the score loops. ----- */
+  const JUKE_SCORE = [ // the score's cues, with a name for each and where the game plays it
+    ['title', "The Keeper's Song", 'The title screen, after its song'],
+    ['reach', 'The Way Down', 'The map and its stops'],
+    ['fight', 'The Waves', 'Fights'],
+    ['dread', 'Dread', 'Dreads'],
+    ['pin', 'The Bell', "The Belfry's pin"],
+    ['pin2', 'The Bell Cracks', 'Its second phase'],
+    ['home', 'Dawn', 'Bringing the Heart home'],
+    ['fallen', 'The Ember', 'When the tide takes you'],
+  ];
+  const JUKE_DEPTHS = ['The Shallows', 'Dark Water', 'The Belfry'];
+  const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  // what the list shows as playing: redrawn when it changes, and the time ticks in between
+  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth].join('/');
+  function jukeList(st) {
+    const S = Sound.juke.SONGS;
+    const row = (kind, key, name, where, time) => {
+      const cur = kind === 'song' ? st.song === key : !st.song && st.cue === key, on = cur && !st.paused;
+      const bar = cur && kind === 'song' ? `<span class="juke-bar"><i style="width:${st.secs ? Math.min(100, (st.at / st.secs) * 100).toFixed(1) : 0}%"></i></span>` : '';
+      return `<button class="juke-row${cur ? ' cur' : ''}" data-act="jukeplay" data-kind="${kind}" data-key="${key}" aria-pressed="${on}" aria-label="${on ? 'Pause' : 'Play'}: ${name}">
+        <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${time}</span>${bar}</button>`;
+    };
+    const songs = Object.keys(S).map((k) => row('song', k, S[k].name, S[k].where, st.song === k ? `${mmss(st.at)} / ${mmss(st.secs)}` : mmss(S[k].secs))).join('');
+    const depths = JUKE_DEPTHS.map((d, i) => `<button class="btn small" data-act="jukedepth" data-depth="${i}" aria-pressed="${st.depth === i}">${d}</button>`).join('');
+    return `<h3 class="juke-h">Songs</h3>${songs}
+      <h3 class="juke-h">The score</h3><p class="juke-note">Played by the music box as you listen. The deeper the water, the darker it gets.</p>
+      <div class="juke-depth" role="group" aria-label="Depth">${depths}</div>
+      ${JUKE_SCORE.map(([k, n, w]) => row('cue', k, n, w, '')).join('')}`;
+  }
+  function drawJuke() {
+    const list = $('.juke-list', overlayEl);
+    if (!list) { clearInterval(ui.jukeTick); return; }
+    const st = Sound.juke.state(), sig = jukeSig(st);
+    if (sig === ui.jukeSig) { // only the time and the bar move
+      const t = $('.juke-row.cur .juke-time', list), b = $('.juke-row.cur .juke-bar i', list);
+      if (t && st.song) t.textContent = `${mmss(st.at)} / ${mmss(st.secs)}`;
+      if (b && st.secs) b.style.width = Math.min(100, (st.at / st.secs) * 100).toFixed(1) + '%';
+      return;
+    }
+    const f = document.activeElement, fk = f && list.contains(f) ? (f.dataset.key ? `[data-key="${f.dataset.key}"]` : f.dataset.depth ? `[data-depth="${f.dataset.depth}"]` : null) : null;
+    list.innerHTML = jukeList(st);
+    ui.jukeSig = sig;
+    if (fk) { const g = $(fk, list); if (g) g.focus({ preventScroll: true }); }
+  }
+  function showJukebox() {
+    const st = Sound.juke.state();
+    const body = `<p class="juke-lead">What you choose plays until you set out, and each song goes on to the next. The music slider in the menu sets the volume.</p><div class="juke-list">${jukeList(st)}</div>`;
+    ui.jukeSig = jukeSig(st);
+    clearInterval(ui.jukeTick);
+    openOverlay(modal('Jukebox', body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'jukebox-modal'), { onClose: () => clearInterval(ui.jukeTick) });
+    ui.jukeTick = setInterval(drawJuke, 500);
+  }
+  // a song that ends in the Jukebox goes on to the next one
+  Sound.juke.onEnd((key) => {
+    const ks = Object.keys(Sound.juke.SONGS);
+    Sound.juke.pick('song', ks[(ks.indexOf(key) + 1) % ks.length], true);
+    drawJuke();
+  });
 
   /* ----- Workshop: kit bought with Salvage, chosen before a descent ----- */
   const levelName = (lv) => E.levelName(lv);
@@ -2837,6 +3040,16 @@
       case 'kitinfo': if (ui.lastPointer !== 'mouse') showTip(t, tipContent(t.dataset.tip)); break;
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
+      case 'jukebox': showJukebox(); break;
+      case 'jukeplay': {
+        // choosing a track means you want to hear it: switch the music on if it's off
+        const off = !prefs.music;
+        Sound.juke.pick(t.dataset.kind, t.dataset.key, off);
+        if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
+        drawJuke();
+        break;
+      }
+      case 'jukedepth': Sound.juke.depth(+t.dataset.depth); drawJuke(); break;
       case 'changelog': showChangelog(); break;
       case 'credits': showCredits(); break;
       case 'story': showStory(); break;

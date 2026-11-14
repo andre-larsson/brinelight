@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Assemble the shipped site in _site/: only what the page loads at runtime
-   (index.html, style.css, js/, img/), then check every referenced file exists.
+   (index.html, style.css, js/, img/, and the recorded songs in music/songs/), then check every referenced file exists.
    Usage: node tools/build.js [outdir=_site] */
 'use strict';
 const fs = require('fs');
@@ -8,7 +8,7 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const out = path.resolve(process.argv[2] || path.join(root, '_site'));
-const SHIP = ['index.html', 'style.css', 'js', 'img'];
+const SHIP = ['index.html', 'style.css', 'js', 'img', 'music/songs'];
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
@@ -24,6 +24,7 @@ for (const m of css.matchAll(/url\((img\/[^)]+)\)/g)) check(m[1], 'style.css');
 for (const f of fs.readdirSync(path.join(out, 'js'), { recursive: true }).filter((x) => x.endsWith('.js'))) {
   const js = fs.readFileSync(path.join(out, 'js', f), 'utf8');
   for (const m of js.matchAll(/img\/(bg|units|scenes|icons|cards)\/([a-z_]+)\.webp/g)) check(m[0], 'js/' + f);
+  for (const m of js.matchAll(/music\/songs\/[a-z0-9-]+\.mp3/g)) check(m[0], 'js/' + f);
 }
 // art named in data (card, unit, keepsake, tonic, event images)
 global.BL = undefined;

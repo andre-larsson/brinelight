@@ -1431,7 +1431,7 @@ The user asked for the musicbox score and the sound kit to go into the game. The
     - To update it, pull musicbox, then run `node tools/music.js --vendor ../musicbox`.
   - The sound effects are `js/sfx.js`. `sound/lab.html` plays each one, plays it three times to show how it varies, and plays the sound the game made before v0.25.0. The lab is not shipped.
 - **What plays when** (`updateSound` in `js/ui.js`):
-  - Cues: `title` outside a run (the title, the opening, the Workshop, Story so far). `reach` on the map and every stop that isn't a fight. `fight` for an easy or hard fight, `dread` for an elite, `pin` for a boss, and `pin2` from its second phase. `home` on the win screen, `fallen` on the loss screen.
+  - Cues: `title` outside a run (the title, the opening, the Workshop, Story so far). Since v0.27.0 a recorded song plays first on the title screen and in a few other places: see "Recorded songs and the Jukebox". `reach` on the map and every stop that isn't a fight. `fight` for an easy or hard fight, `dread` for an elite, `pin` for a boss, and `pin2` from its second phase. `home` on the win screen, `fallen` on the loss screen.
   - The score's intensity is the depth: 0 in the Shallows (and the tutorial), 1 in Dark Water, 2 in the Belfry. The same number sets the kit's depth (a lower low-pass and a longer, darker echo).
   - The place's sounds (`kit.ambience`) come every 4 to 11 s on the map and its stops, half as often in fights and Dreads, and not at all in pins, on the title or on the end screens. This is a provisional call.
 - **One AudioContext**, made on the first click or key press. Sound effects and music each go through a bus set by the player's switch and slider. The kit has its own limiter. The score has musicbox's master: eq, compressor and limiter.
@@ -1462,6 +1462,28 @@ The user asked for the musicbox score and the sound kit to go into the game. The
   - Should the place's sounds play in fights at all? (A gull in a fight?)
   - The flute's 400 to 800 Hz bump in `title` and `home`.
   - The dip near 100 Hz in the quiet cues.
+
+## Recorded songs and the Jukebox (v0.27.0, 2026-11-14)
+
+The user made songs with Google Gemini (the user called the model "Omni"; Google's pages call the Gemini app's music model Lyria). The agent wrote the prompts and the words, in the conversation only: they are not saved in the repo. The words follow WORLD.md, but Gemini may have changed them, and the agent has not heard the songs. **Open:** check the sung words against the lore.
+
+- **Where they play** (`SONGS` and `updateSound` in `js/ui.js`):
+
+  | Song (style asked for) | Where | Next visit |
+  |---|---|---|
+  | The Great Light Turning Slow (Celtic sea ballad, the keeper's song with words) | The title screen and everything it opens | Carries on |
+  | No Haggling, No Biting (bass-led funk-metal story song about Barnaby) | Barnaby's shop | Carries on |
+  | The Hermit's Heavy Toll (bass-heavy story song about the Hermit) | The Harbour Hermit, both phases | From the top |
+  | Tide Swings Its Tongue (swampy sea-folk: Wren, her tide-bell and a slap bass) | The Tolling Buoy, both phases | From the top |
+  | High Tide Departure (early-1980s jazz fusion) | Only in the Jukebox | Carries on |
+
+  - The user first had Tide Swings Its Tongue in the Workshop, then said it was the one placement that didn't make sense. The agent moved it to the Tolling Buoy: a bell buoy's clapper is swung by the swell, and the Rocking Toll grows with the Swell's distance from 3, which is what the song's Crest and Strand lines are about. The Belfry's pin keeps the score.
+  - The user wasn't sure High Tide Departure fits anywhere, so it is only in the Jukebox. A sixth song, The Saltmere Door, is not in the game; the user hasn't said whether they like it.
+- **How they play.** A song replaces the score on its screen. Leaving fades it out (1.2 s) and the score comes back. When a song ends, the score plays for the rest of that visit. The user noticed the score's title cue taking over after the title song and said that might be fine; the Jukebox is the way to keep songs going.
+- **The Jukebox** (the title screen, a third-level button) lists the five songs and the score's eight cues, with a depth for the score (0 to 2, the same layers as in the game). What you pick plays until a descent starts, closed or not. A song that ends goes on to the next, wrapping round. A cue loops. Picking the one playing pauses it. Picking a track with the music switched off switches it on. The third-level title buttons now flow in centred rows (`.title-third`), so the fifth one costs no row on a phone: at 360x640 with every button, the foot still fits.
+- **Files and levels.** In `music/songs/`, shipped by `tools/build.js`. Each was trimmed of silence at its ends (with a 0.6 s fade-out), normalised with ffmpeg's two-pass `loudnorm` (I=-16, TP=-1.5, LRA=20, linear) to -16.4 LUFS integrated, and encoded as 128 kbit/s CBR MP3 at 44.1 kHz (about 2.4 to 2.9 MB each). Gemini's files came at about -11.5 LUFS with peaks above 0 dBFS. In the game `SONG_LEVEL` 0.2 (-14 dB) puts them at about -30.4 LUFS, between the score's title (-29.4) and reach (-32.7) cues. The built site grew from 9.9 MB to 23.0 MB; a song downloads only when it first plays.
+- **How it's wired.** Each song is an `<audio>` element through a `MediaElementAudioSourceNode` and a gain into the music bus, so the switch and slider work, on iOS too (iOS ignores an element's own volume). From `file://` Web Audio can't read the file, so there the element plays straight out at a volume set from the slider, with no fades; not tried. `tools/serve.js` now answers byte ranges, which seeking needs. `tests/music.test.js` checks the files, their lengths and that every song plays somewhere; the `--only audio` UI test checks that each song really plays (its time moves on), hands back to the score, and that the Jukebox plays, pauses, plays the score at a depth and keeps playing after it closes.
+- **Open questions:** whether more places want a song (the Bellwether, the win screen); whether -30 LUFS is the right level for sung music against the sound effects; the repo grows by about 14 MB of MP3s, which git keeps for good.
 
 ## For later (from the user)
 
@@ -1557,6 +1579,7 @@ The user asked for the musicbox score and the sound kit to go into the game. The
 
 ### Kit view (v0.24.0, 2026-11-14)
 
+- **The Lazaret's cages (v0.27.0, 2026-11-14).** The user saw that the keepsakes in `img/scenes/lazaret.webp` (the shell, the tusk, the hook and the bottle) were drawn in front of the cage bars, as if outside the cages. Ten bars, each 6 px wide, were painted back over them: each is a copy of a whole bar from a glowing cage, stretched to the cage and matched to the colour of the stub it continues. Every other pixel is unchanged, in `assets-src/scenes/lazaret.png` too. A Codex edit was tried first and dropped: it redrew the keepsakes smaller and blurrier, with bars thicker than their neighbours. The webp is 1100x733, Pillow quality 85, method 6, the settings closest to the old file.
 - The Workshop and Pack for the expedition share one view (`kitDoll` in `js/ui.js`): Wren in the middle, a slot for each place (`BL.KIT_PLACES`) around her, and a tray under her with every piece for the chosen slot. Owned pieces come first (tap to wear, tap again to take off), then those for sale (tap to buy), then locked ones with their achievement.
 - On a wide screen each slot has a line to where the piece sits on her: `side` and `at` on each place in `BL.KIT_PLACES`, with `BL.WREN_POINTS` to correct a point for one picture (since v0.24.3 the two worn dresses; see "The Rig" under Art). On a phone (600px and narrower) the slots stand in one column beside her and there are no lines.
 - In the Workshop, a slot with something you can afford shows a small Salvage badge.
