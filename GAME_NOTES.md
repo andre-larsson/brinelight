@@ -1596,7 +1596,7 @@ The user asked how more characters could be added, and wanted to judge the look 
     - bathing: an 1890s bathing dress, the at-home one;
     - the lobster suit;
     - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one. Its first version was too pale; the user said the real tower is browner, so it was repainted with heavy rust-brown patches over grey-cream stone (3a; 3b is lighter);
-    - the shell bikini, the barbarian and the barrel.
+    - the shell bikini and the barrel.
     - Cheeky but dressed, picked by the user (2026-11-14):
       - long johns: a baggy red 1890s union suit with a buttoned back flap, a striped nightcap and her boots. The clearest at phone size;
       - nightgown: woken by the bell, she ran straight out in a frilled nightgown, a nightcap, curl papers and woolly slippers;
@@ -1621,7 +1621,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   - Gulp's first one, a frilly bathing dress, was not picked, and new Gulp costumes are being drawn.
   - A rule: Dev and Winkle are children. They get no cheeky costume and never appear in anyone else's. If they get a secret costume, it is a wholesome one, such as Dev in his grandfather's oversized diving dress.
   - What worked: a gag that comes from the keeper's own trade or habits (the pilot's signal flag, the cooper's barrel, the salt-raker's spa day), and a clear change of silhouette.
-  - Set aside by the user: Beach Day (a bikini with her boots) and the fantasy armour, both too close to the shell bikini, which is more fun. The armour had been drawn on local Qwen-Image 2.1 after Codex refused it; its original is `assets-src/units/samples/wren-armour-qwen.png`.
+  - Set aside by the user: Beach Day (a bikini with her boots), the fantasy armour and the barbarian (a sealskin fur bikini and a seal-skull helmet), all too close to the shell bikini, which is more fun. The armour had been drawn on local Qwen-Image 2.1 after Codex refused it; its original is `assets-src/units/samples/wren-armour-qwen.png`.
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
   - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. In the game a recolour needs 5 pictures: plain, Cork Vest, Shell Gorget and both carried dresses. The worn dresses hide the oilskin.
 - **What the samples showed:**
