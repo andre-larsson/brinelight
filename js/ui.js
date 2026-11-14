@@ -709,7 +709,8 @@
       ${run && !run.tutorial ? '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>' : ''}
       ${run ? '' : '<button class="choice" data-act="progress"><b>Back up or reset progress</b><span>Save your progress to a file, load it again, or start over.</span></button>'}
     </div>
-    <p class="menu-version"><button class="title-version" data-act="changelog">Brinelight v${BL.VERSION} &middot; What's new</button></p>`;
+    <p class="menu-version"><button class="title-version" data-act="changelog">Brinelight v${BL.VERSION} &middot; What's new</button>
+      <button class="title-version" data-act="credits">Credits</button></p>`;
     openOverlay(modal('Menu', body, null, 'narrow'));
   }
 
@@ -896,7 +897,8 @@
       </div>
       ${getNum(BEST_KEY) ? `<div class="title-best">Best score ${getNum(BEST_KEY)}${meta.record.hearts ? ` &middot; The Heart is home${meta.record.quiets ? `, the Belfry quieted ${meta.record.quiets} time${meta.record.quiets > 1 ? 's' : ''}` : ''}` : ''}</div>` : ''}
       <div class="title-foot"><span>A roguelike deckbuilder &middot; mouse, touch or keyboard</span>
-        <button class="title-version" data-act="changelog">v${BL.VERSION} &middot; What's new${versionIsNew() ? ' <span class="new-pill">New</span>' : ''}</button></div>
+        <span class="title-pills"><button class="title-version" data-act="changelog">v${BL.VERSION} &middot; What's new${versionIsNew() ? ' <span class="new-pill">New</span>' : ''}</button>
+        <button class="title-version" data-act="credits">Credits</button></span></div>
     </div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
@@ -988,6 +990,14 @@
     const body = `<div class="changelog">${BL.CHANGELOG.map((rel) => `<section><h3>v${rel.v} <small>${fmtDate(rel.date)}</small></h3>
       <ul class="help-list">${rel.items.map((it) => `<li>${it}</li>`).join('')}</ul></section>`).join('')}</div>`;
     openOverlay(modal("What's new", body, '<button class="btn primary" data-act="close" autofocus>Close</button>', 'help-modal'));
+  }
+
+  /* Credits: BL.CREDITS, with [text](https://...) as a link that opens in a new tab. */
+  const creditLinks = (s) => s.replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  function showCredits() {
+    const body = `<div class="credits">${BL.CREDITS.map((sec) => `<section><h3>${sec.head}</h3>
+      ${sec.lines.map((l) => `<p>${creditLinks(l)}</p>`).join('')}</section>`).join('')}</div>`;
+    openOverlay(modal('Credits', body, '<button class="btn primary" data-act="close" autofocus>Close</button>', 'help-modal'));
   }
 
   /* ----- Workshop: kit bought with Salvage, chosen before a descent ----- */
@@ -2828,6 +2838,7 @@
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
       case 'changelog': showChangelog(); break;
+      case 'credits': showCredits(); break;
       case 'story': showStory(); break;
       case 'storytab': sfx('page'); ui.storyTab = t.dataset.tab; $('.story', overlayEl).outerHTML = storyHTML(ui.storyTab); $('.modal-body', overlayEl).scrollTop = 0; { const b = $(`.tab[data-tab="${ui.storyTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'opening': closeOverlay(true); showOpening(0, () => showStory('story'), true); break;

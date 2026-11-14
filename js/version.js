@@ -1,12 +1,15 @@
-/* Brinelight — version number and player-facing changelog (newest first).
+/* Brinelight — version number, player-facing changelog (newest first) and credits.
    Shown on the title screen ("What's new") and at the foot of the menu.
    For every player-facing change: bump BL.VERSION, add an entry at the top, and match package.json.
    Minor (0.x.0) for new rules, content or features; patch (0.x.y) for fixes only. */
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.25.0';
+  BL.VERSION = '0.26.0';
   BL.CHANGELOG = [
+    { v: '0.26.0', date: '2026-11-14', items: [
+      'Credits, beside What\'s new on the title screen and at the foot of the menu: who and what made the game, where the music comes from, the source code, and more games and tools at a403.space.',
+    ] },
     { v: '0.25.0', date: '2026-11-14', items: [
       'New music: a keeper\'s song over the sea. Each part of the game has its own piece: the title, the way down, fights, Dreads, the pins (which turn darker for their second phase), coming home and falling. The deeper you go, the darker it gets: Dark Water adds a far bell and a low drone, and the Belfry a choir.',
       'New sound effects. Blows sound heavier the harder they hit, and each kind of card has its own sound. Crests grow with each link of a chain. The Bailer, a creature diving out of reach, a doused lantern, Brine, Heartfire, Barnaby\'s door, a chest and a keepsake each have a sound. Sounds come from where they happen on the screen.',
@@ -200,6 +203,28 @@
     ] },
     { v: '0.1.0', date: '2026-11-10', items: [
       'First playable version: a descent of 11 stops to the Drowned Bellwether, with 38 cards, 13 enemies, 19 keepsakes, 7 tonics, 7 events and 4 depths.',
+    ] },
+  ];
+
+  /* Credits: who and what made the game, opened beside What's new. [text](https://...) is a link; links open in a
+     new tab, so following one never leaves a run. The musicbox line is the visible half of its Apache 2.0 notice
+     (the NOTICE file ships beside js/vendor/musicbox/musicbox.js); tests/version.test.js keeps it here. */
+  BL.CREDITS = [
+    { head: 'Made by', lines: [
+      '[github.com/andre-larsson](https://github.com/andre-larsson)',
+    ] },
+    { head: 'Made with', lines: [
+      'Claude Code (Anthropic): the code, the rules, the story text, the music score and the sound effects.',
+      'Grok (xAI, in the Cursor agent CLI), and Terra and Sol (OpenAI, in Codex): discussions of the world and its lore.',
+      'Codex (OpenAI): the pictures, which were then cropped, cleaned and recoloured.',
+    ] },
+    { head: 'Music', lines: [
+      'Played by [musicbox](https://a403.space/musicbox/), a fork of [Scrimshaw Jukebox](https://tools.simonwillison.net/scrimshaw-jukebox) by Simon Willison. Its synthesizer comes from Scrimshaw, and the score is plain text in Scrimshaw\'s format. Apache License 2.0.',
+      'The music and the sound effects are made in your browser as you play. There are no audio files.',
+    ] },
+    { head: 'More', lines: [
+      'Source code: [github.com/andre-larsson/brinelight](https://github.com/andre-larsson/brinelight)',
+      'More games and tools: [a403.space](https://a403.space/)',
     ] },
   ];
 })();

@@ -1198,8 +1198,20 @@ async function progressScenario(page, base, name, size) {
   await page.click('[data-act="menu"]');
   await sleep(150);
   if (await count('#overlay [data-act="progress"]')) failures.push(`${name}: the menu offers a reset during a run`);
+  // Credits, from the menu and from the title screen: every link opens in a new tab, so following one never leaves a run
+  const checkCredits = async (from) => {
+    if (!(await clickIf(page, from))) { failures.push(`${name}: no Credits button at ${from}`); return; }
+    await sleep(150);
+    const links = await page.eval(`[...document.querySelectorAll('#overlay .credits a')].map((a) => a.target + ' ' + a.rel + ' ' + a.href)`);
+    if (!/Simon Willison/.test(await text('#overlay .credits')) || !links.length || links.some((l) => !/^_blank noopener https:\/\//.test(l))) failures.push(`${name}: Credits from ${from} (${links.join(', ')})`);
+    await checkPage(page, name + ' credits');
+  };
+  await checkCredits('#overlay [data-act="credits"]');
+  if (!(await page.eval('!!window.Brinelight.run'))) failures.push(`${name}: opening Credits from the menu dropped the run`);
   await clickIf(page, '#overlay [data-act="close"]');
   await page.eval(`(() => { const B = window.Brinelight; B.run = null; B.render(); })()`);
+  await checkCredits('.title-foot [data-act="credits"]');
+  await clickIf(page, '#overlay [data-act="close"]');
   await page.click('[data-act="menu"]');
   await sleep(150);
   await page.eval(`document.querySelector('#overlay [data-act="progress"]').scrollIntoView({ block: 'center' })`);

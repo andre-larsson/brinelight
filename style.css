@@ -160,7 +160,14 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .changelog h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; font-size: 18px; color: #f3dfb2; }
 .changelog h3 small { font-size: 13px; font-weight: 500; color: var(--muted); }
 .changelog section + section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(201, 162, 74, .18); }
-.menu-version { margin: 12px 0 0; text-align: center; }
+.menu-version { margin: 12px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.title-foot > .title-pills { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+/* Credits */
+.credits section + section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(201, 162, 74, .18); }
+.credits h3 { margin: 0 0 6px; font-size: 18px; color: #f3dfb2; }
+.credits p { margin: 6px 0; font-size: 16px; line-height: 1.5; color: #d6e3e0; }
+.credits a { color: #8fd3e6; text-decoration: underline; text-underline-offset: 2px; }
+.credits a:hover, .credits a:focus-visible { color: #ffe9bd; }
 .title-corner { position: absolute; top: 12px; right: 12px; }
 
 /* ---------- Layout for run screens ---------- */
