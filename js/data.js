@@ -1105,7 +1105,7 @@
     /* Found, never bought: the first time Dark Water's pin breaks, Wren finds it and carries it home (E.carryHome). */
     suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', look: 'keeper_packed', lookUnder: 'keeper_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
     /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */
-    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_packed', lookUnder: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, with shell plates over the chest. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
+    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_packed', lookUnder: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
     pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, desc: 'Gain 10 extra Pearls after each fight.' },
     marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },

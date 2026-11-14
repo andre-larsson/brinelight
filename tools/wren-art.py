@@ -15,7 +15,8 @@ stay the same:
   3. python3 tools/wren-art.py compose EDIT.png --allow "x,y x,y ..." [--allow ...] --out img/units/keeper_NAME.webp
      pastes back only what changed inside the --allow polygons (canvas pixels), so everything else stays the
      master's own pixels. --preview P.png saves the mask over Wren, so you can check it.
-A whole new picture (a new diving dress) can't be an edit. Put it on the canvas at Wren's scale with:
+Both commands take --base PICTURE.webp to edit another picture instead (the Plated Dress is an edit of keeper_suit).
+A whole new picture (a new diving dress) can't be an edit of her. Put it on the canvas at Wren's scale with:
   python3 tools/wren-art.py place SRC.png --eye Y --head X --out img/units/keeper_NAME.webp
   where Y is her eye level and X the centre of her face (or helmet) in SRC pixels. The lowest opaque row counts as
   her soles."""
@@ -39,12 +40,12 @@ def save(im, out):
     print(out)
 
 
-def make_input(out):
-    save(Image.open(MASTER).convert('RGBA').resize(EDIT_SIZE, Image.LANCZOS), out)
+def make_input(out, base_p=MASTER):
+    save(Image.open(base_p).convert('RGBA').resize(EDIT_SIZE, Image.LANCZOS), out)
 
 
-def compose(edit_p, polys, out, preview=None):
-    base = Image.open(MASTER).convert('RGBA')
+def compose(edit_p, polys, out, preview=None, base_p=MASTER):
+    base = Image.open(base_p).convert('RGBA')
     edit = Image.open(edit_p).convert('RGBA').resize((W, H), Image.LANCZOS)
     A, E = np.asarray(base).astype(float), np.asarray(edit).astype(float)
     prem = lambda X: X[..., :3] * (X[..., 3:4] / 255)
@@ -92,6 +93,6 @@ if __name__ == '__main__':
     a = sys.argv[1:]
     if not a or a[0] not in ('input', 'compose', 'place'):
         sys.exit(__doc__)
-    if a[0] == 'input': make_input(a[1])
-    elif a[0] == 'compose': compose(a[1], arg(a, '--allow', many=True), arg(a, '--out'), arg(a, '--preview'))
+    if a[0] == 'input': make_input(a[1], arg(a, '--base', MASTER))
+    elif a[0] == 'compose': compose(a[1], arg(a, '--allow', many=True), arg(a, '--out'), arg(a, '--preview'), arg(a, '--base', MASTER))
     else: place(a[1], float(arg(a, '--eye')), float(arg(a, '--head')), arg(a, '--out'))

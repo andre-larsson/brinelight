@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.24.1';
+  BL.VERSION = '0.24.2';
   BL.CHANGELOG = [
+    { v: '0.24.2', date: '2026-11-14', items: [
+      'The Plated Dress looks like armour now: broad shell plates from her shoulders to her shins, where before it was a few shells on the chest. In the Belfry you can tell it from the plain Diving Dress at a glance.',
+    ] },
     { v: '0.24.1', date: '2026-11-14', items: [
       'Wren is the same size in every picture. Before, she grew or shrank a little with her coat, and most of all in the Belfry\'s diving dresses.',
       'She carries her Tide-Bell on her belt, so the Bell line on the kit screens points at it.',
