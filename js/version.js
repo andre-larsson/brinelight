@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.24.3';
+  BL.VERSION = '0.25.0';
   BL.CHANGELOG = [
+    { v: '0.25.0', date: '2026-11-14', items: [
+      'New music: a keeper\'s song over the sea. Each part of the game has its own piece: the title, the way down, fights, Dreads, the pins (which turn darker for their second phase), coming home and falling. The deeper you go, the darker it gets: Dark Water adds a far bell and a low drone, and the Belfry a choir.',
+      'New sound effects. Blows sound heavier the harder they hit, and each kind of card has its own sound. Crests grow with each link of a chain. The Bailer, a creature diving out of reach, a doused lantern, Brine, Heartfire, Barnaby\'s door, a chest and a keepsake each have a sound. Sounds come from where they happen on the screen.',
+      'Each place has sounds of its own between the notes: gulls and a bell buoy in the Shallows, drips in Dark Water, bubbles and the bell\'s hum in the Belfry. The deeper you go, the more sounds echo and the more muffled they get.',
+      'The menu has a volume slider for sound effects and one for music, under their switches.',
+    ] },
     { v: '0.24.3', date: '2026-11-14', items: [
       'The Coat place is now the Rig: what Wren wears over her oilskin. She never takes the oilskin off, because it is proofed with oil from the great lamp and brinelight runs off it. The World tab tells you more.',
       'On the Workshop and Pack screens, Wren wears the Diving Dress or the Plated Dress you choose, helmet and all, so you can see which one you have on. On the way down she still carries it rolled up until the Belfry.',

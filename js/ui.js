@@ -21,7 +21,7 @@
     mapFocus: 0, lastPointer: (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 'touch' : 'mouse', combatRef: null, cw: 140, overlayOnClose: null, overlayLocked: false, tipFor: null,
     kitFrom: 'workshop', kitSlot: null, kitScroll: 0, // the kit screens: which one is open, its chosen slot, its scroll while buying
   };
-  let prefs = { sound: true, music: true, fast: false };
+  let prefs = { sound: true, music: true, fast: false, soundVol: 0.8, musicVol: 0.8 }; // volumes are slider positions, 0 to 1
   const BEST_KEY = 'brinelight.best.v1';
   const VERSION_KEY = 'brinelight.version.v1'; // the last version whose What's new the player has seen
   const META_KEY = 'brinelight.meta.v1'; // the Workshop and the Lazaret: Salvage, kit owned and worn, achievements, keepsakes kept
@@ -29,6 +29,7 @@
   const getNum = (k) => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
   const setNum = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* ignore */ } };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { /* ignore */ }
+  ['soundVol', 'musicVol'].forEach((k) => { const v = +prefs[k]; prefs[k] = isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.8; });
   let meta = E.newMeta();
   try {
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
@@ -129,197 +130,94 @@
   };
 
   /* ================================================================== *
-   *  Sound (tiny WebAudio synth, no files)
+   *  Sound and music, on one AudioContext. The sound effects are js/sfx.js. The music is the score in
+   *  js/music-score.js (from music/brinelight.scrim), played by musicbox (js/vendor/musicbox). Nothing is
+   *  made until the first click or key press, since browsers keep audio locked until then.
    * ================================================================== */
   const Sound = (function () {
-    let ctx = null;
-    let master = null;
+    let ctx = null, kit = null, sfxBus = null, musicBus = null, music = null, musicBroken = false, playing = false;
+    // The score plays at this musicbox volume. At 0.8 (musicbox's default) it is mastered like a record, -12 to
+    // -16 LUFS, and buries the sound effects; 0.12 puts a fight at about -32 LUFS, under an ordinary blow,
+    // as the old music sat. GAME_NOTES.md has the measurements.
+    const MUSIC_LEVEL = 0.12;
+    const now = { cue: 'title', depth: 0, band: null, density: 0 };
+    // a slider position to a level: 80% (the default) is the balance above, 100% is +4 dB, 50% is -8 dB, 0 is silent
+    const gain = (v) => { v = Math.max(0, Math.min(1, +v || 0)) / 0.8; return v * v; };
+    const levels = () => {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      sfxBus.gain.setTargetAtTime(prefs.sound ? gain(prefs.soundVol) : 0, t, 0.03);
+      musicBus.gain.setTargetAtTime(prefs.music ? gain(prefs.musicVol) : 0, t, 0.05);
+    };
     function ac() {
       if (!ctx) {
         try {
           ctx = new (window.AudioContext || window.webkitAudioContext)();
-          master = ctx.createGain();
-          master.gain.value = 0.55;
-          master.connect(ctx.destination);
-        } catch (e) { return null; }
+          sfxBus = ctx.createGain(); sfxBus.connect(ctx.destination);
+          musicBus = ctx.createGain(); musicBus.connect(ctx.destination);
+          sfxBus.gain.value = 0; musicBus.gain.value = 0;
+          levels();
+          kit = BL.SFX.create(ctx, sfxBus);
+          kit.setDepth(now.depth);
+        } catch (e) { ctx = null; return null; }
       }
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
       return ctx;
     }
-    function tone(f, dur, type, vol, slide, delay) {
-      const a = ac(); if (!a) return;
-      const t = a.currentTime + (delay || 0);
-      const o = a.createOscillator(); const g = a.createGain();
-      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
-      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+    function startMusic() {
+      if (playing || musicBroken || !prefs.music || !ac()) return;
+      try {
+        if (!music) {
+          music = new window.Musicbox.MusicPlayer({ context: ctx, destination: musicBus, volume: MUSIC_LEVEL, intensity: now.depth });
+          music.load(BL.MUSIC_SCORE);
+        }
+        music.play(now.cue, { intensity: now.depth });
+        playing = true;
+      } catch (e) { musicBroken = true; music = null; } // no Web Audio, or a broken score: play on without music
     }
-    let noiseBuf = null;
-    function noise(dur, vol, freq, ftype, slide, delay, q) {
-      const a = ac(); if (!a) return;
-      if (!noiseBuf) {
-        noiseBuf = a.createBuffer(1, a.sampleRate * 1.5, a.sampleRate);
-        const d = noiseBuf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      }
-      const t = a.currentTime + (delay || 0);
-      const s = a.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
-      const f = a.createBiquadFilter(); f.type = ftype || 'lowpass'; f.frequency.setValueAtTime(freq, t); f.Q.value = q || 1;
-      if (slide) f.frequency.exponentialRampToValueAtTime(slide, t + dur);
-      const g = a.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.05, dur / 3));
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + 0.05);
+    function stopMusic() { if (music && playing) music.stop(1.2); playing = false; }
+    // the place's own sounds (gulls, drips, the bell's hum) every few seconds: fewer in a fight, none in a pin
+    let ambOn = ''; // what the kit's ambience plays now, 'band/density', or '' for none
+    function ambience() {
+      if (!kit) return;
+      const want = prefs.sound && now.band ? now.band + '/' + now.density : '';
+      if (want === ambOn) return;
+      ambOn = want;
+      kit.ambience(want ? now.band : null, now.density);
     }
-    const lib = {
-      card: () => noise(0.16, 0.18, 2400, 'bandpass', 900),
-      select: () => tone(880, 0.06, 'triangle', 0.05),
-      hit: () => { tone(150, 0.18, 'sine', 0.3, 55); noise(0.12, 0.2, 1400, 'lowpass', 300); },
-      hurt: () => { tone(110, 0.25, 'sawtooth', 0.12, 50); noise(0.2, 0.25, 900, 'lowpass', 200); },
-      block: () => { tone(1250, 0.12, 'triangle', 0.08); tone(1870, 0.1, 'sine', 0.04); },
-      ward: () => tone(620, 0.16, 'triangle', 0.07, 900),
-      crest: () => { noise(1.1, 0.35, 300, 'bandpass', 1800, 0, 0.8); noise(0.9, 0.25, 2000, 'lowpass', 200, 0.35); },
-      low: () => noise(0.9, 0.22, 1500, 'lowpass', 120),
-      buff: () => { tone(440, 0.12, 'triangle', 0.08, 660); tone(660, 0.14, 'triangle', 0.06, 880, 0.08); },
-      debuff: () => tone(520, 0.25, 'sawtooth', 0.05, 220),
-      die: () => { noise(0.5, 0.25, 800, 'lowpass', 90); tone(200, 0.4, 'sine', 0.15, 60); },
-      turn: () => { tone(660, 0.9, 'sine', 0.07); tone(990, 0.7, 'sine', 0.035); },
-      coin: () => { tone(1320, 0.08, 'square', 0.04); tone(1760, 0.14, 'square', 0.035, null, 0.07); },
-      victory: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.5, 'triangle', 0.09, null, i * 0.12)),
-      defeat: () => [392, 311, 262, 196].forEach((f, i) => tone(f, 0.7, 'sine', 0.1, null, i * 0.22)),
-      bell: () => { tone(196, 2.2, 'sine', 0.2); tone(392, 1.6, 'sine', 0.08); tone(587, 1.2, 'sine', 0.05); },
-      tonic: () => { noise(0.25, 0.12, 600, 'bandpass', 2400); tone(700, 0.2, 'sine', 0.05, 1100, 0.1); },
-      tide: () => tone(300, 0.18, 'sine', 0.05, 420),
-      draw: () => noise(0.07, 0.07, 3000, 'highpass'),
-      chain: (n) => { const b = 440 * Math.pow(2, (n || 1) * 3 / 12); tone(b, 0.5, 'triangle', 0.09); tone(b * 1.5, 0.6, 'sine', 0.05, null, 0.06); tone(b * 2, 0.7, 'sine', 0.035, null, 0.12); },
-      kill: () => { noise(0.35, 0.3, 2400, 'bandpass', 300, 0, 0.7); tone(330, 0.25, 'triangle', 0.08, 660); },
-      echo: () => { tone(660, 0.4, 'sine', 0.07); tone(660, 0.4, 'sine', 0.04, null, 0.18); tone(990, 0.5, 'sine', 0.03, null, 0.3); },
-      pearl: () => { tone(1568, 0.09, 'sine', 0.05); tone(2093, 0.16, 'sine', 0.045, null, 0.08); },
-      // a chain bonus (Tidal Fury rising, High and Dry falling), then a glint of Pearls
-      fury: (down) => {
-        (down ? [784, 587, 392, 294] : [523, 659, 784, 1046]).forEach((f, i) => tone(f, 0.55, 'triangle', 0.08, null, i * 0.09));
-        tone(2093, 0.25, 'sine', 0.04, null, 0.42); tone(2637, 0.3, 'sine', 0.03, null, 0.5);
-      },
-      strand: () => { noise(0.22, 0.18, 2600, 'bandpass', 700); tone(520, 0.28, 'triangle', 0.06, 190); },
-      lightgain: () => { tone(880, 0.18, 'sine', 0.06, 1320); tone(1760, 0.22, 'sine', 0.025, null, 0.08); },
-      phase: () => { tone(98, 2.5, 'sawtooth', 0.12, 49); noise(1.6, 0.3, 200, 'lowpass', 60); tone(196, 2.4, 'sine', 0.18); },
-      danger: () => { tone(220, 0.18, 'square', 0.03); tone(208, 0.18, 'square', 0.03, null, 0.2); },
-    };
     return {
-      play(name, arg) { if (!prefs.sound) return; try { lib[name] && lib[name](arg); } catch (e) { /* audio unavailable */ } },
-      unlock() { if (prefs.sound || prefs.music) ac(); Music.kick(); },
-      ctx: () => ac(),
+      play(name, arg) { if (!prefs.sound || !ac()) return; try { kit.play(name, arg); } catch (e) { /* audio unavailable */ } },
+      /* where Wren is: a cue of the score, the depth (0 the Shallows, 1 Dark Water, 2 the Belfry) and the ambience */
+      scene(cue, depth, band, density) {
+        now.band = density ? band : null; now.density = density || 0;
+        if (kit && depth !== now.depth) kit.setDepth(depth);
+        now.cue = cue; now.depth = depth;
+        if (music && playing) { music.setIntensity(depth); music.goto(cue); }
+        ambience();
+      },
+      unlock() {
+        if (!prefs.sound && !prefs.music) return;
+        if (!ac()) return;
+        startMusic();
+        ambience();
+      },
+      /* the menu's switches and sliders (a click, so audio may start here) */
+      changed() {
+        if (prefs.sound || prefs.music) ac();
+        levels();
+        if (prefs.music) startMusic(); else stopMusic();
+        ambience();
+      },
+      state: () => ({ ctx: ctx ? ctx.state : null, music: playing ? music.state : null, cue: now.cue, depth: now.depth, ambience: ambOn }),
     };
   })();
   const sfx = (n, arg) => Sound.play(n, arg);
-
-  /* ================================================================== *
-   *  Music: a small generative score over an ocean bed (WebAudio only)
-   * ================================================================== */
-  const Music = (function () {
-    let ctx = null, out = null, timer = null, mood = null, step = 0, nextT = 0, started = false;
-    const MOODS = {
-      calm: { chords: [[57, 60, 64], [53, 57, 60], [52, 55, 60], [55, 59, 62]], bar: 4.2, plucks: 2, pulse: 0, scale: [69, 72, 74, 76, 79, 81] },
-      fight: { chords: [[57, 60, 64], [55, 59, 62], [53, 57, 60], [52, 56, 59]], bar: 2.8, plucks: 3, pulse: 2, scale: [69, 72, 74, 76, 79] },
-      boss: { chords: [[50, 53, 57], [49, 52, 55], [46, 50, 53], [45, 49, 52]], bar: 2.6, plucks: 2, pulse: 2, scale: [62, 65, 67, 69, 72] },
-      boss2: { chords: [[50, 53, 57], [46, 50, 53], [48, 52, 55], [45, 49, 52]], bar: 2.0, plucks: 4, pulse: 4, scale: [62, 65, 67, 69, 72, 74] },
-    };
-    const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
-    function ensure() {
-      if (out) return true;
-      ctx = Sound.ctx();
-      if (!ctx) return false;
-      out = ctx.createGain();
-      out.gain.value = 0;
-      out.connect(ctx.destination);
-      // ocean bed: looping brown noise, low-passed, slowly swelling
-      const len = ctx.sampleRate * 6;
-      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      let last = 0;
-      for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.2; }
-      const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380;
-      const g = ctx.createGain(); g.gain.value = 0.16;
-      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.08;
-      const lg = ctx.createGain(); lg.gain.value = 0.11;
-      lfo.connect(lg); lg.connect(g.gain); lfo.start();
-      src.connect(lp); lp.connect(g); g.connect(out); src.start();
-      return true;
-    }
-    function pad(notes, t, dur, vol) {
-      notes.forEach((m) => {
-        const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = hz(m);
-        const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = hz(m) * 1.004;
-        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100;
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(vol, t + dur * 0.3);
-        g.gain.linearRampToValueAtTime(0.0001, t + dur);
-        o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(out);
-        o.start(t); o2.start(t); o.stop(t + dur + 0.1); o2.stop(t + dur + 0.1);
-      });
-    }
-    function pluck(m, t, vol) {
-      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = hz(m);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
-      o.connect(g); g.connect(out); o.start(t); o.stop(t + 2.3);
-    }
-    function thump(t, vol) {
-      const o = ctx.createOscillator();
-      o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.22);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-      o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.35);
-    }
-    function schedule() {
-      if (!ctx || !mood) return;
-      const M = MOODS[mood];
-      while (nextT < ctx.currentTime + 1.2) {
-        const ch = M.chords[step % M.chords.length];
-        pad(ch, nextT, M.bar * 1.1, 0.018);
-        pad([ch[0] - 12], nextT, M.bar, 0.03);
-        for (let i = 0; i < M.plucks; i++) {
-          if (Math.random() < 0.7) pluck(M.scale[Math.floor(Math.random() * M.scale.length)], nextT + (M.bar / M.plucks) * i + Math.random() * 0.2, 0.035);
-        }
-        for (let i = 0; i < M.pulse; i++) thump(nextT + (M.bar / M.pulse) * i, 0.12);
-        nextT += M.bar;
-        step++;
-      }
-    }
-    function fadeTo(v, sec) {
-      if (!out) return;
-      const t = ctx.currentTime;
-      out.gain.cancelScheduledValues(t);
-      out.gain.setValueAtTime(out.gain.value, t);
-      out.gain.linearRampToValueAtTime(v, t + sec);
-    }
-    return {
-      setMood(m) {
-        if (mood === m) return;
-        mood = m;
-        if (started && prefs.music) { step = 0; nextT = Math.max(nextT, ctx.currentTime + 0.1); }
-      },
-      kick() {
-        if (!prefs.music) return;
-        if (!ensure()) return;
-        if (!started) {
-          started = true;
-          nextT = ctx.currentTime + 0.2;
-          timer = setInterval(schedule, 300);
-        }
-        fadeTo(0.55, 2.5);
-      },
-      stop() { fadeTo(0, 0.8); },
-    };
-  })();
+  // where an element sits on screen as a stereo position, for a sound that comes from it: -0.7 left to 0.7 right
+  const panOf = (el) => {
+    if (!el || !el.getBoundingClientRect) return undefined;
+    const r = el.getBoundingClientRect();
+    return Math.max(-0.7, Math.min(0.7, ((r.left + r.width / 2) / (window.innerWidth || 1)) * 2 - 1));
+  };
 
   /* ================================================================== *
    *  Helpers: save/load, toast, tooltip
@@ -532,6 +430,8 @@
     Sound.unlock();
     if (e.pointerType !== 'mouse' && !e.target.closest('[data-tip]')) hideTip();
   }, true);
+  // a tap's pointerdown doesn't let a page start audio (a mouse press does); the tap's touchend and click do
+  ['touchend', 'click'].forEach((ev) => document.addEventListener(ev, () => Sound.unlock(), { capture: true, passive: true }));
 
   /* ================================================================== *
    *  Cards
@@ -630,6 +530,21 @@
   }
   overlayEl.addEventListener('click', (e) => {
     if (e.target === overlayEl) closeOverlay();
+  });
+  // the menu's volume sliders: heard while dragged, saved when let go (with a click to judge the sound effects by)
+  overlayEl.addEventListener('input', (e) => {
+    const r = e.target;
+    if (!r.matches || !r.matches('input[data-vol]')) return;
+    prefs[r.dataset.vol + 'Vol'] = +r.value / 100;
+    const o = r.parentElement.querySelector('output');
+    if (o) o.textContent = r.value + '%';
+    Sound.changed();
+  });
+  overlayEl.addEventListener('change', (e) => {
+    const r = e.target;
+    if (!r.matches || !r.matches('input[data-vol]')) return;
+    savePrefs();
+    if (r.dataset.vol === 'sound') sfx('select');
   });
 
   function modal(title, body, foot, cls) {
@@ -772,14 +687,23 @@
     openOverlay(modal('How to Play', helpHTML(ui.helpTab), `${tutBtn}<button class="btn primary" data-act="close" autofocus>Got it</button>`, 'help-modal'));
   }
 
+  /* Sound effects or Music in the menu: a switch, and a volume slider beside it or under it on a narrow screen
+     (see the 'input' listener on the overlay). No description line, so the menu doesn't grow. */
+  function volumeRow(key, name) {
+    const on = !!prefs[key], v = Math.round(prefs[key + 'Vol'] * 100);
+    return `<div class="choice vol-row${on ? '' : ' off'}">
+      <button class="vol-switch" data-act="toggle${key}" aria-pressed="${on}"><b>${name}: ${on ? 'On' : 'Off'}</b></button>
+      <div class="vol-line"><input type="range" min="0" max="100" step="5" value="${v}" data-vol="${key}" aria-label="${name} volume"><output>${v}%</output></div>
+    </div>`;
+  }
   function showMenu() {
     const body = `<div class="choice-list" style="margin:0 auto">
       <button class="choice" data-act="close"><b>Resume</b><span>Back to the deep.</span></button>
       <button class="choice" data-act="help"><b>How to Play</b><span>Rules, controls and glossary.</span></button>
       <button class="choice" data-act="story"><b>Story so far</b><span>The story, the world and your keeper's notes.</span></button>
       ${run && run.tutorial ? '<button class="choice" data-act="tutskip"><b>Leave the tutorial</b><span>You can replay it from the menu or the title screen.</span></button>' : '<button class="choice" data-act="tutorial"><b>Tutorial</b><span>A guided fight that teaches the basics.' + (run ? ' Your run is saved and waits for you.' : '') + '</span></button>'}
-      <button class="choice" data-act="togglesound"><b>Sound effects: ${prefs.sound ? 'On' : 'Off'}</b><span>Synthesized hits, waves and bells.</span></button>
-      <button class="choice" data-act="togglemusic"><b>Music: ${prefs.music ? 'On' : 'Off'}</b><span>A quiet generative score over the sound of the sea.</span></button>
+      ${volumeRow('sound', 'Sound effects')}
+      ${volumeRow('music', 'Music')}
       <button class="choice" data-act="togglefast"><b>Fast animations: ${prefs.fast ? 'On' : 'Off'}</b><span>Halves the waits between actions.</span></button>
       ${run && !run.tutorial ? '<button class="choice" data-act="totitle"><b>Save and quit to title</b><span>Your run is saved; continue it from the title screen.</span></button>' : ''}
       ${run && !run.tutorial ? '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>' : ''}
@@ -919,12 +843,25 @@
     }
     if (cue) cue.hidden = !more;
   }
+  /* The music and the place's own sounds follow the screen: the score has a cue for each kind of screen
+     (see music/brinelight.scrim), and its intensity is the depth, as is the echo on the sound effects. */
+  function updateSound() {
+    let cue = 'title', depth = 0, band = null, density = 0;
+    if (run) {
+      band = E.bandId(run);
+      depth = Math.max(0, ['shallows', 'dark', 'belfry'].indexOf(band));
+      const c = run.screen === 'combat' && run.combat;
+      if (run.screen === 'victory') cue = 'home';
+      else if (run.screen === 'defeat') cue = 'fallen';
+      else if (c) { cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5; }
+      else { cue = 'reach'; density = 1; }
+    }
+    Sound.scene(cue, depth, band, density);
+  }
   function renderScreen() {
     hideTip();
     ui.combatRef = null;
-    if (!run) Music.setMood('calm');
-    else if (run.screen === 'combat' && run.combat) Music.setMood(run.combat.kind === 'boss' ? (run.combat.phase2 ? 'boss2' : 'boss') : 'fight');
-    else Music.setMood('calm');
+    updateSound();
     if (!run) return renderTitle();
     switch (run.screen) {
       case 'map': return renderMap();
@@ -1245,7 +1182,7 @@
     saveMeta();
     if (quiet) return; // the end screen lists them itself
     fresh.forEach((a) => toast(`\u2605 ${BL.ACHIEVEMENTS[a].name}! ${E.kitFor(a).map((id) => BL.KIT[id].name).join(', ')} can now be bought in the ${MT.shop}.`, 4500));
-    sfx('buff');
+    sfx('unlock');
   }
 
   function startNewRun(kit) {
@@ -1334,8 +1271,9 @@
     const avail = E.availableNodes(run);
     const node = avail.find((n) => n.row === row && n.col === col);
     if (!node) return;
-    sfx('select');
+    sfx('step');
     E.enterNode(run, node);
+    if (run.screen === 'shop') setTimeout(() => sfx('shopbell'), 280); // the bell over Barnaby's door
     ui.mapFocus = 0;
     save();
     render();
@@ -1684,7 +1622,7 @@
       });
       h.offsetWidth; // reflow
       fresh.forEach((el) => { el.style.transition = ''; el.style.opacity = ''; });
-      if (fresh.length) sfx('draw');
+      if (fresh.length) sfx('draw', fresh.length);
       setTimeout(() => fresh.forEach((el) => { el.style.transitionDelay = ''; }), 600 + fresh.length * 70);
     }
     layoutHand();
@@ -1880,7 +1818,7 @@
     const targetEl = targetUid ? $(`.unit[data-uid="${targetUid}"] .sprite`, screenEl) : null;
     if (!E.playCard(run, uid, targetUid)) return;
     ui.busy = true;
-    sfx('card');
+    sfx('card', { type: BL.CARDS[cardId] && BL.CARDS[cardId].type });
     ui.sel = null; ui.target = null; ui.hover = null;
     renderGlossary();
     renderHandHint();
@@ -1908,7 +1846,7 @@
     deselect();
     if (!E.swellAct(run, kind)) return;
     ui.busy = true;
-    sfx('card');
+    sfx(kind); // the Bailer: 'bail' or 'stir'
     await processFx();
     ui.busy = false;
     if (Teach.active) Teach.onSwellAct(kind);
@@ -2122,7 +2060,7 @@
       if (unit) $('.hpbar', unit).classList.remove('warded');
       floatAt(el, `-${x.n} Ward`, 'ward-lost');
     });
-    if (stripped.length) sfx('strand');
+    if (stripped.length) sfx('crack', { pan: panOf(unitEl(stripped[0].who)) });
   }
   /* A unit element shows the creature it is now: a boss with a second form keeps its uid but changes its id. */
   function setUnitForm(el, e) {
@@ -2148,11 +2086,11 @@
             floatAt(el, f.n, f.n >= 25 ? 'huge' : f.n >= 15 ? 'big' : '');
             anim(unit, 'hit', 380);
             anim(unit, 'flash-red', 380);
-            if (f.who === 'p') { sfx('hurt'); anim($('#field'), 'shake', 420); } else sfx('hit');
+            if (f.who === 'p') { sfx(f.brine ? 'brine' : 'hurt', { n: f.n, pan: -0.3 }); anim($('#field'), 'shake', 420); } else sfx(f.brine ? 'brine' : 'hit', { n: f.n, pan: panOf(el) });
             if (f.n >= 15) { anim($('#field'), 'impact', 260); await wait(70); }
           } else if (f.blocked > 0) {
             floatAt(el, 'Blocked', 'blocked');
-            sfx('block');
+            sfx('block', { pan: f.who === 'p' ? -0.3 : panOf(el) });
           }
           await wait(f.attack ? 150 : 90);
           break;
@@ -2163,7 +2101,7 @@
           const s = BL.STATUSES[f.key];
           if (!s) break;
           floatAt(unitEl(f.who), s.kind === 'rite' ? s.name : `${s.name} +${f.n}`, 'status ' + s.kind);
-          sfx(s.kind === 'debuff' ? 'debuff' : 'buff');
+          sfx(f.key === 'heartfire' ? 'heartfire' : s.kind === 'debuff' ? 'debuff' : 'buff');
           await wait(60);
           break;
         }
@@ -2194,7 +2132,7 @@
             setTimeout(() => { w.remove(); t.remove(); }, f.fury ? 2100 : 1400);
             anim(field, chain > 1 ? 'impact' : 'shake', 420);
           }
-          sfx('crest');
+          sfx('crest', chain);
           if (f.stripped && f.stripped.length) shatterWard(f.stripped);
           if (chain > 1) sfx('chain', chain);
           if (f.fury) setTimeout(() => sfx('fury'), 160);
@@ -2254,8 +2192,7 @@
           const unit = el && el.closest('.unit');
           if (el) burstAt(el);
           if (unit) unit.classList.add('dead');
-          sfx('kill');
-          sfx('die');
+          { const pan = panOf(el); sfx('kill', { pan }); sfx('die', { pan }); }
           await wait(140);
           break;
         }
@@ -2282,7 +2219,7 @@
           c.phase2 = true;
           banner(f.text || 'The deep stirs', 'enemy big');
           sfx('phase');
-          Music.setMood('boss2');
+          updateSound();
           await wait(900);
           break;
         }
@@ -2299,7 +2236,7 @@
           c.phase2 = true;
           banner(f.text, 'enemy big');
           sfx('phase');
-          Music.setMood('boss2');
+          updateSound();
           await wait(1000);
           break;
         }
@@ -2318,8 +2255,8 @@
         case 'thrash': floatAt(unitEl('p'), 'Thrash', 'status debuff'); break;
         case 'line': { const el = unitEl('p'); floatAt(el, `The line holds: ${f.n} HP`, 'status buff'); anim(el, 'gain', 700); toast(`Your ${BL.KIT.line.name} holds. You are left with ${f.n} HP. It holds only once an expedition.`, 4200); sfx('buff'); await wait(400); break; }
         // Dark Water
-        case 'doused': { const o = $('#orb'); anim(o, 'doused', 900); floatAt(o, `-${f.n} Light: doused`, 'status debuff'); sfx('debuff'); break; }
-        case 'submerge': { const el = unitEl(f.who); floatAt(el, 'Submerged', 'status buff'); sfx('tide'); await wait(200); break; }
+        case 'doused': { const o = $('#orb'); anim(o, 'doused', 900); floatAt(o, `-${f.n} Light: doused`, 'status debuff'); sfx('douse'); break; }
+        case 'submerge': { const el = unitEl(f.who); floatAt(el, 'Submerged', 'status buff'); sfx('submerge', { pan: panOf(el) }); await wait(200); break; }
         case 'swallow': { const el = unitEl(f.who); floatAt(el, `Swallowed ${f.name}`, 'status debuff'); anim($('#pile-discard'), 'pulse', 500); toast(`It swallowed your ${f.name}. Kill it to get the card back.`); sfx('debuff'); await wait(300); break; }
         case 'disgorge': toast(`Back in your discard pile: ${f.names.join(', ')}`); anim($('#pile-discard'), 'pulse', 500); break;
         case 'addcards': toast(`${f.n} ${BL.CARDS[f.id].name} shuffled into your draw pile`); break;
@@ -2866,7 +2803,7 @@
       }
       case 'gohome': if (E.goHome(run)) { sfx('victory'); clearSave(); render(); } break;
       case 'godeeper': if (E.goDeeper(run)) {
-        sfx('tide');
+        sfx('bell');
         // reaching a level for the first time counts for good (the Hold), even if Wren falls or turns back
         if (E.noteReached(meta, run)) saveMeta();
         save(); render();
@@ -2892,15 +2829,15 @@
       case 'help': showHelp(); break;
       case 'changelog': showChangelog(); break;
       case 'story': showStory(); break;
-      case 'storytab': ui.storyTab = t.dataset.tab; $('.story', overlayEl).outerHTML = storyHTML(ui.storyTab); $('.modal-body', overlayEl).scrollTop = 0; { const b = $(`.tab[data-tab="${ui.storyTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
+      case 'storytab': sfx('page'); ui.storyTab = t.dataset.tab; $('.story', overlayEl).outerHTML = storyHTML(ui.storyTab); $('.modal-body', overlayEl).scrollTop = 0; { const b = $(`.tab[data-tab="${ui.storyTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'opening': closeOverlay(true); showOpening(0, () => showStory('story'), true); break;
-      case 'opnext': if (+t.dataset.i + 1 < BL.STORY.opening.length) { sfx('select'); showOpening(+t.dataset.i + 1); } else endOpening(); break;
+      case 'opnext': if (+t.dataset.i + 1 < BL.STORY.opening.length) { sfx('page'); showOpening(+t.dataset.i + 1); } else endOpening(); break;
       case 'opskip': endOpening(); break;
       case 'helptab': ui.helpTab = t.dataset.tab; $('.help', overlayEl).outerHTML = helpHTML(ui.helpTab); { const b = $(`.tab[data-tab="${ui.helpTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'menu': showMenu(); break;
-      case 'togglesound': prefs.sound = !prefs.sound; savePrefs(); showMenu(); break;
+      case 'togglesound': prefs.sound = !prefs.sound; savePrefs(); Sound.changed(); showMenu(); break;
       case 'togglefast': prefs.fast = !prefs.fast; savePrefs(); showMenu(); break;
-      case 'togglemusic': prefs.music = !prefs.music; savePrefs(); if (prefs.music) Music.kick(); else Music.stop(); showMenu(); break;
+      case 'togglemusic': prefs.music = !prefs.music; savePrefs(); Sound.changed(); showMenu(); break;
       case 'totitle': save(); closeOverlay(true); run = null; render(); break;
       case 'abandon':
         openOverlay(modal('Abandon this run?', '<p>Your progress will be lost.</p>', '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmabandon">Abandon</button>', 'narrow'));
@@ -2993,14 +2930,14 @@
       }
       case 'rewardks': {
         E.takeRewardKeepsake(run, t.dataset.k);
-        sfx('coin'); // the panel says "Keepsake taken" with the pick lit, so no toast
+        sfx('keepsake'); // the panel says "Keepsake taken" with the pick lit, so no toast
         save();
         render();
         break;
       }
       case 'treasureks': {
         E.takeTreasureKeepsake(run, t.dataset.k);
-        sfx('coin');
+        sfx('keepsake');
         save();
         render();
         break;
@@ -3083,7 +3020,7 @@
         break;
       }
       case 'evcontinue': eventContinue(); break;
-      case 'opentreasure': E.openTreasure(run); sfx('coin'); save(); render(); break;
+      case 'opentreasure': E.openTreasure(run); sfx('treasure'); save(); render(); break;
     }
   }
 
@@ -3255,6 +3192,6 @@
     // for js/debug.js
     save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat,
     story, saveStory, showStory, showOpening, showLazaret,
-    // for the UI test: what a backup holds, and loading one without the file picker
-    backupData, askRestore };
+    // for the UI test: what a backup holds, and loading one without the file picker; what the music and sound are doing
+    backupData, askRestore, audio: () => Sound.state() };
 })();

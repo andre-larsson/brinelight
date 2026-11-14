@@ -42,8 +42,8 @@
 <body>
 <main>
   <h1>Brinelight sound lab</h1>
-  <p class="lead">Draft sound effects from <code>sound/sfx.js</code>, all synthesized in the browser. <b>Play</b> plays the new sound,
-    <b>×3</b> plays it three times so you can hear how much it varies, and <b>Now</b> plays the sound the game uses there today.
+  <p class="lead">The game's sound effects, from <code>js/sfx.js</code>, all synthesized in the browser. <b>Play</b> plays the new sound,
+    <b>×3</b> plays it three times so you can hear how much it varies, and <b>Old</b> plays the sound the game used there before v0.25.0.
     Depth muffles the world and lengthens its echo; interface clicks stay clear.</p>
   <div class="bar">
     <span>Depth <span class="seg" id="depth">
@@ -55,7 +55,7 @@
   </div>
   <div id="groups"></div>
 </main>
-<script src="sfx.js"></script>
+<script src="../js/sfx.js"></script>
 <script>
 (function () {
   'use strict';
@@ -178,14 +178,14 @@
     g.items.forEach((it) => {
       const el = document.createElement('div');
       el.className = 'item';
-      el.innerHTML = `<b></b><small></small><div class="row"><button class="play">Play</button><button class="x3">×3</button>${it.now ? '<button class="old">Now</button>' : ''}</div>`;
+      el.innerHTML = `<b></b><small></small><div class="row"><button class="play">Play</button><button class="x3">×3</button>${it.now ? '<button class="old">Old</button>' : ''}</div>`;
       el.querySelector('b').textContent = it.label;
       el.querySelector('small').textContent = it.when || '';
       el.querySelector('.play').onclick = () => playNew(it);
       el.querySelector('.x3').onclick = () => { playNew(it); setTimeout(() => playNew(it), 900); setTimeout(() => playNew(it), 1800); };
       if (it.now) {
         const ob = el.querySelector('.old');
-        ob.title = `The game plays sfx('${it.now}') here today`;
+        ob.title = `Before v0.25.0 the game played sfx('${it.now}') here`;
         ob.onclick = () => playOld(it);
       }
       grid.appendChild(el);

@@ -1235,3 +1235,14 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
   .tb-act { padding: 0 5px; gap: 2px; }
   .tb-act .tb-arrow { display: none; }
 }
+
+/* the menu's Sound effects and Music rows: a switch with a volume slider beside it, or under it when narrow */
+.choice.vol-row { cursor: default; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px 18px; }
+.choice.vol-row:hover { filter: none; transform: none; }
+.vol-switch { all: unset; box-sizing: border-box; flex: 0 0 auto; min-width: 172px; min-height: 32px; display: flex; align-items: center; cursor: pointer; border-radius: 6px; }
+.vol-switch:hover b { text-decoration: underline; text-underline-offset: 3px; }
+.vol-switch:focus-visible { outline: 2px solid #ffe2a8; outline-offset: 4px; }
+.vol-line { flex: 1 1 200px; display: flex; align-items: center; gap: 12px; }
+.vol-line input { flex: 1; min-width: 0; height: 32px; margin: 0; accent-color: #c9a24a; cursor: pointer; }
+.vol-line output { min-width: 3.2em; text-align: right; font-size: 14px; color: #cfe0dc; font-variant-numeric: tabular-nums; }
+.vol-row.off .vol-line { opacity: .45; }

@@ -1,6 +1,6 @@
-/* Brinelight sound effects, draft 2 (2026-11-14).
-   Every sound is synthesized with Web Audio: no files, no dependencies. Not wired into the game yet;
-   sound/lab.html plays them.
+/* Brinelight sound effects (v0.25.0).
+   Every sound is synthesized with Web Audio: no files, no dependencies. ui.js plays them;
+   sound/lab.html plays each one beside the sound the game made before.
 
    const sfx = BL.SFX.create(audioContext, destination);
    sfx.play('hit', { n: 12, pan: 0.4 });   // opts: n (damage, chain length, card count), pan (-1 Wren's side, 1 the creatures'),
@@ -655,7 +655,7 @@
     return { play, setDepth, ambience, names: Object.keys(S), output: master };
   }
 
-  // What each sound is for and when the game would play it. `now` names the sound ui.js plays there today.
+  // What each sound is for and when the game plays it. `now` names the sound ui.js played there before v0.25.0.
   const CATALOG = [
     { group: 'Cards', items: [
       { name: 'draw', opts: { n: 3 }, label: 'Draw (3)', now: 'draw', when: 'Each card rasps off the deck and snaps down; n is how many.' },

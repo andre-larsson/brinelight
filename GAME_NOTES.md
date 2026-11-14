@@ -305,9 +305,9 @@ These are earlier expansion ideas. Their named-depth unlocks need revisiting und
 - **More levels**: add intermediary bands after the initial three-level version. See "Current story and expedition scope".
 - **More characters**: unlockable keepers. WORLD.md has the open question about other keepers.
 - **A lore overhaul:** done in v0.11.0 for the story and the names. See "Lore and names (v0.11.0)".
-- **Art and sound to match the new lore (2026-11-12; art done in v0.23.0, sound still planned):**
+- **Art and sound to match the new lore (2026-11-12; art done in v0.23.0, sound in v0.25.0):**
   - Update the art that tells the old story. Done: see "Art review (v0.23.0)".
-  - Add sound effects, for example for a bell that changes the water.
+  - Add sound effects, for example for a bell that changes the water. Done: see "Music and sound (v0.25.0)".
 - **Rename the fight's Tide words: built in v0.11.0.** The gauge is the Swell and Low Water is a Strand. See "Lore and names (v0.11.0)".
 
 ### Lore and names (v0.11.0, 2026-11-12)
@@ -532,7 +532,7 @@ Single keepsakes brought into Dark Water (points over 14.5%; v0.14.0's Dark Wate
 - Is the Murk Ray's sunk turn interesting (build the Swell, or Ward up for its Rise), or just a lost turn?
 - Is the Pale Gulper's "last card played" swallow a real choice, or easy to forget?
 - On the smallest phones (360 px), three enemies' names run into each other and a Ward badge covers part of the next HP bar. The layout already did this for the Shallows' three-enemy fights (`.unit .info` has a minimum width of 84–96 px), but Dark Water has more of them, and the Lamp Hermit's Shell keeps a Ward badge up.
-- No sound of its own for Dark Water, the Buoy, a douse or a swallow, and no music change.
+- No sound of its own for Dark Water, the Buoy, a douse or a swallow, and no music change. (v0.25.0 gave Dark Water its music layer, ambience and echo, and a douse its own sound. The Buoy and a swallow still have none.)
 
 ### Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)
 
@@ -1419,6 +1419,50 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - **The engine's only debug hook** is `run.debugGod`: the keeper takes no damage and no Brine (tested).
 - `ui.js` exposes what the panel needs on `window.Brinelight` (`save`, `saveMeta`, `toast`, `modal`, `openOverlay`, `closeOverlay`, `onVictory`, `onDefeat`, `setMaxLevel`). `node tests/ui-smoke.js --only debug` checks the panel in the browser.
 
+## Music and sound (v0.25.0, 2026-11-14)
+
+The user asked for the musicbox score and the sound kit to go into the game. They listened to both in the musicbox editor and `sound/lab.html` while drafting, but not yet in the game.
+
+- **Where it is.**
+  - The score is `music/brinelight.scrim`, in musicbox's format. Its reference is `docs/PROMPT.md` in musicbox. `npx -y github:andre-larsson/musicbox link music/brinelight.scrim` opens it in the editor, which can mute and solo each voice.
+  - After you edit the score, run `node tools/music.js` to write `js/music-score.js`. `tests/music.test.js` fails until you do. It also checks that the score compiles with no warnings, that it has every cue the game asks for, and that every sound the game plays is in the kit.
+  - musicbox is bundled as one classic script, `js/vendor/musicbox/musicbox.js`, with its LICENSE and NOTICE (Apache 2.0), because ES modules don't load from `file://`.
+    - The current bundle is musicbox `e371a2c` (2026-11-14), and the file's header names the commit.
+    - To update it, pull musicbox, then run `node tools/music.js --vendor ../musicbox`.
+  - The sound effects are `js/sfx.js`. `sound/lab.html` plays each one, plays it three times to show how it varies, and plays the sound the game made before v0.25.0. The lab is not shipped.
+- **What plays when** (`updateSound` in `js/ui.js`):
+  - Cues: `title` outside a run (the title, the opening, the Workshop, Story so far). `reach` on the map and every stop that isn't a fight. `fight` for an easy or hard fight, `dread` for an elite, `pin` for a boss, and `pin2` from its second phase. `home` on the win screen, `fallen` on the loss screen.
+  - The score's intensity is the depth: 0 in the Shallows (and the tutorial), 1 in Dark Water, 2 in the Belfry. The same number sets the kit's depth (a lower low-pass and a longer, darker echo).
+  - The place's sounds (`kit.ambience`) come every 4 to 11 s on the map and its stops, half as often in fights and Dreads, and not at all in pins, on the title or on the end screens. This is a provisional call.
+- **One AudioContext**, made on the first click or key press. Sound effects and music each go through a bus set by the player's switch and slider. The kit has its own limiter. The score has musicbox's master: eq, compressor and limiter.
+- **Levels.** Measured 2026-11-14 by rendering offline in headless Chrome, with BS.1770 loudness. "Momentary" is the loudest 400 ms.
+
+  | Sound | Old (v0.24.3), momentary LUFS | New kit, momentary LUFS |
+  |---|---|---|
+  | Hit (6) | -32.4 | -31.1 |
+  | Hit (18) | -32.4 | -23.2 |
+  | Hurt (6) | -40.2 | -29.1 |
+  | Play an Attack | -45.0 | -41.3 |
+  | Draw 5 | -45.8 | -36.2 |
+  | Crest | -35.5 | -22.6 |
+  | Blocked | -43.0 | -34.7 |
+  | Your Turn | -35.5 | -27.3 |
+  | Select | -52.3 | -49.7 |
+  | Pearls | -43.9 | -38.3 |
+  | The great bell | -24.1 | -17.6 |
+  | Fight won | -33.1 | -25.2 |
+
+  - The old music played at about -32 LUFS integrated in every mood, level with an ordinary blow.
+  - At musicbox's default volume of 0.8, the score plays at -12.9 (title), -16.2 (reach), -15.2 (fight), -14.7 (dread), -13.9 (pin), -12.4 (pin2), -14.0 (home) and -15.7 (fallen). That is mastered like a record and would bury the sound effects.
+  - So the game plays the score at musicbox volume 0.12 (`MUSIC_LEVEL`), which is 16.5 dB down. A fight is then about -31.7 LUFS, the old balance, and the cues run from -28.9 (pin2) to -32.7 (reach).
+  - Both sliders default to 80%, which is this balance. The level is (slider / 0.8)²: 100% is +3.9 dB, 50% is -8.2 dB, 25% is -20 dB, and 0 is silent.
+  - The whole game stays about as quiet as before (around -32 LUFS), which is well under most web audio (-14 to -23). An open question is whether to raise both together.
+- **Open questions for the user to listen to:**
+  - Is 80/80 the right balance of music to blows?
+  - Should the place's sounds play in fights at all? (A gull in a fight?)
+  - The flute's 400 to 800 Hz bump in `title` and `home`.
+  - The dip near 100 Hz in the quiet cues.
+
 ## For later (from the user)
 
 - **Unlockable permanent effects that last across runs** (meta-progression), so players can reach the deeper Depths. Not started. Open questions: what unlocks them (score, wins, Depth reached, a currency), and whether they're always on or chosen before a run. They also must not make Shallows trivial.
@@ -1458,6 +1502,7 @@ At 4, overpacking breaks even on average. A pair that suits the plan pays (Shell
 - `tools/screens.js`: screenshots of every screen at the four sizes, plus the small-text list. `tools/tutorial-shots.js`: one screenshot per tutorial step.
 - `tools/serve.js`, `tools/cdp.js`: static server and a tiny Chrome DevTools client (launches its own headless Chrome on a free port).
 - `tools/build.js`: assembles `_site/` for Pages and checks every referenced file exists.
+- `tools/music.js`: writes `js/music-score.js` from `music/brinelight.scrim`, and with `--vendor DIR` bundles musicbox into `js/vendor/musicbox/`. `tests/music.test.js` checks the score and the kit. `node tests/ui-smoke.js --only audio` plays with sound and music on, on desktop and phone. It checks that nothing starts before a click, that the cue and depth follow the screen, that the menu's switches and sliders work and are saved, and that a whole fight's sounds raise no error. See "Music and sound (v0.25.0)".
 - `tests/workshop.test.js`: the Workshop, kit, Charge, Hold and Seep rules, and old saves carrying over. `node tests/ui-smoke.js --only workshop` runs only the Workshop flow in the browser: old lasting state carried over, buy, wear, dive, the Charge chip, dropping a keepsake, Seep in a fight, Salvage at the end, and abandoning a run earns nothing.
 - `tests/lazaret.test.js`: the Lazaret rules. `node tests/ui-smoke.js --only lazaret` plays a first win, a fall and a second win in the browser.
 - `tests/darkwater.test.js`: the bands and every Dark Water rule (drain, Submerged, Shell, Doused, swallow, the Rocking Toll, the Garden's follower, the events). `node tests/ui-smoke.js --only darkwater` starts a Dark Water descent on desktop and phone, checks the backgrounds, aims at a Submerged Ray, feeds a card to the Gulper, gets doused, reads the Buoy's intent at two Swells, then plays a few stops. `tools/screens.js` shoots Dark Water as screens 31–36.

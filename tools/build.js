@@ -21,7 +21,7 @@ const html = fs.readFileSync(path.join(out, 'index.html'), 'utf8');
 for (const m of html.matchAll(/(?:src|href)="([^"]+)"/g)) if (!/^(https?:|#|data:)/.test(m[1])) check(m[1], 'index.html');
 const css = fs.readFileSync(path.join(out, 'style.css'), 'utf8');
 for (const m of css.matchAll(/url\((img\/[^)]+)\)/g)) check(m[1], 'style.css');
-for (const f of fs.readdirSync(path.join(out, 'js'))) {
+for (const f of fs.readdirSync(path.join(out, 'js'), { recursive: true }).filter((x) => x.endsWith('.js'))) {
   const js = fs.readFileSync(path.join(out, 'js', f), 'utf8');
   for (const m of js.matchAll(/img\/(bg|units|scenes|icons|cards)\/([a-z_]+)\.webp/g)) check(m[0], 'js/' + f);
 }

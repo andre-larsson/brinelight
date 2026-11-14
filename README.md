@@ -33,7 +33,7 @@ Progress is saved automatically in your browser, at the start of every turn and 
 
 The title screen has three levels of button: Continue and New Descent first, the Workshop and the Lazaret second, and Story so far, the Logbook, the Tutorial and How to Play third. The **Logbook** is a short record: expeditions finished, how many came home and how many fell, whether the Lantern Heart is home and how often the Belfry has been quieted since, the deepest landing reached, pins broken, best score, Salvage, kit owned, keepsakes in the Lazaret, achievements, and Story so far entries open. Descents and the deepest landing are counted from version 0.13.0; abandoned runs, the tutorial and debug-cheated runs are not counted.
 
-The menu (top right) has the tutorial, How to Play, Story so far, sound effects on/off, music on/off and fast animations. During a run it also has save and quit, and abandon run. On the title screen it has Back up or reset progress.
+The menu (top right) has the tutorial, How to Play, Story so far, sound effects and music (each with a switch and a volume slider) and fast animations. During a run it also has save and quit, and abandon run. On the title screen it has Back up or reset progress.
 
 ## Rules
 
@@ -185,7 +185,10 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 - **20 pieces of kit (plus the Brass Tide-Bell) and 12 achievements** in the Workshop. One of them, the Diving Dress, is found, not bought.
 - **Endings:** win and lose screens with the score line by line (and how it turns into Salvage), run stats, best score, unlocks in purple boxes, and a one-click new run.
 
-Sound effects and music are synthesized at runtime with the Web Audio API, so there are no audio files. The music is a generative pad-and-pluck score over an ocean bed, and it changes mood for fights, the boss, and the boss's second phase.
+Sound effects and music are synthesized at runtime with the Web Audio API, so there are no audio files.
+
+- The music is the score in `music/brinelight.scrim`, played by [musicbox](https://github.com/andre-larsson/musicbox) (Apache 2.0, bundled in `js/vendor/musicbox/`). Each kind of screen has its own cue: the title, the map and the stops on it, a fight, a Dread, a pin and its second phase, a win and a fall. The music darkens with depth: Dark Water adds a far bell and a low drone, and the Belfry a choir.
+- The sound effects are in `js/sfx.js`, and `sound/lab.html` plays each one. Sounds echo longer and are more muffled the deeper Wren goes. Each place has its own sounds every few seconds: gulls and a bell buoy in the Shallows, drips in Dark Water, bubbles and the bell's hum in the Belfry. They come less often in a fight and not at all in a pin.
 
 The illustrations were generated for this project with an image-generation tool. Some keepsake, tonic and newer card images are crops or recolors of those illustrations.
 

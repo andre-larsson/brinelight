@@ -4,7 +4,7 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
-          [--only darkwater|progress]
+          [--only darkwater|belfry|progress|finds|workshop|audio]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
 'use strict';
 const path = require('path');
@@ -1241,6 +1241,74 @@ async function progressScenario(page, base, name, size) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+/* v0.25.0: sound and music on. Nothing starts before a click; the music follows the screen (a cue for each kind of
+   screen, its intensity the depth) and the place's own sounds play, fewer in a fight; the menu's switches and
+   sliders work and are saved; and a whole fight's sounds raise no error. */
+async function audioScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=7171');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: true, music: true, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
+  await page.goto(base + '?seed=7171');
+  await inject(page);
+  const audio = () => page.eval(`(() => { const a = window.Brinelight.audio(); return { ctx: a.ctx, depth: a.depth, ambience: a.ambience, playing: !!a.music, target: a.music && a.music.target, intensity: a.music && a.music.intensity }; })()`);
+  const expect = async (label, want) => {
+    await sleep(150);
+    const a = await audio();
+    const bad = Object.keys(want).filter((k) => a[k] !== want[k]);
+    if (bad.length) failures.push(`${name}: ${label}: ${bad.map((k) => `${k} is ${JSON.stringify(a[k])}, expected ${JSON.stringify(want[k])}`).join('; ')}`);
+  };
+  await expect('before any click', { ctx: null, playing: false });
+  // the first click starts the music on the title cue
+  await page.click('.title-corner [data-act="menu"]');
+  await expect('the title, after a click', { ctx: 'running', playing: true, target: 'title', ambience: '' });
+  // the menu: Sound effects and Music, each a switch and a volume slider
+  if ((await page.eval(`document.querySelectorAll('#overlay .vol-row input[type="range"]').length`)) !== 2) failures.push(`${name}: the menu doesn't have a volume slider for sound effects and for music`);
+  await page.eval(`(() => { const r = document.querySelector('#overlay input[data-vol="music"]'); r.value = 40; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  const saved = await page.eval(`JSON.parse(localStorage.getItem('brinelight.prefs.v1')).musicVol`);
+  if (saved !== 0.4) failures.push(`${name}: the music slider at 40% saved ${saved}`);
+  if ((await page.eval(`document.querySelector('#overlay input[data-vol="music"] + output').textContent`)) !== '40%') failures.push(`${name}: the music slider doesn't show 40%`);
+  await page.click('#overlay [data-act="togglemusic"]');
+  await expect('music switched off', { playing: false });
+  if (!(await page.eval(`/Music: Off/.test(document.querySelector('#overlay [data-act="togglemusic"]').textContent)`))) failures.push(`${name}: the music switch doesn't read Off`);
+  await page.click('#overlay [data-act="togglemusic"]');
+  await expect('music switched on again', { playing: true, target: 'title' });
+  await clickIf(page, '#overlay [data-act="close"]');
+  // a descent: the map plays the reach cue, with the Shallows' sounds
+  await page.click('[data-act="newrun"]');
+  await sleep(200);
+  await clickIf(page, '[data-act="opskip"]');
+  await clickIf(page, '[data-act="tutorialskip"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
+  await expect('the map', { target: 'reach', depth: 0, intensity: 0, ambience: 'shallows/1' });
+  await page.click('[data-act="node"]');
+  await page.waitFor('window.Brinelight.run.screen !== "map"', 3000, 'the first landing');
+  if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
+  await expect('a fight', { target: 'fight', ambience: 'shallows/0.5' });
+  await fight(page, name, {});
+  await page.waitFor('window.Brinelight.run.screen !== "combat"', 5000, 'the end of the fight');
+  await expect('after the fight', { target: 'reach', ambience: 'shallows/1' });
+  // Dark Water: the far bell and the drone come in, and the echo lengthens
+  await page.eval('(() => { const B = window.Brinelight; B.run.level = 1; B.render(); })()');
+  await expect('Dark Water', { depth: 1, intensity: 1, ambience: 'dark/1' });
+  // a pin has no place sounds, and its own cue for each phase; then the end screens
+  const set = (js) => page.eval(`(() => { const B = window.Brinelight; ${js}; B.render(); })()`);
+  await set(`B.E.startCombat(B.run, 'elite')`);
+  await expect('a Dread', { target: 'dread', ambience: 'dark/0.5' });
+  await set(`B.E.startCombat(B.run, 'boss')`);
+  await expect('a pin', { target: 'pin', ambience: '' });
+  await set('B.run.combat.phase2 = true');
+  await expect("a pin's second phase", { target: 'pin2' });
+  await set(`B.run.level = 2; B.run.screen = 'victory'`);
+  await expect('the win screen', { target: 'home', depth: 2, intensity: 2, ambience: '' });
+  await set(`B.run.screen = 'defeat'`);
+  await expect('the loss screen', { target: 'fallen', ambience: '' });
+  await set('B.run = null');
+  await expect('back on the title', { target: 'title', depth: 0, ambience: '' });
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 (async () => {
   const server = await serve(PORT, ROOT);
   const page = await launch();
@@ -1284,6 +1352,10 @@ async function progressScenario(page, base, name, size) {
     if (!ONLY || ONLY === 'workshop') {
       await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });
       await workshopScenario(page, base, 'workshop phone', { w: 390, h: 844, mobile: true, touch: true });
+    }
+    if (!ONLY || ONLY === 'audio') {
+      await audioScenario(page, base, 'audio desktop', { w: 1280, h: 800 });
+      await audioScenario(page, base, 'audio phone', { w: 390, h: 844, mobile: true, touch: true });
     }
   } catch (e) {
     failures.push('crashed: ' + (e.stack || e));
