@@ -1514,7 +1514,8 @@ The user asked for the musicbox score and the sound kit to go into the game. The
   `tools/screens.js` shoots the dress on the pin as screen 35, the Belfry as screens 40–46, and the Garden Strider as screen 47.
 - `tests/story.test.js`: the title line, the opening, and what opens each Story so far entry. `node tests/ui-smoke.js --only story` runs only the story flow in the browser. `tools/screens.js` also shoots the three Story so far tabs and the opening.
 - `tools/cut-icon.py`: crops a generated icon to its object and saves a 160 px WebP (needs Python with Pillow).
-- `tools/wren-art.py`: Wren's shared 400x600 canvas. `input` makes the 1024x1536 edit input from plain Wren, `compose` pastes back only the changed part of an edit inside the given polygons, and `place` puts a whole new picture on the canvas at her scale (needs Python with Pillow and numpy). See "Art" for how it was used.
+- `tools/wren-art.py`: Wren's shared 400x600 canvas. `input` makes the 1024x1536 edit input from plain Wren, `compose` pastes back only the changed part of an edit inside the given polygons, and `place` puts a whole new picture on the canvas at her scale, or with `--tall` at another keeper's height (needs Python with Pillow and numpy). See "Art" for how it was used.
+- `tools/swap-shots.js`: screenshots of a desktop fight, a phone fight and the Workshop's kit view with Wren's picture swapped for another 400x600 picture in the browser, to judge a keeper or costume draft in the game. See "Keeper and costume drafts".
 
 ## Determinism and saves
 
@@ -1557,6 +1558,55 @@ The user asked for the musicbox score and the sound kit to go into the game. The
 - Changes from before: you can wear kit in the Workshop and buy it while packing; the Pack screen puts the kit first, then keepsakes and currents.
 - A new piece of kit in an existing place needs no screen work. A new place needs `side`, `at`, `none` (the empty slot's name) and an empty-slot glyph (`ICON.slot_<id>` in `js/ui.js`).
 - Open: do the trays read well on a small phone, and is choosing a slot first slower than the old long list when you change several pieces?
+
+### Keeper and costume drafts (2026-11-14; not in the game)
+
+The user asked how more characters could be added, and wanted to judge the look first. I proposed a foundation (`BL.KEEPERS`, a keeper choice on the Pack screen, a Logbook per keeper) and five ways keepers could differ: numbers and loadout, own cards, an own water rule, own kit places, companions. None of that is decided. Three rounds of Codex samples followed. They were compared on a private artifact page (https://claude.ai/artifact/39b2dzv4LmqunJR8TmhdsJ), with each picture swapped into the real fight and Workshop (`tools/swap-shots.js`). The user keeps the drafts below and will choose later which to build.
+
+- **Keeper drafts** are in `assets-src/drafts/keepers/`, placed on Wren's canvas with `tools/wren-art.py place SRC --eye Y --head X --tall F`. Sources are in `assets-src/units/samples/`.
+
+  | Draft | Who | Source | eye, head, tall |
+  |---|---|---|---|
+  | josiah | Josiah, a retired harbour pilot, late 70s, tall and thin, Black | josiah.png | 144, 566, 1.06 |
+  | dev | Dev, a ship's boy of about 14, South Asian (the user's pick of two tunings) | dev-tuned-b.png | 155, 526, 0.78 |
+  | tavita | Tavita, a giant Samoan hauler with an anchor | tavita.png | 124, 552, 1.14 |
+  | rook | Rook, an androgynous Latin American whaler with a peg leg | rook.png | 150, 592, 1.0 |
+  | abena | Abena, a big Black anchor-smith with a sledgehammer | abena.png | 145, 565, 1.06 |
+  | esi | Esi, a slim Black rigging runner with a rope dart (ochre trousers, so she shows on a phone) | esi-tuned-b.png | 228, 588, 1.03 |
+  | engine | The Lamp Engine, the keepers' clockwork bell-tender | engine.png | 90, 572, 1.1 |
+  | gulp | Gulp, a sea monster who wants to be a keeper | gulp.png | 160, 610, 0.9 |
+  | winkle | Winkle, Barnaby's youngest, living in an old brass bell | winkle-a.png | 650, 622, 0.47 |
+  | lan | Old Lan, a Chinese ferry-woman in her 80s with a sculling oar | lan.png | 480, 542, 0.68 |
+  | kamala | Kamala, an Indian lascar sailor with a boarding axe | kamala.png | 136, 560, 1.06 |
+  | raman | Dr. Raman, an Indian ship's surgeon in his 60s with an umbrella | raman.png | 124, 522, 0.95 |
+  | remedios | Remedios, a Mexican salt-raker in her 50s | remedios.png | 104, 556, 0.95 |
+  | mateo | Mateo, a Cuban cooper with a barrel-lid shield | mateo-2b.png | 103, 560, 1.06 |
+
+- **Mateo:** the user kept the concept, but in the first picture his arm went through the shield and one hand held both the shield and the mallet. It was redrawn twice, with the anatomy spelled out in the prompt. In 2b the shield is strapped to his left forearm and the mallet is in his right hand.
+- **Set aside:**
+  - Tamsin, Abel and Ness (round 1, too alike: all white, all in similar coats);
+  - Hae-won, Wei, Setsuko and Kenji;
+  - Kaito, a manga hero, in both styles;
+  - Barnaby, who keeps his shop. Winkle goes down in his place.
+- **Wren's costume drafts** are in `assets-src/drafts/costumes/`, on her canvas.
+  - Oilskin recolours (tarred, harbour blue, the Lamplighter's green). The user wants these as a cheap unlock or open from the start.
+  - Secret joke costumes:
+    - bathing: an 1890s bathing dress, the at-home one;
+    - beach: a bikini with her boots on;
+    - the lobster suit and the lighthouse;
+    - the shell bikini, the barbarian and the barrel.
+  - Dropped by the user: ballerina and brass mech. Codex's image tool refused a skimpy fantasy-armour parody.
+  - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
+  - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. In the game a recolour needs 5 pictures: plain, Cork Vest, Shell Gorget and both carried dresses. The worn dresses hide the oilskin.
+- **What the samples showed:**
+  1. The ochre oilskin is what reads on a phone. Dark outfits fade into the water: all the round 1 B samples, Esi's first trousers, and tarred Wren.
+  2. The 400x600 canvas caps height. Josiah, Tavita, Abena, Esi and the Lamp Engine were shrunk to fit, so a really big keeper needs a taller canvas, which means changing the fight layout.
+  3. Odd shapes (the robot, the monster, the crab) read best at fight size.
+  4. Anime-style art reads well but looks pasted onto the painted scenes.
+  5. Codex drew every age, body and skin colour asked for.
+  6. A knee-high Winkle vanished on a phone, so it is drawn at about half Wren's height.
+- **Originals:** `assets-src/units/samples/*.png` (git-ignored; Codex keeps copies in `~/.codex/generated_images/`). Prompts: the 2026-11-14 sample and edit lines in `assets-src/wanted-images.tsv`.
+- **Local generation:** ComfyUI is installed in `~/code/ComfyUI`, outside the repo, to test Qwen-Image 2.1, Z-Image Turbo and FLUX.2 Klein 4B. It can do masked inpainting and has no refusals. Qwen-Image 2.1 is under the Qwen Research License (check it before selling the game); Z-Image and FLUX.2 Klein 4B are Apache 2.0.
 
 ## Open questions for the next playtest
 

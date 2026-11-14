@@ -65,7 +65,25 @@ The current game (v0.19.0) tells this story in a shorter shape: an expedition of
 - **Agreed:** Before the Heart comes home, everything Wren opens closes behind her because the Bellwether restores the water after each expedition. Reaching the final depth and silencing it ends the immediate threat to Saltmere. The altered Reach remains after that victory; see "After the Heart comes home" below.
 - **Agreed:** Carrying a lantern lit from the Heart is what makes a keeper. Wren is the last keeper when the game starts. Later playable characters become keepers when she lights their lanterns from hers. This is how the README's "last lighthouse keeper" and the loss screen's "keepers" fit together.
 - **Agreed:** Each later keeper has something of their own under the same bell.
-- **Open:** Who the later keepers are. Three ideas: a salvor after the Gilded Gull's cargo, a fisher whose partner is among the Drowned Deckhands, and the Tide-Witch's apprentice, who wants the bell and not the Heart.
+- **Open:** Who the later keepers are. The first three ideas were a salvor after the Gilded Gull's cargo, a fisher whose partner is among the Drowned Deckhands, and the Tide-Witch's apprentice, who wants the bell and not the Heart.
+- **Draft (2026-11-14), not agreed:** The user wants keepers who differ in age, gender, build, size and origin, plus a few odd ones. The drafts below have pictures in `assets-src/drafts/keepers/` (GAME_NOTES.md, "Keeper and costume drafts"). The user will choose later which ones to build. Each still needs "something of their own under the same bell".
+  - **People of Saltmere's harbour:**
+    - Josiah, a retired harbour pilot who took ships past the rocks by the great light for fifty years;
+    - Dev, the lighthouse's errand boy, never allowed down the stair;
+    - Tavita, a giant who hauls boats up the slip;
+    - Rook, a whaler with a whalebone leg;
+    - Abena, the harbour's anchor-smith;
+    - Esi, who runs the ships' rigging;
+    - Old Lan, who rowed the harbour ferry for sixty years;
+    - Kamala, a lascar sailor off the merchant ships;
+    - Dr. Raman, a retired ship's surgeon;
+    - Remedios, who rakes the salt pans that gave Saltmere its name;
+    - Mateo, a cooper's apprentice who fights with a barrel lid.
+  - **The odd ones:**
+    - the Lamp Engine, a clockwork bell-tender the keepers built long ago, walking again with a lantern in its chest;
+    - Gulp, a sea monster who wants to be a keeper;
+    - Winkle, Barnaby's youngest, who lives in an old brass bell. Barnaby himself keeps his shop.
+  - Every keeper wears ochre oilskin somewhere. That matches the oilskin lore, and it is also what makes a keeper readable in a fight.
 
 ### After the Heart comes home (2026-11-12; agreed direction, not built)
 

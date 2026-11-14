@@ -19,7 +19,9 @@ Both commands take --base PICTURE.webp to edit another picture instead (the Plat
 A whole new picture (a new diving dress) can't be an edit of her. Put it on the canvas at Wren's scale with:
   python3 tools/wren-art.py place SRC.png --eye Y --head X --out img/units/keeper_NAME.webp
   where Y is her eye level and X the centre of her face (or helmet) in SRC pixels. The lowest opaque row counts as
-  her soles."""
+  her soles. --tall F places another keeper at F times Wren's height (eye level to sole); someone too tall for
+  the canvas is shrunk until the top of the picture touches its top edge. The keeper drafts in assets-src/drafts
+  were placed this way (GAME_NOTES.md, "Keeper and costume drafts")."""
 import sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -72,11 +74,14 @@ def compose(edit_p, polys, out, preview=None, base_p=MASTER):
         save(bg, preview)
 
 
-def place(src_p, eye, head, out):
+def place(src_p, eye, head, out, tall=1.0):
     src = Image.open(src_p).convert('RGBA')
     rows = np.where((np.asarray(src.getchannel('A')) > 128).any(1))[0]
     sole = rows.max()
-    f = EYE_TO_SOLE / (sole - eye)
+    f = EYE_TO_SOLE * tall / (sole - eye)
+    if SOLE - (sole - rows.min()) * f < 0:  # too tall for the canvas: shrink until the top touches it
+        f = SOLE / (sole - rows.min())
+        print(f'note: shrunk to fit the canvas ({f * (sole - eye) / EYE_TO_SOLE:.2f} of Wren\'s height)', file=sys.stderr)
     big = src.resize((round(src.width * f), round(src.height * f)), Image.LANCZOS)
     left, top = round(HEAD_X - head * f), round(SOLE - sole * f)
     bbox = big.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()
@@ -95,4 +100,4 @@ if __name__ == '__main__':
         sys.exit(__doc__)
     if a[0] == 'input': make_input(a[1], arg(a, '--base', MASTER))
     elif a[0] == 'compose': compose(a[1], arg(a, '--allow', many=True), arg(a, '--out'), arg(a, '--preview'), arg(a, '--base', MASTER))
-    else: place(a[1], float(arg(a, '--eye')), float(arg(a, '--head')), arg(a, '--out'))
+    else: place(a[1], float(arg(a, '--eye')), float(arg(a, '--head')), arg(a, '--out'), float(arg(a, '--tall', 1)))
