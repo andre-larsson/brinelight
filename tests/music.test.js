@@ -70,14 +70,28 @@ test('the recorded songs: every song ui.js names is in music/songs with its leng
   assert.match(fs.readFileSync(path.join(root, 'tools/build.js'), 'utf8'), /SHIP = \[[^\]]*'music\/songs'/);
   // each screen's song is in SONGS, and each song plays on a screen unless it is only in the Jukebox
   const body = ui.slice(ui.indexOf('function updateSound()'), ui.indexOf('function renderScreen()'));
-  const screens = [...body.matchAll(/song = '([a-z]+)'/g)].map((m) => m[1]);
+  const loop = /const TITLE_LOOP = \[([^\]]*)\]/.exec(ui); // the title screen's songs, played in turn
+  assert.ok(loop && body.includes('TITLE_LOOP'), 'the title screen plays TITLE_LOOP');
+  const shop = /const SHOP_SONGS = \[([^\]]*)\]/.exec(ui); // Barnaby's songs, one each visit
+  assert.ok(shop && body.includes('SHOP_SONGS'), "Barnaby's shop plays SHOP_SONGS");
+  const screens = [...body.matchAll(/song = '([a-z]+)'/g)].map((m) => m[1]).concat([...(loop[1] + shop[1]).matchAll(/'([a-z]+)'/g)].map((m) => m[1]));
   screens.forEach((k) => assert.ok(songs.some((t) => t.key === k), `song '${k}' is not in SONGS`));
   assert.deepEqual(songs.filter((t) => !t.jukeOnly && !screens.includes(t.key)).map((t) => t.key), [], 'songs no screen plays');
 });
 
-test('the Jukebox plays every cue of the score, and each one is in it', () => {
+test('the Jukebox lists every song and every cue of the score once, and remembers what was heard', () => {
   const song = globalThis.Musicbox.compile(BL.MUSIC_SCORE);
-  const block = ui.slice(ui.indexOf('const JUKE_SCORE = ['), ui.indexOf('];', ui.indexOf('const JUKE_SCORE = [')));
-  const cues = [...block.matchAll(/^\s+\['([a-z0-9]+)',/gm)].map((m) => m[1]);
-  assert.deepEqual([...cues].sort(), Object.keys(song.cues).sort());
+  const block = ui.slice(ui.indexOf('const JUKE = ['), ui.indexOf('];', ui.indexOf('const JUKE = [')));
+  const items = [...block.matchAll(/^\s+\['(song|cue)', '([a-z0-9]+)'/gm)].map((m) => m[1] + ':' + m[2]);
+  assert.equal(new Set(items).size, items.length, 'each once');
+  assert.deepEqual(items.filter((k) => k.startsWith('cue:')).map((k) => k.slice(4)).sort(), Object.keys(song.cues).sort());
+  const songsBlock = ui.slice(ui.indexOf('const SONGS = {'), ui.indexOf('};', ui.indexOf('const SONGS = {')));
+  const keys = [...songsBlock.matchAll(/^\s+([a-z]+): \{ src:/gm)].map((m) => m[1]);
+  assert.deepEqual(items.filter((k) => k.startsWith('song:')).map((k) => k.slice(5)).sort(), keys.sort());
+  // what was heard is kept with the rest of the progress, one of each, and a new or old save starts with none
+  require('../js/engine.js');
+  const E = BL.E;
+  assert.deepEqual(E.newMeta().heard, []);
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).heard, []);
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], heard: ['song:shop', 'cue:fight', 'song:shop', 7, 'nonsense', 'cue:<x>'] }).heard, ['song:shop', 'cue:fight']);
 });

@@ -116,9 +116,28 @@ async function launch() {
       }
       await sleep(60);
     },
-    /* Click (or tap) the element; throws if it isn't on screen. */
+    /* Click (or tap) the element; throws if it isn't on screen. It waits (up to about a second) until the element
+       has held still and nothing covers its centre, so a tap on a list that is still sliding in doesn't land on
+       its neighbour. */
     async click(sel) {
-      const c = await page.center(sel);
+      const c = await page.eval(`(async () => {
+        const q = ${JSON.stringify(sel)}, tick = () => new Promise((r) => setTimeout(r, 20));
+        const at = () => {
+          const el = document.querySelector(q); if (!el) return null;
+          const r = el.getBoundingClientRect(); if (!r.width) return null;
+          const x = r.left + r.width / 2, y = r.top + r.height / 2, hit = document.elementFromPoint(x, y);
+          return { x, y, top: !!hit && (hit === el || el.contains(hit)) };
+        };
+        let a = at();
+        for (let i = 0; a && i < 25; i++) {
+          await tick(); await tick();
+          const b = at();
+          if (!b) break;
+          if (Math.abs(b.x - a.x) < 0.5 && Math.abs(b.y - a.y) < 0.5 && b.top) return b;
+          a = b;
+        }
+        return a;
+      })()`);
       if (!c) throw new Error('not found or not visible: ' + sel);
       await page.clickAt(c.x, c.y);
     },

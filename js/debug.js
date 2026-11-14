@@ -52,7 +52,7 @@
     let html = sec('Playtest <small>kept in this browser</small>',
       btn('skip', `Skip fights: ${opts.skip ? 'On' : 'Off'}`, ` aria-pressed="${opts.skip}"`) + btn('count', `Cheats count as real runs: ${opts.count ? 'On' : 'Off'}`, ` aria-pressed="${opts.count}"`));
     html += sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · ${meta.record.hearts ? 'the Heart is home' : 'no Heart yet'}</small>`,
-      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('hearts', 'The Heart is home (currents, finals)') + btn('allstory', 'Unlock all story') + btn('alllaz', 'Fill the Lazaret') + btn('reached', 'Next Hold (reach the next level)') +
+      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('hearts', 'The Heart is home (currents, finals)') + btn('allstory', 'Unlock all story') + btn('allmusic', 'Hear all music (Jukebox)') + btn('alllaz', 'Fill the Lazaret') + btn('reached', 'Next Hold (reach the next level)') +
       btn('resetmeta', 'Reset Workshop and Lazaret') + btn('resetall', 'Reset everything'));
     if (live) {
       html += sec(`This run <small>seed ${run.seed} · landing ${run.floor}${run.cheated ? ' · cheated' : ''}</small>`,
@@ -117,6 +117,8 @@
       case 'reached': meta.reached = Math.min(b.E.LEVELS.length - 1, (meta.reached || 0) + 1); b.saveMeta(); b.toast(`Hold ${b.E.metaHold(meta)} from the next expedition`); return reopen();
       case 'alllaz': Object.keys(BL.KEEPSAKES).forEach((k) => { if (meta.lazaret.indexOf(k) < 0) meta.lazaret.push(k); }); meta.lazOpen = true; b.saveMeta(); return reopen();
       case 'resetmeta': Object.assign(meta, b.E.newMeta()); b.saveMeta(); return reopen();
+      // every song and piece of the score counts as heard (High Tide Departure still waits for the Heart)
+      case 'allmusic': meta.heard = b.juke.map(([kind, key]) => kind + ':' + key); b.saveMeta(); b.toast('Every piece of music counts as heard'); return reopen();
       case 'resetall':
         if (!window.confirm('Erase all Brinelight progress in this browser (save, best score, Workshop, Lazaret, Logbook, story, tutorial, hints)? Debug mode stays on.')) return;
         try { Object.keys(localStorage).filter((k) => k.indexOf('brinelight.') === 0 && k !== KEY).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* ignore */ }

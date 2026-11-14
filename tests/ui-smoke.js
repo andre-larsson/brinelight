@@ -1267,7 +1267,7 @@ async function audioScenario(page, base, name, size) {
   await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: true, music: true, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
   await page.goto(base + '?seed=7171');
   await inject(page);
-  const audio = () => page.eval(`(() => { const a = window.Brinelight.audio(); return { ctx: a.ctx, depth: a.depth, ambience: a.ambience, playing: !!a.music, target: a.music && a.music.target, intensity: a.music && a.music.intensity, song: a.song, songAt: a.songAt }; })()`);
+  const audio = () => page.eval(`(() => { const a = window.Brinelight.audio(); return { ctx: a.ctx, depth: a.depth, ambience: a.ambience, playing: !!a.music, target: a.music && a.music.target, intensity: a.music && a.music.intensity, song: a.song, songAt: a.songAt, loop: a.loop }; })()`);
   const expect = async (label, want) => {
     await sleep(150);
     const a = await audio();
@@ -1277,7 +1277,7 @@ async function audioScenario(page, base, name, size) {
   await expect('before any click', { ctx: null, playing: false, song: null });
   // the first click starts the music: the title screen's song, in place of the score's title cue
   await page.click('.title-corner [data-act="menu"]');
-  await expect('the title, after a click', { ctx: 'running', playing: false, song: 'title', ambience: '' });
+  await expect('the title, after a click', { ctx: 'running', playing: false, song: 'title', ambience: '', loop: 'title,bells,hermit,buoy' });
   // a song is heard: its time moves on
   const plays = async (label) => {
     const t0 = (await audio()).songAt;
@@ -1298,28 +1298,57 @@ async function audioScenario(page, base, name, size) {
   await page.click('#overlay [data-act="togglemusic"]');
   await expect('music switched on again', { playing: false, song: 'title' });
   await clickIf(page, '#overlay [data-act="close"]');
+  // the Jukebox is there from the start
+  if (!(await page.eval(`!!document.querySelector('[data-act="jukebox"]')`))) failures.push(`${name}: the Jukebox isn't on the title screen from the start`);
   // the Workshop, over the title screen, keeps the title's song
-  await page.eval('(() => { const B = window.Brinelight; B.meta.earned = Math.max(1, B.meta.earned || 0); B.render(); })()');
+  await page.eval(`(() => { const B = window.Brinelight; B.meta.earned = Math.max(1, B.meta.earned || 0); B.meta.ach.push('outofbell'); B.render(); })()`);
   await page.click('[data-act="workshop"]');
   await expect('the Workshop', { playing: false, song: 'title' });
   await clickIf(page, '#overlay [data-act="close"]');
-  // the Jukebox: it opens on what is playing, and plays what you choose
+  // the Jukebox: one list of what you've heard, the song playing first; what you haven't heard is locked
+  const heardList = () => page.eval('window.Brinelight.meta.heard.slice()');
+  if (!(await heardList()).includes('song:title')) failures.push(`${name}: hearing the title song didn't count it as heard`);
   await page.click('[data-act="jukebox"]');
-  const rows = await page.eval(`document.querySelectorAll('#overlay .juke-row').length`);
-  if (rows !== 13) failures.push(`${name}: the Jukebox lists ${rows} tracks, expected 5 songs and 8 pieces of the score`);
-  if (!(await page.eval(`!!document.querySelector('#overlay .juke-row.cur[data-key="title"][aria-pressed="true"]')`))) failures.push(`${name}: the Jukebox doesn't show the title song playing`);
-  await clickIf(page, '#overlay .juke-row[data-key="departure"]');
+  const jb = (js) => page.eval(`(() => { const o = document.querySelector('#overlay'); return ${js}; })()`);
+  const items = await jb(`o.querySelectorAll('.juke-item').length`);
+  if (items !== 18) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 10 songs and 8 pieces of the score`);
+  if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 10 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 8) failures.push(`${name}: the Jukebox doesn't mark the 10 Gemini songs and the 8 music box pieces`);
+  if (!(await jb(`!!o.querySelector('.juke-item.cur [data-key="title"][aria-pressed="true"]')`))) failures.push(`${name}: the Jukebox doesn't show the title song playing`);
+  // open from the start: the four title songs and the score's title tune
+  const locked = await jb(`[...o.querySelectorAll('.juke-item.locked .juke-row')].filter((b) => b.disabled).length`);
+  if (locked !== 13) failures.push(`${name}: ${locked} tracks are locked, expected all but the four title songs and the Keeper's Song`);
+  if (!(await jb(`/Finish a descent/.test(o.querySelector('.juke-item.locked [aria-label^="It Went Dark"]').textContent)`))) failures.push(`${name}: a locked It Went Dark on My Watch doesn't say a descent opens it`);
+  if (!(await jb(`o.querySelector('[data-act="jukedepth"][data-depth="0"]') && !o.querySelector('[data-act="jukedepth"][data-depth="1"]')`))) failures.push(`${name}: the Jukebox's depths beyond the Shallows aren't locked`);
+  // hear more (the Heart home opens High Tide Departure; the Belfry reached opens its depth), then open it again
+  await clickIf(page, '#overlay [data-act="close"]');
+  await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 1; B.meta.record.hearts = 1; B.meta.reached = 2; B.meta.heard.push('cue:dread'); })()`);
+  await page.click('[data-act="jukebox"]');
+  if ((await jb(`o.querySelectorAll('.juke-item.locked').length`)) !== 10) failures.push(`${name}: hearing a Dread, finishing a descent and bringing the Heart home didn't open 3 more tracks`);
+  await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: High Tide Departure', { playing: false, song: 'departure' });
   await plays('High Tide Departure');
-  if (!(await page.eval(`/ \\/ /.test(document.querySelector('#overlay .juke-row.cur .juke-time').textContent)`))) failures.push(`${name}: the Jukebox doesn't show the time of the song playing`);
-  await clickIf(page, '#overlay .juke-row[data-key="departure"]');
+  if (!(await jb(`o.querySelector('.juke-item.cur .juke-t').textContent.includes(' / ') && !!o.querySelector('.juke-item.cur input.juke-pos')`))) failures.push(`${name}: the Jukebox doesn't show the time and a slider for the song playing`);
+  // move through it: 10 s on, then the slider to 1:40
+  let at = (await audio()).songAt;
+  await clickIf(page, '#overlay [data-act="jukeskip"][data-by="10"]');
+  let now2 = (await audio()).songAt;
+  if (!(now2 > at + 8)) failures.push(`${name}: +10 s moved the song from ${at.toFixed(1)} to ${now2.toFixed(1)}`);
+  await page.eval(`(() => { const r = document.querySelector('#overlay input.juke-pos'); r.value = 100; r.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(300);
+  now2 = (await audio()).songAt;
+  if (!(now2 >= 99 && now2 < 103)) failures.push(`${name}: the slider at 1:40 put the song at ${now2.toFixed(1)}`);
+  await clickIf(page, '#overlay [data-act="jukeskip"][data-by="-10"]');
+  at = (await audio()).songAt;
+  if (!(at < now2 - 8)) failures.push(`${name}: -10 s moved the song from ${now2.toFixed(1)} to ${at.toFixed(1)}`);
+  await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: paused', { playing: false, song: null });
-  await clickIf(page, '#overlay .juke-row[data-kind="cue"][data-key="dread"]');
+  await clickIf(page, '#overlay [data-act="jukeplay"][data-kind="cue"][data-key="dread"]');
   await expect('the Jukebox: a Dread', { playing: true, target: 'dread', song: null });
   await clickIf(page, '#overlay [data-act="jukedepth"][data-depth="2"]');
   await expect('the Jukebox: the Belfry', { playing: true, target: 'dread', intensity: 2 });
   await clickIf(page, '#overlay [data-act="close"]');
   await expect('the Jukebox closed, still playing', { playing: true, target: 'dread', intensity: 2, song: null });
+  await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 0; B.meta.record.hearts = 0; B.meta.reached = 0; })()`); // a first descent again
   // a descent: the map plays the reach cue, with the Shallows' sounds
   await page.click('[data-act="newrun"]');
   await sleep(200);
@@ -1327,13 +1356,23 @@ async function audioScenario(page, base, name, size) {
   await clickIf(page, '[data-act="tutorialskip"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
   await expect('the map, the game choosing the music again', { target: 'reach', depth: 0, intensity: 0, ambience: 'shallows/1', song: null });
-  // Barnaby's has its own song, and leaving hands back to the score
+  if (!(await heardList()).includes('cue:reach')) failures.push(`${name}: the map's music didn't count as heard`);
+  // Barnaby's has two songs, one each visit in turn, and leaving hands back to the score
   const set = (js) => page.eval(`(() => { const B = window.Brinelight; ${js}; B.render(); })()`);
-  await set(`const r = B.run, k = { pos: r.pos, floor: r.floor, visited: (r.visited || []).slice() }; B.E.enterNode(r, { row: 0, col: 0, type: 'shop' }); Object.assign(r, k)`);
-  await expect("Barnaby's", { playing: false, song: 'shop', ambience: 'shallows/1' });
-  await plays("Barnaby's song");
-  await set('B.E.backToMap(B.run)');
-  await expect("the map, after Barnaby's", { playing: true, target: 'reach', song: null });
+  const shopSongs = [];
+  for (const visit of [1, 2]) {
+    await set(`const r = B.run, k = { pos: r.pos, floor: r.floor, visited: (r.visited || []).slice() }; B.E.enterNode(r, { row: 0, col: 0, type: 'shop' }); Object.assign(r, k)`);
+    await sleep(150);
+    const a = await audio();
+    shopSongs.push(a.song);
+    if (!['shop', 'shell'].includes(a.song) || a.playing || a.ambience !== 'shallows/1') failures.push(`${name}: Barnaby's, visit ${visit}: ${JSON.stringify(a)}`);
+    await plays(`Barnaby's song, visit ${visit}`);
+    await set('B.E.backToMap(B.run)');
+    await expect(`the map, after Barnaby's (visit ${visit})`, { playing: true, target: 'reach', song: null });
+  }
+  if (shopSongs[0] === shopSongs[1]) failures.push(`${name}: Barnaby's played ${shopSongs[0]} twice; his two songs should take turns`);
+  const heardNow = await heardList();
+  if (!heardNow.includes('song:shop') || !heardNow.includes('song:shell')) failures.push(`${name}: Barnaby's songs didn't count as heard`);
   await page.click('[data-act="node"]');
   await page.waitFor('window.Brinelight.run.screen !== "map"', 3000, 'the first landing');
   if (await page.eval('window.Brinelight.run.screen !== "combat"')) await page.eval(`(() => { const B = window.Brinelight; B.E.startCombat(B.run, 'easy'); B.render(); })()`);
@@ -1346,7 +1385,8 @@ async function audioScenario(page, base, name, size) {
   await expect('the Harbour Hermit', { playing: false, song: 'hermit', ambience: '' });
   await plays("the Hermit's song");
   await set('B.run.combat.phase2 = true');
-  await expect("the Hermit's second phase", { playing: false, song: 'hermit' });
+  await expect("the Hermit's second phase", { playing: false, song: 'deep' });
+  await plays('Ring for the Deep');
   await set('B.E.backToMap(B.run)');
   await expect('the map, after the Hermit', { playing: true, target: 'reach', song: null });
   // Dark Water: the far bell and the drone come in, and the echo lengthens
@@ -1358,8 +1398,17 @@ async function audioScenario(page, base, name, size) {
   await set(`B.E.startCombat(B.run, 'boss')`);
   await expect('the Tolling Buoy', { playing: false, song: 'buoy', ambience: '' });
   await plays("the Buoy's song");
-  // the Belfry's pin has no song: the score's pin cue, and its own for the second phase
+  await set('B.run.combat.phase2 = true');
+  await expect("the Buoy's second phase", { playing: false, song: 'deep' });
+  if (!(await heardList()).includes('song:deep')) failures.push(`${name}: Ring for the Deep didn't count as heard`);
+  // the Bellwether has its song, in both its forms
   await set(`B.run.level = 2; B.E.startCombat(B.run, 'boss')`);
+  await expect('the Drowned Bellwether', { playing: false, song: 'bell', ambience: '' });
+  await plays("the Bellwether's song");
+  await set(`B.run.combat.enemies.forEach((e) => { if (e.id === 'bell') e.id = 'bellthing'; }); B.run.combat.phase2 = true`);
+  await expect('the Thing in the Bell', { playing: false, song: 'bell' });
+  // once the Heart is home the Belfry's last pin is another, with no song: the score's pin cue, and its own for the second phase
+  await set(`B.run.heartHome = true; B.E.startCombat(B.run, 'boss')`);
   await expect('a pin', { playing: true, target: 'pin', ambience: '', song: null });
   await set('B.run.combat.phase2 = true');
   await expect("a pin's second phase", { target: 'pin2' });
@@ -1368,7 +1417,21 @@ async function audioScenario(page, base, name, size) {
   await set(`B.run.screen = 'defeat'`);
   await expect('the loss screen', { target: 'fallen', ambience: '' });
   await set('B.run = null');
-  await expect('back on the title', { playing: false, song: 'title', depth: 0, ambience: '' });
+  // back on the title, the descent just finished opens its last song: each in turn, from the top
+  await expect('back on the title', { playing: false, song: 'title', depth: 0, ambience: '', loop: 'title,bells,hermit,buoy,watch' });
+  for (const next of ['bells', 'hermit', 'buoy', 'watch', 'title']) {
+    await page.eval('window.Brinelight.songToEnd()');
+    await page.waitFor(`window.Brinelight.audio().song === '${next}'`, 6000, `the title screen going on to ${next}`);
+    await plays(`the title screen's ${next} song`);
+  }
+  // a new page load starts on a random open title song (the keeper's song only until it has been heard), then goes round in order
+  await page.goto(base + '?seed=7171');
+  await inject(page);
+  await page.click('.title-corner [data-act="menu"]');
+  await sleep(300);
+  const again = await audio(), order = 'title,bells,hermit,buoy,watch', rot = (l) => l.split(',').map((k, i, a) => a.slice(i).concat(a.slice(0, i)).join(','));
+  if (!rot(order).includes(again.loop) || again.song !== (again.loop || '').split(',')[0]) failures.push(`${name}: after a reload the title screen should start the loop on one of its songs and keep its order (${JSON.stringify(again)})`);
+  await clickIf(page, '#overlay [data-act="close"]');
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 

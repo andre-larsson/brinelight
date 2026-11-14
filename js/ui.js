@@ -142,30 +142,39 @@
     // -16 LUFS, and buries the sound effects; 0.12 puts a fight at about -32 LUFS, under an ordinary blow,
     // as the old music sat. GAME_NOTES.md has the measurements.
     const MUSIC_LEVEL = 0.12;
-    const now = { cue: 'title', depth: 0, band: null, density: 0, song: null };
+    const now = { cue: 'title', depth: 0, band: null, density: 0, song: null, loop: null };
     // a slider position to a level: 80% (the default) is the balance above, 100% is +4 dB, 50% is -8 dB, 0 is silent
     const gain = (v) => { v = Math.max(0, Math.min(1, +v || 0)) / 0.8; return v * v; };
-    /* Recorded songs (music/songs, made with Google Gemini). A screen with a song plays it in place of the score
+    /* Songs generated with Google Gemini (music/songs). A screen with a song plays it in place of the score
        (updateSound says which). Leaving fades it out; a song that `resume`s carries on from there next time, and a
        pin's starts again with each fight. When a song ends, the score plays for the rest of that visit. The Jukebox
-       plays them all, and High Tide Departure only there. The files are normalised to -16 LUFS, and SONG_LEVEL plays
+       plays the ones you have heard, and High Tide Departure only there, once the Heart is home. The files are normalised to -16 LUFS, and SONG_LEVEL plays
        them at about -30 LUFS, level with the score. They play through the music bus, so its switch and slider work,
        on a phone too (iOS ignores an <audio> element's own volume). From file:// the browser won't let Web Audio read
        the file, so there the element plays straight out at a volume set from the slider, with no fades.
+       The title screen has a list of songs (`now.loop`) and plays them in turn, round and round, each from the top.
        `secs` is the length, for the Jukebox's list before a file has loaded. */
     const SONGS = {
       title: { src: 'music/songs/the-great-light-turning-slow.mp3', resume: true, secs: 177, name: 'The Great Light Turning Slow', where: 'The title screen' },
+      bells: { src: 'music/songs/harbour-bells-at-dawn.mp3', resume: true, secs: 138, name: 'Harbour Bells at Dawn', where: 'The title screen' }, // wordless
       shop: { src: 'music/songs/no-haggling-no-biting.mp3', resume: true, secs: 176, name: 'No Haggling, No Biting', where: "Barnaby's shop" },
-      hermit: { src: 'music/songs/the-hermits-heavy-toll.mp3', resume: false, secs: 178, name: "The Hermit's Heavy Toll", where: 'The Harbour Hermit' },
-      buoy: { src: 'music/songs/tide-swings-its-tongue.mp3', resume: false, secs: 148, name: 'Tide Swings Its Tongue', where: 'The Tolling Buoy' }, // the swell swings its clapper
+      shell: { src: 'music/songs/pop-the-shell.mp3', resume: true, secs: 165, name: 'Pop the Shell', where: "Barnaby's shop" }, // Barnaby raps it (Gemini called it No Hagglin', No Bitin')
+      hermit: { src: 'music/songs/the-hermits-heavy-toll.mp3', resume: false, secs: 178, name: "The Hermit's Heavy Toll", where: 'The Harbour Hermit and the title screen' },
+      buoy: { src: 'music/songs/tide-swings-its-tongue.mp3', resume: false, secs: 148, name: 'Tide Swings Its Tongue', where: 'The Tolling Buoy and the title screen' }, // the swell swings its clapper
+      deep: { src: 'music/songs/ring-for-the-deep.mp3', resume: false, secs: 174, name: 'Ring for the Deep', where: 'The Harbour Hermit and the Tolling Buoy, once they turn' }, // the two bells rap it
+      bell: { src: 'music/songs/the-toll-of-the-sunken-stair.mp3', resume: false, secs: 178, name: 'The Toll of the Sunken Stair', where: 'The Drowned Bellwether' },
       departure: { src: 'music/songs/high-tide-departure.mp3', resume: true, secs: 179, name: 'High Tide Departure', where: 'Only in the Jukebox', jukeOnly: true },
+      watch: { src: 'music/songs/it-went-dark-on-my-watch.mp3', resume: true, secs: 158, name: 'It Went Dark on My Watch', where: 'The title screen' }, // its last verse is a fall
     };
     const SONG_LEVEL = 0.2, SONG_FADE = 1.2;
     const songs = {}; // the songs loaded so far: { el, amp (its gain into the music bus, or null), done, broken, timer, out }
     let songOn = null; // the song playing or fading in
+    let loopAt = null; // the title screen's song now, or the one it comes back to
     /* The Jukebox's pick, from the moment one is made until a descent starts: { song or cue, paused, depth }. While
        it holds, nothing else plays. A song that ends goes on to the next (jukeEnd); a piece of the score loops. */
     let juke = null, jukeEnd = null;
+    let heardFn = null; // told of each song and cue of the score as it plays, for the Jukebox ('song:shop', 'cue:fight')
+    const heard = (k) => { if (heardFn) heardFn(k); };
     const songVol = () => Math.min(1, (prefs.music ? gain(prefs.musicVol) : 0) * SONG_LEVEL); // an element's own volume
     const levels = () => {
       if (!ctx) return;
@@ -211,9 +220,16 @@
       s.el.addEventListener('ended', () => {
         s.el.currentTime = 0;
         if (juke && juke.song === key) { if (jukeEnd) jukeEnd(key); else { juke.paused = true; sync(); } return; }
-        if (now.song === key) { s.done = true; sync(); }
+        if (now.song === key) {
+          if (now.loop) { // the title screen's next song, from the top
+            loopAt = now.song = now.loop[(now.loop.indexOf(key) + 1) % now.loop.length];
+            if (songs[loopAt]) { songs[loopAt].done = false; songs[loopAt].el.currentTime = 0; }
+          } else s.done = true;
+          sync();
+        }
       });
       s.el.addEventListener('error', () => { s.broken = true; songFailed(key); });
+      s.el.addEventListener('playing', () => heard('song:' + key));
       s.el.src = SONGS[key].src;
       return s;
     }
@@ -264,6 +280,7 @@
             music.load(BL.MUSIC_SCORE);
           }
           if (playing) { music.setIntensity(depth); music.goto(cue); } else { music.play(cue, { intensity: depth }); playing = true; }
+          heard('cue:' + cue);
         } catch (e) { musicBroken = true; music = null; playing = false; } // no Web Audio, or a broken score: play on without music
       } else if (playing) { music.stop(want ? SONG_FADE : 0.8); playing = false; }
     }
@@ -281,17 +298,21 @@
     return {
       play(name, arg) { if (!prefs.sound || !ac()) return; try { kit.play(name, arg); } catch (e) { /* audio unavailable */ } },
       /* where Wren is: a cue of the score, the depth (0 the Shallows, 1 Dark Water, 2 the Belfry), the ambience,
-         and the screen's recorded song, if it has one (a key of SONGS) */
+         and the screen's recorded song, if it has one (a key of SONGS), or its songs to play in turn (a list of keys) */
       scene(cue, depth, band, density, song) {
         now.band = density ? band : null; now.density = density || 0;
         if (kit && depth !== now.depth) kit.setDepth(depth);
         now.cue = cue; now.depth = depth;
+        const loop = Array.isArray(song) && song.length ? song : null;
+        if (loop) song = loop.indexOf(loopAt) >= 0 ? loopAt : loop[0];
         song = song && SONGS[song] ? song : null;
         if (song !== now.song) {
           if (song && songs[song]) songs[song].done = false; // a new visit plays it again
           now.song = song;
         }
-        if (juke && song !== 'title') juke = null; // a descent has started: the game chooses the music again
+        now.loop = loop;
+        if (loop) loopAt = song;
+        if (juke && !loop) juke = null; // a descent has started: the game chooses the music again
         sync();
         ambience();
       },
@@ -328,7 +349,16 @@
           sync();
         },
         depth(n) { juke = Object.assign({}, current(), { depth: Math.max(0, Math.min(2, n | 0)) }); sync(); },
+        // move within the song playing (or paused): to `t` seconds, or `by` seconds on from where it is
+        seek(t, by) {
+          const cur = current(), s = cur.song && songs[cur.song];
+          if (!s) return;
+          juke = Object.assign({}, cur);
+          const end = s.el.duration > 0 ? s.el.duration : SONGS[cur.song].secs;
+          s.el.currentTime = Math.max(0, Math.min(end - 0.25, by ? s.el.currentTime + by : t));
+        },
         onEnd(fn) { jukeEnd = fn; },
+        onHeard(fn) { heardFn = fn; },
         state() {
           const cur = current(), s = cur.song && songs[cur.song];
           return { song: cur.song, cue: cur.cue, paused: !!cur.paused || !prefs.music, depth: cur.depth,
@@ -338,8 +368,10 @@
       state: () => {
         const s = songOn && songs[songOn], on = !!(s && !s.el.paused && !s.out);
         return { ctx: ctx ? ctx.state : null, music: playing ? music.state : null, cue: now.cue, depth: now.depth, ambience: ambOn,
-          song: on ? songOn : null, songAt: on ? s.el.currentTime : 0 };
+          song: on ? songOn : null, songAt: on ? s.el.currentTime : 0, loop: now.loop ? now.loop.join(',') : null };
       },
+      // for the UI test: the song playing to a second before its end
+      toEnd() { const s = songOn && songs[songOn]; if (s && s.el.duration > 1) s.el.currentTime = s.el.duration - 1; },
     };
   })();
   const sfx = (n, arg) => Sound.play(n, arg);
@@ -665,6 +697,13 @@
   // the menu's volume sliders: heard while dragged, saved when let go (with a click to judge the sound effects by)
   overlayEl.addEventListener('input', (e) => {
     const r = e.target;
+    if (r.matches && r.matches('input.juke-pos')) { // the Jukebox's slider: move through the song as it is dragged
+      Sound.juke.seek(+r.value);
+      ui.jukeSeekAt = Date.now();
+      const t = $('.juke-item.cur .juke-t', overlayEl);
+      if (t) t.textContent = `${mmss(+r.value)} / ${mmss(+r.max)}`;
+      return;
+    }
     if (!r.matches || !r.matches('input[data-vol]')) return;
     prefs[r.dataset.vol + 'Vol'] = +r.value / 100;
     const o = r.parentElement.querySelector('output');
@@ -977,9 +1016,20 @@
   }
   /* The music and the place's own sounds follow the screen: the score has a cue for each kind of screen
      (see music/brinelight.scrim), and its intensity is the depth, as is the echo on the sound effects. */
+  const TITLE_LOOP = ['title', 'bells', 'hermit', 'buoy', 'watch'];
+  const SHOP_SONGS = ['shop', 'shell'];
+  let shopSong = null, inShop = false; // Barnaby's songs take turns, one each visit, starting on one at random
+  let titleFirst = null; // the title song this page load starts on: the keeper's song until it has been heard once
   function updateSound() {
-    // a recorded song (on trial) on the title screen, at Barnaby's, and in the Harbour Hermit's and the Tolling Buoy's fights
-    let cue = 'title', depth = 0, band = null, density = 0, song = 'title';
+    /* Recorded songs at Barnaby's, and against the Harbour Hermit, the Tolling Buoy and the Bellwether. The title screen
+       plays its songs in turn, the ones that are open in the Jukebox (jukeOpen): The Great Light Turning Slow, Harbour
+       Bells at Dawn, the Hermit's song and Tide Swings Its Tongue from the start (what they hint at is foreshadowing),
+       and It Went Dark on My Watch once you have finished a descent. Each time the page loads it starts on one of them
+       at random (titleFirst) and goes on in order. */
+    const open = TITLE_LOOP.filter((k) => jukeOpen('song', k));
+    if (!titleFirst) titleFirst = meta.heard.indexOf('song:title') < 0 ? 'title' : open[Math.floor(Math.random() * open.length)];
+    const at = Math.max(0, open.indexOf(titleFirst));
+    let cue = 'title', depth = 0, band = null, density = 0, song = open.slice(at).concat(open.slice(0, at));
     if (run) {
       song = null;
       band = E.bandId(run);
@@ -991,11 +1041,18 @@
         cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'harbour')) song = 'hermit';
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'buoy')) song = 'buoy';
+        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bell' || e.id === 'bellthing')) song = 'bell'; // its second phase is the Thing in the Bell
+        // the Hermit's bell rings and the Buoy's chain snaps at two thirds of their health: then the two bells rap at you
+        if (c.phase2 && (song === 'hermit' || song === 'buoy')) song = 'deep';
       } else {
         cue = 'reach'; density = 1;
-        if (run.screen === 'shop') song = 'shop';
+        if (run.screen === 'shop') {
+          if (!inShop) shopSong = shopSong ? SHOP_SONGS[(SHOP_SONGS.indexOf(shopSong) + 1) % SHOP_SONGS.length] : SHOP_SONGS[Math.floor(Math.random() * SHOP_SONGS.length)];
+          song = shopSong;
+        }
       }
     }
+    inShop = !!run && run.screen === 'shop';
     Sound.scene(cue, depth, band, density, song);
   }
   function renderScreen() {
@@ -1142,64 +1199,109 @@
     openOverlay(modal('Credits', body, '<button class="btn primary" data-act="close" autofocus>Close</button>', 'help-modal'));
   }
 
-  /* ----- Jukebox (the title screen): every recorded song and every piece of the score. A pick plays until a descent
-     starts: a song that ends goes on to the next, and a piece of the score loops. ----- */
-  const JUKE_SCORE = [ // the score's cues, with a name for each and where the game plays it
-    ['title', "The Keeper's Song", 'The title screen, after its song'],
-    ['reach', 'The Way Down', 'The map and its stops'],
-    ['fight', 'The Waves', 'Fights'],
-    ['dread', 'Dread', 'Dreads'],
-    ['pin', 'The Bell', "The Belfry's pin"],
-    ['pin2', 'The Bell Cracks', 'Its second phase'],
-    ['home', 'Dawn', 'Bringing the Heart home'],
-    ['fallen', 'The Ember', 'When the tide takes you'],
+  /* ----- Jukebox (the title screen, from the start): the music you have heard,
+     Gemini's songs and pieces of the score in one list, in the order you meet them. A pick plays until a descent starts: a song that ends goes on to the next one you have
+     heard, and a piece of the score loops. The song playing can be moved through. ----- */
+  const JUKE = [ // [kind, key] for a song (its name and place are in SONGS); [kind, key, name, where] for a cue of the score
+    ['song', 'title'],
+    ['song', 'bells'],
+    ['cue', 'title', "The Keeper's Song", 'Only in the Jukebox'], // the title screen's tune until it had songs
+    ['cue', 'reach', 'The Way Down', 'The map and its stops'],
+    ['cue', 'fight', 'The Waves', 'Fights'],
+    ['song', 'shop'],
+    ['song', 'shell'],
+    ['cue', 'dread', 'Dread', 'Dreads'],
+    ['song', 'hermit'],
+    ['song', 'buoy'],
+    ['song', 'deep'],
+    ['song', 'bell'],
+    ['cue', 'pin', 'The Bell', 'A pin without a song of its own'],
+    ['cue', 'pin2', 'The Bell Cracks', "That pin's second phase"],
+    ['cue', 'home', 'Dawn', 'Bringing the Heart home'],
+    ['song', 'departure'],
+    ['cue', 'fallen', 'The Ember', 'When the tide takes you'],
+    ['song', 'watch'],
   ];
   const JUKE_DEPTHS = ['The Shallows', 'Dark Water', 'The Belfry'];
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-  // what the list shows as playing: redrawn when it changes, and the time ticks in between
-  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth].join('/');
+  /* What you have heard (meta.heard). A debug-cheated run records nothing, as with Story so far. Some tracks open
+     sooner (JUKE_EARLY), and High Tide Departure only that way, since it plays nowhere else. A depth of the score
+     opens when you have reached it. */
+  Sound.juke.onHeard((k) => {
+    if ((run && run.cheated) || meta.heard.indexOf(k) >= 0) return;
+    meta.heard.push(k);
+    saveMeta();
+  });
+  const JUKE_EARLY = { // open: when it opens without being heard; how: what a locked one says
+    'song:title': { open: () => true },
+    'song:bells': { open: () => true },
+    'cue:title': { open: () => true }, // the title screen plays its songs instead now, so it is heard only here
+    'song:hermit': { open: () => true }, // the pins' songs foreshadow them (the user's call)
+    'song:buoy': { open: () => true },
+    'song:departure': { open: () => E.heartIsHome(meta), how: 'Bring the Heart home to hear it' },
+    'song:watch': { open: () => ((meta.record && meta.record.runs) || 0) >= 1, how: 'Finish a descent to hear it' }, // it tells of a fall
+  };
+  const jukeOpen = (kind, key) => {
+    const k = kind + ':' + key, early = JUKE_EARLY[k];
+    return meta.heard.indexOf(k) >= 0 || !!(early && early.open());
+  };
+  const jukeDepthOpen = (d) => d <= (meta.reached || 0);
+  // what the list shows as playing: it is redrawn when that changes, and the time moves in between
+  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, meta.heard.length].join('/');
   function jukeList(st) {
     const S = Sound.juke.SONGS;
-    const row = (kind, key, name, where, time) => {
-      const cur = kind === 'song' ? st.song === key : !st.song && st.cue === key, on = cur && !st.paused;
-      const bar = cur && kind === 'song' ? `<span class="juke-bar"><i style="width:${st.secs ? Math.min(100, (st.at / st.secs) * 100).toFixed(1) : 0}%"></i></span>` : '';
-      return `<button class="juke-row${cur ? ' cur' : ''}" data-act="jukeplay" data-kind="${kind}" data-key="${key}" aria-pressed="${on}" aria-label="${on ? 'Pause' : 'Play'}: ${name}">
-        <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${time}</span>${bar}</button>`;
-    };
-    const songs = Object.keys(S).map((k) => row('song', k, S[k].name, S[k].where, st.song === k ? `${mmss(st.at)} / ${mmss(st.secs)}` : mmss(S[k].secs))).join('');
-    const depths = JUKE_DEPTHS.map((d, i) => `<button class="btn small" data-act="jukedepth" data-depth="${i}" aria-pressed="${st.depth === i}">${d}</button>`).join('');
-    return `<h3 class="juke-h">Songs</h3>${songs}
-      <h3 class="juke-h">The score</h3><p class="juke-note">Played by the music box as you listen. The deeper the water, the darker it gets.</p>
-      <div class="juke-depth" role="group" aria-label="Depth">${depths}</div>
-      ${JUKE_SCORE.map(([k, n, w]) => row('cue', k, n, w, '')).join('')}`;
+    const rows = JUKE.map(([kind, key, cueName, cueWhere]) => {
+      const song = kind === 'song', name = song ? S[key].name : cueName, where = song ? S[key].where : cueWhere;
+      // a song generated with Google Gemini, or a piece the music box plays from the score (not "Recorded": nobody recorded them)
+      const tag = song ? '<span class="juke-tag rec">Gemini</span>' : '<span class="juke-tag box">Music box</span>';
+      if (!jukeOpen(kind, key)) {
+        const early = JUKE_EARLY[kind + ':' + key], how = (early && early.how) || `${where} · not heard yet`;
+        return `<div class="juke-item locked"><button class="juke-row" disabled aria-label="${name}: locked. ${how}">
+          <span class="juke-ic">${ICON.lock}</span><span class="juke-txt"><b>${name}</b><small>${how}</small></span><span class="juke-time">${tag}</span></button></div>`;
+      }
+      const cur = song ? st.song === key : !st.song && st.cue === key, on = cur && !st.paused;
+      const time = song ? (cur ? `${mmss(st.at)} / ${mmss(st.secs)}` : mmss(S[key].secs)) : '';
+      const seek = cur && song ? `<div class="juke-seek">
+          <button class="btn small" data-act="jukeskip" data-by="-10" aria-label="Back 10 seconds">&minus;10 s</button>
+          <input type="range" class="juke-pos" min="0" max="${Math.round(st.secs)}" step="1" value="${Math.floor(st.at)}" aria-label="Position in ${name}">
+          <button class="btn small" data-act="jukeskip" data-by="10" aria-label="Forward 10 seconds">+10 s</button></div>` : '';
+      return `<div class="juke-item${cur ? ' cur' : ''}"><button class="juke-row" data-act="jukeplay" data-kind="${kind}" data-key="${key}" aria-pressed="${on}" aria-label="${on ? 'Pause' : 'Play'}: ${name}">
+        <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${tag}${time ? `<span class="juke-t">${time}</span>` : ''}</span></button>${seek}</div>`;
+    }).join('');
+    const depths = JUKE_DEPTHS.map((d, i) => jukeDepthOpen(i)
+      ? `<button class="btn small" data-act="jukedepth" data-depth="${i}" aria-pressed="${st.depth === i}">${d}</button>`
+      : `<button class="btn small" disabled aria-label="${d}: not reached yet">${ICON.lock}${d}</button>`).join('');
+    return `<div class="juke-depth" role="group" aria-label="Depth of the music box"><span>Music box depth</span>${depths}</div>${rows}`;
   }
   function drawJuke() {
     const list = $('.juke-list', overlayEl);
     if (!list) { clearInterval(ui.jukeTick); return; }
     const st = Sound.juke.state(), sig = jukeSig(st);
-    if (sig === ui.jukeSig) { // only the time and the bar move
-      const t = $('.juke-row.cur .juke-time', list), b = $('.juke-row.cur .juke-bar i', list);
+    if (sig === ui.jukeSig) { // only the time moves, and the slider unless it is being dragged
+      const t = $('.juke-item.cur .juke-t', list), r = $('.juke-item.cur .juke-pos', list);
       if (t && st.song) t.textContent = `${mmss(st.at)} / ${mmss(st.secs)}`;
-      if (b && st.secs) b.style.width = Math.min(100, (st.at / st.secs) * 100).toFixed(1) + '%';
+      if (r && Date.now() - (ui.jukeSeekAt || 0) > 700) { r.max = Math.round(st.secs); r.value = Math.floor(st.at); }
       return;
     }
-    const f = document.activeElement, fk = f && list.contains(f) ? (f.dataset.key ? `[data-key="${f.dataset.key}"]` : f.dataset.depth ? `[data-depth="${f.dataset.depth}"]` : null) : null;
+    const f = document.activeElement;
+    const fk = f && list.contains(f) ? (f.dataset.key ? `[data-act="jukeplay"][data-key="${f.dataset.key}"]` : f.dataset.depth ? `[data-depth="${f.dataset.depth}"]` : f.dataset.by ? `[data-by="${f.dataset.by}"]` : f.classList.contains('juke-pos') ? '.juke-pos' : null) : null;
     list.innerHTML = jukeList(st);
     ui.jukeSig = sig;
     if (fk) { const g = $(fk, list); if (g) g.focus({ preventScroll: true }); }
   }
   function showJukebox() {
     const st = Sound.juke.state();
-    const body = `<p class="juke-lead">What you choose plays until you set out, and each song goes on to the next. The music slider in the menu sets the volume.</p><div class="juke-list">${jukeList(st)}</div>`;
+    const body = `<div class="juke-list">${jukeList(st)}</div>`;
     ui.jukeSig = jukeSig(st);
     clearInterval(ui.jukeTick);
     openOverlay(modal('Jukebox', body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'jukebox-modal'), { onClose: () => clearInterval(ui.jukeTick) });
     ui.jukeTick = setInterval(drawJuke, 500);
   }
-  // a song that ends in the Jukebox goes on to the next one
+  // a song that ends in the Jukebox goes on to the next one you have heard (or starts again, if it is the only one)
   Sound.juke.onEnd((key) => {
-    const ks = Object.keys(Sound.juke.SONGS);
-    Sound.juke.pick('song', ks[(ks.indexOf(key) + 1) % ks.length], true);
+    const ks = JUKE.filter(([kind, k]) => kind === 'song' && jukeOpen(kind, k)).map(([, k]) => k);
+    const i = ks.indexOf(key);
+    Sound.juke.pick('song', ks.length ? ks[(i + 1) % ks.length] : key, true);
     drawJuke();
   });
 
@@ -1309,6 +1411,7 @@
 
   /* ----- The logbook: a short record of how far the player has come ----- */
   const logbookOpen = () => meta.record.runs > 0 || getNum(BEST_KEY) > 0 || meta.earned > 0;
+  // the Jukebox opens once the Shallows are done: the Harbour Hermit's bell broken (Out of Its Bell)
   function showLogbook() {
     const r = meta.record, marks = storyMarks();
     const cleared = E.LEVELS.filter((L, i) => marks.indexOf('won:' + i) >= 0).map((L) => L.name);
@@ -3050,6 +3153,7 @@
         break;
       }
       case 'jukedepth': Sound.juke.depth(+t.dataset.depth); drawJuke(); break;
+      case 'jukeskip': Sound.juke.seek(0, +t.dataset.by); ui.jukeSeekAt = 0; drawJuke(); break;
       case 'changelog': showChangelog(); break;
       case 'credits': showCredits(); break;
       case 'story': showStory(); break;
@@ -3414,8 +3518,8 @@
   // exposed for debugging and the UI tests
   window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; }, get meta() { return meta; },
     // for js/debug.js
-    save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat,
+    juke: JUKE, save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat,
     story, saveStory, showStory, showOpening, showLazaret,
     // for the UI test: what a backup holds, and loading one without the file picker; what the music and sound are doing
-    backupData, askRestore, audio: () => Sound.state() };
+    backupData, askRestore, audio: () => Sound.state(), songToEnd: () => Sound.toEnd() };
 })();

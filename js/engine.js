@@ -1649,7 +1649,7 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord(), reached: 0 });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord(), reached: 0, heard: [] });
   /* A run has reached a level: the deepest one counts for good, even if Wren falls or turns back (not the tutorial or a
      debug-cheated run). Returns true when it is new, so the Hold has grown. */
   E.noteReached = function (meta, run) {
@@ -1743,6 +1743,8 @@
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
     m.currents = uniq2(m.currents);
+    // the music heard, for the Jukebox (v0.28.0): 'song:<key>' and 'cue:<cue>', one of each
+    m.heard = (Array.isArray(m.heard) ? m.heard : []).filter((k, i, a) => typeof k === 'string' && /^(song|cue):[a-z0-9]+$/.test(k) && a.indexOf(k) === i);
     // the deepest level reached (v0.22.0) sets the Hold; the logbook's deepest landing counts from before
     const deepest = Math.max(m.reached > 0 ? Math.floor(m.reached) : 0, rec.deep ? rec.deep.level : 0);
     m.reached = Math.min(E.LEVELS.length - 1, deepest);

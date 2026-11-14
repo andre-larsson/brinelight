@@ -5,8 +5,16 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.27.0';
+  BL.VERSION = '0.28.0';
   BL.CHANGELOG = [
+    { v: '0.28.0', date: '2026-11-14', items: [
+      'A new song against the Drowned Bellwether: "The Toll of the Sunken Stair". It keeps playing when the Bell breaks and the Thing in the Bell comes out.',
+      'The title screen plays its songs in turn, round and round, starting on one at random each time you open the game. "The Great Light Turning Slow", a new wordless song, "Harbour Bells at Dawn", "The Hermit\'s Heavy Toll" and "Tide Swings Its Tongue" play from the start, and a new song, "It Went Dark on My Watch", joins once you have finished a descent. The music box\'s title tune, "The Keeper\'s Song", is in the Jukebox now.',
+      'A new song for the first two pins, "Ring for the Deep": the Harbour Hermit and the Tolling Buoy rap it at you. It takes over when the Hermit rings its bell and when the Buoy snaps its chain.',
+      'A second song in Barnaby\'s shop, "Pop the Shell": Barnaby raps about his wares. His two songs take turns, one each visit.',
+      'The Jukebox is one list now, songs and music box pieces together, each marked Gemini (made with Google Gemini) or Music box (played by the game\'s own music box). A piece opens once you have heard it, counting from this version on. The title screen\'s songs open when they join the title screen, "The Keeper\'s Song" is open from the start, High Tide Departure opens when the Heart comes home, and each depth of the music box opens when you reach it.',
+      'In the Jukebox you can move about in a song: drag the slider, or go back or on by 10 seconds.',
+    ] },
     { v: '0.27.0', date: '2026-11-14', items: [
       'Songs with singing, in four places: "The Great Light Turning Slow" on the title screen, "No Haggling, No Biting" in Barnaby\'s shop, "The Hermit\'s Heavy Toll" against the Harbour Hermit, and "Tide Swings Its Tongue" against the Tolling Buoy. Everywhere else the music box plays as before, and it takes over when a song ends.',
       'A Jukebox on the title screen plays every song and every piece of the music box\'s score, and one more song, "High Tide Departure", that you can hear only there. Choose a depth to hear the score darken the way it does on the way down. What you choose keeps playing until you set out.',
@@ -223,14 +231,14 @@
     ] },
     { head: 'Made with', lines: [
       'Claude Code (Anthropic): the code, the rules, the story text, the music score, the sound effects, and the words and prompts for the songs.',
-      'Google Gemini: the recorded songs.',
+      'Google Gemini: the songs, generated from those words and prompts.',
       'Grok (xAI, in the Cursor agent CLI), and Terra and Sol (OpenAI, in Codex): discussions of the world and its lore.',
       'Codex (OpenAI): the pictures, which were then cropped, cleaned and recoloured.',
     ] },
     { head: 'Music', lines: [
       'The score is played by [musicbox](https://a403.space/musicbox/), a fork of [Scrimshaw Jukebox](https://tools.simonwillison.net/scrimshaw-jukebox) by Simon Willison. Its synthesizer comes from Scrimshaw, and the score is plain text in Scrimshaw\'s format. Apache License 2.0.',
       'The score and the sound effects are made in your browser as you play.',
-      'Four songs are recordings, made with Google Gemini from words and prompts written with Claude Code: "The Great Light Turning Slow" (the title screen), "Tide Swings Its Tongue" (the Tolling Buoy), "No Haggling, No Biting" (Barnaby\'s) and "The Hermit\'s Heavy Toll" (the Harbour Hermit).',
+      'Ten songs were generated with Google Gemini from words and prompts written with Claude Code: "The Great Light Turning Slow", "Harbour Bells at Dawn" and "It Went Dark on My Watch" (the title screen), "No Haggling, No Biting" and "Pop the Shell" (Barnaby\'s), "The Hermit\'s Heavy Toll" (the Harbour Hermit), "Tide Swings Its Tongue" (the Tolling Buoy), "Ring for the Deep" (both of those pins, once they turn), "The Toll of the Sunken Stair" (the Drowned Bellwether) and "High Tide Departure" (only in the Jukebox).',
     ] },
     { head: 'More', lines: [
       'Source code: [github.com/andre-larsson/brinelight](https://github.com/andre-larsson/brinelight)',

@@ -895,26 +895,40 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 
 /* How to Play: tabs */
 .help-modal { width: min(640px, 100%); }
-/* the Jukebox: a row for each song and each piece of the score; the one playing is brass, with its time and a bar */
-.jukebox-modal { width: min(560px, 100%); }
-.juke-lead { margin: 0 0 4px; font-size: 15px; line-height: 1.45; color: var(--muted); }
-.juke-h { margin: 16px 0 8px; font-size: 18px; color: #f3dfb2; }
-.juke-note { margin: -4px 0 8px; font-size: 14px; line-height: 1.4; color: var(--muted); }
-.juke-row { position: relative; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: 54px; margin: 0 0 6px; padding: 8px 12px 10px 10px; font: inherit; text-align: left; color: var(--text); background: rgba(10, 29, 43, .6); border: 1px solid rgba(212, 236, 232, .14); border-radius: 10px; cursor: pointer; }
-.juke-row:hover, .juke-row:focus-visible { background: rgba(18, 53, 72, .75); border-color: rgba(212, 236, 232, .45); outline: none; }
-.juke-row.cur { background: rgba(201, 162, 74, .13); border-color: var(--brass); }
+/* the Jukebox: one list, a row for each song and each piece of the score, tagged Recorded or Music box. The one
+   playing is brass; a song playing has a slider and 10 s steps under it. What you haven't heard is dimmed and locked. */
+.jukebox-modal { width: min(580px, 100%); }
+.juke-depth { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+.juke-depth > span { margin-right: 4px; font-size: 14px; color: var(--muted); }
+.juke-depth .btn[aria-pressed="true"] { color: var(--ink); background: var(--brass); border-color: var(--brass); }
+.juke-depth .btn:disabled { opacity: .5; cursor: default; }
+.juke-depth .btn svg { width: 13px; height: 13px; margin-right: 4px; vertical-align: -1px; }
+.juke-item { margin: 0 0 6px; background: rgba(10, 29, 43, .6); border: 1px solid rgba(212, 236, 232, .14); border-radius: 10px; }
+.juke-item.cur { background: rgba(201, 162, 74, .13); border-color: var(--brass); }
+.juke-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 8px 12px 8px 10px; font: inherit; text-align: left; color: var(--text); background: none; border: 0; border-radius: 9px; cursor: pointer; }
+.juke-row:not(:disabled):hover, .juke-row:focus-visible { background: rgba(18, 53, 72, .75); outline: 2px solid rgba(212, 236, 232, .45); outline-offset: -2px; }
+.juke-item.cur .juke-row:hover { background: rgba(201, 162, 74, .1); }
 .juke-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--foam); background: rgba(212, 236, 232, .1); }
 .juke-ic svg { width: 16px; height: 16px; }
-.juke-row.cur .juke-ic { color: var(--ink); background: var(--brass); }
+.juke-item.cur .juke-ic { color: var(--ink); background: var(--brass); }
 .juke-txt { min-width: 0; }
 .juke-txt b { display: block; font-size: 16px; line-height: 1.25; }
 .juke-txt small { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
-.juke-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.juke-row.cur .juke-time { color: #f3dfb2; }
-.juke-bar { position: absolute; left: 54px; right: 12px; bottom: 5px; height: 3px; overflow: hidden; border-radius: 2px; background: rgba(212, 236, 232, .16); }
-.juke-bar i { display: block; height: 100%; background: var(--brass); }
-.juke-depth { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
-.juke-depth .btn[aria-pressed="true"] { color: var(--ink); background: var(--brass); border-color: var(--brass); }
+.juke-time { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.juke-t { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.juke-item.cur .juke-t { color: #f3dfb2; }
+.juke-tag { padding: 1px 7px; font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; border-radius: 9px; }
+.juke-tag.rec { color: #f3dfb2; border: 1px solid rgba(201, 162, 74, .55); }
+.juke-tag.box { color: #9fdcd0; border: 1px solid rgba(63, 174, 138, .55); }
+.juke-item.locked { background: rgba(10, 29, 43, .35); border-style: dashed; }
+.juke-item.locked .juke-row { cursor: default; }
+.juke-item.locked .juke-txt b { color: var(--muted); }
+.juke-item.locked .juke-ic { color: var(--muted); background: transparent; }
+.juke-item.locked .juke-tag { opacity: .6; }
+.juke-seek { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 0 12px 10px 54px; }
+.juke-seek .btn { min-height: 34px; padding: .25em .6em; font-variant-numeric: tabular-nums; }
+.juke-pos { width: 100%; min-width: 0; height: 28px; margin: 0; accent-color: var(--brass); cursor: pointer; }
+@media (max-width: 420px) { .juke-seek { padding-left: 12px; } }
 .help .tabs, .story .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .tab { min-height: 40px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(201, 162, 74, .4); background: rgba(10, 29, 43, .7); color: #cfe0dc; font-size: 15px; font-weight: 650; cursor: pointer; }
 .tab.on { background: #f2c46b; color: #2a1504; border-color: #ffe0a0; }
