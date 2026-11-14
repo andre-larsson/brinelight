@@ -1641,7 +1641,10 @@ The user asked how more characters could be added, and wanted to judge the look 
   - **FLUX.2 Klein 4B:** clean and fast, but opaque (it needs a flat background and a cutout step). It copied Wren's raised-lantern pose from the reference.
   - **Z-Image Turbo:** clean but flatter, more like cartoon concept art than oil paint. It is opaque too.
   - **Licences:**
-    - Qwen-Image 2.1 is under the Qwen Research License, which allows research and evaluation only. Shipping its pictures in the game would need a commercial licence from Qwen, so treat its pictures as drafts.
+    - Qwen-Image 2.1 is under the Qwen Research License Agreement. It limits use of the model (weights, code, documentation) to "Non-Commercial" purposes, which it defines as "for research or evaluation purposes only". Commercial use needs a separate licence from Qwen (model-business@notice.qwencloud.com).
+      - The licence claims no rights over the pictures. Its one rule about outputs is a "Built with Qwen" notice if they train an AI model that is released.
+      - Making and comparing drafts is evaluation. Shipping its pictures in a game that earns money needs the commercial licence. Shipping them in the free game is a grey area: not commercial, but not research or evaluation either.
+      - Until that is settled, its pictures stay drafts, and final art comes from Codex or an Apache-licensed model.
     - Z-Image Turbo, FLUX.2 Klein 4B, and the older and larger Qwen-Image 2512 and Qwen-Image-Edit 2511 are Apache 2.0. Those two Qwen models are not downloaded.
   - **Originals:** in `assets-src/units/samples/local/` (git-ignored). The edit prompts are in `assets-src/wanted-images.tsv`.
 

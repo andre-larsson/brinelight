@@ -10,9 +10,11 @@ refs:  reference or edit images. Qwen sees them as image 1, 2, ... in the prompt
        takes the first reference's size, so an edit keeps its framing ("res": 1248 makes a 2:3 picture 1024x1536).
        Klein adds them as reference latents.
 Qwen keeps alpha (its VAE has four channels); Z-Image and Klein give opaque pictures. cfg is 1, so "neg" does nothing.
-Qwen-Image 2.1 is under the Qwen Research License (research and evaluation only; shipping its pictures needs a
-commercial licence). Z-Image Turbo and FLUX.2 Klein 4B are Apache 2.0. ComfyUI lives outside the repo in
-~/code/ComfyUI (or $COMFYUI); GAME_NOTES.md, "Keeper and costume drafts", says how it was set up and what it gave.
+Qwen-Image 2.1 is under the Qwen Research License Agreement: the model may be used for research or
+evaluation only, and commercial use needs a separate licence. It claims no rights over the pictures, but
+making final art for a released game is not research or evaluation, so its pictures stay drafts.
+Z-Image Turbo and FLUX.2 Klein 4B are Apache 2.0. ComfyUI lives outside the repo in ~/code/ComfyUI (or $COMFYUI);
+GAME_NOTES.md, "Keeper and costume drafts", says how it was set up and what it gave.
 """
 import json, os, shutil, sys, time, urllib.request
 
