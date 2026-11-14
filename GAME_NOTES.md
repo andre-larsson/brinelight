@@ -1593,7 +1593,8 @@ The user asked how more characters could be added, and wanted to judge the look 
   - Secret joke costumes:
     - bathing: an 1890s bathing dress, the at-home one;
     - beach: a bikini with her boots on;
-    - the lobster suit and the lighthouse;
+    - the lobster suit;
+    - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one;
     - the shell bikini, the barbarian and the barrel.
   - Dropped by the user: ballerina and brass mech. Codex's image tool refused a skimpy fantasy-armour parody.
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
