@@ -1572,7 +1572,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   | dev | Dev, a ship's boy of about 14, South Asian (the user's pick of two tunings) | dev-tuned-b.png | 155, 526, 0.78 |
   | tavita | Tavita, a giant Samoan hauler with an anchor | tavita.png | 124, 552, 1.14 |
   | rook | Rook, an androgynous Latin American whaler with a peg leg | rook.png | 150, 592, 1.0 |
-  | abena | Abena, a big Black anchor-smith with a sledgehammer | abena.png | 145, 565, 1.06 |
+  | abena | Abena, a big Black anchor-smith with a sledgehammer | abena-fixed.png | 145, 565, 1.06 |
   | esi | Esi, a slim Black rigging runner with a rope dart (ochre trousers, so she shows on a phone) | esi-tuned-b.png | 228, 588, 1.03 |
   | engine | The Lamp Engine, the keepers' clockwork bell-tender | engine.png | 90, 572, 1.1 |
   | gulp | Gulp, a sea monster who wants to be a keeper | gulp.png | 160, 610, 0.9 |
@@ -1584,6 +1584,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   | mateo | Mateo, a Cuban cooper with a barrel-lid shield | mateo-2b.png | 103, 560, 1.06 |
 
 - **Mateo:** the user kept the concept, but in the first picture his arm went through the shield and one hand held both the shield and the mallet. It was redrawn twice, with the anatomy spelled out in the prompt. In 2b the shield is strapped to his left forearm and the mallet is in his right hand.
+- **Abena:** her first picture had a broken sledgehammer, with the head partway along the handle and the handle sticking out on both sides (the user spotted it). Only the hammer area of a Codex edit was pasted back (`abena-fixed.png`), so the rest of her is unchanged.
 - **Set aside:**
   - Tamsin, Abel and Ness (round 1, too alike: all white, all in similar coats);
   - Hae-won, Wei, Setsuko and Kenji;
@@ -1597,6 +1598,10 @@ The user asked how more characters could be added, and wanted to judge the look 
     - the lobster suit;
     - the lighthouse: a weathered stone tower like the one on the title screen, with lit windows, no door, and its lantern room as a hat. It replaced a red-and-white striped one. Its first version was too pale; the user said the real tower is browner, so it was repainted with heavy rust-brown patches over grey-cream stone (3a; 3b is lighter);
     - the shell bikini, the barbarian and the barrel.
+    - Cheeky ones, where she has lost her clothes but nothing is shown:
+      - steam: dripping wet after a night swim, hidden from collarbones to knees in a comedy censor cloud with an indignant gull on top. Unlock idea: win a fight at Crest 6.
+      - Gulp: Gulp stands in front of her, arms spread and grinning, while she peers over his head. Unlock idea: defeat the Pale Gulper 10 times.
+    - The gala: a reward for bringing the Heart home the first time, like the costumes fighting games give for finishing arcade mode. The harbour throws a party and she comes as a music-hall showgirl: a sea-green sequinned leotard, opaque stockings, a gull-feather headdress with a brass bell, her scarf as a boa, still in her boots. It is an original design.
   - Dropped by the user: ballerina and brass mech.
   - The armour: Codex's image tool refused a skimpy fantasy-armour parody (shell pauldrons, a shell bikini, greaves), so it was made on local Qwen-Image 2.1 instead (`wren_armour.webp`). Its licence makes it a draft only (see "Local generation").
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
