@@ -466,7 +466,7 @@ test('Dark Water runs are deterministic, and a fight with a Submerged enemy and 
   assert.deepEqual(E.targets(back.combat).map((e) => e.id), ['gulper']);
 });
 
-test('the bot finishes whole expeditions, with and without currents, and every one that reaches Dark Water goes through the Cove at the stair', () => {
+test('the bot finishes whole expeditions, with and without currents, and every one that reaches Dark Water goes through the stair down', () => {
   let deeper = 0;
   [[], Object.keys(E.CURRENTS)].forEach((cur) => {
     for (let seed = 1; seed <= 40; seed++) {
@@ -474,7 +474,7 @@ test('the bot finishes whole expeditions, with and without currents, and every o
       const labels = playRun(run, 8000);
       assert.ok(run.screen === 'victory' || run.screen === 'defeat', `${seed}: ${run.screen}`);
       const i = labels.indexOf('deeper');
-      if (i >= 0) { deeper++; assert.equal(labels[i + 1], 'rest'); assert.ok(run.level === 1); }
+      if (i >= 0) { deeper++; assert.equal(labels[i + 1], 'stair'); assert.ok(run.level === 1); }
       // without the diving dress the expedition ends at Dark Water's pin: home with the dress, not the Heart
       if (run.screen === 'victory') { assert.deepEqual(run.cleared, [0, 1]); assert.ok(!run.heart); assert.equal(run.found, 'suit'); }
     }

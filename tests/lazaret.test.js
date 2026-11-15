@@ -91,8 +91,8 @@ test('brought keepsakes are carried from the first landing and count toward the 
   E.startCombat(roiled, 'easy', ['kelp']);
   assert.equal(roiled.combat.draw.concat(roiled.combat.hand).filter((c) => c.id === 'seep').length, 1);
   assert.equal(roiled.combat.thrash, 1);
-  // the Hold doesn't change with the level Wren is in, only with the deepest she has ever reached (30 after Dark Water)
-  assert.equal(E.roil(E.newRun(4, 0, null, ['whaletooth', 'moonshard', 'saltedhook'], [], false, 1)).steps, 1);
+  // the Hold doesn't change with the deepest level ever reached either (it grew from v0.22.0 to v0.30.x)
+  assert.equal(E.roil(E.newRun(4, 0, null, ['whaletooth', 'moonshard', 'saltedhook'], [], false, 1)).steps, 2);
   // Scallop Charm gives its 10 Max HP from the start
   const plain = E.newRun(4);
   const charm = E.newRun(4, 0, null, ['biscuit']);

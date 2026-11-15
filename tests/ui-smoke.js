@@ -820,17 +820,46 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await clickIf(page, '[data-act="tutorialskip"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the Shallows map');
   if (!/Shallows/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name the Shallows`);
-  // the Shallows' pin is broken: go deeper, down the stair, through its Cove, into Dark Water
-  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.render(); })()`);
+  // the Shallows' pin is broken: go deeper, down the stair (two of five, v0.31.0), into Dark Water
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; r.hp = 10; B.render(); })()`);
   await sleep(200);
   await checkPage(page, name + ' pin');
   await page.click('[data-act="godeeper"]');
-  await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the Cove on the stair down');
-  if (!/The stair down/.test(await page.eval('document.body.innerText'))) failures.push(`${name}: the Cove on the stair down isn't named`);
-  await page.click('[data-act="rest"]');
+  await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the stair down');
+  await sleep(500);
+  await dismissHints(page);
+  // the stair scrolls on a phone: bring each choice into view before tapping it
+  const tapIn = async (sel) => { await page.eval(`document.querySelector(${JSON.stringify(sel)}).scrollIntoView({ block: 'center' })`); await sleep(150); await page.click(sel); };
+  const stairText = await page.eval('document.querySelector(".scene").innerText');
+  if (!/The stair down/i.test(stairText) || !/Into Dark Water/.test(stairText)) failures.push(`${name}: the stair down into Dark Water isn't named`);
+  if ((await page.eval(`document.querySelectorAll('[data-act="stairdo"]:not([disabled])').length`)) !== 5) failures.push(`${name}: the stair should offer five`);
+  if ((await page.eval(`document.querySelectorAll('.stair-track li').length`)) !== 3) failures.push(`${name}: the stair's track should show three levels`);
+  await checkPage(page, name + ' stair');
+  // the keepers' cache shows three cards, and Back uses nothing
+  await tapIn('[data-act="stairdo"][data-id="cache"]');
+  await page.waitFor(`document.querySelectorAll('.modal [data-act="choosecard"]:not([data-id=""])').length === 3`, 3000, "the keepers' cache");
+  await page.click('.modal [data-act="choosecard"][data-id=""]');
   await sleep(200);
-  if (!/Dark Water/.test(await page.eval(`document.querySelector('[data-act="tomap"]').textContent`))) failures.push(`${name}: the Cove's button should say it goes down into Dark Water`);
-  await page.click('[data-act="tomap"]');
+  if ((await page.eval('window.Brinelight.run.stair.picks.length')) !== 0) failures.push(`${name}: backing out of the keepers' cache used a pick`);
+  // rest deeply: half of Max HP
+  await tapIn('[data-act="stairdo"][data-id="rest"]');
+  await sleep(200);
+  const [hpNow, hpMax] = await page.eval('[window.Brinelight.run.hp, window.Brinelight.run.maxHp]');
+  if (hpNow !== 10 + Math.floor(hpMax / 2)) failures.push(`${name}: resting deeply on the stair should heal half of ${hpMax} Max HP (HP 10 -> ${hpNow})`);
+  // shed a card through the deck picker
+  const deck0 = await page.eval('window.Brinelight.run.deck.length');
+  await tapIn('[data-act="stairdo"][data-id="shed"]');
+  await page.waitFor(`!!document.querySelector('.modal [data-act="deckpick"]')`, 3000, 'the deck to shed a card from');
+  await page.click('.modal [data-act="deckpick"]');
+  await page.waitFor(`!!document.querySelector('.modal [data-act="deckconfirm"]')`, 3000, 'the shed confirmation');
+  await page.click('.modal [data-act="deckconfirm"]');
+  await sleep(250);
+  if ((await page.eval('window.Brinelight.run.deck.length')) !== deck0 - 1) failures.push(`${name}: shedding a card on the stair should leave ${deck0 - 1} cards`);
+  if ((await page.eval(`document.querySelectorAll('[data-act="stairdo"]:not([disabled])').length`)) !== 0) failures.push(`${name}: after two picks the stair's other three should close`);
+  if ((await page.eval(`document.querySelectorAll('.stair-log li').length`)) !== 2) failures.push(`${name}: the stair should say what the two picks did`);
+  if (!(await page.eval(`document.activeElement && document.activeElement.dataset.act === 'tomap'`))) failures.push(`${name}: after two picks, Go down should have the focus`);
+  if (!/Dark Water/.test(await page.eval(`document.querySelector('[data-act="tomap"]').textContent`))) failures.push(`${name}: the stair's button should say it goes down into Dark Water`);
+  await tapIn('[data-act="tomap"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the Dark Water map');
   await dismissHints(page);
   if ((await page.eval('window.Brinelight.run.level')) !== 1) failures.push(`${name}: the run is not in Dark Water`);
@@ -981,10 +1010,13 @@ async function belfryScenario(page, base, name, size, opts) {
   if (await has('.scene .found-kit')) failures.push(`${name}: the dress still hangs above the stair while Wren wears it`);
   await checkPage(page, name + ' pin, in the dress');
   await page.click('[data-act="godeeper"]');
-  await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the Cove on the stair to the Belfry');
-  await page.click('[data-act="rest"]');
-  await sleep(200);
-  if (!/Belfry/.test(await page.eval(`document.querySelector('[data-act="tomap"]').textContent`))) failures.push(`${name}: the Cove's button should say it goes down into the Belfry`);
+  await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the stair to the Belfry');
+  await sleep(300);
+  await dismissHints(page);
+  // going down with both picks unused is allowed
+  if (!/Belfry/.test(await page.eval(`document.querySelector('[data-act="tomap"]').textContent`))) failures.push(`${name}: the stair's button should say it goes down into the Belfry`);
+  await page.eval(`document.querySelector('[data-act="tomap"]').scrollIntoView({ block: 'center' })`);
+  await sleep(150);
   await page.click('[data-act="tomap"]');
   await toMap('the Belfry map');
   if ((await page.eval('window.Brinelight.run.level')) !== 2) failures.push(`${name}: the run is not in the Belfry`);
@@ -1024,7 +1056,7 @@ async function belfryScenario(page, base, name, size, opts) {
 }
 
 /* v0.22.0, slice C: the Lazaret says where deeper keepsakes are found, the Logbook shows the Hold, the Workshop has
-   the new kit, the Hold grows the first time Wren reaches Dark Water, a Dark Water shop tags its own keepsake, the
+   the new kit, the Hold stays 20 in Dark Water (it grew there from v0.22.0 to v0.30.x), a Dark Water shop tags its own keepsake, the
    Bailer allows two Bails or Stirs a turn, and the Safety Line holds once. */
 async function findsScenario(page, base, name, size) {
   log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
@@ -1048,11 +1080,11 @@ async function findsScenario(page, base, name, size) {
   if (!/Found in Dark Water/.test(missing) || !/Found in the Belfry/.test(missing)) failures.push(`${name}: the Lazaret doesn't say where deeper keepsakes are found (${missing.slice(0, 120)})`);
   await checkPage(page, name + ' lazaret');
   await close();
-  // the Logbook: the Hold, and what it grows to
+  // the Logbook: the Hold, which no longer grows (v0.31.0)
   await page.click('[data-act="logbook"]');
   await sleep(250);
   const log2 = await text('#overlay .logbook');
-  if (!/Your Hold\s*20 Roil/.test(log2) || !/30 once you reach Dark Water/.test(log2)) failures.push(`${name}: the Logbook doesn't show the Hold (${log2.slice(0, 160)})`);
+  if (!/Your Hold\s*20 Roil/.test(log2) || /once you reach/.test(log2)) failures.push(`${name}: the Logbook should show a Hold of 20 that doesn't grow (${(log2.match(/Your Hold.{0,60}/) || [log2.slice(0, 160)])[0]})`);
   await close();
   // the Workshop: the five new pieces, the Harbour Bell locked behind its achievement
   await page.click('[data-act="workshop"]');
@@ -1080,16 +1112,17 @@ async function findsScenario(page, base, name, size) {
   await sleep(200);
   const whelk = await page.eval('BL.KEEPSAKES.whelk.charge');
   if (!new RegExp(`${whelk}/20`).test(await text('.hud .charge'))) failures.push(`${name}: the Roil chip should read ${whelk}/20 (got ${await text('.hud .charge')})`);
-  if (!/your Hold grows to 30/.test(await text('[data-act="godeeper"]'))) failures.push(`${name}: Go deeper doesn't say the Hold will grow`);
+  if (/Hold grows/.test(await text('[data-act="godeeper"]'))) failures.push(`${name}: Go deeper says the Hold will grow, but it is constant`);
   await page.click('[data-act="godeeper"]');
   await page.waitFor('window.Brinelight.run.screen === "rest"', 5000, 'the Cove on the stair');
   await sleep(200);
-  if (!/Hold grows from 20 to 30/.test(await toasts())) failures.push(`${name}: no toast when the Hold grows (${await toasts()})`);
-  if (!new RegExp(`${whelk}/30`).test(await text('.hud .charge'))) failures.push(`${name}: the Roil chip should read ${whelk}/30 in Dark Water (got ${await text('.hud .charge')})`);
+  if (/Hold grows/.test(await toasts())) failures.push(`${name}: a toast says the Hold grows, but it is constant (${await toasts()})`);
+  if (!new RegExp(`${whelk}/20`).test(await text('.hud .charge'))) failures.push(`${name}: the Roil chip should still read ${whelk}/20 in Dark Water (got ${await text('.hud .charge')})`);
   const stored = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1')).reached`);
   if (stored !== 1) failures.push(`${name}: reaching Dark Water should be stored at once (reached ${stored})`);
-  await page.click('[data-act="rest"]');
-  await sleep(200);
+  await dismissHints(page);
+  await page.eval(`document.querySelector('[data-act="tomap"]').scrollIntoView({ block: 'center' })`);
+  await sleep(150);
   await page.click('[data-act="tomap"]');
   await page.waitFor('window.Brinelight.run.screen === "map"', 5000, 'the Dark Water map');
   await dismissHints(page);

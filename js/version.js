@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.30.1';
+  BL.VERSION = '0.31.0';
   BL.CHANGELOG = [
+    { v: '0.31.0', date: '2026-11-15', items: [
+      'The stair down between levels is its own place now, and it gives more than a Cove. Choose two of five, each once: rest deeply (heal half your Max HP), refit a card, shed a card for free, fill a flask with a random tonic, or take 1 of 3 uncommon or rare cards from the keepers\' cache.',
+      'Your Hold stays at 20 Roil at every depth. It no longer grows to 30 and 40 the first time you reach Dark Water and the Belfry.',
+      'Coves and the stair have a new look: the lantern\'s light flickers, motes drift up from it, and a rest shows on a bar how much HP it brings.',
+      'Cold Coves also lowers the stair\'s deep rest, to a third of your Max HP.',
+    ] },
     { v: '0.30.1', date: '2026-11-15', items: [
       'A Cove\'s mark on the map is a campfire now. The lantern before it was hard to make out.',
       'Debug mode: a run that used a cheat carries nothing home, and now the pin screen says so before you choose. That includes the Diving Dress. It also says how to keep what you find.',

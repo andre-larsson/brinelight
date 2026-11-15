@@ -71,34 +71,29 @@ test('the offers in the Shallows are the same as before deeper keepsakes existed
   assert.deepEqual(E.keepsakeChoices(run, 3), R.shuffle(deep(0).filter((k) => !E.has(copy, k))).slice(0, 3));
 });
 
-/* ---------- The Hold grows with the deepest level reached ---------- */
-test('the Hold grows for good the first time Wren reaches a deeper level, at once and on later expeditions', () => {
+/* ---------- The deepest level reached is kept; the Hold stays 20 (it grew with it from v0.22.0 to v0.30.x) ---------- */
+test('the deepest level reached is kept for good, and the Hold stays 20 at every depth', () => {
   const run = E.newRun(11, 0, ['suit']);
   assert.equal(E.hold(run), 20);
   run.screen = 'pin';
   run.cleared = [0];
   assert.ok(E.goDeeper(run));
-  assert.equal(E.hold(run), 30);
-  assert.deepEqual(run.holdRose, { from: 20, to: 30 });
+  assert.equal(E.hold(run), 20);
+  assert.equal(run.holdRose, null);
   const meta = E.newMeta();
   assert.equal(E.metaHold(meta), 20);
   assert.equal(E.noteReached(meta, run), true);
   assert.equal(meta.reached, 1);
-  assert.equal(E.metaHold(meta), 30);
+  assert.equal(E.metaHold(meta), 20);
   assert.equal(E.noteReached(meta, run), false, 'only the first time');
-  // the next expedition starts with it, in the Shallows
   const next = E.newRun(12, 0, null, [], [], false, meta.reached);
-  assert.equal(E.hold(next), 30);
-  next.screen = 'pin';
-  assert.ok(E.goDeeper(next));
-  assert.equal(next.holdRose, null, 'Dark Water was reached before');
-  assert.equal(E.hold(next), 30);
+  assert.equal(E.hold(next), 20);
   // a fall still counts: recordRun notes the level reached
   const fell = E.newRun(13, 2);
   fell.screen = 'defeat';
   E.recordRun(meta, fell, false);
   assert.equal(meta.reached, 2);
-  assert.equal(E.metaHold(meta), 40);
+  assert.equal(E.metaHold(meta), 20);
   // the tutorial and debug-cheated runs count for nothing
   const m2 = E.newMeta();
   const cheat = E.newRun(1, 2);
@@ -110,15 +105,15 @@ test('the Hold grows for good the first time Wren reaches a deeper level, at onc
 test('lasting state from before: the deepest landing in the logbook sets the Hold, and earns the pin achievements', () => {
   const m = E.migrateMeta({ salvage: 0, earned: 0, owned: ['suit'], ach: [], record: { runs: 5, wins: 2, hearts: 1, deep: { level: 2, floor: 8 } } });
   assert.equal(m.reached, 2);
-  assert.equal(E.metaHold(m), 40);
+  assert.equal(E.metaHold(m), 20);
   ['outofbell', 'stillwater', 'heartlight'].forEach((a) => assert.ok(m.ach.includes(a), a));
   const fresh = E.migrateMeta({ salvage: 0, earned: 0, owned: [], ach: [] });
   assert.equal(fresh.reached, 0);
   assert.deepEqual(fresh.ach, []);
-  // a saved run from before v0.22.0 has no Hold of its own: it is the one for its level
+  // a saved run from before v0.22.0 has no Hold of its own: it is the one for its level, 20 now at every level
   const old = E.newRun(3, 1);
   delete old.hold;
-  assert.equal(E.hold(old), 30);
+  assert.equal(E.hold(old), 20);
 });
 
 /* ---------- The new keepsakes ---------- */

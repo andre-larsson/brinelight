@@ -102,6 +102,26 @@ function chooseSwellAct(run, endOfTurn, opts = {}) {
   return null;
 }
 
+/* The stair down (v0.31.0): two of five, in this order of need. Rest first below 60% HP; take out a plain starter
+   Brace (or a curse); the keepers' cache, its rare if it has one; upgrade a card (one that isn't a starter first);
+   a tonic for an empty slot. opts.noStair rests as at a Cove instead (the stair before v0.31.0). */
+function stair(run) {
+  const { BL, E } = load();
+  const want = [];
+  if (run.hp < run.maxHp * 0.6) want.push(['rest']);
+  const junk = run.deck.find((c) => BL.CARDS[c.id].type === 'curse') || run.deck.find((c) => c.id === 'brace' && !c.up);
+  if (junk) want.push(['shed', junk.uid]);
+  const cache = E.stairCache(run), rare = cache.findIndex((id) => BL.CARDS[id].rarity === 'rare');
+  want.push(['cache', rare >= 0 ? rare : 0]);
+  const ups = E.upgradeable(run), up = ups.find((c) => !BL.STARTER_DECK.includes(c.id)) || ups[0];
+  if (up) want.push(['refit', up.uid]);
+  want.push(['flask'], ['rest']);
+  for (const [id, arg] of want) {
+    if (E.stairState(run).picks.length >= E.STAIR_PICKS) break;
+    E.stairDo(run, id, arg);
+  }
+}
+
 /* Would Stirring n times now Crest and kill a creature (or win)? Played on a copy of the run. */
 function stirKills(run, n) {
   const { E } = load();
@@ -288,7 +308,10 @@ function step(run, opts = {}) {
     E.backToMap(run);
     return 'reward';
   }
-  if (s === 'rest') { E.rest(run); E.backToMap(run); return 'rest'; }
+  if (s === 'rest') {
+    if (E.stairOpen && E.stairOpen(run) && !opts.noStair) { stair(run); E.backToMap(run); return 'stair'; }
+    E.rest(run); E.backToMap(run); return 'rest';
+  }
   // after a pin: go on down, unless told to go home after this level (opts.home) or the next level needs kit it lacks
   if (s === 'pin') {
     if ((opts.home != null && (run.level || 0) >= opts.home) || !E.canGoDeeper(run)) { E.goHome(run); return 'home'; }

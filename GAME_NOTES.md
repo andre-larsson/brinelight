@@ -1127,6 +1127,35 @@ With the old bot, the Purse, Pouch and Scales played exactly the same runs as th
   - The Coin Purse is now worth +0.7 on the Heart and +2.3 on the Shallows' pin. It was worth nothing measurable before, but both are still near the noise at 1000 seeds.
 - **Open for the user:** whether the early game should give some of the Pearls back another way (a Skirmish's reward, a Wreck's chest) or stay leaner.
 
+### The stair down, and a Hold that doesn't grow (v0.31.0, 2026-11-15)
+
+- **The user's calls:** "the between-levels screen should be made different than normal rest. and maybe add fancy graphics/ui to both normal rest and between-level screen", then "the between-levels reste should have more alternatives than in-level rest, and *feel* stronger". Of four proposals the user chose "Pick 2 of 5", and added: "I think hold should be constant for now."
+- **The stair down** (`E.STAIR_*`, `E.stairDo`, tests/stair.test.js) replaces the Cove that used to start each new level. Wren does two of five there, each once, and what she doesn't use is gone when she goes down:
+  - **Rest deeply:** heal 50% of Max HP (`E.STAIR_REST`), where a Cove heals 30%. Cold Coves lowers it in step (20/30 of it, so a third), and the Spare Wick adds 10, as at a Cove.
+  - **Refit your gear:** upgrade a card, as at a Cove.
+  - **Shed a card:** remove a card from the deck, free. Barnaby charges for the same thing.
+  - **Fill a flask:** a random tonic, if a tonic slot is empty. Fiction: brinelight drips from the rock of the stair.
+  - **The keepers' cache:** 1 of 3 uncommon or rare cards (70/30 a card, no repeats). Looking costs nothing: Back keeps the pick, and the three are saved with the run, so a reload shows the same ones.
+- **Hold is constant at 20** (`E.HOLD_STEP = 0`). From v0.22.0 to v0.30.1 it grew by 10 the first time you reached Dark Water and the Belfry, for good (20, 30, 40). The growth code stays: setting `E.HOLD_STEP` back to 10 brings it back, with its toast, Logbook line and How to Play text.
+- **Measured** with the bot that shops (1000 seeds a row, the same seeds, a first expedition in the diving dress; each row is `kit: ['suit']`, plus `bot: { noStair: true }` for the stair as a Cove and `setup: (E) => { E.HOLD_STEP = 10; }` for the Hold that grows, run with `node tools/measure.js <spec.js> --workers 1`). The bot's stair (`stair()` in tools/bot.js): rest deeply below 60% HP, then shed a curse or a Brace, then the cache (a rare first), then refit, then a flask, then rest. `bot: { noStair: true }` plays the stair as the old Cove.
+
+  | Rules | Heart (home) | Shallows' pin | Dark Water's pin (share) | Belfry's pin (share) | HP lost | Landings |
+  |---|---|---|---|---|---|---|
+  | v0.30.1: Hold grows, the stair a Cove | 5.9% | 28.9% | 29.8% | 68.6% | 114 | 10.6 |
+  | Hold 20, the stair a Cove | 4.6% | 28.9% | 28.7% | 55.4% | 115 | 10.5 |
+  | Hold grows, the stair (2 of 5) | 10.0% | 28.9% | 44.3% | 78.1% | 121 | 11.1 |
+  | **v0.31.0: Hold 20, the stair (2 of 5)** | **8.7%** | 28.9% | 41.9% | 71.9% | 121 | 11.0 |
+
+  - The Shallows don't change: the stair comes after their pin.
+  - The stair is a big gain. Dark Water's pin goes from 30% to 42-44% of arrivals, and the Heart from 5.9% to 10.0% with the old Hold.
+  - The constant Hold costs most in the Belfry (68.6% to 55.4% of arrivals with the old stair), where the Hold was 40.
+  - Together, v0.31.0 is easier than v0.30.1: the Heart 8.7% against 5.9%. The stair is meant to feel strong, so this was left as it is.
+- **Looks:** the stair has its own screen (`renderStair` in js/ui.js). It shows the way down so far as a track of the three levels, "The stair down / Into Dark Water" as its title, the five as cards with icons (a list on a phone), a line for each pick made, and Go down. Go down takes the focus once both picks are used; before that it says how many are unused. The five rise into place the first time the stair is seen. A Cove and the stair share a lantern glow that flickers over the picture and motes that drift up from it (off with reduced motion), and a rest shows the HP it brings on a bar. A first-time hint explains the stair.
+- **Art still to make:** a picture for each stair (the Shallows to Dark Water, Dark Water to the Belfry). A band's `stairArt` names it in img/scenes; until then the stair uses the Cove's picture.
+- **Open for the user:**
+  - If the game should not get easier, the levers are the deep rest (50%), the cache (uncommon only), or one pick in place of two.
+  - Players who reached the Belfry lose 20 Hold (40 to 20), so bringing several Lazaret keepsakes now Roils the aether sooner.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -1581,6 +1610,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
+- **Bot run outcomes, v0.31.0** (the bot that shops, 1000 seeds, first expedition in the dress): the Shallows' pin 28.9%, Dark Water's after it 41.9%, the Belfry's after that 71.9%, the Heart 8.7% (see "The stair down, and a Hold that doesn't grow").
 - **Bot run outcomes** with the bot that shops, drinks tonics and uses the Bailer (2026-11-14), v0.24.0, 2000 seeds, first expedition in the dress: the Shallows' pin 33.8%, Dark Water's after it 32.9%, the Belfry's after that 70.7%, the Heart 7.8%. The same seeds with the old bot: 19.9%, 17.6%, 40.0%, 1.4% (see "The bot shops, drinks tonics and uses the Bailer"). Every number below is from the old bot.
 - **Older bot run outcomes** (careful bot, before 2026-11-14): v0.22.0, 2000 seeds, first expedition: the Shallows' pin 19.9%, Dark Water's after it 17.9%, the Belfry's after that 45.1%, the Heart 1.6%; with Hold 40 from earlier expeditions 23.2%, 20.7%, 53.1%, 2.5% (see "More kit and keepsakes, slice C"). v0.21.0, 2000 seeds: the Shallows' pin 19.9%, Dark Water's after it 15.9%, the Belfry's after that 30.2%, the Heart 0.9% (see "Deeper Dreads are harder"). v0.20.0, 2000 seeds:
   - the Shallows' pin 18.5%;

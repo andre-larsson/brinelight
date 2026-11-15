@@ -293,8 +293,11 @@
         html: () => 'Add <b>1 card</b> to your deck, or skip. A smaller deck draws its best cards more often. Keywords are explained below the cards.' },
       { id: 'shop', when: (r) => r.screen === 'shop', anchor: '.shop-grid', side: 'above',
         html: () => '<b>Barnaby</b> sells cards, keepsakes and tonics for Pearls. Scrubbing away a weak card makes your best ones come up more often.' },
-      { id: 'rest', when: (r) => r.screen === 'rest' && !r.restDone, anchor: '.choice-list',
+      { id: 'rest', when: (r) => r.screen === 'rest' && !r.restDone && !r.passage, anchor: '.choice-list',
         html: () => '<b>Rest</b> heals 30% of your max HP. Or <b>refit</b>: upgrade one card for the rest of the run.' },
+      // the stair down between levels (v0.31.0)
+      { id: 'stair', when: (r) => r.screen === 'rest' && !!r.passage && !r.restDone, anchor: '.stair-grid', side: 'above',
+        html: () => `On the stair down you do <b>${E.STAIR_PICKS === 2 ? 'two' : E.STAIR_PICKS}</b> of these five, each once. What you leave stays behind when you go down.` },
       { id: 'tonic', when: (r) => r.tonics.some(Boolean) && (r.screen === 'combat' || r.screen === 'map'), anchor: '.hud .tonic-slot',
         html: () => `<b>Tonics</b> are one-use. ${tap()} one to drink it during your turn.` },
       { id: 'tidebell', when: (r) => r.screen === 'combat' && E.bell(r) === 'tidebell' && (r.combat.fightCrests > 0 || r.combat.turnLows > 0), anchor: '.hud .medal[data-k="bell"]',

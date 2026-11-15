@@ -52,7 +52,7 @@
     let html = sec('Playtest <small>kept in this browser</small>',
       btn('skip', `Skip fights: ${opts.skip ? 'On' : 'Off'}`, ` aria-pressed="${opts.skip}"`) + btn('count', `Cheats count as real runs: ${opts.count ? 'On' : 'Off'}`, ` aria-pressed="${opts.count}"`));
     html += sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · ${meta.record.hearts ? 'the Heart is home' : 'no Heart yet'}</small>`,
-      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('hearts', 'The Heart is home (currents, finals)') + btn('allstory', 'Unlock all story') + btn('allmusic', 'Hear all music (Jukebox)') + btn('alllaz', 'Fill the Lazaret') + btn('reached', 'Next Hold (reach the next level)') +
+      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('hearts', 'The Heart is home (currents, finals)') + btn('allstory', 'Unlock all story') + btn('allmusic', 'Hear all music (Jukebox)') + btn('alllaz', 'Fill the Lazaret') + btn('reached', 'Reach the next level') +
       btn('resetmeta', 'Reset Workshop and Lazaret') + btn('resetall', 'Reset everything'));
     if (live) {
       html += sec(`This run <small>seed ${run.seed} · landing ${run.floor}${run.cheated ? ' · cheated' : ''}</small>`,
@@ -114,7 +114,7 @@
       case 'allkit': Object.keys(BL.KIT).forEach((g) => { if (!BL.KIT[g].starter && meta.owned.indexOf(g) < 0) meta.owned.push(g); }); b.saveMeta(); return reopen();
       case 'hearts': meta.record.hearts = Math.max(1, meta.record.hearts || 0); meta.record.wins = Math.max(meta.record.wins, meta.record.hearts); meta.record.runs = Math.max(meta.record.runs, meta.record.wins); b.saveMeta(); return reopen();
       case 'allstory': b.E.storyEntries().forEach((en) => { if (en.when && b.story.marks.indexOf(en.when) < 0) b.story.marks.push(en.when); }); b.saveStory(); return reopen();
-      case 'reached': meta.reached = Math.min(b.E.LEVELS.length - 1, (meta.reached || 0) + 1); b.saveMeta(); b.toast(`Hold ${b.E.metaHold(meta)} from the next expedition`); return reopen();
+      case 'reached': meta.reached = Math.min(b.E.LEVELS.length - 1, (meta.reached || 0) + 1); b.saveMeta(); b.toast(`Reached ${b.E.LEVELS[meta.reached].name}: Hold ${b.E.metaHold(meta)}`); return reopen();
       case 'alllaz': Object.keys(BL.KEEPSAKES).forEach((k) => { if (meta.lazaret.indexOf(k) < 0) meta.lazaret.push(k); }); meta.lazOpen = true; b.saveMeta(); return reopen();
       case 'resetmeta': Object.assign(meta, b.E.newMeta()); b.saveMeta(); return reopen();
       // every song and piece of the score counts as heard, at every depth of the score (meta.reached, and so the

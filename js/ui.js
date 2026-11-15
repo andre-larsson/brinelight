@@ -815,10 +815,10 @@
     openOverlay(modal(names[which], body, `<div class="pile-tabs">${tabs}</div><button class="btn" data-act="close">Close</button>`));
   }
 
-  function showCardChoice(ids, title, onDone) {
+  function showCardChoice(ids, title, onDone, back) {
     const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" data-act="choosecard" data-id="${id}" data-i="${i}"`)).join('')}</div>${keywordLegend(ids.map((id) => pseudo(id)))}`;
     ui.cardChoiceDone = onDone;
-    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">Skip (+${E.DECLINE_SCORE.eventCard} score)</button>`, ''), { locked: true });
+    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">${back || `Skip (+${E.DECLINE_SCORE.eventCard} score)`}</button>`, ''), { locked: true });
   }
 
   /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
@@ -842,7 +842,7 @@
         + `<h3 class="help-sub">In the Belfry</h3>` + dl(['Breathless', 'Burst', 'Heartfire'].map((k) => [k, BL.KEYWORDS[k]]));
       case 'map': return `<ul class="help-list">
         <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => levelName(i)).join(', then ')}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
-        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. The stair down starts at a Sheltered Cove. Break the last pin to bring the Lantern Heart home.</li>
+        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of five: rest deeply, refit, shed a card, fill a flask or open the keepers' cache. Break the last pin to bring the Lantern Heart home.</li>
         <li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
         <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => `${L.landing} in ${levelName(i)}`).join(', ')}. Coming home adds 5 for each HP you have left. Bringing the Heart home, or quieting the Belfry, adds ${E.FINAL_SCORE}.</li>
@@ -856,7 +856,7 @@
       ])}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
-        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil to begin with: your <b>Hold</b>. The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good. Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
+        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
         <li><b>Deeper finds are stronger.</b> Some keepsakes are found only in Dark Water and deeper, or only in the Belfry, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
         <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens the first time you come home. When you come home, every keepsake you carry is kept there, one of each; one it already holds becomes ${MT.currency} instead: half its Roil, rounded up. Before an expedition you may bring any number of them, and each counts toward your Hold. If you fall, you lose the keepsakes you found on that expedition. The ones in the Lazaret are never lost.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
@@ -1495,7 +1495,7 @@
       ['The Lantern Heart', r.hearts ? 'Brought home' : 'Still in the Belfry'],
       ['Belfry quieted', r.hearts ? `${r.quiets || 0} time${r.quiets === 1 ? '' : 's'}` : 'Bring the Heart home first'],
       ['Deepest landing reached', r.deep ? `${LevelName(r.deep.level)}, landing ${r.deep.floor} of ${E.LANDINGS}` : 'Not recorded yet'],
-      ['Your Hold', `${E.metaHold(meta)} Roil <small>${(meta.reached || 0) < E.LEVELS.length - 1 ? `${E.holdAt((meta.reached || 0) + 1)} once you reach ${levelName((meta.reached || 0) + 1)}` : 'as deep as it grows'}</small>`],
+      ['Your Hold', `${E.metaHold(meta)} Roil${E.HOLD_STEP ? ` <small>${(meta.reached || 0) < E.LEVELS.length - 1 ? `${E.holdAt((meta.reached || 0) + 1)} once you reach ${levelName((meta.reached || 0) + 1)}` : 'as deep as it grows'}</small>` : ''}`],
       ['Pins broken', cleared.length ? `${cleared.length} of ${E.LEVELS.length} <small>${cleared.join(', ')}</small>` : `0 of ${E.LEVELS.length}`],
       ['Best score', getNum(BEST_KEY) || 0],
       [MT.currency, `${meta.salvage} <small>${meta.earned} earned in all</small>`],
@@ -2846,22 +2846,98 @@
   }
 
   /* ----- Rest ----- */
+  /* An HP bar with the healing to come in a lighter colour: `heal` HP onto `hp` of `max`. */
+  const hpGainBar = (hp, heal, max) => `<span class="hp-gain" aria-hidden="true"><i style="width:${(hp / max) * 100}%"></i><i class="add" style="left:${(hp / max) * 100}%;width:${(heal / max) * 100}%"></i></span>`;
+  // the lantern's light flickers over a rest's picture, and motes drift up through it (still with reduced motion)
+  const restGlow = '<div class="rest-glow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
   function renderRest() {
-    const amt = E.restAmount(run);
+    if (run.passage) return renderStair();
+    const amt = E.restAmount(run), heal = Math.min(amt, run.maxHp - run.hp);
     const done = run.restDone;
     const body = done
-      ? `<p class="lead">${run.restMsg || 'You gather your strength.'}</p><button class="btn primary" data-act="tomap" autofocus>${run.passage ? `Go down into ${levelName(run.level)}` : 'Continue the descent'}</button>`
+      ? `<p class="lead outcome">${run.restMsg || 'You gather your strength.'}</p><button class="btn primary" data-act="tomap" autofocus>Continue the descent</button>`
       : `<div class="choice-list">
-          <button class="choice" data-act="rest" autofocus><b>Rest by the lantern</b><span>${run.hp >= run.maxHp ? 'You are already at full health.' : `Heal ${Math.min(amt, run.maxHp - run.hp)} HP.`}</span></button>
-          <button class="choice" data-act="refit" ${E.upgradeable(run).length ? '' : 'disabled'}><b>Refit your gear</b><span>Upgrade a card in your deck.</span></button>
+          <button class="choice with-ic" data-act="rest" autofocus><span class="ch-ic">${ICON.rest}</span><span class="ch-txt"><b>Rest by the lantern</b><span>${heal ? `Heal ${heal} HP: ${run.hp} &rarr; ${run.hp + heal} of ${run.maxHp}.` : 'You are already at full health.'}</span>${heal ? hpGainBar(run.hp, heal, run.maxHp) : ''}</span></button>
+          <button class="choice with-ic" data-act="refit" ${E.upgradeable(run).length ? '' : 'disabled'}><span class="ch-ic">${STAIR_ICON.refit}</span><span class="ch-txt"><b>Refit your gear</b><span>Upgrade a card in your deck.</span></span></button>
         </div>`;
-    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/scenes/rest.webp)"><div class="scene-inner">
-      <h1>${run.passage ? 'The stair down' : 'Sheltered Cove'}</h1>
-      <p class="lead">${run.passage ? E.band(run).stair || `The broken pin's water has run away down the stair, toward ${levelName(run.level)}. Halfway down is a dry hollow above the tide line, the last shelter before the dark.` : 'A dry hollow above the tide line. The lantern burns steady here, and for a little while the deep cannot reach you.'}</p>
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene rest-scene" style="background-image:url(img/scenes/rest.webp)">${restGlow}<div class="scene-inner">
+      <h1>Sheltered Cove</h1>
+      <p class="lead">A dry hollow above the tide line. The lantern burns steady here, and for a little while the deep cannot reach you.</p>
       ${body}
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+  }
+
+  /* ----- The stair down between levels (v0.31.0): two of five, each once (E.stairDo). It is bigger than a Cove and
+     looks it (the user: "more alternatives than in-level rest, and *feel* stronger"): the way down so far, the level
+     ahead as its title, and the five as cards. A level's `stairArt` (img/scenes) is its picture, the Cove's until then. ----- */
+  const STAIR_ICON = {
+    rest: ICON.rest,
+    refit: svg('<path d="M13.4 2.8 21.2 10.6l-2.4 2.4-1.8-1.8-8.6 8.6a2.2 2.2 0 0 1-3.1-3.1l8.6-8.6-1.8-1.8z"/>'),
+    shed: svg('<rect x="3.5" y="2.5" width="11.5" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6l6 6M20.6 14.6l-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'),
+    flask: svg('<path d="M9.5 2.5h5v2h-.8v4l4.9 8.3A3.4 3.4 0 0 1 15.7 22H8.3a3.4 3.4 0 0 1-2.9-5.2l4.9-8.3v-4h-.8z" opacity=".4"/><path d="M7.3 15.2h9.4l1.3 2.3A2.3 2.3 0 0 1 16 21H8a2.3 2.3 0 0 1-2-3.5z"/>'),
+    cache: ICON.treasure,
+    done: svg('<path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>'),
+  };
+  const STAIR_TEXT = {
+    rest: (done) => {
+      const h = done ? 0 : Math.min(E.stairRestAmount(run), run.maxHp - run.hp);
+      return ['Rest deeply', `${h ? `Heal ${h} HP: ${run.hp} &rarr; ${run.hp + h} of ${run.maxHp}. ` : ''}Half your Max HP; a Cove heals 30%.`, h ? hpGainBar(run.hp, h, run.maxHp) : ''];
+    },
+    refit: () => ['Refit your gear', 'Upgrade a card in your deck.'],
+    shed: () => ['Shed a card', 'Leave a card on the stair, for good. Free: Barnaby charges Pearls for it.'],
+    flask: () => ['Fill a flask', 'Brinelight drips from the rock here. Catch it in a flask: a random tonic.'],
+    cache: () => ["The keepers' cache", 'The keepers before you left cards in the wall. Choose 1 of 3, uncommon or rare.'],
+  };
+  function stairTrack(lv) {
+    return `<ol class="stair-track" aria-label="The way down">${E.LEVELS.map((L, i) => `<li class="${i < lv ? 'past' : i === lv ? 'here' : ''}"><span class="dot">${i < lv ? STAIR_ICON.done : ''}</span><b>${L.name}</b></li>`).join('')}</ol>`;
+  }
+  function renderStair() {
+    const lv = run.level || 0, s = E.stairState(run), left = E.STAIR_PICKS - s.picks.length;
+    let first = true;
+    const cards = E.STAIR_OPTIONS.map((id, i) => {
+      const why = E.stairWhy(run, id), done = why === 'done', [name, desc, extra] = STAIR_TEXT[id](done);
+      const note = done ? '<em class="st-done">Done</em>' : why && why !== 'full' ? `<em class="reason">${why}</em>` : '';
+      const focus = !why && first ? ' autofocus' : '';
+      if (!why) first = false;
+      return `<button class="stair-opt${done ? ' done' : ''}" data-act="stairdo" data-id="${id}" style="--i:${i}"${why ? ' disabled' : ''}${focus}>
+        <span class="so-ic">${done ? STAIR_ICON.done : STAIR_ICON[id]}</span><b>${name}</b><span class="so-desc">${desc}</span>${extra || ''}${note}</button>`;
+    }).join('');
+    const log = (s.log || []).map((l) => `<li>${l}</li>`).join('');
+    const B = E.band(run);
+    // the five rise into place the first time the stair is seen, not again after each pick
+    const key = `${run.seed}:${lv}`, fresh = ui.stairSeen !== key;
+    ui.stairSeen = key;
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene stair-scene" style="background-image:url(img/scenes/${B.stairArt || 'rest'}.webp)">${restGlow}<div class="scene-inner">
+      ${stairTrack(lv)}
+      <h1 class="stair-title"><small>The stair down</small>Into ${levelName(lv)}</h1>
+      <p class="lead">${B.stair || `The broken pin's water has run away down the stair, toward ${levelName(lv)}. Halfway down is a dry hollow above the tide line, the last shelter before the dark.`}</p>
+      <p class="stair-count">${left ? `Choose <b>${left === E.STAIR_PICKS ? 'two' : 'one more'}</b>, each once.` : 'You are ready to go down.'}</p>
+      <div class="stair-grid${fresh ? ' fresh' : ''}">${cards}</div>
+      ${log ? `<ul class="stair-log">${log}</ul>` : ''}
+      <button class="btn ${left ? 'ghost' : 'primary'} stair-go" data-act="tomap"${left ? '' : ' autofocus'}>Go down into ${levelName(lv)}${left ? ` <small>(${left} unused)</small>` : ''}</button>
+    </div></div></div></div>`;
+    const f = $('[autofocus]', screenEl);
+    if (f) f.focus({ preventScroll: true });
+  }
+  // one of the stair's five: some pick a card first (Back from the picker costs nothing)
+  function stairDo(id) {
+    const s = E.stairState(run);
+    const done = (o, line, sound) => { if (!o) return; (s.log = s.log || []).push(line(o)); sfx(sound); save(); render(); };
+    if (id === 'rest') done(E.stairDo(run, 'rest'), (o) => `You sleep deep beside the lantern and wake mended: ${o.healed} HP.`, 'buff');
+    else if (id === 'flask') done(E.stairDo(run, 'flask'), (o) => `You fill a flask with brinelight: ${BL.TONICS[o.tonic].name}.`, 'tonic');
+    else if (id === 'refit') {
+      ui.allowCancelPick = true;
+      showDeck('upgrade', (uid) => done(E.stairDo(run, 'refit', uid), (o) => `You refit by lantern light: ${E.cardName(o.card)} is ready.`, 'buff'));
+    } else if (id === 'shed') {
+      ui.allowCancelPick = true;
+      showDeck('remove', (uid) => done(E.stairDo(run, 'shed', uid), (o) => `You leave ${E.cardName(o.card)} on the stair.`, 'douse'));
+    } else if (id === 'cache') {
+      const ids = E.stairCache(run);
+      save(); // the three stay the same after a reload
+      showCardChoice(ids, "The keepers' cache", (cid) => { if (cid) done(E.stairDo(run, 'cache', ids.indexOf(cid)), (o) => `From the keepers' cache you take ${E.cardName(o.card)}.`, 'treasure'); }, 'Back');
+    }
   }
 
   /* ----- After a pin: go home or go deeper ----- */
@@ -2880,7 +2956,7 @@
       ? `<p class="lead dbg-note"><b>Debug run:</b> a run that used a cheat carries nothing home, ${newKit ? 'not even the dress' : 'not even its keepsakes'}. To keep what you find, turn on <b>Cheats count as real runs</b> in the debug panel before you set out, or use <b>Own all kit</b>.</p>` : '';
     const homeKeeps = run.cheated ? '' : extra.length ? `, ${extra.join(', ')} too` : '';
     const deeper = can
-      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. A Sheltered Cove comes first. Each landing there scores ${next.landing}.${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
+      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. The stair down comes first: two of five, stronger than a Cove. Each landing there scores ${next.landing}.${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
       : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner">
       <h1>The pin is broken</h1>
@@ -3200,7 +3276,7 @@
         // reaching a level for the first time counts for good (the Hold), even if Wren falls or turns back
         if (E.noteReached(meta, run)) saveMeta();
         save(); render();
-        // after save(): its Story so far toasts would push this one out of the stack of three
+        // after save(): its Story so far toasts would push this one out of the stack of three (no growth while E.HOLD_STEP is 0)
         if (run.holdRose) toast(`You stand in deeper aether, and it steadies around you: your Hold grows from ${run.holdRose.from} to ${run.holdRose.to}, for good.`, 5200);
       } break;
       case 'lazaret': showLazaret(); break;
@@ -3369,6 +3445,7 @@
         render();
         break;
       }
+      case 'stairdo': stairDo(t.dataset.id); break;
       case 'rest': {
         const h = E.rest(run);
         run.restMsg = `You sleep beside the lantern and wake mended. Healed ${h} HP.`;

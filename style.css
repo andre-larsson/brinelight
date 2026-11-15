@@ -1310,3 +1310,96 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .vol-line input { flex: 1; min-width: 0; height: 32px; margin: 0; accent-color: #c9a24a; cursor: pointer; }
 .vol-line output { min-width: 3.2em; text-align: right; font-size: 14px; color: #cfe0dc; font-variant-numeric: tabular-nums; }
 .vol-row.off .vol-line { opacity: .45; }
+
+/* ---------- Rests: the Cove and the stair down (v0.31.0) ---------- */
+/* the lantern in rest.webp stands right of centre: keep it in a phone's crop */
+.rest-scene, .stair-scene { background-position: 64% center; }
+/* its light flickers, and motes drift up from it */
+.rest-glow { position: fixed; inset: var(--hud-h) 0 0 0; pointer-events: none; overflow: hidden; }
+.rest-glow::before {
+  content: ""; position: absolute; left: 70%; top: 40%; width: 70vmax; height: 70vmax; transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 184, 77, .26), rgba(255, 140, 50, .1) 30%, transparent 62%);
+  mix-blend-mode: screen; animation: lampFlicker 5.2s ease-in-out infinite;
+}
+.rest-glow i {
+  position: absolute; bottom: 8%; left: 70%; width: 4px; height: 4px; border-radius: 50%; opacity: 0;
+  background: #ffd98a; box-shadow: 0 0 6px 2px rgba(255, 184, 77, .7); animation: moteRise 9s linear infinite;
+}
+.rest-glow i:nth-child(2) { left: 62%; animation-delay: -2.5s; animation-duration: 11s; }
+.rest-glow i:nth-child(3) { left: 77%; animation-delay: -5s; width: 3px; height: 3px; }
+.rest-glow i:nth-child(4) { left: 55%; animation-delay: -7s; animation-duration: 12s; }
+.rest-glow i:nth-child(5) { left: 84%; animation-delay: -3.6s; animation-duration: 10s; width: 3px; height: 3px; }
+.rest-glow i:nth-child(6) { left: 68%; animation-delay: -8.4s; animation-duration: 13s; }
+@keyframes lampFlicker { 0%, 100% { opacity: .85; } 18% { opacity: .7; } 22% { opacity: .95; } 47% { opacity: .78; } 63% { opacity: 1; } 81% { opacity: .74; } }
+@keyframes moteRise {
+  0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: .9; }
+  50% { transform: translate(-18px, -42vh); } 85% { opacity: .5; } 100% { transform: translate(10px, -84vh); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .rest-glow::before { animation: none; } .rest-glow i { display: none; } }
+
+/* the Cove's two choices carry an icon, and the rest shows the HP it brings */
+.choice.with-ic { flex-direction: row; align-items: center; gap: 14px; }
+.ch-ic, .so-ic {
+  flex: 0 0 auto; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; color: var(--amber);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 184, 77, .3), rgba(5, 15, 24, .7) 70%); border: 1px solid rgba(255, 184, 77, .55);
+  box-shadow: 0 0 14px rgba(255, 184, 77, .3);
+}
+.ch-ic svg, .so-ic svg { width: 26px; height: 26px; }
+.choice:not(.card) .ch-ic { color: var(--amber); }
+.choice.with-ic .ch-txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.hp-gain { position: relative; display: block; width: 100%; height: 8px; margin-top: 6px; border-radius: 4px; background: rgba(0, 0, 0, .5); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+.hp-gain i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--hp); }
+.hp-gain i.add { background: var(--good); animation: hpGain 1.6s ease-in-out infinite; }
+@keyframes hpGain { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+/* the stair down: the way down so far, the level ahead, and five choices as cards */
+.stair-track { display: flex; align-items: flex-start; list-style: none; margin: 0; padding: 0; width: min(440px, 100%); }
+.stair-track li { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); }
+.stair-track li + li::before { content: ""; position: absolute; top: 11px; right: 50%; width: 100%; height: 2px; background: rgba(147, 178, 182, .35); }
+.stair-track li.past + li::before { background: linear-gradient(90deg, var(--brass), var(--amber)); }
+.stair-track .dot { position: relative; z-index: 1; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #0a1d2b; border: 2px solid rgba(147, 178, 182, .5); }
+.stair-track .dot svg { width: 14px; height: 14px; }
+.stair-track li.past { color: #e8d6a8; }
+.stair-track li.past .dot { background: var(--brass); border-color: var(--brass); color: #1c1306; }
+.stair-track li.here { color: #ffe6b0; }
+.stair-track li.here b { text-shadow: 0 0 10px rgba(255, 184, 77, .7); }
+.stair-track li.here .dot { border-color: var(--amber); background: radial-gradient(circle, #ffe2a8 0 30%, #0a1d2b 34%); box-shadow: 0 0 0 4px rgba(255, 184, 77, .2), 0 0 16px rgba(255, 184, 77, .8); animation: stairHere 2.4s ease-in-out infinite; }
+@keyframes stairHere { 50% { box-shadow: 0 0 0 7px rgba(255, 184, 77, .08), 0 0 22px rgba(255, 184, 77, .95); } }
+.scene h1.stair-title { margin: 0; line-height: 1.1; }
+.stair-title small { display: block; margin-bottom: 4px; font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .32em; text-transform: uppercase; color: var(--brass); text-shadow: 0 2px 6px #000; }
+.stair-count { margin: 0; font-size: 16px; color: #e3eeea; text-shadow: 0 2px 6px #000; }
+.stair-count b { color: var(--amber); }
+.stair-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; }
+.stair-opt {
+  position: relative; flex: 1 1 150px; max-width: 184px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 16px 12px 14px; border-radius: 14px; cursor: pointer; text-align: center; color: var(--text);
+  background: linear-gradient(180deg, rgba(30, 70, 90, .95), rgba(10, 28, 40, .96)); border: 1px solid rgba(201, 162, 74, .55);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 226, 168, .15);
+  transition: transform .15s, box-shadow .15s, filter .15s;
+}
+.stair-grid.fresh .stair-opt { animation: stairIn .45s cubic-bezier(.2, .8, .3, 1) both; animation-delay: calc(var(--i) * 70ms); }
+@keyframes stairIn { from { opacity: 0; transform: translateY(18px); } }
+.stair-opt:not([disabled]):hover, .stair-opt:not([disabled]):focus-visible { transform: translateY(-5px); box-shadow: 0 12px 28px rgba(0, 0, 0, .55), 0 0 22px rgba(255, 184, 77, .35); border-color: var(--amber); }
+.stair-opt .so-ic { width: 54px; height: 54px; }
+.stair-opt .so-ic svg { width: 30px; height: 30px; }
+.stair-opt b { font-size: 16px; color: #ffe2a8; }
+.stair-opt .so-desc { font-size: 14px; line-height: 1.35; color: #cfe0dc; }
+.stair-opt .hp-gain { margin-top: 2px; }
+.stair-opt em { font-style: normal; font-size: 13px; font-weight: 700; }
+.stair-opt .reason { color: var(--bad); }
+.stair-opt[disabled] { cursor: not-allowed; opacity: .42; filter: saturate(.5); }
+.stair-opt.done { opacity: 1; filter: none; cursor: default; border-color: var(--kelp); background: linear-gradient(180deg, rgba(28, 82, 70, .95), rgba(8, 32, 30, .96)); }
+.stair-opt.done .so-ic { color: var(--good); border-color: var(--kelp); background: radial-gradient(circle at 50% 40%, rgba(143, 227, 168, .3), rgba(5, 15, 24, .7) 70%); box-shadow: 0 0 14px rgba(63, 174, 138, .45); }
+.stair-opt .st-done { color: var(--good); text-transform: uppercase; letter-spacing: .12em; }
+.stair-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 36em; }
+.stair-log li { font-size: 15px; font-weight: 700; color: #ffe2a8; text-shadow: 0 2px 6px #000; }
+.stair-go small { font-weight: 600; opacity: .8; }
+/* a phone lists the five, icon on the left */
+@media (max-width: 600px) {
+  .stair-grid { flex-direction: column; gap: 8px; width: min(560px, 100%); }
+  .stair-opt { flex: none; max-width: none; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 2px; padding: 10px 14px; text-align: left; align-items: center; }
+  .stair-opt .so-ic { grid-row: span 4; width: 44px; height: 44px; }
+  .stair-opt .so-ic svg { width: 24px; height: 24px; }
+  .stair-opt:not([disabled]):hover, .stair-opt:not([disabled]):focus-visible { transform: translateX(3px); }
+  .stair-track li { font-size: 12px; }
+}

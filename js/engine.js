@@ -107,12 +107,14 @@
        step 2, 5, 8...: one more Thrash, damage at the start of each of your turns, which Ward left from the turn
                         before stops;
        step 3, 6:       one more Bell Minnow joins each fight at half health, drawn by the noise (2 at most). */
-  /* The Hold: the Roil the aether holds before it is Roiled. It starts at HOLD and grows by HOLD_STEP, for good, the
-     first time Wren reaches each deeper level (since v0.22.0, the user's idea): having stood in the deeper aether, she
-     carries its Roil more steadily. It doesn't change with the level she is in (since v0.19.0; it rose with the starting
-     depth before). The Shallows held 30 until v0.16.0; 20 leaves room for about one strong keepsake and one small one. */
+  /* The Hold: the Roil the aether holds before it is Roiled. It is HOLD, and grows by HOLD_STEP, for good, the first
+     time Wren reaches each deeper level. HOLD_STEP is 0 since v0.31.0 (the user: "I think hold should be constant for
+     now"); from v0.22.0 it was 10 (the user's idea then: having stood in the deeper aether, she carries its Roil more
+     steadily), and the texts that tell of the growth show only while it is above 0. It doesn't change with the level
+     she is in (since v0.19.0). The Shallows held 30 until v0.16.0; 20 leaves room for about one strong keepsake and one
+     small one. */
   E.HOLD = 20;
-  E.HOLD_STEP = 10;
+  E.HOLD_STEP = 0;
   E.SEEP_STEP = 12; // Roil over the Hold for each step: about one keepsake's worth, so each keepsake past the Hold adds about one step (5 until v0.18.0)
   E.MAX_ROIL_MINNOWS = 2;
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
@@ -150,16 +152,17 @@
      harder and adds CURRENT_SCORE to the score's multiplier; they combine. Riptide and the Abyss were starting depths
      with HP and damage multipliers until v0.19.0. */
   E.CURRENT_SCORE = 0.25;
+  E.COVE_REST = 0.3; // a Cove heals this share of Max HP (a current can lower it)
   E.CURRENTS = {
     fed: { name: 'Fat Year', hp: 1.1, desc: 'Every creature has 10% more HP.' },
     teeth: { name: 'Hungry Deep', dmg: 1.15, desc: 'Every creature hits 15% harder.' },
-    cold: { name: 'Cold Coves', rest: 0.2, desc: 'Coves heal 20% of your Max HP, not 30%.' },
+    cold: { name: 'Cold Coves', rest: 0.2, desc: 'Coves heal 20% of your Max HP, not 30%, and the stair\'s deep rest a third, not half.' },
     backwash: { name: 'Backwash', backwash: 1, desc: 'At the start of each of your turns after the first, the Swell slips 1 back toward 3.' },
   };
   E.currents = (run) => ((run && run.currents) || []).filter((k) => E.CURRENTS[k]);
   /* What this run's currents do: enemy HP and damage, the share of Max HP a Cove heals, and the backwash. */
   E.mods = function (run) {
-    const m = { hp: 1, dmg: 1, rest: 0.3, backwash: 0 };
+    const m = { hp: 1, dmg: 1, rest: E.COVE_REST, backwash: 0 };
     E.currents(run).forEach((k) => { const C = E.CURRENTS[k]; if (C.hp) m.hp *= C.hp; if (C.dmg) m.dmg *= C.dmg; if (C.rest) m.rest = Math.min(m.rest, C.rest); if (C.backwash) m.backwash += C.backwash; });
     return m;
   };
@@ -474,6 +477,67 @@
     const h = E.heal(run, E.restAmount(run));
     run.restDone = true;
     return h;
+  };
+
+  /* ---------------- The stair down (v0.31.0) ----------------
+     Between levels the Cove on the stair is bigger than a Cove (the user: "more alternatives than in-level rest, and
+     *feel* stronger"; the user chose "pick 2 of 5"). Wren does two of five things there, each once:
+       rest   heal 50% of Max HP (a Cove heals 30%; a current that lowers Coves lowers this in step, and the Spare Wick adds its 10)
+       refit  upgrade a card
+       shed   remove a card, free (Barnaby charges 75 and more)
+       flask  a random tonic, into an empty slot
+       cache  the keepers' cache: 1 of 3 cards, uncommon or rare (seen before choosing; looking costs nothing)
+     She may go on down with picks unused. */
+  E.STAIR_PICKS = 2;
+  E.STAIR_REST = 0.5;
+  E.STAIR_OPTIONS = ['rest', 'refit', 'shed', 'flask', 'cache'];
+  E.stairRestAmount = (run) => Math.floor(run.maxHp * E.STAIR_REST * (E.mods(run).rest / E.COVE_REST)) + (E.hasKit(run, 'wick') ? 10 : 0);
+  E.stairOpen = (run) => !!run && run.screen === 'rest' && !!run.passage;
+  E.stairState = (run) => run.stair || (run.stair = { picks: [], cache: null });
+  /* Why an option can't be taken now: '' when it can, 'done' when it was, 'full' when both picks are used, else a reason. */
+  E.stairWhy = function (run, id) {
+    const s = E.stairState(run);
+    if (s.picks.indexOf(id) >= 0) return 'done';
+    if (s.picks.length >= E.STAIR_PICKS) return 'full';
+    if (id === 'rest' && run.hp >= run.maxHp) return 'You are at full health.';
+    if (id === 'refit' && !E.upgradeable(run).length) return 'Every card is upgraded.';
+    if (id === 'shed' && run.deck.length <= 1) return 'Your deck is down to one card.';
+    if (id === 'flask' && run.tonics.indexOf(null) < 0) return 'Your tonic slots are full.';
+    return '';
+  };
+  /* The keepers' cache: three cards, each uncommon (70%) or rare (30%), the same until taken. */
+  E.stairCache = function (run) {
+    const s = E.stairState(run);
+    if (!s.cache) {
+      const R = makeR(run);
+      s.cache = [];
+      for (let guard = 0; s.cache.length < 3 && guard < 100; guard++) {
+        const id = R.pick(BL.REWARD_POOL[R.weighted([['uncommon', 70], ['rare', 30]])]);
+        if (s.cache.indexOf(id) < 0) s.cache.push(id);
+      }
+    }
+    return s.cache;
+  };
+  /* Do one of the five: `arg` is a card uid (refit, shed) or the cache's index. Returns what happened, or null. */
+  E.stairDo = function (run, id, arg) {
+    if (!E.stairOpen(run) || E.STAIR_OPTIONS.indexOf(id) < 0 || E.stairWhy(run, id)) return null;
+    const out = { id };
+    if (id === 'rest') out.healed = E.heal(run, E.stairRestAmount(run));
+    else if (id === 'refit' || id === 'shed') {
+      const c = run.deck.find((x) => x.uid === arg);
+      if (!c || (id === 'refit' && !E.canUpgrade(c))) return null;
+      out.card = Object.assign({}, c, id === 'refit' ? { up: 1 } : {});
+      if (id === 'refit') c.up = 1; else E.removeCard(run, arg);
+    } else if (id === 'flask') out.tonic = E.gainRandomTonic(run);
+    else if (id === 'cache') {
+      const cid = E.stairCache(run)[arg];
+      if (!cid) return null;
+      out.card = E.addCard(run, cid);
+    }
+    const s = E.stairState(run);
+    s.picks.push(id);
+    if (s.picks.length >= E.STAIR_PICKS) run.restDone = true;
+    return out;
   };
 
   E.price = (run, base) => (E.hasKit(run, 'scales') ? Math.round(base * 0.75) : base);
@@ -1567,6 +1631,7 @@
     run.passage = true; // this Cove is the stair down; the next level's first landing comes after it
     run.screen = 'rest';
     run.restDone = false;
+    run.stair = { picks: [], cache: null }; // two of five things to do there (E.stairDo)
     return true;
   };
   /* The landings reached in each level of this expedition. */
