@@ -676,8 +676,12 @@ async function storyScenario(page, base, name, size) {
   // the opening plays again from chapter 1 and comes back to the story
   await page.click('#overlay [data-act="storytab"][data-tab="story"]');
   await sleep(150);
+  // the button is at the foot of a long page: on a phone it is out of sight until the page is scrolled to it
+  await page.eval(`document.querySelector('#overlay [data-act="opening"]').scrollIntoView({ block: 'center' })`);
+  await sleep(150);
   await page.click('#overlay [data-act="opening"]');
   await sleep(200);
+  if (!(await count('#overlay .opening'))) failures.push(`${name}: Play the opening again didn't start the opening`);
   for (let i = 0; i < 4 && await count('#overlay .opening'); i++) { await page.click('#overlay [data-act="opnext"]'); await sleep(200); }
   if (!(await count('#overlay .story'))) failures.push(`${name}: the replayed opening didn't come back to Story so far`);
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
@@ -1397,6 +1401,45 @@ async function audioScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="jukeskip"][data-by="-10"]');
   at = (await audio()).songAt;
   if (!(at < now2 - 8)) failures.push(`${name}: -10 s moved the song from ${now2.toFixed(1)} to ${at.toFixed(1)}`);
+  // the player at the top (v0.32.0) names what plays; next and previous go through the open tracks in the list's order
+  const jp = () => jb(`({ name: o.querySelector('.jp-now b').textContent, pp: o.querySelector('[data-act="jukepp"]').getAttribute('aria-label'), shuffle: o.querySelector('[data-act="jukeshuffle"]').getAttribute('aria-pressed') })`);
+  const pl = await jp();
+  if (pl.name !== 'High Tide Departure' || pl.pp !== 'Pause') failures.push(`${name}: the player shows ${JSON.stringify(pl)} while High Tide Departure plays`);
+  const openTracks = await jb(`[...o.querySelectorAll('.juke-item:not(.locked) [data-act="jukeplay"]')].map((b) => b.dataset.kind + ':' + b.dataset.key)`);
+  const afterDep = openTracks[(openTracks.indexOf('song:departure') + 1) % openTracks.length];
+  await clickIf(page, '#overlay [data-act="jukenext"]');
+  await expect(`the player: next after High Tide Departure (${afterDep})`, afterDep.startsWith('song:') ? { song: afterDep.slice(5) } : { song: null, playing: true, target: afterDep.slice(4) });
+  await clickIf(page, '#overlay [data-act="jukeprev"]');
+  await expect('the player: previous, back to High Tide Departure', { song: 'departure' });
+  // previous more than 3 s into a song starts it again
+  await page.eval(`(() => { const r = document.querySelector('#overlay input.juke-pos'); r.value = 60; r.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(200);
+  await clickIf(page, '#overlay [data-act="jukeprev"]');
+  await sleep(200);
+  at = (await audio()).songAt;
+  if ((await audio()).song !== 'departure' || !(at < 5)) failures.push(`${name}: previous at 1:00 should start High Tide Departure again (at ${at.toFixed(1)} s)`);
+  // shuffle: kept with the settings, and next plays every open song once before any comes round again
+  await clickIf(page, '#overlay [data-act="jukeshuffle"]');
+  if ((await jp()).shuffle !== 'true' || !(await page.eval(`JSON.parse(localStorage.getItem('brinelight.prefs.v1')).jukeShuffle === true`))) failures.push(`${name}: shuffle didn't turn on, or isn't kept`);
+  const openSongs = openTracks.filter((t) => t.startsWith('song:')).map((t) => t.slice(5));
+  const shuffled = ['departure'];
+  for (let i = 1; i < openSongs.length; i++) { await clickIf(page, '#overlay [data-act="jukenext"]'); await sleep(150); shuffled.push((await audio()).song); }
+  if (new Set(shuffled).size !== openSongs.length || shuffled.some((k) => !openSongs.includes(k))) failures.push(`${name}: shuffled, next played ${shuffled.join(', ')}; expected each of ${openSongs.join(', ')} once`);
+  await clickIf(page, '#overlay [data-act="jukenext"]');
+  await sleep(150);
+  const nextRound = (await audio()).song;
+  if (!openSongs.includes(nextRound) || nextRound === shuffled[shuffled.length - 1]) failures.push(`${name}: shuffled, the next round started on ${nextRound} after ${shuffled[shuffled.length - 1]}`);
+  await clickIf(page, '#overlay [data-act="jukeshuffle"]');
+  if ((await jp()).shuffle !== 'false') failures.push(`${name}: shuffle didn't turn off`);
+  // the player's volume is the music's (the menu's Music slider)
+  const jvol = (v) => page.eval(`(() => { const r = document.querySelector('#overlay .jp-vol input'); r.value = ${v}; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await jvol(40);
+  if (!(await page.eval(`JSON.parse(localStorage.getItem('brinelight.prefs.v1')).musicVol === 0.4 && document.querySelector('#overlay .jp-vol output').textContent === '40%'`))) failures.push(`${name}: the player's volume didn't set the music's to 40%`);
+  await jvol(80);
+  await checkPage(page, name + ' jukebox player');
+  // back to High Tide Departure for what follows
+  if ((await audio()).song !== 'departure') await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
+  await expect('High Tide Departure again', { song: 'departure' });
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: paused', { playing: false, song: null });
   // a depth is the music box's: none is lit while a song is chosen, and choosing one plays the music box at that depth

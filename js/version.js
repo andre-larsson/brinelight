@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.31.0';
+  BL.VERSION = '0.32.0';
   BL.CHANGELOG = [
+    { v: '0.32.0', date: '2026-11-15', items: [
+      'Each stair down has a picture of its own. Into Dark Water: the keepers\' hollow halfway down the drained stair, with brinelight dripping into a flask and the cache behind its grille. Into the Belfry: the last dry step, where the stair runs on down into the sea.',
+      'The Jukebox has a player at the top that stays in view while you scroll: previous, play or pause, next, shuffle and a volume slider. Shuffle plays every song you have heard once before any comes round again, and stays on until you turn it off. The volume is the menu\'s Music volume.',
+      'The badges on the cards in your hand (LETHAL, CREST and the others) are bigger on a computer. On a phone they sit on the part of the card you can see, one above the other. Before, the next card covered half of each one. A card that kills two creatures or makes two Crests says LETHAL×2 or CREST×2.',
+    ] },
     { v: '0.31.0', date: '2026-11-15', items: [
       'The stair down between levels is its own place now, and it gives more than a Cove. Choose two of five, each once: rest deeply (heal half your Max HP), refit a card, shed a card for free, fill a flask with a random tonic, or take 1 of 3 uncommon or rare cards from the keepers\' cache.',
       'Your Hold stays at 20 Roil at every depth. It no longer grows to 30 and 40 the first time you reach Dark Water and the Belfry.',

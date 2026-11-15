@@ -53,18 +53,7 @@ Saved from the lore and replayability discussion. WORLD.md holds the target fict
 
 The user paused the earlier item-design discussion here. Some of it has since shipped; retain the discussion as history and use the versioned implementation notes for current behaviour. For the latest story and level scope, start with the section above and WORLD.md. Unresolved names and numbers remain open.
 
-**Where things stand.**
-- v0.22.0 (2026-11-14, not pushed): slice C, more kit and keepsakes, and the Hold grows by the deepest level reached. See "More kit and keepsakes, slice C (v0.22.0, 2026-11-14)". v0.20.0 (slice B, the Belfry) and v0.21.0 (deeper Dreads are harder) are committed and not pushed either.
-- v0.19.0 (2026-11-13, not pushed): expeditions, slice A. See "Expeditions, slice A (v0.19.0, 2026-11-13)". Slice B (the Belfry, the suit, the Shallows' new pin, the story rewrite) is next.
-- v0.18.0 (2026-11-13, not pushed): the user's notes on v0.17.0: Slack Water 4 Ward, the bells pay Light or Ward, a Roil step every 12, the Buoy's Wild Peal, and the Gulper's Retch. See "Playtest notes on v0.17.0 (v0.18.0, 2026-11-13)". The expedition is next and waits for the user's answers: see "Expedition proposal (2026-11-13; waiting for the user)".
-- v0.17.0 (2026-11-13, pushed with v0.15.0 and v0.16.0): Bail and Stir, and Ebb 2 on four cards. See "Bail and Stir (v0.17.0, 2026-11-13)" below.
-- v0.16.0 (2026-11-13): the user's playtest notes on v0.14.0. The Shallows are harder, Dreads give less, the pins call for help sooner, and there are the RITE label, the score lines, purple unlock boxes, and backup, restore and reset. See "Playtest notes on v0.14.0 (v0.16.0, 2026-11-13)" below. Two notes are proposals, not built: Strands are hard to reach, and a weak standard action.
-- v0.15.0 (2026-11-12, committed 2026-11-13): Dark Water is a band of its own, step 1 of the expedition work. See "Dark Water (v0.15.0, 2026-11-12)" below.
-- The live build is v0.14.0, pushed on 2026-11-12: Scour is renamed Thrash, hits every turn from the first, and Ward stops it; `tools/measure.js` measures in parallel. See "Scour changed in v0.14.0".
-- Before it came v0.13.0, pushed the same day: the Lazaret, the Roil ladder, the title-screen button levels, the Logbook and two debug switches. See "The Lazaret (v0.13.0, 2026-11-12)" and "The Roil ladder, title levels and Logbook (v0.13.0, 2026-11-12)".
-- Before it came v0.12.0 (the opening and Story so far) and v0.11.0 (the lore and names pass), pushed together in one commit on the same day, and v0.10.0: kit in five places, the bells, and keepsake Roil (then called Charge), Hold and Seep.
-- The item-rework plans below (plans 1 and 2) record earlier design discussion. Kit and keepsake changes have since shipped in the versioned sections below; they do not set the next implementation priority.
-- The expedition direction (top of "Decisions the user made") came after the item plan was written. It answers some of the questions below and changes others. The notes say where.
+**Where things stand (updated 2026-11-15).** Every version through v0.32.0 is pushed and live; nothing waits to be pushed. This list used to track pushes version by version, and it fell behind. The versioned sections below are the history, newest last; "The stair down" and "Stair pictures, badges, the Jukebox player and the new bot's balance" are the latest. The item-rework plans that follow are earlier design discussion: kit and keepsakes have shipped since, so they do not set what comes next.
 
 ### Plan 1: worn kit in body slots (chosen by the user, 2026-11-11)
 
@@ -580,7 +569,7 @@ Rares added to the starter deck (Shallows, v0.15.0 rules otherwise): none 23.8%;
 - **A weak standard action.** The bot ends only 3% of turns with Light it couldn't spend, so "no playable card" is rare; the user's "no good cards" is about weak hands. A standard attack or Ward for Light (for example 1 Light: 3 Ward) would be a weaker Brace, and every hand would end with it. Bail covers the useful part. If a general action is still wanted: 1 Light, discard a card, draw a card (a mulligan), once a turn. Not measured yet.
 
 **Open (for the playtest):** Is the Shallows now "somewhat" harder, or too much? The dials, in order: give Dreads their card back, then move the pins' call to 0.6. Do the minnows now matter in the Bellwether fight? Is the Kelp Lurker's growing Lash readable from its intent (it shows the next hit's number and a tip)? Does the end screen's score list make the score clear, or is it too long on a phone (it can be folded)?
-- Seen in screenshots, not changed: on phones the Lethal and Crest badges over hand cards render at about 11.5px (the screens check flags them), and a 13px floor made them so wide that the next card covered them. They need a different place, not a bigger size.
+- Seen in screenshots, not changed: on phones the Lethal and Crest badges over hand cards render at about 11.5px (the screens check flags them), and a 13px floor made them so wide that the next card covered them. They need a different place, not a bigger size. **Fixed in v0.32.0:** see "Stair pictures, badges, the Jukebox player and the new bot's balance".
 
 ### Bail and Stir (v0.17.0, 2026-11-13)
 
@@ -1121,7 +1110,7 @@ With the old bot, the Purse, Pouch and Scales played exactly the same runs as th
 2. **Barnaby's Marker** (+2.8 on the Heart) is worth more than the Coin Purse (+0.4, inside the noise) or the Gleaner's Pouch (+1.1).
 3. **The Bailer is still small:** +0.8 on the Heart and +4.3 on the Belfry's pin share, both inside the noise, and nothing on the Shallows' pin. Without the mid-turn rules it made 1983 double acts in 2000 expeditions; with them, 5539.
 4. **The Gleaning Net does nothing** (+0 on every column). 3 Pearls a Crest is too little.
-5. **Every earlier bot number in these notes is from the old bot.** The new bot is much stronger, so compare old numbers only with a measure row that uses `bot: { noShop: true, noTonics: true, lateSwellOnly: true }`. The v0.22.0 balance findings ("The Belfry got easier", the underpriced keepsakes) should be measured again with the new bot before anyone acts on them.
+5. **Every earlier bot number in these notes is from the old bot.** The new bot is much stronger, so compare old numbers only with a measure row that uses `bot: { noShop: true, noTonics: true, lateSwellOnly: true }`. The v0.22.0 balance findings ("The Belfry got easier", the underpriced keepsakes) should be measured again with the new bot before anyone acts on them. Done on 2026-11-15, on v0.31.0 rules: see "Stair pictures, badges, the Jukebox player and the new bot's balance" (the Belfry's keepsakes don't explain it; the Kelp Bracelet, Drowned Anchor and Storm Bottle are underpriced).
 
 ### No Pearls at the start (v0.30.0, 2026-11-15)
 
@@ -1164,10 +1153,114 @@ With the old bot, the Purse, Pouch and Scales played exactly the same runs as th
   - The constant Hold costs most in the Belfry (68.6% to 55.4% of arrivals with the old stair), where the Hold was 40.
   - Together, v0.31.0 is easier than v0.30.1: the Heart 8.7% against 5.9%. The stair is meant to feel strong, so this was left as it is.
 - **Looks:** the stair has its own screen (`renderStair` in js/ui.js). It shows the way down so far as a track of the three levels, "The stair down / Into Dark Water" as its title, the five as cards with icons (a list on a phone), a line for each pick made, and Go down. Go down takes the focus once both picks are used; before that it says how many are unused. The five rise into place the first time the stair is seen. A Cove and the stair share a lantern glow that flickers over the picture and motes that drift up from it (off with reduced motion), and a rest shows the HP it brings on a bar. A first-time hint explains the stair.
-- **Art still to make:** a picture for each stair (the Shallows to Dark Water, Dark Water to the Belfry). A band's `stairArt` names it in img/scenes; until then the stair uses the Cove's picture.
+- **Art:** a picture for each stair came in v0.32.0 (`stairArt`: `stair_dark`, `stair_belfry`). Until then the stair used the Cove's picture.
 - **Open for the user:**
   - If the game should not get easier, the levers are the deep rest (50%), the cache (uncommon only), or one pick in place of two.
   - Players who reached the Belfry lose 20 Hold (40 to 20), so bringing several Lazaret keepsakes now Roils the aether sooner.
+
+### Stair pictures, badges, the Jukebox player and the new bot's balance (v0.32.0, 2026-11-15)
+
+- **The user's calls:** "what are the next steps?", then "yes, start on those, then commit and push" for the small jobs the agent proposed: pictures for the stair, the old balance findings measured again with the bot that shops, the stale status list in these notes, and the phone badges. While that ran: "can you add next/previous shuffle and volume to jukebox player".
+
+**Built:**
+- **The stair's pictures** (`BL.BANDS.dark.stairArt` `stair_dark`, `BL.BANDS.belfry.stairArt` `stair_belfry`; Codex, two variants each; prompts in `assets-src/wanted-images.tsv`; variant A used, B kept as `assets-src/scenes/*-b.png`, git-ignored).
+  - Into Dark Water: the drained stair winds down to the black water; halfway down, the keepers' hollow with a stone bench, a blanket and the lantern; brinelight drips from the rock into a tin flask, and the cache sits behind a rusted grille. Three of the stair's five are in the picture.
+  - Into the Belfry: the stair runs on down under still water toward a golden glow; on the last dry step, the diving helmet with its sealed lamp lit, an air hose, a tool roll and a weight belt; an empty iron hook on the wall, where the dress hung, and a carved bell.
+  - The lamp sits about 74% across, near the stair's flicker overlay (70%, 40%), and `.stair-scene` sits at 72% so a phone keeps it on screen. The build and `tests/darkwater.test.js` check that every level below the Shallows has its stair picture.
+- **The badges on hand cards.** They were 9.4px on a computer (`.7em` of the card) and 11px on a phone, centred over the card, so on a phone the next card covered half of each ("LETHAI"). The screens check never caught it: none of its fights showed a badge. Now:
+  - never below 12px (`max(12px, .7em)`);
+  - on small cards they sit on the strip of the card that shows, at its left, one above the other, 4px over the left edge onto the card underneath (the first card's stay inside), with tighter padding and no letter spacing, so the widest, LETHAL×2 (70px), fits the 66px that shows on a 360px phone;
+  - "x2" is "×2";
+  - the badges in How to Play and the tutorial's bubbles are 12px, from 11px;
+  - `tools/screens.js` gives the busy fight a creature low enough for LETHAL, so the small-text audit sees the badges.
+- **The Jukebox player** (`jukePlayer`, `jukeNeighbour`, `jukeStep` in `js/ui.js`). A bar stays at the top of the Jukebox while the list scrolls (sticky, the body has no top padding). It shows what plays (Playing or Paused, Gemini or Music box, the time) and has previous, play or pause, next, shuffle and a volume slider.
+  - Previous and next go through the open tracks in the list's order, songs and music box pieces alike, round at the ends. Previous more than 3 s into a song starts it again.
+  - A song that ends still goes on to the next open song, as before. A music box piece loops, so it would never hand on.
+  - **Shuffle** (`prefs.jukeShuffle`, kept with the sound settings): next and a song's end go through the open songs in a shuffled order (`ui.jukeOrder`, starting from the song playing), each once, and previous goes back along it. A new round never starts with the song that just played. The order is made again when a song opens or one is chosen from the list that isn't in it.
+  - The volume is the music's, `prefs.musicVol`, the same setting as the menu's Music slider (`data-vol="music"`, so the menu's handlers save it).
+  - The shuffle order uses `Math.random`: it is the player's music, not a rule, so it doesn't use the run's seeded RNG.
+  - The audio group of the UI test checks the player's name and play state, next and previous in list order, previous restarting a song after 3 s, a shuffled round that plays every open song once, the next round's first song, shuffle being kept, and the volume.
+- **A UI test that was already failing.** In the story scenario on a phone, "Play the opening again" sits below the fold of Story so far, which has grown, so the tap landed on the modal's foot. The opening never started, and New Descent then played it ("the opening played again after the replay"). It failed on v0.31.0 too. The test now scrolls the button into view and says so when the opening doesn't start.
+
+**Measured** with the bot that shops (v0.31.0 rules: no Pearls at the start, the stair, Hold 20). Each measurement ran as one capped process (`systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0 -p CPUQuota=100% nice -n 19 node tools/measure.js SPEC --workers 1`), with the three running side by side; the spec files are in the session scratchpad.
+
+1. **Keepsake value** (the v0.22.0 method): the Shallows' pin with the keepsake brought from the start, `home: 0`, the Hold out of the way (`E.HOLD = 999`), 2000 seeds. Nothing brought: 34.5% (noise about ±1). The median price is 1.07 Roil a point, close to the 1.1 the deeper keepsakes were priced at in v0.22.0. The last column is the Roil each would cost at that rate.
+
+  | Keepsake | From | Roil | Pin | Gain | Roil a point | Fair Roil at 1.07 |
+  |---|---|---|---|---|---|---|
+  | Whale Tooth | Shallows | 19 | 52.5 | +18.0 | 1.06 | 19 |
+  | Barnacle Plate | Shallows | 14 | 50.5 | +16.0 | 0.88 | 17 |
+  | Tidewatch | Shallows | 12 | 50.0 | +15.5 | 0.77 | 17 |
+  | Moon Shard | Shallows | 8 | 41.4 | +6.9 | 1.16 | 7 |
+  | Kelp Bracelet | Shallows | 11 | 63.6 | +29.1 | 0.38 | 31 |
+  | Gull Feather | Shallows | 8 | 38.8 | +4.3 | 1.86 | 5 |
+  | Scallop Charm | Shallows | 12 | 45.3 | +10.8 | 1.11 | 12 |
+  | Storm Bottle | Shallows | 18 | 59.0 | +24.5 | 0.73 | 26 |
+  | Whispering Conch | Shallows | 17 | 47.8 | +13.3 | 1.28 | 14 |
+  | Coral Branch | Shallows | 6 | 36.5 | +2.0 | 3.00 | 2 |
+  | Angler's Lure | Shallows | 10 | 43.5 | +9.0 | 1.11 | 10 |
+  | Salted Hook | Shallows | 7 | 39.6 | +5.1 | 1.37 | 5 |
+  | Conch of Echoes | Shallows | 17 | 49.0 | +14.5 | 1.17 | 16 |
+  | Drowned Anchor | Shallows | 18 | 61.0 | +26.5 | 0.68 | 28 |
+  | Hollow Whelk | Dark Water | 27 | 59.4 | +24.9 | 1.08 | 27 |
+  | Glimmer Bulb | Dark Water | 30 | 62.7 | +28.2 | 1.06 | 30 |
+  | Leech Jar | Dark Water | 21 | 54.5 | +20.0 | 1.05 | 21 |
+  | Bell Clapper | Belfry | 41 | 72.8 | +38.3 | 1.07 | 41 |
+  | Powder Horn | Belfry | 26 | 61.6 | +27.1 | 0.96 | 29 |
+  | Heart Cinder | Belfry | 42 | 75.4 | +40.9 | 1.03 | 44 |
+
+2. **Kit** on v0.31.0 rules: the Diving Dress plus one piece, a full expedition, 2000 seeds. The bells replace the Brass Tide-Bell. Noise is about ±0.6 on the Heart, ±1 on the Shallows' pin, ±2 on Dark Water's share and ±3 on the Belfry's.
+
+  | Kit | Price | Shallows' pin | Dark Water's share | Belfry's share | Heart | Heart gain |
+  |---|---|---|---|---|---|---|
+  | dress only |  | 29.4 | 40.9 | 71.0 | 8.6 |  |
+  | Plated Dress | 50 | 31.4 | 44.8 | 73.8 | 10.4 | +1.8 |
+  | Honed Harpoon | 35 | 31.4 | 43.4 | 72.1 | 9.8 | +1.2 |
+  | Barbed Harpoon | 25 | 31.4 | 44.0 | 70.4 | 9.8 | +1.2 |
+  | Toggle Iron | 30 | 37.2 | 46.9 | 72.2 | 12.6 | +4.0 |
+  | Flood Bell | 20 | 38.4 | 48.5 | 69.6 | 12.9 | +4.3 |
+  | Ebb Bell | 20 | 41.4 | 44.8 | 73.3 | 13.6 | +5.0 |
+  | Cracked Bell | 30 | 32.5 | 40.0 | 73.5 | 9.6 | +1.0 |
+  | Harbour Bell | 25 | 43.0 | 49.4 | 72.7 | 15.4 | +6.8 |
+  | Coin Purse | 8 | 32.0 | 42.0 | 74.0 | 9.9 | +1.3 |
+  | Gleaner's Pouch | 15 | 31.1 | 41.4 | 72.9 | 9.4 | +0.8 |
+  | Barnaby's Marker | 25 | 34.9 | 42.3 | 70.2 | 10.3 | +1.7 |
+  | Spare Flask | 12 | 34.9 | 39.7 | 70.4 | 9.8 | +1.2 |
+  | Pearl Scales | 15 | 31.1 | 42.5 | 74.3 | 9.8 | +1.2 |
+  | Gleaning Net | 10 | 29.9 | 41.4 | 70.9 | 8.8 | +0.2 |
+  | Spare Wick | 12 | 32.1 | 49.7 | 78.4 | 12.5 | +3.9 |
+  | Bailer | 30 | 30.4 | 44.5 | 72.2 | 9.8 | +1.2 |
+  | Safety Line | 35 | 42.6 | 43.2 | 73.1 | 13.4 | +4.8 |
+
+3. **The Belfry's own keepsakes** (v0.22.0 finding 1: "the Belfry got easier" because its keepsakes are the strongest). Each was taken out of every offer (`deep = 99`), 3000 seeds, about 350 runs reaching the Belfry a row (±2.4 on its share):
+
+  | Rows | Shallows' pin | Dark Water's share | Belfry's share | Heart |
+  |---|---|---|---|---|
+  | v0.31.0 | 29.2 | 40.3 | 73.4 | 8.6 |
+  | no Bell Clapper | 29.2 | 40.3 | 69.7 | 8.2 |
+  | no Heart Cinder | 29.2 | 40.3 | 74.5 | 8.8 |
+  | no Powder Horn | 29.2 | 40.3 | 72.2 | 8.5 |
+  | none of the three | 29.2 | 40.3 | 70.8 | 8.3 |
+
+**Findings for the user (not changed):**
+1. **The Belfry's keepsakes are not why it is easy.** Without all three, its pin still falls to 70.8% of the runs that reach it, against 73.4%. That is inside the noise. The bot meets few of them before the pin, since the Belfry is short. The lever is the Belfry itself: its creatures, its Dreads or the Bellwether. Survivorship matters too: only strong decks get that far.
+2. **Three Shallows keepsakes are underpriced, confirmed with the new bot.**
+   - The Kelp Bracelet is worth +29.1 at Roil 11; its fair Roil is about 31.
+   - The Drowned Anchor is worth +26.5 at Roil 18; fair is about 28.
+   - The Storm Bottle (new to the list) is worth +24.5 at Roil 18; fair is about 26.
+   - The Tidewatch and the Barnacle Plate are a little cheap (about 17 each, against 12 and 14).
+   - The Barnacle Plate is no longer an outlier: it was 57.5% as a starter, with the old bot and old rules.
+3. **Three keepsakes cost more than they give.** The Coral Branch is +2.0 at Roil 6, inside the noise. The Gull Feather is +4.3 at 8, and the Salted Hook +5.1 at 7. They need more power, or a Roil of 2 to 5.
+4. **The bells are the strongest kit.**
+   - The Harbour Bell (25) gives +6.8 on the Heart and takes the Shallows' pin from 29.4% to 43.0%.
+   - The Ebb Bell (20) gives +5.0 and the Flood Bell (20) +4.3. All three beat the Brass Tide-Bell they replace, for the bot.
+   - The Cracked Bell (30) gives only +1.0.
+5. **Other strong pieces:**
+   - the Safety Line (35), +4.8;
+   - the Toggle Iron (30), +4.0, well ahead of the Honed (35) and Barbed (25) Harpoons at +1.2;
+   - the Spare Wick (12), +3.9. It is still the best value: down from +5.3 in v0.24.0, now that the stair rests deeply.
+6. **The money kit is small without the starting Pearls.** The Coin Purse (+1.3) is now worth what Barnaby's Marker (+1.7), the Pearl Scales (+1.2) and the Gleaner's Pouch (+0.8) are. **The Gleaning Net still does nothing** (+0.2).
+7. **The Plated Dress** (50, the dearest piece) gives +1.8 over the plain dress.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -1579,6 +1672,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
     - **Whisper note:** run whisper-cli without `-nt` on songs. With `-nt` it decodes without timestamp tokens, then drops whole sections and fills gaps with "Thank you."
 - **Files and levels.** In `music/songs/`, shipped by `tools/build.js`. Each was trimmed of silence at its ends (with a 0.6 s fade-out), normalised with ffmpeg's two-pass `loudnorm` (I=-16, TP=-1.5, LRA=20, linear) to -16.4 LUFS integrated, and encoded as 128 kbit/s CBR MP3 at 44.1 kHz (about 2.4 to 2.9 MB each). Gemini's files came at about -11.5 LUFS with peaks above 0 dBFS. In the game `SONG_LEVEL` 0.2 (-14 dB) puts them at about -30.4 LUFS, between the score's title (-29.4) and reach (-32.7) cues. The built site grew from 9.9 MB to 23.0 MB, to 25.8 MB with the Bellwether's song, and to 35.4 MB with the four v0.28.0 songs; a song downloads only when it first plays.
 - **How it's wired.** Each song is an `<audio>` element through a `MediaElementAudioSourceNode` and a gain into the music bus, so the switch and slider work, on iOS too (iOS ignores an element's own volume). From `file://` Web Audio can't read the file, so there the element plays straight out at a volume set from the slider, with no fades; not tried. `tools/serve.js` now answers byte ranges, which seeking needs. `tests/music.test.js` checks the files, their lengths and that every song plays somewhere; the `--only audio` UI test checks that each song really plays (its time moves on), hands back to the score, and that the Jukebox keeps unheard tracks and unreached depths locked, plays, seeks by the slider and the 10 s buttons, pauses, plays the score at a depth and keeps playing after it closes, and that the title screen goes round its songs once the pins' songs are heard (`window.Brinelight.songToEnd()` skips to a song's last second).
+- **The player (v0.32.0):** previous, play or pause, next, shuffle and the music's volume at the top of the Jukebox. See "Stair pictures, badges, the Jukebox player and the new bot's balance".
 - **Open questions:** whether more places want a song (the win screen, the fall); whether -30 LUFS is the right level for sung music against the sound effects; the repo grows by about 14 MB of MP3s, which git keeps for good.
 
 ## For later (from the user)
@@ -1622,8 +1716,9 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
   - Estimated play time with thinking (3.5 s a card, 1.5 s an End Turn, between the two bots): about 54 s.
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
-- **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px).
+- **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
 - **Bot run outcomes, v0.31.0** (the bot that shops, 1000 seeds, first expedition in the dress): the Shallows' pin 28.9%, Dark Water's after it 41.9%, the Belfry's after that 71.9%, the Heart 8.7% (see "The stair down, and a Hold that doesn't grow").
+- **Keepsake and kit values with the bot that shops, v0.31.0 rules** (2026-11-15): the Shallows' pin with each keepsake brought (34.5% with none; 1.07 Roil a point is the median price), and the expedition in the dress with each piece of kit (Heart 8.6% with none). The tables are in "Stair pictures, badges, the Jukebox player and the new bot's balance".
 - **Bot run outcomes** with the bot that shops, drinks tonics and uses the Bailer (2026-11-14), v0.24.0, 2000 seeds, first expedition in the dress: the Shallows' pin 33.8%, Dark Water's after it 32.9%, the Belfry's after that 70.7%, the Heart 7.8%. The same seeds with the old bot: 19.9%, 17.6%, 40.0%, 1.4% (see "The bot shops, drinks tonics and uses the Bailer"). Every number below is from the old bot.
 - **Older bot run outcomes** (careful bot, before 2026-11-14): v0.22.0, 2000 seeds, first expedition: the Shallows' pin 19.9%, Dark Water's after it 17.9%, the Belfry's after that 45.1%, the Heart 1.6%; with Hold 40 from earlier expeditions 23.2%, 20.7%, 53.1%, 2.5% (see "More kit and keepsakes, slice C"). v0.21.0, 2000 seeds: the Shallows' pin 19.9%, Dark Water's after it 15.9%, the Belfry's after that 30.2%, the Heart 0.9% (see "Deeper Dreads are harder"). v0.20.0, 2000 seeds:
   - the Shallows' pin 18.5%;

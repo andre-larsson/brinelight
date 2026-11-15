@@ -59,6 +59,11 @@ test('each level of an expedition draws fights, its pin and Fog events from its 
     assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/units', BL.ENEMIES[id].art + '.webp')), id);
   }));
   ['bg', 'bossBg'].forEach((k) => Object.values(BL.BANDS).forEach((b) => assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/bg', b[k] + '.webp')), b[k])));
+  // every level below the Shallows has its own picture for the stair down into it (v0.32.0)
+  E.LEVELS.slice(1).forEach((L) => {
+    const b = BL.BANDS[L.band];
+    assert.ok(b.stairArt && fs.existsSync(path.join(__dirname, '..', 'img/scenes', b.stairArt + '.webp')), 'stair into ' + b.name);
+  });
 });
 
 test('a Fog event never repeats in a run until every one in the band has been seen', () => {

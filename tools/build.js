@@ -38,6 +38,7 @@ BL.EVENTS.forEach((e) => check(`img/scenes/${e.art}.webp`, 'event ' + e.id));
 // Wren's picture for each rig
 Object.values(BL.KIT).forEach((k) => { if (k.look) check(`img/units/${k.look}.webp`, 'kit ' + k.name); });
 Object.values(BL.BANDS).forEach((b) => [b.bg, b.bossBg].forEach((bg) => check(`img/bg/${bg}.webp`, 'band ' + b.name)));
+Object.values(BL.BANDS).forEach((b) => b.stairArt && check(`img/scenes/${b.stairArt}.webp`, 'stair into ' + b.name));
 // Story so far and the opening name their pictures by path under img/
 [...BL.STORY.opening, ...BL.STORY.chapters, ...BL.STORY.notes].forEach((x) => [x.art, x.fig].filter(Boolean).forEach((a) => check(`img/${a}.webp`, 'story ' + (x.title || 'opening'))));
 if (/\b(src|href)="\//.test(html)) missing.push('index.html uses a root-absolute path; use relative paths so /<repo>/ works');

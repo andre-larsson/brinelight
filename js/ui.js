@@ -21,7 +21,7 @@
     mapFocus: 0, lastPointer: (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 'touch' : 'mouse', combatRef: null, cw: 140, overlayOnClose: null, overlayLocked: false, tipFor: null,
     kitFrom: 'workshop', kitSlot: null, kitScroll: 0, // the kit screens: which one is open, its chosen slot, its scroll while buying
   };
-  let prefs = { sound: true, music: true, fast: false, soundVol: 0.8, musicVol: 0.8 }; // volumes are slider positions, 0 to 1
+  let prefs = { sound: true, music: true, fast: false, soundVol: 0.8, musicVol: 0.8, jukeShuffle: false }; // volumes are slider positions, 0 to 1
   const BEST_KEY = 'brinelight.best.v1';
   const VERSION_KEY = 'brinelight.version.v1'; // the last version whose What's new the player has seen
   const META_KEY = 'brinelight.meta.v1'; // the Workshop and the Lazaret: Salvage, kit owned and worn, achievements, keepsakes kept
@@ -66,6 +66,10 @@
   const ICON = {
     play: svg('<path d="M8 5.5v13l10.5-6.5z"/>'),
     pause: svg('<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/>'),
+    prev: svg('<path d="M5.5 5H8v14H5.5zM19 5.5v13L9.5 12z"/>'),
+    next: svg('<path d="M16 5h2.5v14H16zM5 5.5v13L14.5 12z"/>'),
+    shuffle: svg('<path d="M3 7.5h3c2.2 0 3.5 1.1 4.8 3.2l1.6 2.6c1.3 2.1 2.6 3.2 4.8 3.2H20M3 16.5h3c1.4 0 2.4-.5 3.3-1.4M14.4 8.9c.9-.9 1.9-1.4 3.3-1.4H20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17.5 4.5l3 3-3 3M17.5 13.5l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
+    volume: svg('<path d="M3.5 9.5H7l4.5-4v13l-4.5-4H3.5z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.6a7.6 7.6 0 0 1 0 10.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     note: svg('<path d="M9 17.5V6.6L19 4.2v11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6.6" cy="17.6" r="2.6"/><circle cx="16.6" cy="15.3" r="2.6"/>'),
     heart: svg('<path d="M12 21s-7.6-4.6-9.6-9.4C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.6 1.2 4.4 2.6.8-1.4 2.3-2.6 4.4-2.6 3.6 0 5.7 3.7 4.2 7.1C19.6 16.4 12 21 12 21z"/>'),
     pearl: svg('<circle cx="12" cy="12" r="8.5" fill="#e9dfcf"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="#a89b85" stroke-width="1"/><circle cx="9" cy="9" r="2.6" fill="#fff" opacity=".85"/>'),
@@ -835,7 +839,7 @@
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Strand gives 1 Light. Save Surge for one big turn.</li>
         <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand gets its Light back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
         <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn, or Ward instead of a card.</li>
-        <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST x2</span> means that card makes two Crests.</li>
+        <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST&times;2</span> means that card makes two Crests.</li>
       </ul>`;
       case 'keywords': return dl(['Bail', 'Stir', 'Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))
         + `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]]))
@@ -1234,7 +1238,8 @@
 
   /* ----- Jukebox (the title screen, from the start): the music you have heard,
      Gemini's songs and pieces of the score in one list, in the order you meet them. A pick plays until a descent starts: a song that ends goes on to the next one you have
-     heard, and a piece of the score loops. The song playing can be moved through. ----- */
+     heard, and a piece of the score loops. The song playing can be moved through. A player at the top (v0.32.0) has
+     previous, play or pause, next, shuffle and the music's volume. ----- */
   const JUKE = [ // [kind, key] for a song (its name and place are in SONGS); [kind, key, name, where] for a cue of the score
     ['song', 'title'],
     ['song', 'bells'],
@@ -1299,8 +1304,81 @@
     return meta.heard.indexOf(k) >= 0 || !!(early && early.open());
   };
   const jukeDepthOpen = (d) => d <= (meta.reached || 0) || meta.heard.indexOf('depth:' + d) >= 0;
+  /* Previous and next go through the open tracks in the list's order, songs and music box pieces alike. A song that
+     ends goes on to the next open song, since a music box piece loops and would never hand on. With shuffle on
+     (prefs.jukeShuffle, kept), next and a song's end go through the open songs in a shuffled order (ui.jukeOrder), each
+     once before any comes round again, and previous goes back along it. Previous more than 3 s into a song starts it
+     again, as in other players. */
+  const jukeTracks = () => JUKE.filter(([kind, key]) => jukeOpen(kind, key)).map(([kind, key]) => kind + ':' + key);
+  const jukeId = (st) => (st.song ? 'song:' + st.song : st.cue ? 'cue:' + st.cue : null);
+  function jukeShuffled(first) {
+    const ks = jukeTracks().filter((t) => t.indexOf('song:') === 0 && t !== first);
+    for (let i = ks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ks[i], ks[j]] = [ks[j], ks[i]]; }
+    return first ? [first].concat(ks) : ks;
+  }
+  // the track before (dir -1) or after (+1) the one playing; `auto` when a song has ended (songs only)
+  function jukeNeighbour(dir, auto) {
+    const cur = jukeId(Sound.juke.state());
+    if (prefs.jukeShuffle) {
+      const songs = jukeTracks().filter((t) => t.indexOf('song:') === 0);
+      let o = ui.jukeOrder || [];
+      // a new order when this one no longer fits: a song opened since, or a song chosen from the list that isn't in it
+      if (o.length !== songs.length || o.some((t) => songs.indexOf(t) < 0) || (cur && cur.indexOf('song:') === 0 && o.indexOf(cur) < 0)) {
+        o = ui.jukeOrder = jukeShuffled(cur && cur.indexOf('song:') === 0 ? cur : null);
+      }
+      const i = o.indexOf(cur);
+      if (i < 0) return dir > 0 ? o[0] : o[o.length - 1]; // a music box piece, or nothing: into the order
+      if (i + dir < 0) return o[o.length - 1];
+      if (i + dir < o.length) return o[i + dir];
+      // round again in a fresh order, which doesn't start with the song that just played
+      o = ui.jukeOrder = jukeShuffled(null);
+      if (o.length > 1 && o[0] === cur) [o[0], o[1]] = [o[1], o[0]];
+      return o[0];
+    }
+    const ts = auto ? jukeTracks().filter((t) => t.indexOf('song:') === 0) : jukeTracks();
+    const i = ts.indexOf(cur);
+    if (!ts.length) return cur;
+    if (i < 0) return dir > 0 ? ts[0] : ts[ts.length - 1];
+    return ts[(i + dir + ts.length) % ts.length];
+  }
+  // play a track from its start (or carry on with it, if it is the one chosen); choosing music means you want to hear it
+  function jukeGo(id) {
+    if (!id) return;
+    const [kind, key] = id.split(':'), off = !prefs.music;
+    Sound.juke.pick(kind, key, true);
+    if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
+  }
+  function jukeStep(dir) {
+    const st = Sound.juke.state();
+    if (dir < 0 && st.song && st.at > 3) { jukeGo('song:' + st.song); Sound.juke.seek(0); }
+    else {
+      const id = jukeNeighbour(dir);
+      if (id === jukeId(st)) { jukeGo(id); if (st.song) Sound.juke.seek(0); } else jukeGo(id);
+    }
+    ui.jukeSeekAt = 0;
+    drawJuke();
+  }
+  /* The player: what plays, with previous, play or pause, next and shuffle (redrawn with the list), and the music's
+     volume, the menu's Music slider (the same setting; not redrawn, so a drag isn't cut short). */
+  function jukePlayer(st) {
+    const id = jukeId(st), name = id ? nowName(id) : null, on = !!id && !st.paused;
+    const time = st.song ? `${mmss(st.at)} / ${mmss(st.secs)}` : '';
+    const state = !id ? 'Nothing chosen' : on ? 'Playing' : 'Paused';
+    return `<div class="jp-now"><small>${state}${st.song || st.cue ? ` · <span class="jp-kind">${st.song ? 'Gemini' : 'Music box'}</span>` : ''}</small>
+        <b>${name || 'Choose a track'}</b>${time ? `<span class="jp-t">${time}</span>` : ''}</div>
+      <div class="jp-ctl">
+        <button class="jp-btn" data-act="jukeprev" aria-label="Previous">${ICON.prev}</button>
+        <button class="jp-btn jp-main" data-act="jukepp" aria-label="${on ? 'Pause' : 'Play'}">${on ? ICON.pause : ICON.play}</button>
+        <button class="jp-btn" data-act="jukenext" aria-label="Next">${ICON.next}</button>
+        <button class="jp-btn jp-shuffle" data-act="jukeshuffle" aria-pressed="${!!prefs.jukeShuffle}" aria-label="Shuffle" title="Shuffle: ${prefs.jukeShuffle ? 'on' : 'off'}">${ICON.shuffle}</button>
+      </div>`;
+  }
+  function jukeVolume() {
+    const v = Math.round(prefs.musicVol * 100);
+    return `<div class="vol-line jp-vol"><span class="jp-vol-ic" aria-hidden="true">${ICON.volume}</span><input type="range" min="0" max="100" step="5" value="${v}" data-vol="music" aria-label="Music volume"><output>${v}%</output></div>`;
+  }
   // what the list shows as playing: it is redrawn when that changes, and the time moves in between
-  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, meta.heard.length].join('/');
+  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, meta.heard.length, !!prefs.jukeShuffle].join('/');
   function jukeList(st) {
     const S = Sound.juke.SONGS;
     const rows = JUKE.map(([kind, key, cueName, cueWhere]) => {
@@ -1334,21 +1412,25 @@
     if (!list) { clearInterval(ui.jukeTick); return; }
     const st = Sound.juke.state(), sig = jukeSig(st);
     if (sig === ui.jukeSig) { // only the time moves, and the slider unless it is being dragged
-      const t = $('.juke-item.cur .juke-t', list), r = $('.juke-item.cur .juke-pos', list);
+      const t = $('.juke-item.cur .juke-t', list), r = $('.juke-item.cur .juke-pos', list), pt = $('.jp-t', overlayEl);
       if (t && st.song) t.textContent = `${mmss(st.at)} / ${mmss(st.secs)}`;
+      if (pt && st.song) pt.textContent = `${mmss(st.at)} / ${mmss(st.secs)}`;
       if (r && Date.now() - (ui.jukeSeekAt || 0) > 700) { r.max = Math.round(st.secs); r.value = Math.floor(st.at); }
       return;
     }
-    const f = document.activeElement;
+    const f = document.activeElement, top = $('.jp-top', overlayEl);
     const fk = f && list.contains(f) ? (f.dataset.key ? `[data-act="${f.dataset.act}"][data-key="${f.dataset.key}"]` : f.dataset.depth ? `[data-depth="${f.dataset.depth}"]` : f.dataset.by ? `[data-by="${f.dataset.by}"]` : f.classList.contains('juke-pos') ? '.juke-pos' : null) : null;
+    const fp = f && top && top.contains(f) && f.dataset.act ? `[data-act="${f.dataset.act}"]` : null;
     list.innerHTML = jukeList(st);
+    if (top) top.innerHTML = jukePlayer(st);
     ui.jukeSig = sig;
     if (fk) { const g = $(fk, list); if (g) g.focus({ preventScroll: true }); }
+    if (fp) { const g = $(fp, top); if (g) g.focus({ preventScroll: true }); }
   }
   // back from a song's words, the list opens at that song with its Words button in focus
   function showJukebox(fromWords) {
     const st = Sound.juke.state();
-    const body = `<div class="juke-list">${jukeList(st)}</div>`;
+    const body = `<div class="juke-player" role="group" aria-label="Player"><div class="jp-top">${jukePlayer(st)}</div>${jukeVolume()}</div><div class="juke-list">${jukeList(st)}</div>`;
     ui.jukeSig = jukeSig(st);
     clearInterval(ui.jukeTick);
     openOverlay(modal('Jukebox', body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'jukebox-modal'),
@@ -1369,11 +1451,11 @@
     }).join('');
     openOverlay(modal(S.name, `<div class="lyrics">${parts}</div>`, '<button class="btn primary" data-act="jukeback" autofocus>Back</button>', 'lyrics-modal'));
   }
-  // a song that ends in the Jukebox goes on to the next one you have heard (or starts again, if it is the only one)
+  // a song that ends in the Jukebox goes on to the next one you have heard, or the next in the shuffled order (or
+  // starts again, if it is the only one)
   Sound.juke.onEnd((key) => {
-    const ks = JUKE.filter(([kind, k]) => kind === 'song' && jukeOpen(kind, k)).map(([, k]) => k);
-    const i = ks.indexOf(key);
-    Sound.juke.pick('song', ks.length ? ks[(i + 1) % ks.length] : key, true);
+    const id = jukeNeighbour(1, true) || 'song:' + key;
+    Sound.juke.pick('song', id.split(':')[1], true);
     drawJuke();
   });
 
@@ -1958,9 +2040,9 @@
     const b = [];
     if (p) {
       if (p.won) b.push('<span class="c-badge victory">VICTORY</span>');
-      else if (p.kills) b.push(`<span class="c-badge lethal">LETHAL${p.kills > 1 ? ' x' + p.kills : ''}</span>`);
+      else if (p.kills) b.push(`<span class="c-badge lethal">LETHAL${p.kills > 1 ? '\u00d7' + p.kills : ''}</span>`);
       // the number is how many Crests this card makes, not where it falls in the turn's chain
-      if (p.crests) b.push(`<span class="c-badge crest">CREST${p.crests > 1 ? ' x' + p.crests : ''}</span>`);
+      if (p.crests) b.push(`<span class="c-badge crest">CREST${p.crests > 1 ? '\u00d7' + p.crests : ''}</span>`);
       else if (p.lows) b.push('<span class="c-badge low">STRAND</span>');
     }
     const d = BL.CARDS[card.id];
@@ -2871,7 +2953,7 @@
 
   /* ----- The stair down between levels (v0.31.0): two of five, each once (E.stairDo). It is bigger than a Cove and
      looks it (the user: "more alternatives than in-level rest, and *feel* stronger"): the way down so far, the level
-     ahead as its title, and the five as cards. A level's `stairArt` (img/scenes) is its picture, the Cove's until then. ----- */
+     ahead as its title, and the five as cards. A level's `stairArt` (img/scenes) is its picture; without one, the Cove's. ----- */
   const STAIR_ICON = {
     rest: ICON.rest,
     refit: svg('<path d="M13.4 2.8 21.2 10.6l-2.4 2.4-1.8-1.8-8.6 8.6a2.2 2.2 0 0 1-3.1-3.1l8.6-8.6-1.8-1.8z"/>'),
@@ -3317,6 +3399,23 @@
         break;
       }
       case 'jukeskip': Sound.juke.seek(0, +t.dataset.by); ui.jukeSeekAt = 0; drawJuke(); break;
+      case 'jukeprev': jukeStep(-1); break;
+      case 'jukenext': jukeStep(1); break;
+      case 'jukepp': { // the player's play or pause: the track chosen, or the first in the list when none is
+        const st = Sound.juke.state(), id = jukeId(st) || jukeTracks()[0];
+        if (!id) break;
+        const [kind, key] = id.split(':'), off = !prefs.music;
+        Sound.juke.pick(kind, key, off || !jukeId(st));
+        if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
+        drawJuke();
+        break;
+      }
+      case 'jukeshuffle':
+        prefs.jukeShuffle = !prefs.jukeShuffle;
+        ui.jukeOrder = null; // a fresh order from the song playing
+        savePrefs();
+        drawJuke();
+        break;
       case 'jukewords': showWords(t.dataset.key); break;
       case 'jukeback': showJukebox(true); break;
       case 'changelog': showChangelog(); break;

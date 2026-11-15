@@ -72,8 +72,8 @@ const SIZES = {
       // select first card
       await setup(`const c = B.run.combat; document.querySelector('#hand .card').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'mouse' })); document.querySelector('#hand .card').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, pointerType: 'mouse' }));`);
       await shot(tag, '04_selected');
-      // a two-enemy fight with statuses and ward, mid-fight
-      await setup(`const r = E.newRun(77, 0); B.run = r; E.startCombat(r, 'hard', ['crab', 'jelly']); const c = r.combat; c.player.ward = 7; c.enemies[0].ward = 9; c.enemies[1].st.brine = 3; c.player.st.soaked = 1; c.tide = 5; r.tonics = ['ink', 'kelptea', null]; r.keepsakes.push('anchor', 'whaletooth'); B.render();`);
+      // a two-enemy fight with statuses and ward, mid-fight; the Jelly is low, so the Jabs show LETHAL (the audit checks the badges)
+      await setup(`const r = E.newRun(77, 0); B.run = r; E.startCombat(r, 'hard', ['crab', 'jelly']); const c = r.combat; c.player.ward = 7; c.enemies[0].ward = 9; c.enemies[1].st.brine = 3; c.enemies[1].hp = 4; c.player.st.soaked = 1; c.tide = 5; r.tonics = ['ink', 'kelptea', null]; r.keepsakes.push('anchor', 'whaletooth'); B.render();`);
       await sleep(1600);
       await shot(tag, '05_combat_busy');
       // reward

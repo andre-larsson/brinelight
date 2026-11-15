@@ -832,7 +832,7 @@
       events: ['shrine', 'wreck', 'witch', 'pool', 'ghost', 'bottle', 'ambush'],
     },
     dark: {
-      name: 'Dark Water', boss: 'The Tolling Buoy', bg: 'bg_dark', bossBg: 'bg_dark_boss',
+      name: 'Dark Water', boss: 'The Tolling Buoy', bg: 'bg_dark', bossBg: 'bg_dark_boss', stairArt: 'stair_dark',
       pin: 'The Tolling Buoy rocks one last time and goes silent, and the water it held runs away down the last stair. At the bottom the water does not drain: below Dark Water is the Belfry, and its floor is under the sea.',
       enc: {
         easy: [['leech', 'leech', 'leech'], ['shrimp', 'leech'], ['hermit'], ['ray'], ['jelly', 'leech'], ['eel', 'leech']],
@@ -846,7 +846,7 @@
       events: ['shrine', 'pool', 'ghost', 'tideboard', 'garden', 'divingbell'],
     },
     belfry: {
-      name: 'the Belfry', boss: 'The Drowned Bellwether', bg: 'bg_belfry', bossBg: 'bg_belfry_boss',
+      name: 'the Belfry', boss: 'The Drowned Bellwether', bg: 'bg_belfry', bossBg: 'bg_belfry_boss', stairArt: 'stair_belfry',
       finalBoss: 'Something in the Belfry',
       stair: 'Below Dark Water the stair goes on down into the sea. On the last dry step you check the seams of the diving dress, light its sealed lamp, and rest a while before you go under.',
       win: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. The thing that grew into the bell lets go of the Heart and sinks away into the dark under the floor. You carry the Heart up three levels of stairs, and by dawn the great light of Saltmere is turning again.',

@@ -490,7 +490,7 @@ test('the number on a CREST badge is how many Crests that card makes, not the ch
   assert.equal(p.crests, 1, 'the second one makes one Crest: the badge says CREST');
   assert.equal(p.chain, 2, 'even though it would be the 2nd Crest this turn');
   c.tide = 3;
-  assert.equal(E.preview(run, cardIn(c, 'stormsurge').uid).crests, 2, 'Surge 6 from 3 makes two: CREST x2');
+  assert.equal(E.preview(run, cardIn(c, 'stormsurge').uid).crests, 2, 'Surge 6 from 3 makes two: CREST×2');
 });
 
 /* ---------- Bosses and elites ---------- */
