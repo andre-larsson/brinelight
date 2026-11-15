@@ -117,6 +117,9 @@
   E.HOLD_STEP = 0;
   E.SEEP_STEP = 12; // Roil over the Hold for each step: about one keepsake's worth, so each keepsake past the Hold adds about one step (5 until v0.18.0)
   E.MAX_ROIL_MINNOWS = 2;
+  /* A Roiled aether pays (v0.35.0; until then Roil was only a cost, so the right play was always to stay under the
+     Hold): every fight that pays Pearls pays ROIL_PAY more for each step the aether was over the Hold when it began. */
+  E.ROIL_PAY = 8;
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
   /* The Hold for someone whose deepest level reached is `deepest` (0 = only the Shallows). */
   E.holdAt = (deepest) => E.HOLD + E.HOLD_STEP * Math.max(0, Math.min(E.LEVELS.length - 1, deepest || 0));
@@ -484,6 +487,33 @@
     return h;
   };
 
+  /* ---------------- Give one to the sea (v0.35.0) ----------------
+     The user found that keepsakes and the Hold "need to do something more interesting", and one thought was to make
+     them "possible to sacrifice". At a Cove (in place of resting or refitting) or on the stair (one of its two picks)
+     Wren can throw a keepsake she carries into the water. It is gone for this expedition, with its Roil; one brought
+     from the Lazaret is still kept there. The sea pays for it: SEA_HEAL HP for each Roil of the keepsake, and a refit
+     of one card (`uid`; none if nothing can be upgraded, or if she chooses none). So a keepsake is something to spend,
+     and carrying one too many for a few fights (which pays: E.ROIL_PAY) and giving it up at the next Cove is a plan. */
+  E.SEA_HEAL = 2;
+  E.seaHeal = (k) => E.chargeOf(k) * E.SEA_HEAL;
+  function seaGive(run, k, uid) {
+    if (!E.has(run, k)) return null;
+    const card = uid != null ? run.deck.find((x) => x.uid === uid) : null;
+    if (uid != null && (!card || !E.canUpgrade(card))) return null;
+    if (!E.dropKeepsake(run, k)) return null; // a keepsake that gave Max HP takes it along, before the heal
+    const out = { keepsake: k, healed: E.heal(run, E.seaHeal(k)), card: null };
+    if (card) { card.up = 1; out.card = Object.assign({}, card); }
+    run.stats.given = (run.stats.given || 0) + 1;
+    return out;
+  }
+  /* At a Cove inside a level: it is the Cove's one thing. Returns what happened, or null. (On the stair: E.stairDo(run, 'sea', { k, uid }).) */
+  E.giveToSea = function (run, k, uid) {
+    if (run.screen !== 'rest' || run.passage || run.restDone) return null;
+    const out = seaGive(run, k, uid);
+    if (out) run.restDone = true;
+    return out;
+  };
+
   /* ---------------- The stair down (v0.31.0) ----------------
      Between levels the Cove on the stair is bigger than a Cove (the user: "more alternatives than in-level rest, and
      *feel* stronger"; the user chose "pick 2 of 5"). Wren does two of five things there, each once:
@@ -492,10 +522,11 @@
        shed   remove a card, free (Barnaby charges 75 and more)
        flask  a random tonic into every empty slot, no two alike (one tonic until v0.33.0: the user found it weak)
        cache  the keepers' cache: 1 of 3 cards, uncommon or rare (seen before choosing; looking costs nothing)
+       sea    give a keepsake to the sea (v0.35.0, E.seaGive): heal by its Roil and refit a card
      She may go on down with picks unused. */
   E.STAIR_PICKS = 2;
   E.STAIR_REST = 0.5;
-  E.STAIR_OPTIONS = ['rest', 'refit', 'shed', 'flask', 'cache'];
+  E.STAIR_OPTIONS = ['rest', 'refit', 'shed', 'flask', 'cache', 'sea']; // 'sea' since v0.35.0: two of six
   E.stairRestAmount = (run) => Math.floor(run.maxHp * E.STAIR_REST * (E.mods(run).rest / E.COVE_REST)) + (E.hasKit(run, 'wick') ? 10 : 0);
   E.stairOpen = (run) => !!run && run.screen === 'rest' && !!run.passage;
   E.stairState = (run) => run.stair || (run.stair = { picks: [], cache: null });
@@ -508,6 +539,7 @@
     if (id === 'refit' && !E.upgradeable(run).length) return 'Every card is upgraded.';
     if (id === 'shed' && run.deck.length <= 1) return 'Your deck is down to one card.';
     if (id === 'flask' && run.tonics.indexOf(null) < 0) return 'Your tonic slots are full.';
+    if (id === 'sea' && !run.keepsakes.length) return 'You carry no keepsake.';
     return '';
   };
   /* The keepers' cache: three cards, each uncommon (70%) or rare (30%), the same until taken. */
@@ -542,6 +574,10 @@
       const cid = E.stairCache(run)[arg];
       if (!cid) return null;
       out.card = E.addCard(run, cid);
+    } else if (id === 'sea') {
+      const g = seaGive(run, arg && arg.k, arg && arg.uid);
+      if (!g) return null;
+      Object.assign(out, g);
     }
     const s = E.stairState(run);
     s.picks.push(id);
@@ -732,6 +768,7 @@
     if (E.has(run, 'moonshard')) c.tide = 5;
     if (E.has(run, 'sirenscale')) c.enemies.forEach((e) => { e.st.soaked = (e.st.soaked || 0) + 2; });
     if (E.has(run, 'echoconch')) c.echo = 1;
+    c.roilSteps = roil.steps; // what the aether was when the fight began: it pays by this (E.ROIL_PAY)
     if (roil.steps) fx(c, { t: 'roil', seep, thrash: roil.thrash, minnows: roil.minnows });
     if (kind === 'easy' || kind === 'hard') run.normalFights++;
     // before the first turn, so a coat's Ward (the Shell Gorget, the Plated Dress) stands against a first Thrash
@@ -1609,11 +1646,14 @@
     if ((c.maxLowChain || 0) >= 2) bonuses.push({ name: 'High and Dry', desc: `${c.maxLowChain} Strands in a single turn`, pearls: E.chainBonus(c.maxLowChain) });
     bonuses.forEach((b) => { pearls += b.pearls; });
     run.stats.bonuses = (run.stats.bonuses || 0) + bonuses.length;
+    // a Roiled aether pays: not a bonus for playing well, so it is not scored as one
+    const roilPay = (c.roilSteps || 0) * E.ROIL_PAY;
+    pearls += roilPay;
     run.pearls += pearls;
     // a Dread pays in Pearls and a pick of keepsakes only (until v0.16.0 it also offered a card and often a tonic)
     const upChance = 0.15 + 0.02 * run.floor;
     const cards = elite ? [] : E.rewardCards(run, 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
-    const rw = { pearls, bonuses, cards, elite, cardTaken: elite, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
+    const rw = { pearls, bonuses, roilPay, roilSteps: c.roilSteps || 0, cards, elite, cardTaken: elite, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
     if (!elite && R.chance(0.4)) rw.tonic = E.randomTonic(run);
     if (elite) rw.keepsakeChoices = E.keepsakeChoices(run, 2);
     run.rewards = rw;

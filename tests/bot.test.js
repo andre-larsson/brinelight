@@ -191,6 +191,34 @@ test('whole expeditions with shopping, tonics and the Bailer are deterministic a
   assert.ok(twice > 0, 'Bailed or Stirred twice in a turn');
 });
 
+test('at a Cove the bot gives a keepsake to the sea only when the aether is Roiled: the one with the least Roil whose loss takes off a step', () => {
+  const cove = (ks) => {
+    const run = E.newRun(1, 0);
+    ks.forEach((k) => E.gainKeepsake(run, k));
+    run.hp = 30;
+    run.screen = 'rest';
+    run.restDone = false;
+    return run;
+  };
+  // Calm: it rests, and keeps what it carries
+  const calm = cove(['tidewatch']);
+  assert.equal(E.roil(calm).steps, 0);
+  assert.equal(step(calm), 'rest');
+  assert.deepEqual(calm.keepsakes, ['tidewatch']);
+  // Roiled by two steps: losing the Moon Shard would take off neither, losing the Barnacle Plate takes off one
+  const roiled = cove(['moonshard', 'barnacleplate', 'whaletooth']);
+  assert.equal(E.roil(roiled).steps, 2);
+  assert.equal(E.roilFor(E.charge(roiled) - E.chargeOf('moonshard'), E.hold(roiled)).steps, 2);
+  assert.equal(step(roiled), 'sea');
+  assert.deepEqual(roiled.keepsakes, ['moonshard', 'whaletooth']);
+  assert.equal(roiled.hp, 30 + E.seaHeal('barnacleplate'));
+  assert.equal(roiled.deck.filter((c) => c.up).length, 1, 'and it refits a card');
+  // told not to, it rests
+  const off = cove(['moonshard', 'barnacleplate', 'whaletooth']);
+  assert.equal(step(off, { noSea: true }), 'rest');
+  assert.equal(off.keepsakes.length, 3);
+});
+
 test('measure counts physical cores: two threads of one core count once, and each package has its own cores', () => {
   const { physicalCores } = require('../tools/measure');
   const cpu = (pkg, core) => `processor\t: 0\nphysical id\t: ${pkg}\nsiblings\t: 4\ncore id\t\t: ${core}\n`;

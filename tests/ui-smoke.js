@@ -956,7 +956,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   const at3 = await intentAt(3), at5 = await intentAt(5);
   if (at3 !== '12' || at5 !== '20') failures.push(`${name}: the Rocking Toll intent should read 12 at Swell 3 and 20 at Swell 5 (got ${at3}, ${at5})`);
   await checkPage(page, name + ' buoy');
-  // v0.18.0: once it has slipped its chain, a Bail that Strands muffles the Wild Peal from 30 to 20
+  // v0.18.0: once it has slipped its chain, a Bail that Strands muffles the Wild Peal from 30 to 15 (15 off since v0.35.0)
   await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat; c.enemies[0].mem.free = true; c.enemies[0].intent = 'peal'; c.tide = 1; c.light = 3; c.swellActTurn = null; B.render(); })()`);
   await sleep(300);
   const pealText = () => page.eval(`document.querySelector('.unit.enemy .intent').innerText.replace(/\\s+/g, '')`);
@@ -966,7 +966,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await tap('#tidebar .tb-act.bail');
   await waitIdle(page);
   const peal1 = await pealText();
-  if (peal0 !== '30' || peal1 !== '20') failures.push(`${name}: the Wild Peal intent should read 30, then 20 after a Bail that Strands (got ${peal0}, ${peal1})`);
+  if (peal0 !== '30' || peal1 !== '15') failures.push(`${name}: the Wild Peal intent should read 30, then 15 after a Bail that Strands (got ${peal0}, ${peal1})`);
   await checkPage(page, name + ' wild peal');
 
   // then a few stops of the real descent
@@ -1620,8 +1620,82 @@ async function audioScenario(page, base, name, size) {
 /* The scenarios, each a job for any worker: `group` is the name --only picks. Longest first, so the workers finish
    at about the same time: Dark Water plays six real fights there and takes about 110 s, the Shallows' runs and the
    audio about 50 to 60 s, the rest 5 to 40 s (2026-11-15). */
+/* v0.35.0: give a keepsake to the sea at a Cove and on the stair, and what a Roiled aether pays on the reward screen. */
+async function seaScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=9292');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', ${QUIET_STORY}); ${QUIET_META} })()`);
+  await page.goto(base + '?seed=9292');
+  await inject(page);
+  const R = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; return ${js}; })()`);
+  await page.click('[data-act="newrun"]');
+  await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the sea');
+  await dismissHints(page);
+  // a Cove with no keepsake: the sea is there, shut
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.hp = 31; r.screen = 'rest'; r.restDone = false; B.render(); })()`);
+  await sleep(200);
+  if (!(await page.eval(`(() => { const b = document.querySelector('[data-act="sea"]'); return !!b && b.disabled && /no keepsake/.test(b.textContent); })()`))) failures.push(`${name}: a Cove without a keepsake should show the sea, disabled`);
+  // with three keepsakes (Roiled, 39 of 20): choose one, then the card; backing out of either costs nothing
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; ['tidewatch', 'whaletooth', 'moonshard'].forEach((k) => E.gainKeepsake(r, k)); B.render(); })()`);
+  await sleep(200);
+  await dismissHints(page);
+  await checkPage(page, name + ' cove');
+  await page.click('[data-act="sea"]');
+  await sleep(250);
+  const tiles = await page.eval(`[...document.querySelectorAll('#overlay [data-act="seapick"]')].map((t) => t.dataset.k + ':' + t.querySelector('.sea-pay').textContent.trim()).join('|')`);
+  if (tiles !== 'tidewatch:Heal 24 HP, refit a card|whaletooth:Heal 38 HP, refit a card|moonshard:Heal 16 HP, refit a card') failures.push(`${name}: the sea should offer the three keepsakes with what it pays (${tiles})`);
+  await checkPage(page, name + ' sea picker');
+  await page.click('#overlay .modal-foot [data-act="close"]');
+  await sleep(200);
+  if ((await R('r.keepsakes.length')) !== 3 || (await R('r.restDone'))) failures.push(`${name}: Keep them all should change nothing`);
+  await page.click('[data-act="sea"]');
+  await sleep(250);
+  await page.eval(`document.querySelector('#overlay [data-act="seapick"][data-k="tidewatch"]').scrollIntoView({ block: 'center' })`);
+  await page.click('#overlay [data-act="seapick"][data-k="tidewatch"]');
+  await page.waitFor(`!!document.querySelector('#overlay .card[data-uid]')`, 3000, 'the card picker after choosing a keepsake');
+  if ((await R('r.keepsakes.length')) !== 3) failures.push(`${name}: the keepsake went before a card was chosen`);
+  await page.click('#overlay .card[data-uid]');
+  await sleep(300);
+  await clickIf(page, '#overlay [data-act="deckconfirm"]');
+  await page.waitFor('window.Brinelight.run.restDone === true', 3000, 'the Cove used after giving to the sea');
+  const after = await R(`({ hp: r.hp, keeps: r.keepsakes.join(','), ups: r.deck.filter((c) => c.up).length, steps: E.roil(r).steps })`);
+  if (after.hp !== 55 || after.keeps !== 'whaletooth,moonshard' || after.ups !== 1 || after.steps !== 1) failures.push(`${name}: after giving the Tidewatch: ${JSON.stringify(after)}, expected 55 HP, two keepsakes, one card upgraded, one step`);
+  if (!/You give the Tidewatch to the sea/.test(await page.eval('document.body.innerText'))) failures.push(`${name}: the Cove doesn't say what the sea gave`);
+  await checkPage(page, name + ' cove after');
+  // a fight begun Roiled pays for it, and the reward says so
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; E.backToMap(r); E.startCombat(r, 'easy'); const c = r.combat; c.turn = 9; c.flags.hpLost = true; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); c.won = true; E.finishCombat(r); B.render(); })()`);
+  await sleep(300);
+  const chip = await page.eval(`(document.querySelector('.chip.bonus.roil') || { textContent: '' }).textContent.trim()`);
+  if (chip !== 'Roiled +8') failures.push(`${name}: the reward should show "Roiled +8" for one step (got "${chip}")`);
+  await checkPage(page, name + ' reward');
+  // the stair has six, and the sea is one of its two picks
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.rewards = null; r.hp = 30; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; E.goDeeper(r); B.render(); })()`);
+  await sleep(700);
+  await dismissHints(page);
+  if ((await page.eval(`document.querySelectorAll('.stair-opt').length`)) !== 6) failures.push(`${name}: the stair should offer six`);
+  await checkPage(page, name + ' stair');
+  await page.eval(`document.querySelector('.stair-opt[data-id="sea"]').scrollIntoView({ block: 'center' })`);
+  await page.click('.stair-opt[data-id="sea"]');
+  await sleep(250);
+  await page.eval(`document.querySelector('#overlay [data-act="seapick"][data-k="moonshard"]').scrollIntoView({ block: 'center' })`);
+  await page.click('#overlay [data-act="seapick"][data-k="moonshard"]');
+  await page.waitFor(`!!document.querySelector('#overlay .card[data-uid]')`, 3000, 'the card picker on the stair');
+  await page.click('#overlay .card[data-uid]');
+  await sleep(300);
+  await clickIf(page, '#overlay [data-act="deckconfirm"]');
+  await page.waitFor('window.Brinelight.E.stairState(window.Brinelight.run).picks.join(",") === "sea"', 3000, 'the sea as a pick on the stair');
+  const st = await R(`({ hp: r.hp, keeps: r.keepsakes.join(','), ups: r.deck.filter((c) => c.up).length })`);
+  if (st.hp !== 46 || st.keeps !== 'whaletooth' || st.ups !== 2) failures.push(`${name}: after giving the Moon Shard on the stair: ${JSON.stringify(st)}`);
+  if (!(await page.eval(`document.querySelector('.stair-opt[data-id="sea"]').classList.contains('done')`))) failures.push(`${name}: the stair doesn't mark the sea as done`);
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 const DESK = { w: 1280, h: 800 }, PHONE = { w: 390, h: 844, mobile: true, touch: true };
 const JOBS = [
+  ['sea', 'sea desktop', (p, b) => seaScenario(p, b, 'sea desktop', DESK)],
+  ['sea', 'sea phone', (p, b) => seaScenario(p, b, 'sea phone', PHONE)],
   ['darkwater', 'dark water phone', (p, b) => darkwaterScenario(p, b, 'dark water phone', PHONE, { seed: 5555 })],
   ['darkwater', 'dark water desktop', (p, b) => darkwaterScenario(p, b, 'dark water desktop', DESK, { seed: 4444 })],
   ['phone', 'phone', (p, b) => scenario(p, b, 'phone', PHONE, { seed: 2222, drag: true })],

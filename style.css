@@ -1425,7 +1425,7 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .stair-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 36em; }
 .stair-log li { font-size: 15px; font-weight: 700; color: #ffe2a8; text-shadow: 0 2px 6px #000; }
 .stair-go small { font-weight: 600; opacity: .8; }
-/* a phone lists the five, icon on the left */
+/* a phone lists them, icon on the left */
 @media (max-width: 600px) {
   .stair-grid { flex-direction: column; gap: 8px; width: min(560px, 100%); }
   .stair-opt { flex: none; max-width: none; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 2px; padding: 10px 14px; text-align: left; align-items: center; }
@@ -1464,3 +1464,12 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 /* v0.34.0: the Listener's Pounce says what each card played adds */
 .intent .i-heard { display: inline-flex; align-items: center; gap: 1px; margin-left: 4px; font-style: normal; font-size: 12px; font-weight: 800; color: #ffd27a; }
 .intent .i-heard svg { width: 12px; height: 12px; }
+
+/* v0.35.0: give one to the sea (the keepsake picker), and what a Roiled aether pays */
+.sea-row { justify-content: center; margin-top: 16px; }
+/* the stair has six since v0.35.0: one row on a wide screen, three and three between that and a phone's list */
+.stair-scene .scene-inner { max-width: 1100px; }
+@media (min-width: 601px) and (max-width: 1040px) { .stair-grid { max-width: 600px; } }
+.sea-pick .sea-pay { color: #9be7c4; font-weight: 700; }
+.chip.bonus.roil { display: inline-flex; align-items: center; gap: 4px; border-color: rgba(190, 150, 255, .6); color: #e3d2ff; }
+.chip.bonus.roil svg { width: 13px; height: 13px; }

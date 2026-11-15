@@ -1343,6 +1343,8 @@ At the real rules (3000 seeds, `specs/v034.js`): the Shallows' pin 39.5%, Dark W
 
 ### Proposals from the playtest on v0.32.0 (2026-11-15; none built, each is the user's call)
 
+> **Update, 2026-11-15:** the user answered that the hard action is the Wild Peal, not the Toll. Recommendation c below is not built. See "The Wild Peal muffles by 15" for what was.
+
 **1. The Tolling Buoy is hard: "Not always you can change tide to reduce her attack."** The fight's idea is liked, so the options keep it. Each was measured alone (3000 seeds; Dark Water's share is 40.0% now, noise about ±1.5):
 
 | Option | Dark Water's share |
@@ -1364,7 +1366,7 @@ The agent recommends **c**. It answers the complaint directly: one Bail or Stir 
    - **e. Keepsakes that wake.** Each has a deed that wakes it for the rest of the run (the Whale Tooth: make 5 Crests; the Tidewatch: end 3 turns at Swell 3), and awake it does double. Gives each fight a small side goal. Large: 20 deeds, UI for progress.
    - The agent recommends **a and b together**: both are small, and together they turn the Hold from a limit into a dial. d is the direct answer to "more rare/powerful" and can follow once a and b have been played.
 
-**3. Starting at a level already completed.** The user: "it should be possible to start at previous completed levels ... by unlocking story slide (show in shortcut)". This reverses the 2026-11-12 call that every expedition starts at the shore, and the story says the water comes back before the next tide. Both can be kept if the shortcut is a place: **the keepers' shaft**, a well from the lighthouse cellar to each stair, barred from below; breaking a pin lets Wren unbar it (one more picture in that pin's scene). What has to be decided:
+**3. Starting at a level already completed (postponed by the user the same day; see "For later").** The user: "it should be possible to start at previous completed levels ... by unlocking story slide (show in shortcut)". This reverses the 2026-11-12 call that every expedition starts at the shore, and the story says the water comes back before the next tide. Both can be kept if the shortcut is a place: **the keepers' shaft**, a well from the lighthouse cellar to each stair, barred from below; breaking a pin lets Wren unbar it (one more picture in that pin's scene). What has to be decided:
    - **What Wren carries at the bottom of the shaft.** A deck that arrives at Dark Water has about 8 landings of cards, refits, a keepsake or two and Pearls. The starter deck there loses every time. Options: (i) a short draft at the top of the shaft (say 5 picks of 1 in 3 cards, 2 refits, 1 keepsake of 3, 60 Pearls for Dark Water; double for the Belfry), tuned with the bot so that the shaft is a little worse than a good arrival; (ii) the deck from her last arrival at that stair, saved; (iii) a fixed deck for each level. The agent recommends (i): it is quick, it is a choice, and it cannot be gamed.
    - **What it costs.** Levels skipped give no score, Salvage or keepsakes, and the Logbook counts a Heart brought home "from the shore" apart from one by the shaft.
    - **Size:** large (a new screen, a draft, balance for two starts, the Logbook, tests). A first slice could be the shaft to Dark Water only.
@@ -1374,6 +1376,79 @@ The agent recommends **c**. It answers the complaint directly: one Bail or Stir 
 **5. New art for the Tolling Buoy.** "Tide Swings Its Tongue" has a woman's voice, and the user asked for a picture to fit it. Three drafts are in `assets-src/drafts/buoy/` (Codex; the same buoy, cage, lamp and chain in each): **figurehead** (a ship's figurehead of a woman lashed to the buoy's side with chain), **belle** (the bell itself cast as a woman in a wide skirt, the clapper glowing under the hem) and **singer** (a pale drowned woman inside the cage with her arms around the bell, singing). In-fight screenshots of each beside the current picture are in the report. Nothing in the game or the story changed. Each would need a line in WORLD.md: the buoy "rang off Saltmere's rocks before there was a lighthouse", so a figurehead from a wreck it failed to save fits best with what is written.
 
 **6. Which effects were unclear?** The user named Breathless and Doused "e.g.". Those two now leave a mark. Asked in the handoff which others.
+
+### Give one to the sea, and a Roiled aether pays (v0.35.0, 2026-11-15)
+
+- **The user's calls:** asked what the five directions for "Keepsakes and the Hold" were (proposal 2 above), then: "implement Give one to the sea and  A Roiled aether pays". The proposals gave examples, not numbers, so every number here is the agent's provisional call.
+
+**Built:**
+
+- **Give one to the sea** (`E.giveToSea(run, k, uid)` at a Cove; `E.stairDo(run, 'sea', { k, uid })` on the stair; `E.SEA_HEAL`).
+  - At a Cove it is a third choice beside rest and refit, and it is the Cove's one thing. On the stair it is a sixth option and one of the two picks, so the stair is now **two of six**. The user chose "pick 2 of 5" for the stair in v0.31.0; the sixth is there because the proposal said "at a Cove or the stair". Taking `'sea'` out of `E.STAIR_OPTIONS` puts the stair back to five.
+  - The keepsake is gone for the expedition, with its Roil and what it did (the Scallop Charm's and Leech Jar's Max HP go first). One brought from the Lazaret is still in the Lazaret; one found on this expedition never gets there.
+  - **The sea pays 2 HP for each Roil, and one refit.** Moon Shard (8): 16 HP. Tidewatch (12): 24. Whale Tooth (19): 38. Bell Clapper (41): 82. A Cove's rest is 21 HP at 70 Max HP, so a keepsake of about 10 Roil buys both of a Cove's things at once. The refit is in the payment so that the choice is never dead at full HP. The proposal's other example, a refit for every 10 Roil, would have needed several card picks in a row.
+  - Why not more: dropping a keepsake is free at any time, so the sea is "drop it, and get a Cove and a half for it". At 3 HP a Roil a Whale Tooth would be a full heal. If nobody uses the sea at 2, raise `E.SEA_HEAL` to 3 first.
+  - The picker shows, for each keepsake, what the sea pays and what the Roil would be afterwards. Backing out of the keepsake or of the card costs nothing.
+- **A Roiled aether pays** (`E.ROIL_PAY` 8; `c.roilSteps`, `rewards.roilPay`). Every fight that pays Pearls pays 8 more for each step the aether was over the Hold when the fight began. A Skirmish pays 14 to 22, so one step is about +45%, and three steps more than double it. It is shown as a "Roiled +N" chip on the reward, and in the Roil tip, the keepsake window and the pack screen. It is not one of the scored bonuses. Pins pay no Pearls, so they pay nothing extra.
+  - Why Pearls and not better cards: Pearls are spent at Barnaby's, where there is a choice to make; and the starting Pearls went in v0.30.0, so Pearls are short.
+- **Together** they make a plan that was not there before: take the extra keepsake at the Wreck on landing 4, fight three Roiled fights for 24 more Pearls, and give it to the sea at the Cove on landing 7 for a heal and a refit before the pin.
+- **The story** has it too (the agent's lore): a keepsake thrown back into the bell's water gives up at once the brinelight it soaked in for years, and a thrashing aether shakes Pearls loose from the rock.
+- **The bot** gives a keepsake to the sea when the aether is Roiled: the one with the least Roil whose loss takes off a step (`seaChoice` in `tools/bot.js`; `bot: { noSea: true }` never does). It does not give up a keepsake it can carry for free.
+
+**Measured** (the bot that shops, 3000 seeds a row, expedition in the dress; pin 2 and pin 3 are shares of the pin before; noise about ±1.5 on a share and ±1 on the Heart). Specs: `specs/sea.js`, `specs/sea2.js` and `specs/peal.js` in the session scratchpad.
+
+| Row | Heart | Shallows' pin | Dark Water's share | Belfry's share |
+|---|---|---|---|---|
+| v0.34.0: neither | 10.9 | 39.5 | 40.0 | 69.2 |
+| only the pay | 10.9 | 39.5 | 39.6 | 69.6 |
+| only the sea | 15.5 | 43.7 | 51.3 | 69.3 |
+| the sea and the pay | 15.7 | 43.7 | 51.5 | 69.9 |
+| the sea at 3 HP a Roil, and the pay | 19.0 | 45.0 | 56.3 | 74.8 |
+| the sea at 1 HP a Roil, and the pay | 11.1 | 40.8 | 44.4 | 61.2 |
+| the sea at 2 HP a Roil with no refit, and the pay | 7.6 | 37.5 | 38.9 | 51.8 |
+| the sea only at Coves (on the stair the bot drops it for nothing) | 13.8 | 43.7 | 50.5 | 62.8 |
+| the bot drops the same keepsake for nothing, then rests | 5.8 | 37.2 | 36.2 | 42.8 |
+| greedy keepsake picks: neither | 9.9 | 38.9 | 32.9 | 77.1 |
+| greedy keepsake picks: only the pay | 10.2 | 38.9 | 33.4 | 78.7 |
+| greedy keepsake picks: the sea and the pay | 17.4 | 46.9 | 51.6 | 71.8 |
+
+- **The sea is strong for the bot: the Heart goes from 10.9% to 15.7%, and Dark Water's share from 40.0% to 51.5%.** The bot gives 1.29 keepsakes a run (400 seeds): 86% of them at a Cove, 14% on the stair. Most often the Tidewatch, the Ship's Biscuit, the Barnacle Plate and the Kelp Bracelet.
+- **Two things inflate that number, and neither is the sea's price.**
+  1. The bot never refits at a Cove; it always rests. So the sea's refit is 1.3 upgrades a run the bot did not take before. A player who already refits at Coves gains less.
+  2. The bot never dropped a keepsake before, so it sat Roiled for whole levels. A player could always drop one. But dropping for nothing is worse for the bot than staying Roiled (5.8% against 10.9%), so the Roil's penalties cost less than a keepsake is worth. That matches the playtest note that the Hold did not ask for a decision.
+- **What it says about the price.** At 1 HP a Roil the sea is about even with never using it (11.1% against 10.9%): a real choice, but one that rarely pays. At 2 it is clearly right when Roiled. At 3 it is right almost always. The user's complaint was that keepsakes and the Hold needed "something more interesting", so the agent leaves it at 2, where it gets used. **This makes the game easier by about 5 points on the Heart for the bot. It is the user's call whether to keep that or take it back somewhere** (levers: `E.SEA_HEAL` 1; the refit only for a keepsake of 10 Roil or more; or harder pins).
+- **The pay does nothing for the bot** (10.9% both ways; 39.6% against 40.0% on Dark Water is noise). The bot does not take a keepsake to be paid for it, and 8 Pearls a step is a small part of what it spends. It is there for a player's plan, and only a playtest can say if 8 is enough to tempt. The greedy rows (the bot takes every keepsake offered) show the plan works: with the sea, taking everything goes from the worst policy at Dark Water (32.9%) to as good as the careful one (51.6%).
+
+### The Wild Peal muffles by 15 (v0.35.0, 2026-11-15; provisional)
+
+- **The user's note:** "For Tolling Buoy, there hard action was the large attack which requires reaching strand or crest to reduce its damage." The agent's proposal 1 above had aimed at the Rocking Toll (a calm band at Swell 2 to 4). That was the wrong attack, and it is not built.
+- **Options measured** (3000 seeds, on top of the sea and the pay, so the base is Dark Water's share 51.5% and the Heart 15.7%):
+
+| Option | Dark Water's share | Heart |
+|---|---|---|
+| Peal 30, 10 off each Crest or Strand (v0.34.0) | 51.5 | 15.7 |
+| **Peal 30, 15 off each (built)** | 54.7 | 16.9 |
+| Peal 26, 13 off each | 59.6 | 18.4 |
+| Peal 24, 8 off each | 59.0 | 18.2 |
+| a Clang before each Peal (round Peal, Toll, Toll, Clang) | 50.6 | 15.3 |
+| Peal 30, 15 off, and a Clang before each Peal | 54.4 | 16.8 |
+| Peal 24, 12 off, and a Clang before each Peal | 59.8 | 18.7 |
+| one Toll a round (Peal, Clang, Toll, Clang) | 54.8 | 16.7 |
+
+- **Built: `BL.PEAL = { dmg: 30, quiet: 15 }`** (was 30 and 10). One Crest or Strand halves the Peal, two silence it; it took three before. The agent chose it because it keeps the threat the fight is built on and pays more for the answer the user found hard to reach: one wave now saves 15, and the second saves the rest. It is also the smallest change of those that helped (+3 on Dark Water's share), which matters because the sea already made Dark Water easier in the same version.
+- Not built: a smaller Peal (24 or 26) helps the bot twice as much, but it helps most on the turns when you reach no wave at all, which makes the Peal matter less and not the Swell matter more. Changing the order so a Clang comes before each Peal did nothing by itself: the Toll before the Peal was not what hurt the bot.
+- **To undo:** set `quiet` back to 10 in `js/data.js`; the test in `tests/darkwater.test.js`, the README line and the UI test's "30, then 15" follow it.
+- **If the Peal is still too hard for the user,** the next step is 26 and 13.
+
+### The Tolling Buoy's new picture: the singer in the cage (v0.35.0, 2026-11-15)
+
+- **The user's call:** of three drafts (a figurehead, a bell with a face, a singer in the cage): "I like singer in the cage, but should not be too similar to Siren. Also, make sure bell bars are not bugged, they seem to go inside Siren."
+- **What was wrong with the first singer:** she was a pale mermaid with long flowing hair, like the Hollow Siren, and some bars passed behind her arms.
+- **The second prompt** asked for a dark sea-green figure of fronds with strings of lit turquoise beads, bead hair in a bun, kneeling with her arms round the bell and her cheek on the bronze, eyes closed, and every bar in front of her and of the bell. Two variants came back (`assets-src/drafts/buoy/buoy-singer2a.png` and `2b`). Both met both conditions.
+- **In the game: 2a.** It has the whole chain trailing off, as the old picture did; 2b's chain is cut by the frame. `img/units/buoy.webp` (424x560, 70 KB). The cut-out's haze was cleaned first (alpha kept only within 2px of the solid shape).
+- **To go back:** the old picture is `assets-src/drafts/buoy/buoy-v0.15.webp` (and in git before this commit); the old source is `assets-src/units/buoy-v0.15.png`.
+- **Lore (the agent's):** the light-eaters in the cage have grown together into her shape, and she sings what the bell rings. She has no move in the fight. WORLD.md has the entry, and the Buoy's keeper's note has two sentences on her. The lamp on top is amber now (it was turquoise); nothing in the text depends on it.
+- **Not done:** the story picture of the broken Buoy (`sc_buoy1`) shows an empty cage and a turquoise lamp. The lore covers the cage (she comes apart when the Buoy lies still, and her beads run off with the water; the picture has lit specks in the water going down the stair), so it was not repainted. The lamp's colour differs between the two pictures.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -1790,6 +1865,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 
 ## For later (from the user)
 
+- **Starting at a level already completed (postponed by the user, 2026-11-15: "lets postpone this").** The user's idea, from the playtest on v0.32.0: start at level 2 once it is completed, and at level 3 once that is, "by unlocking story slide (show in shortcut)". The agent's sketch (the keepers' shaft, a short draft at its top, what it costs) is proposal 3 in "Proposals from the playtest on v0.32.0". Not agreed, not built.
 - **Keepers light keepers, and a theme song each (planned 2026-11-14, postponed by the user: "only save in plan").**
   - **Unlocks (the user's decision):** new keepers unlock new keepers. Wren lights the first new keeper's lantern from hers, and each later one is lit by a keeper who already has a flame (WORLD.md, "Why they go down"). The agent had suggested Wren lighting the first few and the Heart lighting the rest once home; the user chose keeper to keeper. Open: the order (who lights whom), what lighting costs the giver, whether the Heart also lights lanterns after it is home, and what the player does to unlock one (an achievement, meeting them in the Reach first, Salvage).
   - **Theme songs:** the user asked whether each extra keeper could have a theme song that fits their backstory. Yes, but each draft keeper still needs "something of their own under the same bell" first, so the agent drafted one each (lore drafts, not agreed), with a song from their trade:
@@ -1830,6 +1906,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.35.0** (the bot that shops and gives keepsakes to the sea, 3000 seeds, first expedition in the dress): the Shallows' pin 43.7%, Dark Water's after it 54.7%, the Belfry's after that 70.8%, the Heart 16.9%. Of the rise from v0.34.0's 10.9%, about 5 points are the sea and 1 the Wild Peal (see "Give one to the sea, and a Roiled aether pays").
 - **Bot run outcomes, v0.34.0** (the bot that shops, 3000 seeds, first expedition in the dress): the Shallows' pin 39.5%, Dark Water's after it 40.0%, the Belfry's after that 69.2%, the Heart 10.9%; after the Heart, the finals 73.8%. v0.33.0: 39.5%, 40.0%, 67.9%, 10.7%. The Shallows' pin rose from 29.2% with v0.33.0's later Hermit call, Nibble 4 and shop rows (see "Playtest notes on v0.32.0").
 - **Bot run outcomes, v0.31.0** (the bot that shops, 1000 seeds, first expedition in the dress): the Shallows' pin 28.9%, Dark Water's after it 41.9%, the Belfry's after that 71.9%, the Heart 8.7% (see "The stair down, and a Hold that doesn't grow").
 - **Keepsake and kit values with the bot that shops, v0.31.0 rules** (2026-11-15): the Shallows' pin with each keepsake brought (34.5% with none; 1.07 Roil a point is the median price), and the expedition in the dress with each piece of kit (Heart 8.6% with none). The tables are in "Stair pictures, badges, the Jukebox player and the new bot's balance".
@@ -2009,6 +2086,10 @@ The user asked how more characters could be added, and wanted to judge the look 
 
 ## Open questions for the next playtest
 
+- v0.35.0: Did you give a keepsake to the sea? When, and did 2 HP a Roil and a refit feel like a fair price, a gift, or not enough? (The bot wins the Heart 5 points more often with it.)
+- v0.35.0: Did the "Roiled +8" Pearls ever make you take a keepsake you would have left? Did you go over the Hold on purpose?
+- v0.35.0: The stair is two of six with the sea on it (you chose two of five in v0.31.0). Keep it there, or only at Coves?
+- v0.35.0: Is the Wild Peal fair now that one Crest or Strand halves it and two silence it?
 - v0.33.0: Is the Harbour Hermit fair now, or soft (he calls at half, the Mites nibble for 4)? The bot wins 10 points more often.
 - v0.33.0: Do the story scenes come at the right moment, and are they the right length? Does the mending scene say enough about the dress?
 - v0.33.0: Did you see the New at the lighthouse window for each thing that opened? Is it too much, or should more things use it (a new kit piece, a new keepsake kept)?

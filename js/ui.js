@@ -567,8 +567,8 @@
       case 'charge': {
         const ch = E.charge(run), h = E.hold(run), rf = E.roil(run);
         return `<b>Roil ${ch} of ${h}</b><br>Your keepsakes stir the aether: ${ch} Roil. The aether around you holds ${h}: your Hold. It is <b>${rf.steps ? 'Roiled' : 'Calm'}</b>.` +
-          `<div class="tip-row">${rf.steps ? `In every fight: <b>${roilWords(rf)}</b>. ` : `Past ${h} the aether is Roiled. `}${ROIL_LADDER}.</div>` +
-          '<div class="tip-row">Tap a keepsake between fights to drop it.</div>';
+          `<div class="tip-row">${rf.steps ? `In every fight: <b>${roilWords(rf)}</b>, and <b>${roilPay(rf)}</b> after it. ` : `Past ${h} the aether is Roiled. `}${ROIL_LADDER}. ${ROIL_PAYS}.</div>` +
+          '<div class="tip-row">Tap a keepsake between fights to drop it. At a Cove or on the stair you can give one to the sea instead, and the sea pays for it.</div>';
       }
       case 'tonic': {
         const t = run.tonics[+parts[1]];
@@ -856,7 +856,7 @@
         + (levelKnown(2) ? `<h3 class="help-sub">In the Belfry</h3>` + dl(['Breathless', 'Burst', 'Heartfire'].map((k) => [k, BL.KEYWORDS[k]])) : '');
       case 'map': return `<ul class="help-list">
         <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map(levelName).join(', then ')}${allLevelsKnown() ? '' : ', then deeper'}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
-        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of five: rest deeply, refit, shed a card, fill your flasks or open the keepers' cache. Break the last pin to bring the Lantern Heart home.</li>
+        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of six: rest deeply, refit, shed a card, fill your flasks, open the keepers' cache or give a keepsake to the sea. Break the last pin to bring the Lantern Heart home.</li>
         ${levelKnown(2) ? `<li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
         <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>` : ''}
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map((i) => `${E.LEVELS[i].landing} in ${levelName(i)}`).join(', ')}${allLevelsKnown() ? '' : ', and more below'}. Coming home adds 5 for each HP you have left. Bringing the Heart home${levelKnown(2) ? ', or quieting the Belfry,' : ''} adds ${E.FINAL_SCORE}.</li>
@@ -865,12 +865,12 @@
         [`${NODE_ICON.elite} Dread`, 'An elite: harder. It pays Pearls, and you may take 1 of 2 keepsakes. No card or tonic.'],
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
-        [`${NODE_ICON.rest} Cove`, 'Rest to heal 30% of your max HP, or upgrade a card.'],
+        [`${NODE_ICON.rest} Cove`, `Rest to heal 30% of your max HP, or upgrade a card, or give a keepsake to the sea: it is gone, and you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.`],
         [`${NODE_ICON.treasure} Wreck`, 'Pearls, and you may take 1 of 3 keepsakes.'],
       ])}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
-        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
+        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.</li>
         <li><b>Deeper finds are stronger.</b> Some keepsakes are found only ${levelKnown(2) ? 'in Dark Water and deeper, or only in the Belfry' : levelKnown(1) ? 'in Dark Water and deeper' : 'below the Shallows'}, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
         <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens the first time you come home. When you come home, every keepsake you carry is kept there, one of each; one it already holds becomes ${MT.currency} instead: half its Roil, rounded up. Before an expedition you may bring any number of them, and each counts toward your Hold. If you fall, you lose the keepsakes you found on that expedition. The ones in the Lazaret are never lost.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
@@ -939,6 +939,9 @@
     return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts.join('');
   }
   const ROIL_LADDER = `Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step, and each step adds one thing to every fight: first a <b>Seep</b> (an unplayable card), then <b>Thrash</b> (1 damage at the start of each turn, unless you kept Ward for it), then a <b>Bell Minnow</b> (an extra enemy, at half health), then a second Seep, and so on round`;
+  const ROIL_PAYS = `A Roiled aether also pays: <b>${E.ROIL_PAY} more Pearls</b> after each fight for each step`;
+  /* What a Roiled aether pays after each fight: "+16 Pearls". */
+  const roilPay = (fx) => (fx.steps ? `+${fx.steps * E.ROIL_PAY} Pearls` : '');
   const roilToast = (fx) => toast(`The aether is Roiled: ${roilWords(fx)} in this fight`, 3600);
   /* Where a deeper keepsake is found: its level and the ones below it. */
   const foundIn = (k) => { const d = E.keepsakeDepth(k); return d ? `Found in ${E.LEVELS[d].the}${d < E.LEVELS.length - 1 ? ' and deeper' : ''}.` : 'Found anywhere.'; };
@@ -949,7 +952,8 @@
     const ch = E.charge(run), h = E.hold(run), rf = E.roil(run);
     const without = roilWords(E.roilFor(ch - K.charge, h));
     const body = `<div style="display:flex;gap:14px;align-items:center"><div class="medal" style="width:72px;height:72px;flex:0 0 auto"><img src="img/icons/${K.art}.webp" alt=""></div><p style="margin:0;font-size:16px">${K.desc}</p></div>
-      ${K.deep ? `<p class="buy-left muted">${foundIn(k)}</p>` : ''}<p class="buy-left">Roil ${K.charge}. You carry ${ch} of your Hold of ${h}${rf.steps ? `: <b>${roilWords(rf)}</b> in every fight` : ''}.${rf.steps ? ` Without it: ${without || 'the aether is Calm'}.` : ''}</p>
+      ${K.deep ? `<p class="buy-left muted">${foundIn(k)}</p>` : ''}<p class="buy-left">Roil ${K.charge}. You carry ${ch} of your Hold of ${h}${rf.steps ? `: <b>${roilWords(rf)}</b> in every fight, and ${roilPay(rf)} after it` : ''}.${rf.steps ? ` Without it: ${without || 'the aether is Calm'}.` : ''}</p>
+      <p class="buy-left muted">At a Cove or on the stair you can give it to the sea: heal ${E.seaHeal(k)} HP and refit a card.</p>
       <p class="buy-left muted">${E.wasBrought(run, k) ? 'You brought it from the Lazaret. Dropping it leaves it out of this descent, and it is in the Lazaret again when you get home' : 'Dropping it is for good'}${k === 'biscuit' ? `${E.wasBrought(run, k) ? '. Its' : ', and its'} 10 Max HP go with it` : ''}.</p>`;
     openOverlay(modal(K.name, body, `<button class="btn" data-act="ksdrop" data-k="${k}">Drop it</button><button class="btn primary" data-act="close" autofocus>Keep it</button>`, 'narrow'));
   }
@@ -1641,7 +1645,7 @@
   /* What the chosen keepsakes do to the aether. */
   const roilAt = () => {
     const rf = E.roilFor(E.bringCharge(meta), E.metaHold(meta));
-    return rf.steps ? `<b class="roiled">Roiled</b>: ${roilWords(rf)} in every fight` : '<b class="calm">Calm</b>';
+    return rf.steps ? `<b class="roiled">Roiled</b>: ${roilWords(rf)} in every fight, and ${roilPay(rf)} after it` : '<b class="calm">Calm</b>';
   };
   function ksTile(k, packing) {
     const K = BL.KEEPSAKES[k];
@@ -2970,7 +2974,8 @@
   function renderReward() {
     const rw = run.rewards;
     // the Pearl total already includes the bonuses, so they read as part of it rather than on top of it
-    const bonusChips = (rw.bonuses || []).map((b) => `<span class="chip bonus" title="${b.desc}">&#9733; ${b.name} +${b.pearls}</span>`).join('');
+    const bonusChips = (rw.bonuses || []).map((b) => `<span class="chip bonus" title="${b.desc}">&#9733; ${b.name} +${b.pearls}</span>`).join('')
+      + (rw.roilPay ? `<span class="chip bonus roil" title="The aether was Roiled, ${rw.roilSteps} step${rw.roilSteps > 1 ? 's' : ''} over your Hold: ${E.ROIL_PAY} Pearls a step">${ICON.charge} Roiled +${rw.roilPay}</span>` : '');
     const summary = `<div class="reward-summary"><span class="chip pearls">${ICON.pearl}<b>+${rw.pearls}</b> Pearls</span>${bonusChips ? `<span class="incl">including</span>${bonusChips}` : ''}</div>`;
     const ksChoices = rw.keepsakeChoices && rw.keepsakeChoices.length ? rw.keepsakeChoices : null;
     const extras = [];
@@ -3022,6 +3027,7 @@
       : `<div class="choice-list">
           <button class="choice with-ic" data-act="rest" autofocus><span class="ch-ic">${ICON.rest}</span><span class="ch-txt"><b>Rest by the lantern</b><span>${heal ? `Heal ${heal} HP: ${run.hp} &rarr; ${run.hp + heal} of ${run.maxHp}.` : 'You are already at full health.'}</span>${heal ? hpGainBar(run.hp, heal, run.maxHp) : ''}</span></button>
           <button class="choice with-ic" data-act="refit" ${E.upgradeable(run).length ? '' : 'disabled'}><span class="ch-ic">${STAIR_ICON.refit}</span><span class="ch-txt"><b>Refit your gear</b><span>Upgrade a card in your deck.</span></span></button>
+          <button class="choice with-ic" data-act="sea" ${run.keepsakes.length ? '' : 'disabled'}><span class="ch-ic">${STAIR_ICON.sea}</span><span class="ch-txt"><b>Give a keepsake to the sea</b><span>${run.keepsakes.length ? `It is gone, with its Roil. The sea pays for it: heal ${E.SEA_HEAL} HP for each Roil it had, and refit a card.` : 'You carry no keepsake.'}</span></span></button>
         </div>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene rest-scene" style="background-image:url(img/scenes/rest.webp)">${restGlow}<div class="scene-inner">
       <h1>Sheltered Cove</h1>
@@ -3032,7 +3038,7 @@
     if (f) f.focus({ preventScroll: true });
   }
 
-  /* ----- The stair down between levels (v0.31.0): two of five, each once (E.stairDo). It is bigger than a Cove and
+  /* ----- The stair down between levels (v0.31.0): two of six (five until v0.35.0), each once (E.stairDo). It is bigger than a Cove and
      looks it (the user: "more alternatives than in-level rest, and *feel* stronger"): the way down so far, the level
      ahead as its title, and the five as cards. A level's `stairArt` (img/scenes) is its picture; without one, the Cove's. ----- */
   const STAIR_ICON = {
@@ -3041,6 +3047,7 @@
     shed: svg('<rect x="3.5" y="2.5" width="11.5" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6l6 6M20.6 14.6l-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'),
     flask: svg('<path d="M9.5 2.5h5v2h-.8v4l4.9 8.3A3.4 3.4 0 0 1 15.7 22H8.3a3.4 3.4 0 0 1-2.9-5.2l4.9-8.3v-4h-.8z" opacity=".4"/><path d="M7.3 15.2h9.4l1.3 2.3A2.3 2.3 0 0 1 16 21H8a2.3 2.3 0 0 1-2-3.5z"/>'),
     cache: ICON.treasure,
+    sea: svg('<path d="M12 2.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 7.8l5-.7z" opacity=".9"/><path d="M2.5 19.5c2-2.6 4.3-2.6 6.3 0s4.4 2.6 6.4 0c1.6-2 3.4-2.4 6.3-.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'),
     done: svg('<path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
   const STAIR_TEXT = {
@@ -3055,6 +3062,7 @@
       return ['Fill your flasks', `Brinelight drips from the rock here. Fill every empty flask${n ? `: <b>${n} random tonic${n > 1 ? 's' : ''}</b>, no two alike` : ' with a random tonic'}.`];
     },
     cache: () => ["The keepers' cache", 'The keepers before you left cards in the wall. Choose 1 of 3, uncommon or rare.'],
+    sea: () => ['Give one to the sea', `Throw a keepsake into the water. It is gone, with its Roil, and the sea pays for it: heal ${E.SEA_HEAL} HP for each Roil it had, and refit a card.`],
   };
   function stairTrack(lv) {
     return `<ol class="stair-track" aria-label="The way down">${E.LEVELS.map((L, i) => `<li class="${i < lv ? 'past' : i === lv ? 'here' : ''}${levelKnown(i) ? '' : ' unknown'}"><span class="dot">${i < lv ? STAIR_ICON.done : ''}</span><b${levelKnown(i) ? '' : ' aria-label="Not found yet"'}>${levelKnown(i) ? L.name : '?'}</b></li>`).join('')}</ol>`;
@@ -3103,7 +3111,37 @@
       const ids = E.stairCache(run);
       save(); // the three stay the same after a reload
       showCardChoice(ids, "The keepers' cache", (cid) => { if (cid) done(E.stairDo(run, 'cache', ids.indexOf(cid)), (o) => `From the keepers' cache you take ${E.cardName(o.card)}.`, 'treasure'); }, 'Back');
+    } else if (id === 'sea') {
+      showSea((k, uid) => done(E.stairDo(run, 'sea', { k, uid }), seaLine, 'douse'));
     }
+  }
+
+  /* ----- Give one to the sea (v0.35.0; E.giveToSea, and the stair's sixth): choose the keepsake, then the card to
+     refit. Back from either costs nothing. `go(k, uid)` does it; uid is null when no card can be upgraded. ----- */
+  const seaLine = (o) => `You give the ${BL.KEEPSAKES[o.keepsake].name} to the sea. ${o.healed ? `It gives back ${o.healed} HP` : 'You had no wound for it to mend'}${o.card ? `, and ${E.cardName(o.card)} is ready` : ''}.`;
+  function showSea(go) {
+    ui.seaGo = go;
+    const ch = E.charge(run), h = E.hold(run), now = E.roil(run);
+    const tiles = run.keepsakes.map((k) => {
+      const K = BL.KEEPSAKES[k], heal = Math.min(E.seaHeal(k), Math.max(0, run.maxHp - (k === 'biscuit' ? 10 : 0) - run.hp));
+      const after = E.roilFor(ch - K.charge, h);
+      return `<div class="shop-tile ks-pick sea-pick" tabindex="0" role="button" data-act="seapick" data-k="${k}" aria-label="Give the ${K.name}, Roil ${K.charge}, to the sea">
+        <span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>
+        <span class="k-after sea-pay">Heal ${E.seaHeal(k)}${heal < E.seaHeal(k) ? ` (${heal} now)` : ''} HP, refit a card</span>
+        <span class="k-after">Then ${ch - K.charge}/${h}${after.steps ? `: ${roilWords(after, true)}` : now.steps ? ': Calm' : ''}</span>
+        ${E.wasBrought(run, k) ? '<span class="k-deep">Stays in the Lazaret</span>' : ''}</div>`;
+    }).join('');
+    const body = `<p class="buy-left">Choose a keepsake to throw into the water. It is gone for this expedition, and what it did for you goes with it. The sea pays: <b>${E.SEA_HEAL} HP for each Roil</b> it had, and you <b>refit a card</b>.${now.steps ? ` You carry ${ch} of your Hold of ${h}.` : ''}</p>
+      <div class="shop-row sea-row">${tiles}</div>`;
+    openOverlay(modal('Give one to the sea', body, '<button class="btn primary" data-act="close" autofocus>Keep them all</button>', 'sea-modal'));
+  }
+  function seaPicked(k) {
+    const go = ui.seaGo;
+    closeOverlay(true);
+    if (!go || !E.has(run, k)) return;
+    if (!E.upgradeable(run).length) { go(k, null); return; }
+    ui.allowCancelPick = true;
+    showDeck('upgrade', (uid) => go(k, uid));
   }
 
   /* ----- After a pin: go home or go deeper ----- */
@@ -3122,7 +3160,7 @@
       ? `<p class="lead dbg-note"><b>Debug run:</b> a run that used a cheat carries nothing home, ${newKit ? 'not even the dress' : 'not even its keepsakes'}. To keep what you find, turn on <b>Cheats count as real runs</b> in the debug panel before you set out, or use <b>Own all kit</b>.</p>` : '';
     const homeKeeps = run.cheated ? '' : extra.length ? `, ${extra.join(', ')} too` : '';
     const deeper = can
-      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. The stair down comes first: two of five, stronger than a Cove. Each landing there scores ${next.landing}.${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
+      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. The stair down comes first: two of six, stronger than a Cove. Each landing there scores ${next.landing}.${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
       : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner">
       <h1>The pin is broken</h1>
@@ -3635,6 +3673,8 @@
         break;
       }
       case 'stairdo': stairDo(t.dataset.id); break;
+      case 'sea': showSea((k, uid) => { const o = E.giveToSea(run, k, uid); if (!o) return; run.restMsg = seaLine(o); sfx('douse'); save(); render(); }); break;
+      case 'seapick': seaPicked(t.dataset.k); break;
       case 'rest': {
         const h = E.rest(run);
         run.restMsg = `You sleep beside the lantern and wake mended. Healed ${h} HP.`;

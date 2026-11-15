@@ -1,5 +1,5 @@
-/* The stair down between levels (v0.31.0): Wren does two of five things there, each once. A Cove inside a level is
-   unchanged: rest or refit.
+/* The stair down between levels (v0.31.0): Wren does two of six things there (five until v0.35.0), each once. A Cove
+   inside a level is one thing: rest, refit, or give a keepsake to the sea (v0.35.0).
    Run with: node --test tests/ */
 'use strict';
 const test = require('node:test');
@@ -18,12 +18,12 @@ function onStair(seed, hp, kit, currents) {
   return run;
 }
 
-test('the stair down offers two of five: rest, refit, shed, a flask and the keepers\' cache, each once', () => {
+test('the stair down offers two of six: rest, refit, shed, a flask, the keepers\' cache and the sea, each once', () => {
   const run = onStair(21, 30);
   assert.ok(E.stairOpen(run));
-  assert.deepEqual(E.STAIR_OPTIONS, ['rest', 'refit', 'shed', 'flask', 'cache']);
+  assert.deepEqual(E.STAIR_OPTIONS, ['rest', 'refit', 'shed', 'flask', 'cache', 'sea']);
   assert.equal(E.STAIR_PICKS, 2);
-  E.STAIR_OPTIONS.forEach((id) => assert.equal(E.stairWhy(run, id), '', id));
+  E.STAIR_OPTIONS.forEach((id) => assert.equal(E.stairWhy(run, id), id === 'sea' ? 'You carry no keepsake.' : '', id));
   const rest = E.stairDo(run, 'rest');
   assert.equal(rest.healed, 35, 'half of 70 Max HP');
   assert.equal(run.hp, 65);
@@ -100,4 +100,85 @@ test('the stair survives a save: picks made and the cache shown stay', () => {
   assert.equal(E.stairWhy(back, 'rest'), 'done');
   assert.ok(E.stairDo(back, 'flask'));
   assert.ok(back.restDone);
+});
+
+/* ---------- Give one to the sea (v0.35.0) ---------- */
+function atCove(seed, hp, keeps) {
+  const run = E.newRun(seed, 0);
+  (keeps || []).forEach((k) => E.gainKeepsake(run, k));
+  run.screen = 'rest';
+  run.restDone = false;
+  if (hp != null) run.hp = hp;
+  return run;
+}
+
+test('at a Cove, give a keepsake to the sea: it is gone with its Roil, you heal 2 HP for each Roil and refit a card, and that is the Cove', () => {
+  assert.equal(E.SEA_HEAL, 2);
+  const run = atCove(31, 20, ['tidewatch', 'whaletooth']);
+  assert.equal(E.charge(run), 31);
+  assert.equal(E.roil(run).steps, 1, '11 over a Hold of 20');
+  const jab = run.deck.find((c) => c.id === 'jab');
+  assert.equal(E.seaHeal('tidewatch'), 24);
+  const o = E.giveToSea(run, 'tidewatch', jab.uid);
+  assert.deepEqual([o.keepsake, o.healed, o.card.id, o.card.up], ['tidewatch', 24, 'jab', 1]);
+  assert.equal(run.hp, 44);
+  assert.equal(jab.up, 1);
+  assert.deepEqual(run.keepsakes, ['whaletooth']);
+  assert.equal(E.roil(run).steps, 0, 'Calm again');
+  assert.ok(run.restDone, 'the Cove is used');
+  assert.equal(E.giveToSea(run, 'whaletooth', null), null, 'one thing at a Cove');
+  assert.equal(E.rest(run) >= 0, true);
+});
+
+test('the sea: a keepsake you do not carry, a card that cannot be upgraded, a fight and a used Cove all give nothing; no card to refit still heals', () => {
+  const run = atCove(32, 10, ['moonshard']);
+  assert.equal(E.giveToSea(run, 'anchor', null), null);
+  const jab = run.deck.find((c) => c.id === 'jab');
+  jab.up = 1;
+  assert.equal(E.giveToSea(run, 'moonshard', jab.uid), null, 'already upgraded');
+  assert.deepEqual(run.keepsakes, ['moonshard'], 'nothing lost');
+  run.screen = 'map';
+  assert.equal(E.giveToSea(run, 'moonshard', null), null, 'only at a Cove');
+  run.screen = 'rest';
+  const o = E.giveToSea(run, 'moonshard', null);
+  assert.deepEqual([o.healed, o.card], [16, null]);
+  assert.equal(run.hp, 26);
+  // the heal stops at Max HP, and a Scallop Charm takes its 10 Max HP with it first
+  const full = atCove(33, null, ['biscuit']);
+  assert.equal(full.maxHp, 80);
+  full.hp = 75;
+  const p = E.giveToSea(full, 'biscuit', null);
+  assert.equal(full.maxHp, 70);
+  assert.equal(full.hp, 70);
+  assert.equal(p.healed, 0);
+});
+
+test('a keepsake brought from the Lazaret and given to the sea is not carried home, and is still in the Lazaret', () => {
+  const meta = E.newMeta();
+  meta.lazaret = ['anchor'];
+  meta.lazOpen = true;
+  const run = E.newRun(34, 0, null, ['anchor']);
+  assert.ok(E.wasBrought(run, 'anchor'));
+  run.screen = 'rest';
+  run.restDone = false;
+  assert.ok(E.giveToSea(run, 'anchor', null));
+  assert.deepEqual(run.keepsakes, []);
+  assert.deepEqual(E.foundKeepsakes(run), []);
+  assert.deepEqual(meta.lazaret, ['anchor']);
+});
+
+test('on the stair the sea is one of the two picks', () => {
+  const run = onStair(35, 30);
+  E.gainKeepsake(run, 'whaletooth');
+  assert.equal(E.stairWhy(run, 'sea'), '');
+  const jab = run.deck.find((c) => c.id === 'jab');
+  const o = E.stairDo(run, 'sea', { k: 'whaletooth', uid: jab.uid });
+  assert.deepEqual([o.id, o.keepsake, o.healed, o.card.up], ['sea', 'whaletooth', 38, 1]);
+  assert.equal(run.hp, 68);
+  assert.deepEqual(E.stairState(run).picks, ['sea']);
+  assert.ok(!run.restDone);
+  assert.equal(E.stairWhy(run, 'sea'), 'done');
+  assert.equal(E.stairDo(run, 'sea', { k: 'whaletooth', uid: null }), null);
+  assert.ok(E.stairDo(run, 'flask'));
+  assert.ok(run.restDone, 'both picks used');
 });

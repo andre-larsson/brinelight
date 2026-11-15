@@ -354,7 +354,7 @@
     Breathless: 'Something squeezed the air out of your suit: you draw that many fewer cards at the start of your next turn.',
     Burst: 'When it dies, it bursts, and the burst hurts you and every other creature. Your Ward stops it.',
     Heartfire: 'The Lantern Heart is free beside you: you gain more Light at the start of each turn, for the rest of the fight.',
-    Roiled: 'You carry more Roil than your Hold. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows.',
+    Roiled: 'You carry more Roil than your Hold. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows. It also pays: 8 more Pearls after each fight for each step.',
   };
 
   /* ------------------------------------------------------------------ *
@@ -425,7 +425,7 @@
   /* The Pale Gulper, a Dread of Dark Water, retches up two Glimmer Leeches once it is down to this share of its health. */
   BL.DREAD_CALL = 1 / 2;
   /* The Tolling Buoy's Wild Peal: this much damage, less this much for each Crest or Strand you make that turn. */
-  BL.PEAL = { dmg: 30, quiet: 10 };
+  BL.PEAL = { dmg: 30, quiet: 15 };
   /* A Glimmer Bladder's burst when it dies: this much damage to the keeper and to every other creature. */
   BL.BURST = 8;
   /* When the Bellwether's bronze breaks, the Lantern Heart's light pours out: the keeper heals this share of her
@@ -1285,7 +1285,7 @@
         ['Brinelight', 'The glow in the water of the Reach. It is light from the Lantern Heart that has soaked into the seawater the bell holds.'],
         ['Keepsakes', 'Lost things that have lain in brinelight until they took on a magic of their own. The deeper they lay, the stronger they are.'],
         ['The aether', 'The unseen stuff that carries magic, the way air carries sound. Every keepsake stirs it. Roil is how much.'],
-        ['Calm and Roiled', 'The aether around you can take a certain amount of Roil: your Hold. Up to that it is Calm. Past it the aether is Roiled. First seawater comes out of it into your pack: Seep. Then the aether thrashes, and it strikes you each turn unless your Ward is still up: Thrash. Then the Bellwether hears it, and a Bell Minnow comes to look.'],
+        ['Calm and Roiled', 'The aether around you can take a certain amount of Roil: your Hold. Up to that it is Calm. Past it the aether is Roiled. First seawater comes out of it into your pack: Seep. Then the aether thrashes, and it strikes you each turn unless your Ward is still up: Thrash. Then the Bellwether hears it, and a Bell Minnow comes to look. A Roiled aether also shakes Pearls loose: every fight in it pays more.'],
         ['Pearls', 'Money in the Reach. You find them after fights and in wrecks.'],
         ['Tonics', 'Brews in small bottles. Each works once.'],
       ] },
@@ -1298,9 +1298,9 @@
       { id: 'chest', title: 'Sea chests', when: 'wreck', lock: 'Found at a Wreck.', art: 'scenes/treasure',
         text: 'On an ordinary coast the sea breaks a wreck up and washes the pieces ashore. The water the bell holds keeps everything it takes. Chests lie where they sank, and what is inside has soaked in brinelight for years. That is why it glows.' },
       { id: 'keepsake', title: 'How a keepsake is made', when: 'keepsake', lock: 'Carry a keepsake.', art: 'icons/k_whaletooth',
-        text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not.' },
+        text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not. Throw one back into the bell\'s water at a Cove and it gives up at once the brinelight it took years to soak in. That is enough to close a wound and to temper a piece of gear. The keepers called it giving one to the sea.' },
       { id: 'seep', title: 'A Roiled aether', when: 'roiled', lock: 'Carry more Roil than your Hold.', art: 'cards/c_seep',
-        text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether thrashes like a hooked fish. It has no aim. It strikes whoever stands nearest, again and again, and each blow takes a little of you unless you are still braced for it. That is Thrash. Further still, and the noise carries. The Bellwether listens for it, and sends a Bell Minnow to find what is calling. Drop a keepsake, or bring fewer from home.' },
+        text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether thrashes like a hooked fish. It has no aim. It strikes whoever stands nearest, again and again, and each blow takes a little of you unless you are still braced for it. That is Thrash. Further still, and the noise carries. The Bellwether listens for it, and sends a Bell Minnow to find what is calling. A thrashing aether also shakes Pearls loose from the rock and from whatever you fight in it, so a keeper who can stand it comes home richer. To calm it, drop a keepsake, give one to the sea at a Cove, or bring fewer from home.' },
       { id: 'lazaret', title: 'A night in the Lazaret', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/lazaret',
         text: 'A lazaret is a ship\'s store locker, and also a house where the sick are kept apart. The keepers\' Lazaret is a little of both. A keepsake fresh from the Reach still answers the Bellwether, and the bell calls it back if its finder falls. One night shut in the Lazaret breaks that pull. After that the keepsake answers its keeper, and it turns up in the Lazaret again even if she leaves it behind in the caves.' },
       { id: 'kelp', title: 'The old coast', when: 'ev:ambush', lock: 'Found in the Fog.', art: 'scenes/ev_ambush',
@@ -1331,7 +1331,7 @@
       { id: 'strider', title: 'The Garden Strider', when: 'en:strider', lock: 'Found at a Dread in Dark Water.', art: 'units/strider',
         text: 'A sea spider is mostly legs. Its body is too small to hold its own gut, so the gut runs down inside the legs. It lives by sucking the soft animals of the sea floor. The one in Dark Water is taller than a man. At night it walks the Glimmer Garden on its stilt legs and grazes the beads, and the light it drinks shows through its skin. It is what tends the garden: it sows Glimmer Leeches among the stalks, and it notices what is taken. The keepers who wrote about it called it the Gardener.' },
       { id: 'buoy', title: 'The Tolling Buoy', when: 'en:buoy', lock: 'Found on the last landing of Dark Water.', art: 'units/buoy',
-        text: 'Before there was a lighthouse, Saltmere had a bell-buoy. It rocked on its chain off the harbour rocks and rang in the swell, so ships heard the rocks before they saw them. A storm broke its chain and it sank. Now it rings for the Bellwether. It is a pin: while it rings, it holds the water in Dark Water. It still rocks on the water. The further you push the Swell from the middle, the harder its Toll swings, and every Toll is louder than the last. Hurt, it snaps its chain and swings free, and then it rings wild. A breaking wave smothers a bell, and a bell on dry rock cannot swing.' },
+        text: 'Before there was a lighthouse, Saltmere had a bell-buoy. It rocked on its chain off the harbour rocks and rang in the swell, so ships heard the rocks before they saw them. A storm broke its chain and it sank. Now it rings for the Bellwether. It is a pin: while it rings, it holds the water in Dark Water. The light-eaters in its cage have grown together into one shape, like a woman kneeling with her arms round the bell. It sings what the bell rings. It still rocks on the water. The further you push the Swell from the middle, the harder its Toll swings, and every Toll is louder than the last. Hurt, it snaps its chain and swings free, and then it rings wild. A breaking wave smothers a bell, and a bell on dry rock cannot swing.' },
       { id: 'tideboard', title: 'The tide-board', when: 'ev:tideboard', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_tideboard',
         text: 'For as long as there have been keepers, they cut a line for the highest tide of the year. While they still tended the Bellwether, the lines go up and down. For the last hundred years, with nobody to tend it, every line is higher than the one before. The bell holds the sea off the town by holding it under the cliffs, and the water it holds grows every year.' },
       { id: 'garden', title: 'The Glimmer Garden', when: 'ev:garden', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_garden',

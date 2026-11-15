@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.34.0';
+  BL.VERSION = '0.35.0';
   BL.CHANGELOG = [
+    { v: '0.35.0', date: '2026-11-15', items: [
+      'Give one to the sea: at a Cove, in place of resting or refitting, you can throw a keepsake into the water. It is gone for this expedition, with its Roil. The sea pays for it: 2 HP for each Roil the keepsake had, and one refit. A keepsake you brought from the Lazaret is still in the Lazaret when you get home.',
+      'The stair down has the sea as a sixth choice, so it is two of six now.',
+      'A Roiled aether pays: every fight pays 8 more Pearls for each step you are over your Hold. The reward shows it as "Roiled +8". So going over the Hold for a few fights, and giving a keepsake to the sea before the pin, is a plan now.',
+      'The Tolling Buoy has a new picture. The light-eaters in its cage have grown into a shape that kneels with her arms round the bell and sings what it rings.',
+      'The Tolling Buoy\'s Wild Peal is muffled by 15 for each Crest or Strand you make that turn. Before, by 10. One halves it, and two silence it.',
+    ] },
     { v: '0.34.0', date: '2026-11-15', items: [
       'The Belfry has only its own creatures now. Dark Water\'s Murk Ray, Lantern Eel, Gloom Jelly, Glimmer Leech and Glimmer Chain no longer come down the last stair.',
       'New in the Belfry: the Listener. It has no eyes, and it hears every card you play: its Pounce hits 5, and 2 harder for each card you play that turn.',

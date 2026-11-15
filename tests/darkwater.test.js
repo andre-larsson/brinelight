@@ -306,8 +306,8 @@ test('The Tolling Buoy: at two thirds of its health it slips its chain (15 Ward,
   assert.equal(E.canGoDeeper(run), false);
 });
 
-test('The Wild Peal hits for 30, and each Crest or Strand you make that turn muffles it by 10; at 0 it does not hit at all', () => {
-  assert.deepEqual(BL.PEAL, { dmg: 30, quiet: 10 });
+test('The Wild Peal hits for 30, and each Crest or Strand you make that turn muffles it by 15; two of them and it does not hit at all', () => {
+  assert.deepEqual(BL.PEAL, { dmg: 30, quiet: 15 });
   const { run, c } = fight(['buoy'], { kind: 'boss', hand: ['jab', 'jab', 'jab'] });
   const b = c.enemies[0];
   b.hp = b.maxHp = 500;
@@ -319,26 +319,31 @@ test('The Wild Peal hits for 30, and each Crest or Strand you make that turn muf
   c.light = 9;
   c.tide = 1;
   E.swellAct(run, 'bail');
-  assert.equal(shown(), 20, 'one Strand: 30 - 10');
+  assert.equal(shown(), 15, 'one Strand: 30 - 15');
   play(run, 'jab', b); // no wave
-  assert.equal(shown(), 20);
+  assert.equal(shown(), 15);
+  // one wave: it hits for 15
+  const mid = JSON.parse(JSON.stringify(run));
+  mid.combat.player.ward = 0;
+  E.endTurn(mid);
+  assert.equal(run.hp - mid.hp, 15);
   c.swellActTurn = null;
   c.tide = 5;
   E.swellAct(run, 'stir');
   assert.equal(c.turnCrests + c.turnLows, 2);
-  assert.equal(shown(), 10, 'a Strand and a Crest: 30 - 20');
+  assert.equal(shown(), 0, 'a Strand and a Crest: 30 - 30');
   const hp = run.hp;
   c.player.ward = 0;
   E.endTurn(run);
-  assert.equal(hp - run.hp, 10);
-  // three waves silence it: no hit at all, so not even its Might gets through
+  assert.equal(hp - run.hp, 0);
+  // two waves silence it: no hit at all, so not even its Might gets through
   const f2 = fight(['buoy'], { kind: 'boss' });
   const b2 = f2.c.enemies[0];
   b2.hp = b2.maxHp = 500;
   b2.mem.free = true;
   b2.intent = 'peal';
   b2.st.might = 1;
-  f2.c.turnCrests = 2;
+  f2.c.turnCrests = 1;
   f2.c.turnLows = 1;
   assert.equal(E.intentInfo(f2.run, b2).dmg, 0);
   const hp2 = f2.run.hp;

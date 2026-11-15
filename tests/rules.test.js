@@ -708,6 +708,36 @@ test('bonus Pearls: Flawless, Swift (3 turns, 4 for elites) and Tidal Fury', () 
   assert.equal(slow.run.rewards.keepsakeChoices.length, 2, 'elites offer 1 of 2 keepsakes');
 });
 
+test('a Roiled aether pays: 8 more Pearls after a fight for each step over the Hold when it began; a Calm one pays nothing; it is not a scored bonus', () => {
+  assert.equal(E.ROIL_PAY, 8);
+  const win = (keepsakes, kind) => {
+    const { run, c } = fight(['kelp'], { keepsakes, kind });
+    c.turn = 9; // not Swift
+    c.flags.hpLost = true; // not Flawless
+    E.alive(c).forEach((e) => { e.dead = true; e.hp = 0; });
+    c.won = true;
+    const before = run.pearls, scored = run.stats.bonuses || 0;
+    E.finishCombat(run);
+    return { rw: run.rewards, got: run.pearls - before, scored: (run.stats.bonuses || 0) - scored, steps: c.roilSteps };
+  };
+  const calm = win(['tidewatch']); // 12 of 20
+  assert.deepEqual([calm.steps, calm.rw.roilPay, calm.rw.bonuses.length], [0, 0, 0]);
+  assert.ok(calm.got >= 14 && calm.got <= 22, 'a Skirmish pays 14 to 22');
+  const two = win(['whaletooth', 'stormbottle', 'moonshard']); // 45: 25 over, 3 steps
+  assert.equal(E.roil({ keepsakes: ['whaletooth', 'stormbottle', 'moonshard'], hold: 20 }).steps, 3);
+  assert.deepEqual([two.steps, two.rw.roilPay, two.rw.roilSteps, two.scored], [3, 24, 3, 0]);
+  assert.ok(two.got >= 14 + 24 && two.got <= 22 + 24);
+  assert.equal(two.rw.pearls, two.got, 'the reward\'s total includes it');
+  // a keepsake taken or dropped after the fight began does not change what that fight pays
+  const { run, c } = fight(['kelp'], { keepsakes: ['whaletooth', 'tidewatch'] }); // 31: 1 step
+  assert.equal(c.roilSteps, 1);
+  E.gainKeepsake(run, 'stormbottle');
+  E.alive(c).forEach((e) => { e.dead = true; e.hp = 0; });
+  c.won = true;
+  E.finishCombat(run);
+  assert.equal(run.rewards.roilPay, 8);
+});
+
 test('the map: 8 landings a level (7 rows of stops, then the pin), fights first, a wreck halfway, a cove before the pin, and enough variety', () => {
   for (let seed = 1; seed <= 200; seed++) {
     const run = E.newRun(seed);

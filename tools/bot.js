@@ -102,12 +102,14 @@ function chooseSwellAct(run, endOfTurn, opts = {}) {
   return null;
 }
 
-/* The stair down (v0.31.0): two of five, in this order of need. Rest first below 60% HP; take out a plain starter
+/* The stair down (v0.31.0): two of six, in this order of need. A keepsake to the sea when the aether is Roiled (seaChoice; opts.noSea never); rest first below 60% HP; take out a plain starter
    Brace (or a curse); the keepers' cache, its rare if it has one; upgrade a card (one that isn't a starter first);
    tonics for the empty slots (before the upgrade when two or more are empty). opts.noStair rests as at a Cove instead (the stair before v0.31.0). */
-function stair(run) {
+function stair(run, opts) {
   const { BL, E } = load();
   const want = [];
+  const sea = opts && opts.noSea ? null : seaChoice(run);
+  if (sea) want.push(['sea', sea]);
   if (run.hp < run.maxHp * 0.6) want.push(['rest']);
   const junk = run.deck.find((c) => BL.CARDS[c.id].type === 'curse') || run.deck.find((c) => c.id === 'brace' && !c.up);
   if (junk) want.push(['shed', junk.uid]);
@@ -267,6 +269,19 @@ function pickKeepsake(run, choices) {
   return best;
 }
 
+/* Give one to the sea (v0.35.0): when the aether is Roiled, the keepsake with the least Roil whose loss takes off a
+   step (the one with the least Roil if none does), and the refit goes to a card that isn't a starter first. Null when
+   the aether is Calm or nothing is carried: the bot does not give up a keepsake it can carry for free. */
+function seaChoice(run) {
+  const { BL, E } = load();
+  const now = E.roil(run).steps;
+  if (!now || !run.keepsakes.length) return null;
+  const by = run.keepsakes.slice().sort((a, b) => E.chargeOf(a) - E.chargeOf(b));
+  const k = by.find((x) => E.roilFor(E.charge(run) - E.chargeOf(x), E.hold(run)).steps < now) || by[0];
+  const ups = E.upgradeable(run), up = ups.find((c) => !BL.STARTER_DECK.includes(c.id)) || ups[0];
+  return { k, uid: up ? up.uid : null };
+}
+
 /* Advance the run by one decision. Returns a short label of what happened, or null when the run is over. */
 function step(run, opts = {}) {
   const { E } = load();
@@ -310,7 +325,9 @@ function step(run, opts = {}) {
     return 'reward';
   }
   if (s === 'rest') {
-    if (E.stairOpen && E.stairOpen(run) && !opts.noStair) { stair(run); E.backToMap(run); return 'stair'; }
+    if (E.stairOpen && E.stairOpen(run) && !opts.noStair) { stair(run, opts); E.backToMap(run); return 'stair'; }
+    const sea = opts.noSea ? null : seaChoice(run);
+    if (sea && E.giveToSea(run, sea.k, sea.uid)) { E.backToMap(run); return 'sea'; }
     E.rest(run); E.backToMap(run); return 'rest';
   }
   // after a pin: go on down, unless told to go home after this level (opts.home) or the next level needs kit it lacks
