@@ -2003,7 +2003,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   | dev | Dev, a ship's boy of about 14, South Asian (the user's pick of two tunings) | dev-tuned-b.png | 155, 526, 0.78 |
   | tavita | Tavita, a giant Samoan hauler with an anchor | tavita.png | 124, 552, 1.14 |
   | rook | Rook, an androgynous Latin American whaler with a peg leg | rook.png | 150, 592, 1.0 |
-  | abena | Abena, a big Black anchor-smith with a sledgehammer | abena-fixed.png | 145, 565, 1.06 |
+  | abena | Abena, a big Black anchor-smith with a sledgehammer | abena-carry.png | 145, 565, 1.06 |
   | esi | Esi, a slim Black rigging runner with a rope dart (ochre trousers, so she shows on a phone) | esi-tuned-b.png | 228, 588, 1.03 |
   | engine | The Lamp Engine, the keepers' clockwork bell-tender | engine.png | 90, 572, 1.1 |
   | gulp | Gulp, a sea monster who wants to be a keeper | gulp.png | 160, 610, 0.9 |
@@ -2016,6 +2016,21 @@ The user asked how more characters could be added, and wanted to judge the look 
 
 - **Mateo:** the user kept the concept, but in the first picture his arm went through the shield and one hand held both the shield and the mallet. It was redrawn twice, with the anatomy spelled out in the prompt. In 2b the shield is strapped to his left forearm and the mallet is in his right hand.
 - **Abena:** her first picture had a broken sledgehammer, with the head partway along the handle and the handle sticking out on both sides (the user spotted it). Only the hammer area of a Codex edit was pasted back (`abena-fixed.png`), so the rest of her is unchanged.
+  - 2026-11-15, the user again: the handle was still not straight. Codex's fix had drawn a second handle end under her fist, lying along her wrist at an angle and fading into her forearm, and the piece behind her neck rose about 15 degrees. Both Codex attempts had bent handles, so this one was scripted, not regenerated (`abena-straight.png`):
+    - the piece behind her neck is sheared down (0.27 px per px from her fist) until its centre line is level with the piece by the head; the sliver it leaves is transparent, so the night shows between her head and the handle;
+    - the stray end is painted out as wrist skin: a smooth fill from the surrounding skin, plus fine grain taken from her forearm.
+
+    Only the hammer area changed (canvas pixels 90-177 x 73-112). Her seaside costume is an edit of the same picture and had the same faults, so it got the same fix (`abena-cheeky-straight.png`).
+  - Then the user saw that her fist gripped empty air. It had been painted round the stray end, so its curl was low on the left, and with the end gone it was a closed ball sitting in front of the handle. Codex repainted only the hand on the straightened picture, in two grips (`abena-grip-a.png`, `abena-grip-b.png`, both 1 px off, shifted back). The whole hand area was pasted back as one feathered polygon, because a diff mask left holes where old and new skin matched. The draft uses B (`abena-grip.png`): her palm is under the handle, her thumb lies along its top toward the head, and her fingers close over the front. Her forearm comes up from below, so this is the natural way to carry a sledgehammer on the shoulder. A (knuckles on top, fingers wrapped down over the front) needs a sharply bent wrist; it is on the artifact page as an alternative.
+  - The seaside costume got the same grip: a Codex edit of `abena-cheeky-straight.png` with `abena-grip.png` as the hand reference (`abena-cheeky-grip-edit.png`, 0 px off), pasted back with the same polygon (`abena-cheeky-grip.png`).
+  - Lesson: when a picture's prop is wrong, check the hand that holds it. Codex paints the hand round whatever it drew, so fixing only the prop leaves the hand holding the old shape.
+  - The user turned grip B down too: her thumb looked to be on the wrong side, and "it's a very weird way of holding a heavy hammer ... would likely lead to wrist pain". The real cause was the pose. Her forearm came up from the elbow at about 40 degrees and ran almost along the handle, so no grip on that handle could work without a hard-bent wrist; that is also why Codex kept drawing angled handle pieces. A comfortable hold needs the fist round the handle at about a right angle to the forearm, wrist straight.
+  - Codex re-posed her right arm and the hammer three ways (`abena-carry-a/b/c.png`; the changed region of each was pasted back, so her face and body are unchanged):
+    - A, over the shoulder: the handle on her shoulder with the head behind it, her fist near the end of the handle in front of her chest, elbow down;
+    - B, raised: her arm as before, but her fist is up by the head and the handle runs down across her forearm to rest its end on her shoulder;
+    - C, leaning on it: the head on the ground by her boot, her hand on top of the handle.
+
+    The user picked A for the draft (`abena-carry.png`) and kept C as the alternative (`abena-leaning.png`, draft `drafts/keepers/abena-leaning.webp`); B is set aside. In C the handle is thin on a phone. The seaside costume got carry A too: a Codex edit of `abena-cheeky-grip.png` with `abena-carry.png` as the reference, its changed region pasted back (`abena-cheeky-carry.png`).
 - **Set aside:**
   - Tamsin, Abel and Ness (round 1, too alike: all white, all in similar coats);
   - Hae-won, Wei, Setsuko and Kenji;
