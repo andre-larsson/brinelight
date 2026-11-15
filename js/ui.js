@@ -81,7 +81,8 @@
     summon: svg('<circle cx="12" cy="12" r="9" opacity=".35"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
     fight: svg('<path d="M5 19 16.5 7.5M19 19 7.5 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M14 3.5h6.5V10L18 7.6zM10 3.5H3.5V10L6 7.6z"/>'),
     elite: svg('<path d="M12 2.5a8 8 0 0 0-8 8c0 2.7 1.2 4.6 3 5.7V20h10v-3.8c1.8-1.1 3-3 3-5.7a8 8 0 0 0-8-8z"/><circle cx="9" cy="10.8" r="2" fill="#0b1e2b"/><circle cx="15" cy="10.8" r="2" fill="#0b1e2b"/><path d="M10 16.5h1.2V20H10zM12.8 16.5H14V20h-1.2z" fill="#0b1e2b"/><path d="M4.5 6 2 2.5l4.5 1.8M19.5 6 22 2.5l-4.5 1.8"/>'),
-    rest: svg('<rect x="9" y="1.8" width="6" height="2.4" rx="1"/><path d="M7 5.5h10l-1.2 2.3v9.4L17 19.5H7l1.2-2.3V7.8z" opacity=".4"/><path d="M12 8.5c2 2.2 2.8 3.6 2.8 5.1a2.8 2.8 0 0 1-5.6 0c0-1.6 1-3.1 2.8-5.1z"/><rect x="8" y="20" width="8" height="2" rx="1"/>'),
+    // a campfire: the Cove's fire under the kettle (until v0.30.1 a lantern, which read as a bottle at map size)
+    rest: svg('<path d="M12 2.6c.7 2.5 2.5 3.7 3.7 5.4 1.1 1.6 1.4 3.3.9 4.9-.6 2-2.5 3.3-4.6 3.3s-4-1.3-4.6-3.3c-.4-1.4-.2-2.9.7-4.2.3 1.1 1 1.9 1.9 2.2-.4-2.9.7-5.7 2-8.3z"/><path d="M12 10.4c.9 1 1.6 1.8 1.6 2.9a1.6 1.6 0 0 1-3.2 0c0-.9.6-1.8 1.6-2.9z" fill="#0b1e2b"/><path d="M4.6 21.2 19.4 17.4M4.6 17.4 19.4 21.2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'),
     shop: svg('<path d="M9 2.5h6l-1.6 3.2h-2.8z"/><path d="M8.2 6.6h7.6c3 3 4.2 6.2 4.2 9.2a4.4 4.4 0 0 1-4.4 4.4H8.4A4.4 4.4 0 0 1 4 15.8c0-3 1.2-6.2 4.2-9.2z"/><circle cx="12" cy="14" r="2.6" fill="#0b1e2b"/>'),
     event: svg('<path d="M8.6 8.8a3.6 3.6 0 1 1 5.2 3.2c-1.1.6-1.8 1.3-1.8 2.6v.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="19.6" r="1.7"/>'),
     treasure: svg('<path d="M3 11h18v9H3z"/><path d="M4 10c0-3.3 2.2-5.5 8-5.5S20 6.7 20 10z" opacity=".75"/><rect x="10.4" y="12" width="3.2" height="4.4" rx=".8" fill="#0b1e2b"/>'),
@@ -2874,6 +2875,10 @@
       ? `<p class="lead found-kit">${gearArt(kit)}<span>On the wall above the stair hangs an old keeper's diving dress, with a sealed lamp on its helmet. Its seams have rotted and its lamp is dry. Carry it home and mend it, and you can wear it down next time.</span></p>`
       : `<p class="lead">Your ${kit.name} is at home on its hook. Without it you cannot go down into ${levelName(lv + 1)}.</p>`;
     const extra = (newKit ? [`the <b>${kit.name}</b>`] : []).concat(found.map((k) => `<b>${BL.KEEPSAKES[k].name}</b>`));
+    // a debug-cheated run carries nothing home (no dress, no keepsakes for the Lazaret): say so here, not only after
+    const dbgNote = run.cheated && (newKit || found.length)
+      ? `<p class="lead dbg-note"><b>Debug run:</b> a run that used a cheat carries nothing home, ${newKit ? 'not even the dress' : 'not even its keepsakes'}. To keep what you find, turn on <b>Cheats count as real runs</b> in the debug panel before you set out, or use <b>Own all kit</b>.</p>` : '';
+    const homeKeeps = run.cheated ? '' : extra.length ? `, ${extra.join(', ')} too` : '';
     const deeper = can
       ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. A Sheltered Cove comes first. Each landing there scores ${next.landing}.${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
       : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
@@ -2881,9 +2886,10 @@
       <h1>The pin is broken</h1>
       <p class="lead">${B.pin}</p>
       ${shut}
+      ${dbgNote}
       <div class="choice-list">
         ${deeper}
-        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here and keep what you carry${extra.length ? `, ${extra.join(', ')} too` : ''}. Each HP you have left adds 5 to the score.</span></button>
+        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here${run.cheated ? '' : ' and keep what you carry'}${homeKeeps}. Each HP you have left adds 5 to the score.</span></button>
       </div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
@@ -3073,7 +3079,7 @@
       ['Landings', E.landed(run).reduce((a, n) => a + (n || 0), 0)], ['Fights won', st.fights], ['Damage dealt', st.dmgDealt], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
     ].map((s) => `<div><b>${s[1]}</b><span>${s[0]}</span></div>`).join('');
     // on a wide screen the score and its lines sit side by side, so the buttons stay near the top
-    const scoreHTML = `<div class="score-row"><div class="score-box"><span>Score</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score</small>' : ''}</div>
+    const scoreHTML = `<div class="score-row"><div class="score-box"><span>Score</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score, and nothing carried home</small>' : ''}</div>
       ${scorePartsHTML(fin)}</div>
       ${fin.currents ? `<div class="unlock-box"><b>Currents are open.</b> Choose them on shore before your next expedition: each makes it harder and raises your score.</div>` : ''}
       ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b>, 1 for every ${E.SALVAGE_PER_SCORE} score (${fin.score} &divide; ${E.SALVAGE_PER_SCORE}, rounded down). Spend it in the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}

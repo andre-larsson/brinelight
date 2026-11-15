@@ -459,6 +459,10 @@ async function debugScenario(page, base) {
   await sleep(150);
   await clickIf(page, '#overlay [data-dbg="win"]');
   await page.waitFor('window.Brinelight.run.screen === "reward"', 6000, 'rewards after Win the fight');
+  // a cheated run says at Dark Water's pin that the dress it found won't come home (it doesn't: E.carryHome is skipped)
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.meta.owned = B.meta.owned.filter((k) => k !== 'suit'); r.combat = null; r.level = 1; r.cleared = [0, 1]; r.found = 'suit'; r.screen = 'pin'; B.render(); })()`); // "Own all kit" gave the dress above
+  if (!(await page.eval(`/Debug run:.*not even the dress/.test(document.querySelector('.dbg-note') ? document.querySelector('.dbg-note').textContent : '') && !/Diving Dress too/.test(document.body.innerText)`))) failures.push("debug: a cheated run's pin screen doesn't say the dress stays below");
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.meta.owned.push('suit'); r.level = 0; r.cleared = []; r.found = null; r.screen = 'map'; B.render(); })()`);
   // lose the next fight: a cheated run keeps no best score
   await page.eval(`(() => { const B = window.Brinelight; B.E.backToMap(B.run); B.render(); })()`);
   await page.key('`');

@@ -661,6 +661,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .shop-tile.dim { cursor: default; opacity: .4; }
 .reward-summary .incl { align-self: center; font-size: 14px; color: var(--muted); }
 .scene .lead.outcome { font-family: var(--sans); font-size: 16px; font-weight: 700; color: #ffe2a8; }
+/* the pin screen on a debug-cheated run: nothing found comes home */
+.scene .lead.dbg-note { font-family: var(--sans); font-size: 15px; color: #f5c2a8; background: rgba(60, 20, 10, .55); border: 1px dashed rgba(245, 160, 120, .6); border-radius: 10px; padding: 8px 12px; }
 /* shop: what you are about to buy */
 .buy-item { display: flex; align-items: center; gap: 14px; text-align: left; }
 .buy-item .medal { width: 64px; height: 64px; flex: 0 0 auto; cursor: default; }

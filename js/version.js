@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.30.0';
+  BL.VERSION = '0.30.1';
   BL.CHANGELOG = [
+    { v: '0.30.1', date: '2026-11-15', items: [
+      'A Cove\'s mark on the map is a campfire now. The lantern before it was hard to make out.',
+      'Debug mode: a run that used a cheat carries nothing home, and now the pin screen says so before you choose. That includes the Diving Dress. It also says how to keep what you find.',
+    ] },
     { v: '0.30.0', date: '2026-11-15', items: [
       'Wren sets out with no Pearls: she gathers them on the way down. Before, every descent started with 75. The Coin Purse still gives 30 at the start.',
       'A pin\'s song, and Barnaby\'s, no longer give way to the music box when they end: each fades out slowly over its last seconds and comes round again from the top, fading in.',
