@@ -1,4 +1,5 @@
-/* Bot win rates for a list of settings, measured in up to 8 processes at once (--workers 1 for one).
+/* Bot win rates for a list of settings, measured in up to 8 processes at once (fewer on a machine with fewer
+   physical cores; --workers 1 for one).
 
    Each setting (a "row") plays the same seeds with the bot from tools/bot.js. Rows and seeds are
    independent, so they are split into jobs and each job runs in its own process (8 at a time unless --workers says). The numbers are the
@@ -28,6 +29,7 @@
    per pin: pin 1 % broke the Shallows' pin; pin 2 % is the share of those that also broke Dark Water's, and pin 3 %
    the share of those that also won the Belfry's last landing. Last, the HP lost and the landings reached. */
 'use strict';
+const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { fork } = require('child_process');
@@ -42,6 +44,23 @@ function defaultSpec(E) {
     rows.push({ name: `Shallows, ladder step ${step}: ${r.seep} Seep, Thrash ${r.thrash}, ${r.minnows} Bell Minnow${r.minnows === 1 ? '' : 's'}`, roil: step });
   }
   return { seeds: 1000, rows };
+}
+
+/* The machine's physical cores: on Linux the distinct (package, core) pairs in /proc/cpuinfo, so two threads of one
+   core count once. Where that file is missing or says nothing about cores, the logical CPU count. */
+function physicalCores(cpuinfo) {
+  try {
+    const text = cpuinfo != null ? cpuinfo : fs.readFileSync('/proc/cpuinfo', 'utf8');
+    const seen = new Set();
+    let pkg = '0';
+    text.split('\n').forEach((line) => {
+      const m = /^(physical id|core id)\s*:\s*(\d+)/.exec(line);
+      if (m && m[1] === 'physical id') pkg = m[2];
+      else if (m) seen.add(pkg + ':' + m[2]);
+    });
+    if (seen.size) return seen.size;
+  } catch (e) { /* not Linux */ }
+  return os.cpus().length;
 }
 
 function loadSpec(file) {
@@ -81,8 +100,9 @@ function main(argv) {
   const file = argv.find((a, i) => !a.startsWith('--') && !(i > 0 && argv[i - 1].startsWith('--'))) || null;
   const spec = loadSpec(file);
   const seeds = opt('seeds', spec.seeds || 1000);
-  // at most 8 processes by default: a full all-core load has hard-reset the development machine (an i9-13900KF)
-  const workers = Math.max(1, opt('workers', Math.max(1, Math.min(8, os.cpus().length - 2))));
+  // 8 processes by default, or one per physical core on a smaller machine. Not every core: the development machine
+  // (an i9-13900KF) froze under bot jobs on 2026-11-13 (22, 22 and 8 processes), cause not found; see GAME_NOTES.md.
+  const workers = Math.max(1, opt('workers', Math.min(8, physicalCores())));
   // split each row's seeds so that a short list of rows still fills every core
   const parts = Math.max(1, Math.min(8, Math.ceil(workers / spec.rows.length)));
   const size = Math.ceil(seeds / parts);
@@ -127,4 +147,4 @@ if (require.main === module) {
   else main(process.argv.slice(2));
 }
 
-module.exports = { loadSpec, playJob };
+module.exports = { loadSpec, playJob, physicalCores };

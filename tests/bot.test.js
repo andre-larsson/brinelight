@@ -190,3 +190,11 @@ test('whole expeditions with shopping, tonics and the Bailer are deterministic a
   assert.ok(drank > 0, 'drank a tonic');
   assert.ok(twice > 0, 'Bailed or Stirred twice in a turn');
 });
+
+test('measure counts physical cores: two threads of one core count once, and each package has its own cores', () => {
+  const { physicalCores } = require('../tools/measure');
+  const cpu = (pkg, core) => `processor\t: 0\nphysical id\t: ${pkg}\nsiblings\t: 4\ncore id\t\t: ${core}\n`;
+  assert.equal(physicalCores(cpu(0, 0) + cpu(0, 0) + cpu(0, 1) + cpu(0, 1)), 2, '2 cores, 4 threads');
+  assert.equal(physicalCores(cpu(0, 0) + cpu(0, 1) + cpu(1, 0) + cpu(1, 1)), 4, '2 packages of 2 cores');
+  assert.equal(physicalCores('processor\t: 0\nBogoMIPS\t: 48.00\n'), require('os').cpus().length, 'no core ids: the logical count');
+});

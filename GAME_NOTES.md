@@ -861,11 +861,24 @@ From a fresh start the bot clears Dark Water 11.8% of the time. A built deck mak
 - The kernel log has nothing before the freezes.
 - 7.0.0-43 was the first boot of a new kernel that day. All-core jobs had run fine on it earlier.
 - So the cause is not found.
-- **Since then:** every bot or measure job runs as 1 process, under `systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0 -p CPUQuota=100% nice -n 19`.
+- **From then until 2026-11-15:** every bot or measure job ran as 1 process, under `systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0 -p CPUQuota=100% nice -n 19`.
   - `tools/measure.js` gives each worker a 1 GB heap cap.
   - Use `--workers 1` for one process.
   - The UI test runs under the same cap with 3 GB, because Chrome needs several processes.
   - That way the full UI test took 264 s. Once, in the Dark Water descent, the second click on a raised card didn't register ("card 6 (click) was not played"). With the same seeds it passed on the rerun, so it was timing on the one shared CPU. If it happens again, give `playCard` in tests/ui-smoke.js a longer settle time when the CPU is capped.
+- **Retest, 2026-11-15, same kernel (7.0.0-43):** no freeze in 11 parallel `tools/measure.js` runs.
+  - 8 processes for 34 s, 16 for 69 s, 22 for 90 s twice, 24 for 137 s, then six starts in a row at 22 processes (38-40 s each).
+  - Memory was not a factor: about 170 MB a process, 54 GB always free, no swap.
+  - The CPU reaches 100 °C and thermal-throttles from 16 processes up. At 8 processes it peaked at 93 °C in the first run (34 s, from cold) and reached 100 °C in two later short runs, once the machine was warm.
+  - A logger wrote the machine's state to disk every 0.25 s (`~/.local/state/brinelight-freeze-test/`, outside the repo). Run a job through `logged.sh` there, and a later freeze leaves its last quarter second on disk.
+  - One run had three 10 s stalls. They came from Firefox writing 9 GB to the encrypted system disk at that moment, not from the bot. The rerun was clean.
+  - So the cause is still not found, and the freezes did not come back.
+- **From 2026-11-15 (user's call):** back to 8 processes, always through the logger.
+  - `tools/measure.js` runs 8 processes by default, or one per physical core on a machine with fewer than 8.
+  - Start it as `~/.local/state/brinelight-freeze-test/logged.sh node tools/measure.js ...`. The same goes for the UI test and any other heavy job.
+  - The measure table needs no `systemd-run` cap: each worker keeps its 1 GB heap cap.
+  - Ask the user before going above 8 processes.
+  - After a freeze, read the tail of the newest `run-*.log` in that folder first.
 
 **Next:** the user's playtest of the Belfry. Open questions:
 - Does the Bellwether's rise read as a second phase?
