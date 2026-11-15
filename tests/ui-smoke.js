@@ -4,8 +4,10 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
-          [--only darkwater|belfry|progress|finds|workshop|audio]
-          [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path) */
+          [--only darkwater|belfry|progress|finds|workshop|audio] [--workers 4]
+          [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path)
+   Each scenario starts from cleared storage, so they run on several headless Chromes at once (--workers, 4 unless
+   given; each has its own throwaway profile, so their saves don't meet). --workers 1 plays them one after another. */
 'use strict';
 const path = require('path');
 const { serve } = require('../tools/serve');
@@ -18,6 +20,7 @@ const STOPS = args.includes('--full') ? 99 : +arg('stops', 6);
 const ONLY = arg('only', null);
 const ROOT = path.resolve(arg('root', path.join(__dirname, '..'))); // folder to serve
 const SUBPATH = arg('path', '/'); // where the game sits under ROOT, e.g. /brinelight/
+const WORKERS = Math.max(1, Math.floor(+arg('workers', 4)) || 1);
 
 const failures = [];
 const log = (...a) => console.log(...a);
@@ -52,11 +55,11 @@ async function waitIdle(page, what) {
   await page.waitFor('window.__t.idle()', 20000, what || 'idle');
   // in a fight, also wait for the hand to stop moving (cards fly in after a turn starts)
   let last = null;
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 60; i++) {
     const r = await page.eval('window.__t.handRects()');
     if (r === last) return;
     last = r;
-    await sleep(90);
+    await sleep(60);
   }
 }
 
@@ -92,12 +95,11 @@ async function playCard(page, d, mode) {
     const to = d.target ? await page.center(`.unit.enemy[data-uid="${d.target}"] .sprite`) : await page.center('#field');
     await page.drag(from.x, from.y, to.x, to.y - (d.target ? 0 : 40), 10);
   } else {
-    await page.click(cardSel);
-    await sleep(320); // let the raised card settle, as a person would
+    await page.click(cardSel); // the next click waits for the raised card to hold still (page.click)
     if (d.target && (await page.eval('window.Brinelight.E.alive(window.Brinelight.run.combat).length')) > 1) await page.click(`.unit.enemy[data-uid="${d.target}"] .sprite`);
     else await page.click(cardSel);
   }
-  await sleep(100);
+  await sleep(30);
   await waitIdle(page, 'card play to finish');
   const after = await page.eval('window.Brinelight.run && window.Brinelight.run.combat ? window.Brinelight.run.combat.hand.length + ":" + window.Brinelight.run.stats.cardsPlayed : "done"');
   if (after === before) throw new Error(`card ${d.uid} (${mode}) was not played`);
@@ -185,14 +187,13 @@ async function playStops(page, label, opts) {
   return visited;
 }
 
-/* Keepsake picks alternate between taking one and leaving them, so both paths run. */
-let ksTurn = 0;
+/* Keepsake picks alternate between taking one and leaving them, so both paths run (counted per scenario, page.ksTurn). */
 async function decideKeepsake(page, label, takeAct) {
   if (!(await page.eval(`!!document.querySelector('[data-act="${takeAct}"]')`))) return;
   // a keepsake on offer is taken or left before Continue is offered
   if (await page.eval(`!!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: Continue was offered before the keepsake pick was decided`);
   if (!(await page.eval(`!!document.querySelector('.ks-pick .k-charge') && !!document.querySelector('.ks-pick .k-after')`))) failures.push(`${label}: the keepsake pick doesn't show Roil`);
-  if (ksTurn++ % 2) await clickIf(page, '[data-act="leaveks"]');
+  if ((page.ksTurn = (page.ksTurn || 0) + 1) % 2 === 0) await clickIf(page, '[data-act="leaveks"]');
   else await clickIf(page, `[data-act="${takeAct}"]`);
 }
 
@@ -353,7 +354,7 @@ async function workshopScenario(page, base, name, size) {
   const kit = await page.eval('JSON.stringify(window.Brinelight.run.kit)');
   if (kit !== JSON.stringify({ harpoon: null, bell: 'floodbell', coat: null, pocket: 'purse', ditty: null })) failures.push(`${name}: the run took kit ${kit}`);
   if (!(await page.eval(`!!document.querySelector('.hud .medal.bell') && !!document.querySelector('.hud .gear-pack')`))) failures.push(`${name}: the bell or the kit is missing from the HUD`);
-  if (await page.eval('window.Brinelight.run.pearls') !== 105) failures.push(`${name}: the Coin Purse didn't add its Pearls`);
+  if (await page.eval('window.Brinelight.run.pearls') !== 30) failures.push(`${name}: the Coin Purse didn't add its Pearls`);
   // keepsakes past the Hold: the HUD shows the Roil in red; drop one between fights
   await dismissHints(page);
   await page.eval(`(() => { const B = window.Brinelight; B.E.gainKeepsake(B.run, 'whaletooth'); B.E.gainKeepsake(B.run, 'stormbottle'); B.render(); })()`);
@@ -426,8 +427,12 @@ async function debugScenario(page, base) {
   await clickIf(page, '#overlay [data-dbg="salvage"]');
   await clickIf(page, '#overlay [data-dbg="allkit"]');
   await clickIf(page, '#overlay [data-dbg="hearts"]');
+  const reached0 = await page.eval('window.Brinelight.meta.reached');
+  await clickIf(page, '#overlay [data-dbg="allmusic"]');
   const m = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
   if (m.salvage !== 100 || m.owned.length !== Object.keys(await page.eval('window.BL.KIT')).length - 1) failures.push(`debug: Salvage and kit cheats stored ${JSON.stringify(m)}`);
+  // Hear all music opens every track and every depth of the score, without reaching a level (that would raise the Hold)
+  if (!m.heard.includes('song:watch') || !m.heard.includes('depth:2') || m.reached !== reached0) failures.push(`debug: Hear all music stored heard ${JSON.stringify(m.heard)}, reached ${m.reached}`);
   await clickIf(page, '#overlay [data-act="close"]');
   // a run: god mode holds HP through an enemy turn, the Swell can be set, and Win the fight leads to the rewards
   await page.click('[data-act="newrun"]');
@@ -1267,7 +1272,7 @@ async function audioScenario(page, base, name, size) {
   await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: true, music: true, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
   await page.goto(base + '?seed=7171');
   await inject(page);
-  const audio = () => page.eval(`(() => { const a = window.Brinelight.audio(); return { ctx: a.ctx, depth: a.depth, ambience: a.ambience, playing: !!a.music, target: a.music && a.music.target, intensity: a.music && a.music.intensity, song: a.song, songAt: a.songAt, loop: a.loop }; })()`);
+  const audio = () => page.eval(`(() => { const a = window.Brinelight.audio(); return { ctx: a.ctx, depth: a.depth, ambience: a.ambience, playing: !!a.music, target: a.music && a.music.target, intensity: a.music && a.music.intensity, song: a.song, songAt: a.songAt, songGain: a.songGain, loop: a.loop }; })()`);
   const expect = async (label, want) => {
     await sleep(150);
     const a = await audio();
@@ -1294,9 +1299,13 @@ async function audioScenario(page, base, name, size) {
   if ((await page.eval(`document.querySelector('#overlay input[data-vol="music"] + output').textContent`)) !== '40%') failures.push(`${name}: the music slider doesn't show 40%`);
   await page.click('#overlay [data-act="togglemusic"]');
   await expect('music switched off', { playing: false, song: null });
+  if (await page.eval(`!!document.querySelector('.title-now .now-btn')`)) failures.push(`${name}: the title screen names a song with the music off`);
   if (!(await page.eval(`/Music: Off/.test(document.querySelector('#overlay [data-act="togglemusic"]').textContent)`))) failures.push(`${name}: the music switch doesn't read Off`);
   await page.click('#overlay [data-act="togglemusic"]');
   await expect('music switched on again', { playing: false, song: 'title' });
+  // the song playing is named on the title screen, outside the Jukebox
+  const chip = await page.eval(`(() => { const b = document.querySelector('.title-now .now-btn'); return b ? b.textContent.trim() : null; })()`);
+  if (chip !== 'The Great Light Turning Slow') failures.push(`${name}: the title screen names the song playing as ${JSON.stringify(chip)}`);
   await clickIf(page, '#overlay [data-act="close"]');
   // the Jukebox is there from the start
   if (!(await page.eval(`!!document.querySelector('[data-act="jukebox"]')`))) failures.push(`${name}: the Jukebox isn't on the title screen from the start`);
@@ -1308,7 +1317,7 @@ async function audioScenario(page, base, name, size) {
   // the Jukebox: one list of what you've heard, the song playing first; what you haven't heard is locked
   const heardList = () => page.eval('window.Brinelight.meta.heard.slice()');
   if (!(await heardList()).includes('song:title')) failures.push(`${name}: hearing the title song didn't count it as heard`);
-  await page.click('[data-act="jukebox"]');
+  await page.click('.title-now [data-act="jukebox"]'); // the song's name opens the Jukebox
   const jb = (js) => page.eval(`(() => { const o = document.querySelector('#overlay'); return ${js}; })()`);
   const items = await jb(`o.querySelectorAll('.juke-item').length`);
   if (items !== 18) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 10 songs and 8 pieces of the score`);
@@ -1332,7 +1341,7 @@ async function audioScenario(page, base, name, size) {
   // hear more (the Heart home opens High Tide Departure; the Belfry reached opens its depth), then open it again
   await clickIf(page, '#overlay [data-act="close"]');
   await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 1; B.meta.record.hearts = 1; B.meta.reached = 2; B.meta.heard.push('cue:dread'); })()`);
-  await page.click('[data-act="jukebox"]');
+  await page.click('.title-third [data-act="jukebox"]');
   if ((await jb(`o.querySelectorAll('.juke-item.locked').length`)) !== 10) failures.push(`${name}: hearing a Dread, finishing a descent and bringing the Heart home didn't open 3 more tracks`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: High Tide Departure', { playing: false, song: 'departure' });
@@ -1353,6 +1362,12 @@ async function audioScenario(page, base, name, size) {
   if (!(at < now2 - 8)) failures.push(`${name}: -10 s moved the song from ${now2.toFixed(1)} to ${at.toFixed(1)}`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: paused', { playing: false, song: null });
+  // a depth is the music box's: none is lit while a song is chosen, and choosing one plays the music box at that depth
+  if (await jb(`!!o.querySelector('[data-act="jukedepth"][aria-pressed="true"]')`)) failures.push(`${name}: a depth of the music box is lit while a song is chosen`);
+  const box = (await page.eval(`window.Brinelight.meta.heard.includes('cue:reach')`)) ? 'reach' : 'title';
+  await clickIf(page, '#overlay [data-act="jukedepth"][data-depth="1"]');
+  await expect('the Jukebox: Dark Water, chosen after a song', { playing: true, target: box, intensity: 1, song: null });
+  if (!(await jb(`!!o.querySelector('[data-act="jukedepth"][data-depth="1"][aria-pressed="true"]')`))) failures.push(`${name}: Dark Water isn't lit once the music box plays there`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-kind="cue"][data-key="dread"]');
   await expect('the Jukebox: a Dread', { playing: true, target: 'dread', song: null });
   await clickIf(page, '#overlay [data-act="jukedepth"][data-depth="2"]');
@@ -1376,6 +1391,8 @@ async function audioScenario(page, base, name, size) {
     await sleep(150);
     const a = await audio();
     shopSongs.push(a.song);
+    // in a descent, a song starting is named in a short note
+    if (!(await page.eval(`[...document.querySelectorAll('.toast-msg')].some((t) => /No Haggling, No Biting|Pop the Shell/.test(t.textContent))`))) failures.push(`${name}: Barnaby's, visit ${visit}: no note names his song`);
     if (!['shop', 'shell'].includes(a.song) || a.playing || a.ambience !== 'shallows/1') failures.push(`${name}: Barnaby's, visit ${visit}: ${JSON.stringify(a)}`);
     await plays(`Barnaby's song, visit ${visit}`);
     await set('B.E.backToMap(B.run)');
@@ -1395,6 +1412,16 @@ async function audioScenario(page, base, name, size) {
   await set(`B.E.startCombat(B.run, 'boss')`);
   await expect('the Harbour Hermit', { playing: false, song: 'hermit', ambience: '' });
   await plays("the Hermit's song");
+  // a pin's song goes round: over its last 8 seconds it fades out, then it starts again from the top, fading in
+  await page.eval('window.Brinelight.songToEnd(5)');
+  await sleep(700);
+  let g = (await audio()).songGain;
+  if (!(g > 0 && g < 0.19)) failures.push(`${name}: 5 s before its end, the Hermit's song isn't fading out (level ${g})`);
+  await page.eval('window.Brinelight.songToEnd()');
+  await page.waitFor(`(() => { const a = window.Brinelight.audio(); return a.song === 'hermit' && a.songAt < 2.5; })()`, 6000, "the Hermit's song going round");
+  const round = await audio();
+  if (round.playing || !(round.songGain >= 0 && round.songGain < 0.19)) failures.push(`${name}: the Hermit's song should come round again fading in, without the score (${JSON.stringify(round)})`);
+  await plays("the Hermit's song, round again");
   await set('B.run.combat.phase2 = true');
   await expect("the Hermit's second phase", { playing: false, song: 'deep' });
   await plays('Ring for the Deep');
@@ -1442,67 +1469,93 @@ async function audioScenario(page, base, name, size) {
   await sleep(300);
   const again = await audio(), order = 'title,bells,hermit,buoy,watch', rot = (l) => l.split(',').map((k, i, a) => a.slice(i).concat(a.slice(0, i)).join(','));
   if (!rot(order).includes(again.loop) || again.song !== (again.loop || '').split(',')[0]) failures.push(`${name}: after a reload the title screen should start the loop on one of its songs and keep its order (${JSON.stringify(again)})`);
+  // what was heard is kept across the reload (v0.29.0 forgot it, so the keeper's song always came first)
+  const kept = await page.eval(`window.Brinelight.meta.heard`);
+  if (!kept.includes('song:title') || !kept.includes('song:watch')) failures.push(`${name}: after a reload the Jukebox forgot what was heard (${JSON.stringify(kept)})`);
+  // and the keeper's song, heard, is no longer always first: one of up to 8 reloads starts elsewhere (all 8 on it by chance: 1 in 390,625)
+  let firsts = [again.song];
+  while (firsts.length < 8 && firsts.every((k) => k === 'title')) {
+    await page.goto(base + '?seed=7171');
+    await inject(page);
+    await page.click('.title-corner [data-act="menu"]');
+    await sleep(300);
+    firsts.push((await audio()).song);
+  }
+  if (firsts.every((k) => k === 'title')) failures.push(`${name}: the title screen starts on the keeper's song on every reload, though it has been heard`);
   await clickIf(page, '#overlay [data-act="close"]');
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
-(async () => {
-  const server = await serve(PORT, ROOT);
+/* The scenarios, each a job for any worker: `group` is the name --only picks. Longest first, so the workers finish
+   at about the same time: Dark Water plays six real fights there and takes about 110 s, the Shallows' runs and the
+   audio about 50 to 60 s, the rest 5 to 40 s (2026-11-15). */
+const DESK = { w: 1280, h: 800 }, PHONE = { w: 390, h: 844, mobile: true, touch: true };
+const JOBS = [
+  ['darkwater', 'dark water phone', (p, b) => darkwaterScenario(p, b, 'dark water phone', PHONE, { seed: 5555 })],
+  ['darkwater', 'dark water desktop', (p, b) => darkwaterScenario(p, b, 'dark water desktop', DESK, { seed: 4444 })],
+  ['phone', 'phone', (p, b) => scenario(p, b, 'phone', PHONE, { seed: 2222, drag: true })],
+  ['audio', 'audio phone', (p, b) => audioScenario(p, b, 'audio phone', PHONE)],
+  ['desktop', 'desktop', (p, b) => scenario(p, b, 'desktop', DESK, { seed: 1111, drag: true, keyboardTurns: true })],
+  ['audio', 'audio desktop', (p, b) => audioScenario(p, b, 'audio desktop', DESK)],
+  ['belfry', 'belfry phone', (p, b) => belfryScenario(p, b, 'belfry phone', PHONE, { seed: 6262 })],
+  ['belfry', 'belfry desktop', (p, b) => belfryScenario(p, b, 'belfry desktop', DESK, { seed: 6161 })],
+  ['tutorial', 'tutorial phone touch', (p, b) => tutorialScenario(p, b, 'tutorial phone touch', PHONE, 'touch')],
+  ['tutorial', 'tutorial desktop mouse', (p, b) => tutorialScenario(p, b, 'tutorial desktop mouse', DESK, 'mouse')],
+  ['tutorial', 'tutorial desktop keyboard', (p, b) => tutorialScenario(p, b, 'tutorial desktop keyboard', DESK, 'keyboard')],
+  ['lazaret', 'lazaret desktop', (p, b) => lazaretScenario(p, b, 'lazaret desktop', DESK)],
+  ['lazaret', 'lazaret phone', (p, b) => lazaretScenario(p, b, 'lazaret phone', PHONE)],
+  ['progress', 'progress desktop', (p, b) => progressScenario(p, b, 'progress desktop', DESK)],
+  ['progress', 'progress phone', (p, b) => progressScenario(p, b, 'progress phone', PHONE)],
+  ['finds', 'finds desktop', (p, b) => findsScenario(p, b, 'finds desktop', DESK)],
+  ['finds', 'finds phone', (p, b) => findsScenario(p, b, 'finds phone', PHONE)],
+  ['workshop', 'workshop desktop', (p, b) => workshopScenario(p, b, 'workshop desktop', DESK)],
+  ['workshop', 'workshop phone', (p, b) => workshopScenario(p, b, 'workshop phone', PHONE)],
+  ['story', 'story desktop', (p, b) => storyScenario(p, b, 'story desktop', DESK)],
+  ['story', 'story phone', (p, b) => storyScenario(p, b, 'story phone', PHONE)],
+  ['tutorial', 'tutorial from a run', (p, b) => tutorialMidRun(p, b)],
+  ['desktop', 'summoned enemy death', (p, b) => summonDeathCheck(p, b)],
+  ['debug', 'debug', (p, b) => debugScenario(p, b)],
+].map(([group, name, run]) => ({ group, name, run }));
+
+/* One browser, taking jobs until none are left. A job that crashes is reported (with a screenshot) and the next
+   one starts from a fresh page load, as every scenario does. */
+async function worker(queue, base, times) {
   const page = await launch();
-  const base = `http://127.0.0.1:${PORT}${SUBPATH}`;
-  const t0 = Date.now();
   try {
-    if (!ONLY || ONLY === 'tutorial') {
-      await tutorialScenario(page, base, 'tutorial desktop mouse', { w: 1280, h: 800 }, 'mouse');
-      await tutorialScenario(page, base, 'tutorial phone touch', { w: 390, h: 844, mobile: true, touch: true }, 'touch');
-      await tutorialScenario(page, base, 'tutorial desktop keyboard', { w: 1280, h: 800 }, 'keyboard');
-      await tutorialMidRun(page, base);
+    for (let job = queue.shift(); job; job = queue.shift()) {
+      const t = Date.now();
+      page.ksTurn = 0; // each scenario takes its first keepsake, then alternates, whichever browser runs it
+      try {
+        await job.run(page, base);
+      } catch (e) {
+        failures.push(`${job.name}: crashed: ` + (e.stack || e));
+        const shot = `ui-smoke-failure-${job.name.replace(/\W+/g, '-')}.png`;
+        try { await page.screenshot(path.join(__dirname, '..', shot)); failures.push('screenshot: ' + shot); } catch (e2) { /* ignore */ }
+        if (page.errors.length) failures.push(`${job.name}: page errors:\n    ` + page.errors.join('\n    '));
+      }
+      times.push([job.name, Date.now() - t]);
     }
-    if (!ONLY || ONLY === 'desktop') await scenario(page, base, 'desktop', { w: 1280, h: 800 }, { seed: 1111, drag: true, keyboardTurns: true });
-    if (!ONLY || ONLY === 'desktop') await summonDeathCheck(page, base);
-    if (!ONLY || ONLY === 'phone') await scenario(page, base, 'phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 2222, drag: true });
-    if (!ONLY || ONLY === 'debug') await debugScenario(page, base);
-    if (!ONLY || ONLY === 'story') {
-      await storyScenario(page, base, 'story desktop', { w: 1280, h: 800 });
-      await storyScenario(page, base, 'story phone', { w: 390, h: 844, mobile: true, touch: true });
-    }
-    if (!ONLY || ONLY === 'lazaret') {
-      await lazaretScenario(page, base, 'lazaret desktop', { w: 1280, h: 800 });
-      await lazaretScenario(page, base, 'lazaret phone', { w: 390, h: 844, mobile: true, touch: true });
-    }
-    if (!ONLY || ONLY === 'darkwater') {
-      await darkwaterScenario(page, base, 'dark water desktop', { w: 1280, h: 800 }, { seed: 4444 });
-      await darkwaterScenario(page, base, 'dark water phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 5555 });
-    }
-    if (!ONLY || ONLY === 'belfry') {
-      await belfryScenario(page, base, 'belfry desktop', { w: 1280, h: 800 }, { seed: 6161 });
-      await belfryScenario(page, base, 'belfry phone', { w: 390, h: 844, mobile: true, touch: true }, { seed: 6262 });
-    }
-    if (!ONLY || ONLY === 'progress') {
-      await progressScenario(page, base, 'progress desktop', { w: 1280, h: 800 });
-      await progressScenario(page, base, 'progress phone', { w: 390, h: 844, mobile: true, touch: true });
-    }
-    if (!ONLY || ONLY === 'finds') {
-      await findsScenario(page, base, 'finds desktop', { w: 1280, h: 800 });
-      await findsScenario(page, base, 'finds phone', { w: 390, h: 844, mobile: true, touch: true });
-    }
-    if (!ONLY || ONLY === 'workshop') {
-      await workshopScenario(page, base, 'workshop desktop', { w: 1280, h: 800 });
-      await workshopScenario(page, base, 'workshop phone', { w: 390, h: 844, mobile: true, touch: true });
-    }
-    if (!ONLY || ONLY === 'audio') {
-      await audioScenario(page, base, 'audio desktop', { w: 1280, h: 800 });
-      await audioScenario(page, base, 'audio phone', { w: 390, h: 844, mobile: true, touch: true });
-    }
-  } catch (e) {
-    failures.push('crashed: ' + (e.stack || e));
-    try { await page.screenshot(path.join(__dirname, '..', 'ui-smoke-failure.png')); failures.push('screenshot: ui-smoke-failure.png'); } catch (e2) { /* ignore */ }
-    if (page.errors.length) failures.push('page errors:\n    ' + page.errors.join('\n    '));
   } finally {
     await page.close();
+  }
+}
+
+(async () => {
+  const server = await serve(PORT, ROOT);
+  const base = `http://127.0.0.1:${PORT}${SUBPATH}`;
+  const t0 = Date.now();
+  const queue = JOBS.filter((j) => !ONLY || j.group === ONLY), times = [];
+  if (!queue.length) { console.error(`no scenarios in --only ${ONLY}`); process.exit(1); }
+  const n = Math.min(WORKERS, queue.length);
+  log(`${queue.length} scenarios on ${n} browser${n > 1 ? 's' : ''}`);
+  try {
+    await Promise.all(Array.from({ length: n }, () => worker(queue, base, times)));
+  } catch (e) {
+    failures.push('crashed: ' + (e.stack || e)); // Chrome didn't start
+  } finally {
     server.close();
   }
-  log(`done in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+  log(`done in ${((Date.now() - t0) / 1000).toFixed(0)} s; slowest: ${times.sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, ms]) => `${k} ${(ms / 1000).toFixed(0)} s`).join(', ')}`);
   if (failures.length) { console.error('UI SMOKE FAILED\n- ' + failures.join('\n- ')); process.exit(1); }
   log('UI smoke test passed');
 })();

@@ -40,10 +40,12 @@ const tough = (c) => c.enemies.forEach((e) => { e.hp = e.maxHp = 500; });
 const pacify = (c) => c.enemies.forEach((e) => { e.intent = 'none'; });
 
 /* ---------- hero ---------- */
-test('the keeper starts with 70 HP, 3 Light and the 10-card starting deck', () => {
+test('the keeper starts with 70 HP, 3 Light, no Pearls and the 10-card starting deck', () => {
   const run = E.newRun(5);
   assert.equal(run.hp, 70);
   assert.equal(run.maxHp, 70);
+  assert.equal(run.pearls, 0, 'no Pearls gathered yet');
+  assert.equal(E.newRun(5, 0, ['purse']).pearls, 30, 'the Coin Purse: 30 Pearls at the start');
   const count = (id) => run.deck.filter((c) => c.id === id).length;
   assert.equal(run.deck.length, 10);
   assert.deepEqual([count('jab'), count('brace'), count('swell'), count('slack')], [4, 4, 1, 1]);

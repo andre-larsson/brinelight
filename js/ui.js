@@ -35,7 +35,7 @@
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
     const raw = { salvage: 0, earned: 0, owned: [], ach: [] };
     ['salvage', 'earned'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
-    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
@@ -66,6 +66,7 @@
   const ICON = {
     play: svg('<path d="M8 5.5v13l10.5-6.5z"/>'),
     pause: svg('<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/>'),
+    note: svg('<path d="M9 17.5V6.6L19 4.2v11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6.6" cy="17.6" r="2.6"/><circle cx="16.6" cy="15.3" r="2.6"/>'),
     heart: svg('<path d="M12 21s-7.6-4.6-9.6-9.4C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.6 1.2 4.4 2.6.8-1.4 2.3-2.6 4.4-2.6 3.6 0 5.7 3.7 4.2 7.1C19.6 16.4 12 21 12 21z"/>'),
     pearl: svg('<circle cx="12" cy="12" r="8.5" fill="#e9dfcf"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="#a89b85" stroke-width="1"/><circle cx="9" cy="9" r="2.6" fill="#fff" opacity=".85"/>'),
     anchor: svg('<circle cx="12" cy="5" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v13M7 11h10M4 14c1 4 4.5 6 8 6s7-2 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
@@ -167,13 +168,20 @@
       watch: { src: 'music/songs/it-went-dark-on-my-watch.mp3', resume: true, secs: 158, name: 'It Went Dark on My Watch', where: 'The title screen' }, // its last verse is a fall
     };
     const SONG_LEVEL = 0.2, SONG_FADE = 1.2;
-    const songs = {}; // the songs loaded so far: { el, amp (its gain into the music bus, or null), done, broken, timer, out }
+    /* A screen's own song (a pin's, Barnaby's) goes round, the user's call (v0.30.0): it fades out over its last LOOP_OUT
+       seconds and starts again from the top, fading in over LOOP_IN. Before, the score took over when it ended. The
+       title screen goes on to its next song instead, and the Jukebox to the next one heard. */
+    const LOOP_OUT = 8, LOOP_IN = 4;
+    // the songs loaded so far: { el, amp (its gain into the music bus, or null), to (the level it is heading for),
+    // done, broken, timer, out (fading out to stop), tail (fading out at its end, to go round) }
+    const songs = {};
     let songOn = null; // the song playing or fading in
     let loopAt = null; // the title screen's song now, or the one it comes back to
     /* The Jukebox's pick, from the moment one is made until a descent starts: { song or cue, paused, depth }. While
        it holds, nothing else plays. A song that ends goes on to the next (jukeEnd); a piece of the score loops. */
     let juke = null, jukeEnd = null;
     let heardFn = null; // told of each song and cue of the score as it plays, for the Jukebox ('song:shop', 'cue:fight')
+    let nowFn = null, nowKey = null; // told when what plays changes: 'song:<key>', 'cue:<cue>' or null (silence), for the now-playing chip
     const heard = (k) => { if (heardFn) heardFn(k); };
     const songVol = () => Math.min(1, (prefs.music ? gain(prefs.musicVol) : 0) * SONG_LEVEL); // an element's own volume
     const levels = () => {
@@ -206,7 +214,7 @@
     }
     function loadSong(key) {
       if (songs[key]) return songs[key];
-      const s = (songs[key] = { el: new Audio(), amp: null, done: false, broken: false, timer: 0, out: false });
+      const s = (songs[key] = { el: new Audio(), amp: null, to: 0, done: false, broken: false, timer: 0, out: false, tail: false });
       s.el.preload = 'auto';
       if (location.protocol !== 'file:') {
         try {
@@ -217,6 +225,13 @@
           s.amp.connect(musicBus);
         } catch (e) { s.amp = null; }
       }
+      // a screen's own song, near its end, fades out slowly; `ended` then starts it again
+      s.el.addEventListener('timeupdate', () => {
+        const d = s.el.duration;
+        if (s.tail || s.out || songOn !== key || !goesRound(key) || !(d > LOOP_OUT * 2) || s.el.currentTime < d - LOOP_OUT) return;
+        s.tail = true;
+        fadeSong(s, 0, Math.max(0.3, d - s.el.currentTime));
+      });
       s.el.addEventListener('ended', () => {
         s.el.currentTime = 0;
         if (juke && juke.song === key) { if (jukeEnd) jukeEnd(key); else { juke.paused = true; sync(); } return; }
@@ -224,7 +239,11 @@
           if (now.loop) { // the title screen's next song, from the top
             loopAt = now.song = now.loop[(now.loop.indexOf(key) + 1) % now.loop.length];
             if (songs[loopAt]) { songs[loopAt].done = false; songs[loopAt].el.currentTime = 0; }
-          } else s.done = true;
+          } else if (songOn === key && prefs.music) { // a screen's own song: round again, fading in from silence
+            s.tail = false;
+            songPlay(key, LOOP_IN, 0);
+            return;
+          }
           sync();
         }
       });
@@ -233,18 +252,24 @@
       s.el.src = SONGS[key].src;
       return s;
     }
-    function fadeSong(s, to, secs) {
+    // a song that goes round when it ends: the screen's own, not the title screen's list or the Jukebox's pick
+    const goesRound = (key) => now.song === key && !now.loop && !(juke && juke.song === key);
+    // ramp a song's level to `to` over `secs`, from where it is (or from `from`)
+    function fadeSong(s, to, secs, from) {
+      s.to = to;
       if (!s.amp) { s.el.volume = to ? songVol() : 0; return; }
       const g = s.amp.gain, t = ctx.currentTime;
       g.cancelScheduledValues(t);
-      g.setValueAtTime(g.value, t);
+      g.setValueAtTime(from === undefined ? g.value : from, t);
       g.linearRampToValueAtTime(to, t + secs);
     }
-    function songPlay(key) {
+    function songPlay(key, secs, from) {
       const s = loadSong(key);
       clearTimeout(s.timer);
+      // sync() runs on every render: a song already playing keeps its fade, a slow one in or out too
+      if (!s.out && !s.el.paused && (s.to === SONG_LEVEL || s.tail)) return;
       s.out = false;
-      fadeSong(s, SONG_LEVEL, SONG_FADE);
+      fadeSong(s, SONG_LEVEL, secs || SONG_FADE, from);
       if (!s.el.paused) return;
       const p = s.el.play();
       // refused (no click yet) or unplayable; a pause while it starts is fine
@@ -255,6 +280,7 @@
       if (!s) return;
       clearTimeout(s.timer);
       s.out = true; // fading out
+      s.tail = false;
       fadeSong(s, 0, secs);
       s.timer = setTimeout(() => { s.el.pause(); if (!SONGS[key].resume) s.el.currentTime = 0; }, s.amp ? secs * 1000 + 50 : 0);
     }
@@ -283,6 +309,8 @@
           heard('cue:' + cue);
         } catch (e) { musicBroken = true; music = null; playing = false; } // no Web Audio, or a broken score: play on without music
       } else if (playing) { music.stop(want ? SONG_FADE : 0.8); playing = false; }
+      const np = want ? 'song:' + want : cue && playing ? 'cue:' + cue : null;
+      if (np !== nowKey) { nowKey = np; if (nowFn) nowFn(np); }
     }
     // what is playing, or chosen, now: a song or a cue of the score
     const current = () => juke || { song: songOn, cue: songOn ? null : playing ? now.cue : null, paused: false, depth: now.depth };
@@ -359,6 +387,7 @@
         },
         onEnd(fn) { jukeEnd = fn; },
         onHeard(fn) { heardFn = fn; },
+        onNow(fn) { nowFn = fn; },
         state() {
           const cur = current(), s = cur.song && songs[cur.song];
           return { song: cur.song, cue: cur.cue, paused: !!cur.paused || !prefs.music, depth: cur.depth,
@@ -368,10 +397,11 @@
       state: () => {
         const s = songOn && songs[songOn], on = !!(s && !s.el.paused && !s.out);
         return { ctx: ctx ? ctx.state : null, music: playing ? music.state : null, cue: now.cue, depth: now.depth, ambience: ambOn,
-          song: on ? songOn : null, songAt: on ? s.el.currentTime : 0, loop: now.loop ? now.loop.join(',') : null };
+          song: on ? songOn : null, songAt: on ? s.el.currentTime : 0, songGain: on && s.amp ? s.amp.gain.value : null, loop: now.loop ? now.loop.join(',') : null };
       },
       // for the UI test: the song playing to a second before its end
-      toEnd() { const s = songOn && songs[songOn]; if (s && s.el.duration > 1) s.el.currentTime = s.el.duration - 1; },
+      // tests: to `secs` (1 unless given) before the end of the song playing
+      toEnd(secs) { const s = songOn && songs[songOn], b = secs || 1; if (s && s.el.duration > b) s.el.currentTime = s.el.duration - b; },
     };
   })();
   const sfx = (n, arg) => Sound.play(n, arg);
@@ -1079,6 +1109,7 @@
     const saved = loadSave();
     screenEl.innerHTML = `<div class="title-screen">
       <div class="title-corner"><button class="icon-btn" data-act="menu" aria-label="Settings">${ICON.menu}</button></div>
+      <div class="title-now"></div>
       <div class="logo">BRINELIGHT</div>
       <p class="tagline">${BL.STORY.title}</p>
       <div class="title-buttons">
@@ -1099,6 +1130,7 @@
         <span class="title-pills"><button class="title-version" data-act="changelog">v${BL.VERSION} &middot; What's new${versionIsNew() ? ' <span class="new-pill">New</span>' : ''}</button>
         <button class="title-version" data-act="credits">Credits</button></span></div>
     </div>`;
+    drawNow();
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
   }
@@ -1226,11 +1258,31 @@
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   /* What you have heard (meta.heard). A debug-cheated run records nothing, as with Story so far. Some tracks open
      sooner (JUKE_EARLY), and High Tide Departure only that way, since it plays nowhere else. A depth of the score
-     opens when you have reached it. */
+     opens when you have reached it, or with 'depth:<n>' in meta.heard (the debug panel's "Hear all music"). */
   Sound.juke.onHeard((k) => {
     if ((run && run.cheated) || meta.heard.indexOf(k) >= 0) return;
     meta.heard.push(k);
     saveMeta();
+  });
+  /* What plays now, named outside the Jukebox: on the title screen a chip at the top left, which opens the Jukebox,
+     and in a descent a short note when a song starts. The score's pieces change with every screen there, so only the
+     title screen names them (when the Jukebox plays one). */
+  const nowName = (np) => {
+    const [kind, key] = (np || '').split(':');
+    if (kind === 'song') return Sound.juke.SONGS[key] ? Sound.juke.SONGS[key].name : null;
+    const c = JUKE.find(([k, ck]) => k === 'cue' && ck === key);
+    return c ? c[2] : null;
+  };
+  function drawNow() {
+    const el = $('.title-now', screenEl);
+    if (!el) return;
+    const name = nowName(ui.np);
+    el.innerHTML = name ? `<button class="title-version now-btn" data-act="jukebox" aria-label="Now playing: ${name}. Open the Jukebox">${ICON.note}<span>${name}</span></button>` : '';
+  }
+  Sound.juke.onNow((np) => {
+    ui.np = np;
+    drawNow();
+    if (run && np && np.indexOf('song:') === 0) toast('\u266A ' + nowName(np), 3500);
   });
   const JUKE_EARLY = { // open: when it opens without being heard; how: what a locked one says
     'song:title': { open: () => true },
@@ -1245,7 +1297,7 @@
     const k = kind + ':' + key, early = JUKE_EARLY[k];
     return meta.heard.indexOf(k) >= 0 || !!(early && early.open());
   };
-  const jukeDepthOpen = (d) => d <= (meta.reached || 0);
+  const jukeDepthOpen = (d) => d <= (meta.reached || 0) || meta.heard.indexOf('depth:' + d) >= 0;
   // what the list shows as playing: it is redrawn when that changes, and the time moves in between
   const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, meta.heard.length].join('/');
   function jukeList(st) {
@@ -1269,10 +1321,12 @@
       return `<div class="juke-item${cur ? ' cur' : ''}"><button class="juke-row" data-act="jukeplay" data-kind="${kind}" data-key="${key}" aria-pressed="${on}" aria-label="${on ? 'Pause' : 'Play'}: ${name}">
         <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${tag}${time ? `<span class="juke-t">${time}</span>` : ''}</span></button>${seek}</div>`;
     }).join('');
+    // the depth is the music box's: none is lit while a song plays, and choosing one plays the music box at that depth
+    const box = !st.song && !!st.cue;
     const depths = JUKE_DEPTHS.map((d, i) => jukeDepthOpen(i)
-      ? `<button class="btn small" data-act="jukedepth" data-depth="${i}" aria-pressed="${st.depth === i}">${d}</button>`
+      ? `<button class="btn small" data-act="jukedepth" data-depth="${i}" aria-pressed="${box && st.depth === i}" aria-label="Play the music box as heard in ${d}">${d}</button>`
       : `<button class="btn small" disabled aria-label="${d}: not reached yet">${ICON.lock}${d}</button>`).join('');
-    return `<div class="juke-depth" role="group" aria-label="Depth of the music box"><span>Music box depth</span>${depths}</div>${rows}`;
+    return `<div class="juke-depth" role="group" aria-label="Depth of the music box"><span>Music box as heard in</span>${depths}</div>${rows}`;
   }
   function drawJuke() {
     const list = $('.juke-list', overlayEl);
@@ -3169,7 +3223,17 @@
         drawJuke();
         break;
       }
-      case 'jukedepth': Sound.juke.depth(+t.dataset.depth); drawJuke(); break;
+      case 'jukedepth': {
+        // a depth is the music box's, so choosing one plays it: the piece chosen (carrying on if paused), or, while a
+        // song plays, The Way Down (The Keeper's Song before the map has been heard); music on if it's off
+        const st = Sound.juke.state(), off = !prefs.music;
+        const cue = !st.song && st.cue ? st.cue : jukeOpen('cue', 'reach') ? 'reach' : 'title';
+        Sound.juke.depth(+t.dataset.depth);
+        Sound.juke.pick('cue', cue, true);
+        if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
+        drawJuke();
+        break;
+      }
       case 'jukeskip': Sound.juke.seek(0, +t.dataset.by); ui.jukeSeekAt = 0; drawJuke(); break;
       case 'jukewords': showWords(t.dataset.key); break;
       case 'jukeback': showJukebox(true); break;
@@ -3537,8 +3601,8 @@
   // exposed for debugging and the UI tests
   window.Brinelight = { get run() { return run; }, set run(r) { run = r; }, render, E, ui, get teach() { return Teach; }, get meta() { return meta; },
     // for js/debug.js
-    juke: JUKE, save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat,
+    juke: JUKE, jukeDepths: JUKE_DEPTHS, save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat,
     story, saveStory, showStory, showOpening, showLazaret,
     // for the UI test: what a backup holds, and loading one without the file picker; what the music and sound are doing
-    backupData, askRestore, audio: () => Sound.state(), songToEnd: () => Sound.toEnd() };
+    backupData, askRestore, audio: () => Sound.state(), songToEnd: (secs) => Sound.toEnd(secs) };
 })();

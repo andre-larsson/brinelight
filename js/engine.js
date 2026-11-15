@@ -184,7 +184,7 @@
       hold: E.holdAt(Math.max(deepest || 0, level || 0)),
       seed: seed >>> 0,
       rng: seed >>> 0,
-      hp: 70, maxHp: 70, pearls: 75,
+      hp: 70, maxHp: 70, pearls: 0, // none gathered yet (75 until v0.30.0; the Coin Purse still adds 30)
       deck: [], keepsakes: [], tonics: [null, null, null], kit: E.fitKit(),
       nextUid: 1, floor: 0, pos: null, screen: 'map',
       combat: null, rewards: null, shop: null, event: null, treasure: null,
@@ -1743,8 +1743,9 @@
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
     m.currents = uniq2(m.currents);
-    // the music heard, for the Jukebox (v0.28.0): 'song:<key>' and 'cue:<cue>', one of each
-    m.heard = (Array.isArray(m.heard) ? m.heard : []).filter((k, i, a) => typeof k === 'string' && /^(song|cue):[a-z0-9]+$/.test(k) && a.indexOf(k) === i);
+    // the music heard, for the Jukebox (v0.28.0): 'song:<key>' and 'cue:<cue>', one of each; 'depth:<n>' opens a depth
+    // of the score without reaching it (v0.29.1, only the debug panel's "Hear all music" writes it)
+    m.heard = (Array.isArray(m.heard) ? m.heard : []).filter((k, i, a) => typeof k === 'string' && /^(song|cue|depth):[a-z0-9]+$/.test(k) && a.indexOf(k) === i);
     // the deepest level reached (v0.22.0) sets the Hold; the logbook's deepest landing counts from before
     const deepest = Math.max(m.reached > 0 ? Math.floor(m.reached) : 0, rec.deep ? rec.deep.level : 0);
     m.reached = Math.min(E.LEVELS.length - 1, deepest);

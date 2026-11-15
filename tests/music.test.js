@@ -94,7 +94,7 @@ test('the Jukebox lists every song and every cue of the score once, and remember
   const E = BL.E;
   assert.deepEqual(E.newMeta().heard, []);
   assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).heard, []);
-  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], heard: ['song:shop', 'cue:fight', 'song:shop', 7, 'nonsense', 'cue:<x>'] }).heard, ['song:shop', 'cue:fight']);
+  assert.deepEqual(E.migrateMeta({ owned: [], ach: [], heard: ['song:shop', 'cue:fight', 'song:shop', 7, 'nonsense', 'cue:<x>', 'depth:2'] }).heard, ['song:shop', 'cue:fight', 'depth:2']);
 });
 
 test("every song with singing has its words (js/lyrics.js), in parts headed [like this], and the page loads them", () => {

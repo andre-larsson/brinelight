@@ -184,6 +184,12 @@ but I'm the one who's ringing today.
 Ring it up (clang!) and the water climbs:
 three, four, five...
 
+[Chorus]
+Six! Here comes the Crest!
+The wave goes over and it does the rest;
+three, two, one, and the water's gone,
+Strand 'em on the rocks, and the light burns on.
+
 [Verse 2]
 The big bell's ringing with nobody near,
 the tide swings its tongue and it's louder every year;

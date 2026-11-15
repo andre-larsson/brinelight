@@ -5,8 +5,16 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.29.0';
+  BL.VERSION = '0.30.0';
   BL.CHANGELOG = [
+    { v: '0.30.0', date: '2026-11-15', items: [
+      'Wren sets out with no Pearls: she gathers them on the way down. Before, every descent started with 75. The Coin Purse still gives 30 at the start.',
+      'A pin\'s song, and Barnaby\'s, no longer give way to the music box when they end: each fades out slowly over its last seconds and comes round again from the top, fading in.',
+      'The title screen shows the song playing at the top left; tap it to open the Jukebox. On the way down, a short note names each song as it starts: Barnaby\'s, and the pins\'.',
+      'The Jukebox remembers what you have heard when you open the game again. Before, every track you had opened locked again, and the title screen always started on "The Great Light Turning Slow" in place of a song at random. What you heard since 0.28.0 was kept all along, so it is all open again now.',
+      'The words of "Tide Swings Its Tongue" have the chorus the song sings after the first "three, four, five".',
+      'In the Jukebox, choosing The Shallows, Dark Water or the Belfry plays the music box as it sounds there, even while a song is playing. Before, it changed nothing you could hear until you chose a music box piece.',
+    ] },
     { v: '0.29.0', date: '2026-11-14', items: [
       'The songs\' words: the song playing in the Jukebox has a Words button. It opens the words on a page of their own while the song plays on, and Back takes you to the list again.',
     ] },
