@@ -244,6 +244,14 @@ test('The Tolling Buoy: Rocking Toll hits 12, +4 for each step the Swell is from
   const dmgAt = (tide) => { c.tide = tide; return E.intentInfo(run, b).dmg; };
   assert.deepEqual([1, 2, 3, 4, 5].map(dmgAt), [20, 16, 12, 16, 20]);
   assert.match(E.intentInfo(run, b).parts.join(' '), /4 harder for each step/);
+  // the intent says it follows the Swell, and what it would hit for at Swell 3 (the Swell bar shows both)
+  c.tide = 5;
+  assert.deepEqual([E.intentInfo(run, b).swell, E.intentInfo(run, b).dmg, E.intentInfo(run, b).calm], ['mid', 20, 12]);
+  b.intent = 'peal';
+  assert.equal(E.intentInfo(run, b).swell, 'ends');
+  b.intent = 'clang';
+  assert.equal(E.intentInfo(run, b).swell, undefined, 'an ordinary attack has no Swell mark');
+  b.intent = 'toll';
   c.tide = 3;
   c.player.ward = 0;
   let hp = run.hp;

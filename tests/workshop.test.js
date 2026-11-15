@@ -222,9 +222,9 @@ test('Shell Gorget: start each fight with 4 Ward, which washes away on your next
   assert.equal(fightIn(E.newRun(3, 0)).player.ward, 0);
 });
 
-test("Pocket and Ditty Bag: Gleaner's Pouch +10 Pearls a fight, Pearl Scales 25% off at Barnaby's, Gleaning Net +3 Pearls a Crest, Spare Wick rests heal 10 more", () => {
+test("Pocket and Ditty Bag: Gleaner's Pouch +6 Pearls a fight, Pearl Scales 25% off at Barnaby's, Gleaning Net +3 Pearls a Crest, Spare Wick rests heal 10 more", () => {
   const pearlsAfter = (kit) => { const run = E.newRun(3, 0, kit); fightIn(run); win(run); return run.rewards.pearls; };
-  assert.equal(pearlsAfter(['pouch']), pearlsAfter([]) + 10);
+  assert.equal(pearlsAfter(['pouch']), pearlsAfter([]) + 6);
   const shop = (kit) => { const run = E.newRun(9, 0, kit); E.enterNode(run, { row: 2, col: 0, type: 'shop' }); return E.price(run, run.shop.cards[0].base); };
   const full = shop([]);
   assert.equal(shop(['scales']), Math.round(full * 0.75));
@@ -479,4 +479,30 @@ test('old lasting state carries over: gear becomes kit, and the pack becomes wha
   const n = E.migrateMeta({ salvage: 0, earned: 0, owned: ['cork'], kit: { coat: 'cork' }, ach: [] });
   assert.equal(n.kit.coat, 'cork');
   assert.equal(n.kit.bell, 'tidebell');
+});
+
+test('what opens at the lighthouse is told once: the Workshop, the Lazaret, the Diving Dress and currents', () => {
+  const meta = E.newMeta();
+  assert.deepEqual(E.FEATURES, ['workshop', 'lazaret', 'suit', 'currents']);
+  assert.deepEqual(E.featureNews(meta), [], 'a new player has nothing open');
+  E.earnSalvage(meta, 500); // the first Salvage opens the Workshop
+  assert.deepEqual(E.featureNews(meta), ['workshop']);
+  meta.lazOpen = true;
+  assert.deepEqual(E.featureNews(meta), ['workshop', 'lazaret']);
+  E.tellFeatures(meta, ['workshop', 'lazaret', 'nonsense']);
+  assert.deepEqual(meta.told, ['workshop', 'lazaret']);
+  assert.deepEqual(E.featureNews(meta), [], 'told once');
+  meta.owned.push('suit');
+  meta.record.hearts = 1;
+  assert.deepEqual(E.featureNews(meta), ['suit', 'currents']);
+  E.tellFeatures(meta, ['suit', 'suit']);
+  assert.deepEqual(meta.told, ['workshop', 'lazaret', 'suit']);
+  // lasting state from before v0.33.0 has no list: what is already open counts as told, so only new things are announced
+  const old = E.migrateMeta({ salvage: 3, earned: 40, owned: ['suit'], ach: [], lazOpen: true, record: { runs: 5, wins: 2, hearts: 0 } });
+  assert.deepEqual(old.told, ['workshop', 'lazaret', 'suit']);
+  assert.deepEqual(E.featureNews(old), []);
+  old.record.hearts = 1;
+  assert.deepEqual(E.featureNews(old), ['currents']);
+  // a saved list is kept, without unknown or repeated ids
+  assert.deepEqual(E.migrateMeta({ salvage: 0, earned: 9, owned: [], ach: [], told: ['workshop', 'x', 'workshop'] }).told, ['workshop']);
 });

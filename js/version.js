@@ -5,8 +5,20 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.32.0';
+  BL.VERSION = '0.33.0';
   BL.CHANGELOG = [
+    { v: '0.33.0', date: '2026-11-15', items: [
+      'Breaking a pin tells its story in pictures, like the start of the game. The Harbour Hermit: two pictures. The Tolling Buoy: three, with the flooded stair below Dark Water and the old diving dress on the wall. One more when you carry the dress home and mend it, and four when the Heart comes home. Each plays once; Story so far plays them again.',
+      'A window tells you when something opens at the lighthouse: the Workshop, the Lazaret, the mended Diving Dress, Currents. It says what the thing is and where to find it, and you close it yourself. Before, a line of small text on the end screen was all there was.',
+      'A level you have not reached shows as "?": on the stair, the map, in How to Play, the Logbook and the Jukebox. The Belfry is not named until you break the Tolling Buoy.',
+      'Barnaby does not set up shop on the first two landings of the Shallows. You start with no Pearls, so there was nothing to buy with.',
+      'The Harbour Hermit rings for help at half his HP (75 of 150). Before, at two thirds (100). His Mites nibble for 4 in place of 5, so one Brace stops a Nibble with 1 Ward to spare.',
+      'The Hermit\'s second song, "Ring for the Deep", no longer follows straight after his first in the same fight. Your first fight with him plays "The Hermit\'s Heavy Toll" all the way, your second plays "Ring for the Deep", and after that each fight picks one of the two.',
+      'The Tolling Buoy plays "Tide Swings Its Tongue" for the whole fight. Its two Swell attacks have a bell and a wave on their intent, the Swell bar marks the steps where they hit softest, and a note above the bar gives the numbers.',
+      'The stair\'s flask choice fills every empty flask, each with a different tonic. Before, it filled one.',
+      'When Doused takes your Light, or Breathless takes a card from your draw, a dashed mark stays on Wren for that turn. Hover or tap it to read what it did.',
+      'Gleaner\'s Pouch gives 6 Pearls after each fight. Before, 10.',
+    ] },
     { v: '0.32.0', date: '2026-11-15', items: [
       'Each stair down has a picture of its own. Into Dark Water: the keepers\' hollow halfway down the drained stair, with brinelight dripping into a flask and the cache behind its grille. Into the Belfry: the last dry step, where the stair runs on down into the sea.',
       'The Jukebox has a player at the top that stays in view while you scroll: previous, play or pause, next, shuffle and a volume slider. Shuffle plays every song you have heard once before any comes round again, and stays on until you turn it off. The volume is the menu\'s Music volume.',

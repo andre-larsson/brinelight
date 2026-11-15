@@ -35,7 +35,7 @@
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
     const raw = { salvage: 0, earned: 0, owned: [], ach: [] };
     ['salvage', 'earned'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
-    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
@@ -46,16 +46,23 @@
   const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
   /* Story so far: the marks the player has earned, the entries they have read, and whether the opening has played */
   const STORY_KEY = 'brinelight.story.v1';
-  const story = { marks: [], read: [], opening: false };
+  const story = { marks: [], read: [], scenes: [], opening: false }; // scenes: the story scenes that have played
   try {
     const st = JSON.parse(localStorage.getItem(STORY_KEY) || '{}');
-    ['marks', 'read'].forEach((k) => { if (Array.isArray(st[k])) story[k] = st[k].filter((x) => typeof x === 'string'); });
+    ['marks', 'read', 'scenes'].forEach((k) => { if (Array.isArray(st[k])) story[k] = st[k].filter((x) => typeof x === 'string'); });
     story.opening = !!st.opening;
   } catch (e) { /* ignore */ }
   const saveStory = () => { try { localStorage.setItem(STORY_KEY, JSON.stringify(story)); } catch (e) { /* ignore */ } };
   const storyMarks = () => story.marks.slice();
   const storyUnread = () => { const marks = storyMarks(); return E.storyEntries().filter((en) => en.when && E.storyOpen(en, marks) && story.read.indexOf(en.id) < 0); };
 
+  /* A level has a name once Wren knows of it: the Shallows always, and a deeper one once she has been there or has
+     broken the pin above it (a story mark, so it lasts). Until then it shows as "?" and the texts that describe it stay
+     shut (the user, v0.33.0: the Belfry is the last level, so it should not be named before it is found). */
+  const levelKnown = (lv) => lv <= 0 || (meta.reached || 0) >= lv || story.marks.indexOf('won:' + (lv - 1)) >= 0
+    || (!!E.LEVELS[lv] && !!E.LEVELS[lv].needs && E.ownsKit(meta, E.LEVELS[lv].needs)) // whoever owns the dress knows what it is for
+    || (!!run && !run.tutorial && ((run.level || 0) >= lv || (run.cleared || []).indexOf(lv - 1) >= 0));
+  const allLevelsKnown = () => E.LEVELS.every((L, i) => levelKnown(i));
   const wait = (ms) => new Promise((r) => setTimeout(r, prefs.fast ? ms * 0.5 : ms));
   const isTouchUI = () => ui.lastPointer === 'touch' || ui.lastPointer === 'pen';
 
@@ -167,7 +174,7 @@
       shell: { src: 'music/songs/pop-the-shell.mp3', resume: true, secs: 165, name: 'Pop the Shell', where: "Barnaby's shop" }, // Barnaby raps it (Gemini called it No Hagglin', No Bitin')
       hermit: { src: 'music/songs/the-hermits-heavy-toll.mp3', resume: false, secs: 178, name: "The Hermit's Heavy Toll", where: 'The Harbour Hermit and the title screen' },
       buoy: { src: 'music/songs/tide-swings-its-tongue.mp3', resume: false, secs: 148, name: 'Tide Swings Its Tongue', where: 'The Tolling Buoy and the title screen' }, // the swell swings its clapper
-      deep: { src: 'music/songs/ring-for-the-deep.mp3', resume: false, secs: 174, name: 'Ring for the Deep', where: 'The Harbour Hermit and the Tolling Buoy, once they turn' }, // the two bells rap it
+      deep: { src: 'music/songs/ring-for-the-deep.mp3', resume: false, secs: 174, name: 'Ring for the Deep', where: 'The Harbour Hermit, from your second meeting' }, // the two bells rap it; one of the Hermit's two songs (pinSong)
       bell: { src: 'music/songs/the-toll-of-the-sunken-stair.mp3', resume: false, secs: 178, name: 'The Toll of the Sunken Stair', where: 'The Drowned Bellwether' },
       departure: { src: 'music/songs/high-tide-departure.mp3', resume: true, secs: 179, name: 'High Tide Departure', where: 'Only in the Jukebox', jukeOnly: true },
       watch: { src: 'music/songs/it-went-dark-on-my-watch.mp3', resume: true, secs: 158, name: 'It Went Dark on My Watch', where: 'The title screen' }, // its last verse is a fall
@@ -516,7 +523,8 @@
     d.textContent = msg;
     if (ms) d.style.animationDuration = ms / 1000 + 's';
     // fights keep messages up top; other screens have their title there, so messages go to the bottom
-    toastEl.classList.toggle('low', !(run && run.screen === 'combat'));
+    // (a story scene has its text at the bottom, so there they go up top too)
+    toastEl.classList.toggle('low', !(run && run.screen === 'combat') && !ui.opening);
     toastEl.appendChild(d);
     while (toastEl.children.length > 3) toastEl.firstChild.remove();
     setTimeout(() => d.remove(), (ms || 2200) + 100);
@@ -574,6 +582,7 @@
         const o = parts[1] === 'p' ? c.player : E.enemyByUid(c, parts[1]);
         return o ? statusTip(o, parts[2]) : '';
       }
+      case 'spent': { const sp = c && spentNow(c).find((x) => x[0] === parts[1]); return sp ? spentTip(sp[0], sp[1]) : ''; }
       case 'ward': return `<b>Ward</b><br>${BL.KEYWORDS.Ward}`;
       case 'echo': return `<b>Echo ${c ? c.echo : ''}</b><br>Your next card is played twice.`;
       case 'incoming': return `<b>Incoming damage</b><br>What the enemies intend to hit you for this turn${c && c.thrash ? `, and Thrash ${c.thrash} at the start of your next turn,` : ','} after your current Ward.`;
@@ -593,6 +602,7 @@
         if (!isP && o.follower) html += '<div class="tip-row">It followed you from the Glimmer Garden.</div>';
         if (!isP) { const info = E.intentInfo(run, o); if (info) html += `<div class="tip-row"><b>Intends: ${info.name}</b><br>${info.parts.join('. ')}.</div>`; }
         Object.keys(o.st).forEach((k) => { if (o.st[k]) html += `<div class="tip-row">${statusTip(o, k)}</div>`; });
+        if (isP) spentNow(c).forEach(([k, n]) => { html += `<div class="tip-row">${spentTip(k, n)}</div>`; });
         return html;
       }
       case 'pile': return `<b>${{ draw: 'Draw pile', discard: 'Discard pile', sunk: 'Sunk cards' }[parts[1]]}</b><br>Click to view.`;
@@ -842,14 +852,14 @@
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST&times;2</span> means that card makes two Crests.</li>
       </ul>`;
       case 'keywords': return dl(['Bail', 'Stir', 'Sink', 'Float', 'Rite', 'Echo', 'Might', 'Spines', 'Soaked', 'Chilled', 'Brine', 'Seep', 'Thrash'].map((k) => [k, BL.KEYWORDS[k]]))
-        + `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]]))
-        + `<h3 class="help-sub">In the Belfry</h3>` + dl(['Breathless', 'Burst', 'Heartfire'].map((k) => [k, BL.KEYWORDS[k]]));
+        + (levelKnown(1) ? `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]])) : '')
+        + (levelKnown(2) ? `<h3 class="help-sub">In the Belfry</h3>` + dl(['Breathless', 'Burst', 'Heartfire'].map((k) => [k, BL.KEYWORDS[k]])) : '');
       case 'map': return `<ul class="help-list">
-        <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => levelName(i)).join(', then ')}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
-        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of five: rest deeply, refit, shed a card, fill a flask or open the keepers' cache. Break the last pin to bring the Lantern Heart home.</li>
-        <li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
-        <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>
-        <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => `${L.landing} in ${levelName(i)}`).join(', ')}. Coming home adds 5 for each HP you have left. Bringing the Heart home, or quieting the Belfry, adds ${E.FINAL_SCORE}.</li>
+        <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map(levelName).join(', then ')}${allLevelsKnown() ? '' : ', then deeper'}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
+        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of five: rest deeply, refit, shed a card, fill your flasks or open the keepers' cache. Break the last pin to bring the Lantern Heart home.</li>
+        ${levelKnown(2) ? `<li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
+        <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>` : ''}
+        <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map((i) => `${E.LEVELS[i].landing} in ${levelName(i)}`).join(', ')}${allLevelsKnown() ? '' : ', and more below'}. Coming home adds 5 for each HP you have left. Bringing the Heart home${levelKnown(2) ? ', or quieting the Belfry,' : ''} adds ${E.FINAL_SCORE}.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
         [`${NODE_ICON.elite} Dread`, 'An elite: harder. It pays Pearls, and you may take 1 of 2 keepsakes. No card or tonic.'],
@@ -861,7 +871,7 @@
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
         <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. You can drop a keepsake between fights.</li>
-        <li><b>Deeper finds are stronger.</b> Some keepsakes are found only in Dark Water and deeper, or only in the Belfry, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
+        <li><b>Deeper finds are stronger.</b> Some keepsakes are found only ${levelKnown(2) ? 'in Dark Water and deeper, or only in the Belfry' : levelKnown(1) ? 'in Dark Water and deeper' : 'below the Shallows'}, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
         <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens the first time you come home. When you come home, every keepsake you carry is kept there, one of each; one it already holds becomes ${MT.currency} instead: half its Roil, rounded up. Before an expedition you may bring any number of them, and each counts toward your Hold. If you fall, you lose the keepsakes you found on that expedition. The ones in the Lazaret are never lost.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
@@ -1074,11 +1084,11 @@
       else if (run.screen === 'defeat') cue = 'fallen';
       else if (c) {
         cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
+        // the Hermit has two songs, and one plays for the whole fight (pinSong chooses it when the fight starts)
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'harbour')) song = 'hermit';
+        if (song === 'hermit' && c.song === 'deep') song = 'deep';
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'buoy')) song = 'buoy';
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bell' || e.id === 'bellthing')) song = 'bell'; // its second phase is the Thing in the Bell
-        // the Hermit's bell rings and the Buoy's chain snaps at two thirds of their health: then the two bells rap at you
-        if (c.phase2 && (song === 'hermit' || song === 'buoy')) song = 'deep';
       } else {
         cue = 'reach'; density = 1;
         if (run.screen === 'shop') {
@@ -1089,6 +1099,17 @@
     }
     inShop = !!run && run.screen === 'shop';
     Sound.scene(cue, depth, band, density, song);
+  }
+  /* The Harbour Hermit's song, chosen as its fight starts and kept for the whole fight (run.combat.song, saved with the
+     run). The first meeting plays The Hermit's Heavy Toll. The second plays Ring for the Deep, and after that it is one
+     of the two at random. Until v0.33.0 Ring for the Deep took over mid-fight, when the Hermit or the Buoy turned; the
+     user found it didn't work straight after the first song, and wanted the Buoy to keep its own. Call it before save():
+     saving notes the Hermit in the story marks, which is how a later meeting is told from the first. */
+  function pinSong() {
+    const c = run && run.combat;
+    if (!c || c.kind !== 'boss' || c.song || !c.enemies.some((e) => e.id === 'harbour')) return;
+    const metBefore = storyMarks().indexOf('en:harbour') >= 0;
+    c.song = !metBefore ? 'hermit' : meta.heard.indexOf('song:deep') < 0 ? 'deep' : Math.random() < 0.5 ? 'deep' : 'hermit';
   }
   function renderScreen() {
     hideTip();
@@ -1138,6 +1159,7 @@
     drawNow();
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+    showNews(); // anything that opened without being told (the end screen's window was missed)
   }
 
   /* Story so far: the story in chapters, a glossary of the world, and notes found by meeting things.
@@ -1147,9 +1169,13 @@
   function storySection(tab) {
     const S = BL.STORY, marks = storyMarks(), fresh = ui.storyFresh || [];
     const pill = (en) => (fresh.indexOf(en.id) >= 0 ? ' <span class="new-pill">New</span>' : '');
-    const locked = (label, en) => `<div class="st-lock">${ICON.lock}<span><b>${label}</b> ${en.lock}</span></div>`;
+    // a locked note doesn't name a level that hasn't been found
+    const lockText = (en) => (!levelKnown(2) && /Belfry/.test(en.lock) ? 'Found deeper down.' : !levelKnown(1) && /Dark Water/.test(en.lock) ? 'Found below the Shallows.' : en.lock);
+    const locked = (label, en) => `<div class="st-lock">${ICON.lock}<span><b>${label}</b> ${lockText(en)}</span></div>`;
     if (tab === 'world') {
-      return S.world.map((g) => `<h3 class="st-group">${g.group}</h3><dl class="help-dl">${g.items.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`).join('');
+      // an entry about a level opens once the level is known (its third field: { level, before: the text until then })
+      const shown = (r) => (!r[2] || levelKnown(r[2].level) ? r[1] : r[2].before || null);
+      return S.world.map((g) => `<h3 class="st-group">${g.group}</h3><dl class="help-dl">${g.items.filter((r) => shown(r)).map((r) => `<dt>${r[0]}</dt><dd>${shown(r)}</dd>`).join('')}</dl>`).join('');
     }
     if (tab === 'notes') {
       const found = S.notes.filter((n) => E.storyOpen(n, marks)).length;
@@ -1160,7 +1186,8 @@
     return S.chapters.map((ch, i) => {
       if (!E.storyOpen(ch, marks)) return locked(`Chapter ${i + 1}: ${ch.title}.`, ch);
       const paras = ch.opening ? S.opening.map((b) => b.text) : ch.text;
-      return `<section class="st-ch"><h3><small>Chapter ${i + 1}</small>${ch.title}${pill(ch)}</h3>${paras.map((t) => `<p>${t}</p>`).join('')}${ch.opening ? '<button class="btn small" data-act="opening">Play the opening again</button>' : ''}</section>`;
+      const again = ch.opening ? '<button class="btn small" data-act="opening">Play the opening again</button>' : ch.scene ? `<button class="btn small" data-act="scene" data-id="${ch.scene}">See it again</button>` : '';
+      return `<section class="st-ch"><h3><small>Chapter ${i + 1}</small>${ch.title}${pill(ch)}</h3>${paras.map((t) => `<p>${t}</p>`).join('')}${again}</section>`;
     }).join('');
   }
   function storyHTML(tab) {
@@ -1181,29 +1208,43 @@
     openOverlay(modal('Story so far', storyHTML(ui.storyTab), '<button class="btn primary" data-act="close" autofocus>Close</button>', 'help-modal'), { onClose: () => { ui.storyFresh = null; } });
   }
 
-  /* The opening: four pictures with a few lines each. It plays once, before the first descent; Story so far replays it. */
-  function showOpening(i, done, replay) {
-    const beats = BL.STORY.opening, b = beats[i], last = i === beats.length - 1;
+  /* The opening: four pictures with a few lines each. It plays once, before the first descent; Story so far replays it.
+     A story scene (BL.STORY.scenes) is shown the same way: `scene` is its id, and its last button says `go`. */
+  function showOpening(i, done, replay, scene, go) {
     if (i === 0) {
-      ui.opening = { done: done || null, replay: !!replay };
-      beats.forEach((x) => { new Image().src = `img/${x.art}.webp`; });
+      const all = scene ? BL.STORY.scenes[scene].beats.filter((x) => !x.found || replay || (run && run.found === x.found)) : BL.STORY.opening;
+      ui.opening = { done: done || null, replay: !!replay, scene: scene || null, beats: all, go: go || (scene ? 'Go on' : 'Go down') };
+      all.forEach((x) => { new Image().src = `img/${x.art}.webp`; });
     }
+    const beats = ui.opening.beats, b = beats[i], last = i === beats.length - 1;
     openOverlay(`<div class="opening" role="dialog" aria-modal="true" aria-label="The story, part ${i + 1} of ${beats.length}">
       <div class="op-art" style="background-image:url(img/${b.art}.webp);--pos:${b.pos};--wpos:${b.wide || b.pos};--wz:${b.zoom || 1}"></div>
       ${b.fig ? `<img class="op-fig" src="img/${b.fig}.webp" alt="">` : ''}
       <div class="op-inner"><p class="op-text">${b.text}</p>
         <div class="op-foot"><span class="op-dots" aria-hidden="true">${beats.map((x, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</span>
           ${last ? '' : '<button class="btn ghost" data-act="opskip">Skip</button>'}
-          <button class="btn primary" data-act="opnext" data-i="${i}" autofocus>${!last ? 'Next' : ui.opening.replay ? 'Back to the story' : 'Go down'}</button></div>
+          <button class="btn primary" data-act="opnext" data-i="${i}" autofocus>${!last ? 'Next' : ui.opening.replay ? 'Back to the story' : ui.opening.go}</button></div>
       </div></div>`, { locked: true });
     if (b.sfx) sfx(b.sfx);
   }
   function endOpening() {
     const o = ui.opening || {};
     ui.opening = null;
-    if (!story.opening) { story.opening = true; saveStory(); }
+    if (!o.scene && !story.opening) { story.opening = true; saveStory(); }
     closeOverlay(true);
     if (o.done) o.done();
+    // a scene covered the screen while it drew, so its main button never got the focus: give it now
+    if (o.scene && overlayEl.hidden) { const f = document.querySelector('[autofocus]'); if (f) f.focus({ preventScroll: true }); }
+  }
+  /* Play the story scene for `at` ('pin:0', 'pin:1', 'dress', 'heart') if it hasn't played yet, then call `done`. It
+     counts as played once it starts. The tutorial and debug-cheated runs play none (they open nothing in the story). */
+  function playScene(at, done, go) {
+    const id = Object.keys(BL.STORY.scenes).find((k) => BL.STORY.scenes[k].at === at);
+    if (!id || !run || run.tutorial || run.cheated || story.scenes.indexOf(id) >= 0 || !overlayEl.hidden) { if (done) done(); return false; }
+    story.scenes.push(id);
+    saveStory();
+    showOpening(0, done, false, id, go);
+    return true;
   }
 
   /* What's new: marked New for a returning player until they open it. A first visit has nothing new to see. */
@@ -1404,7 +1445,7 @@
     const box = !st.song && !!st.cue;
     const depths = JUKE_DEPTHS.map((d, i) => jukeDepthOpen(i)
       ? `<button class="btn small" data-act="jukedepth" data-depth="${i}" aria-pressed="${box && st.depth === i}" aria-label="Play the music box as heard in ${d}">${d}</button>`
-      : `<button class="btn small" disabled aria-label="${d}: not reached yet">${ICON.lock}${d}</button>`).join('');
+      : `<button class="btn small" disabled aria-label="${levelKnown(i) ? d : 'A deeper level'}: not reached yet">${ICON.lock}${levelKnown(i) ? d : '?'}</button>`).join('');
     return `<div class="juke-depth" role="group" aria-label="Depth of the music box"><span>Music box as heard in</span>${depths}</div>${rows}`;
   }
   function drawJuke() {
@@ -1508,7 +1549,8 @@
     const pl = placeOf(place);
     // what she owns first, then what is for sale, then what is locked (each in BL.KIT's order)
     const rank = (id) => (E.ownsKit(meta, id) ? 0 : kitForSale(id) ? 1 : 2);
-    const ids = kitIn(place).sort((x, y) => rank(x) - rank(y));
+    // the dresses are for the Belfry: until it is found they stay out of the tray (a dress you own always shows)
+    const ids = kitIn(place).filter((id) => E.ownsKit(meta, id) || levelKnown(2) || !(id === 'suit' || BL.KIT[id].as === 'suit')).sort((x, y) => rank(x) - rank(y));
     const bal = where !== 'workshop' && ids.some(kitForSale) ? `<span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span>` : '';
     return `<section class="kit-tray" aria-label="${pl.name}"><h3 class="ws-place"><span>${pl.name} <small>${pl.desc}</small></span>${bal}</h3>
       <div class="kit-list">${ids.map(kitOpt).join('')}</div></section>`;
@@ -1574,18 +1616,18 @@
     const kitTotal = Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter).length;
     const rows = [
       ['Expeditions finished', r.runs ? `${r.runs} <small>${r.wins} came home, ${r.runs - r.wins} fell</small>` : '0'],
-      ['The Lantern Heart', r.hearts ? 'Brought home' : 'Still in the Belfry'],
-      ['Belfry quieted', r.hearts ? `${r.quiets || 0} time${r.quiets === 1 ? '' : 's'}` : 'Bring the Heart home first'],
+      ['The Lantern Heart', r.hearts ? 'Brought home' : levelKnown(2) ? 'Still in the Belfry' : 'Still somewhere below'],
+    ].concat(levelKnown(2) ? [['Belfry quieted', r.hearts ? `${r.quiets || 0} time${r.quiets === 1 ? '' : 's'}` : 'Bring the Heart home first']] : [], [
       ['Deepest landing reached', r.deep ? `${LevelName(r.deep.level)}, landing ${r.deep.floor} of ${E.LANDINGS}` : 'Not recorded yet'],
       ['Your Hold', `${E.metaHold(meta)} Roil${E.HOLD_STEP ? ` <small>${(meta.reached || 0) < E.LEVELS.length - 1 ? `${E.holdAt((meta.reached || 0) + 1)} once you reach ${levelName((meta.reached || 0) + 1)}` : 'as deep as it grows'}</small>` : ''}`],
-      ['Pins broken', cleared.length ? `${cleared.length} of ${E.LEVELS.length} <small>${cleared.join(', ')}</small>` : `0 of ${E.LEVELS.length}`],
+      ['Pins broken', `${cleared.length}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}${cleared.length ? ` <small>${cleared.join(', ')}</small>` : ''}`],
       ['Best score', getNum(BEST_KEY) || 0],
       [MT.currency, `${meta.salvage} <small>${meta.earned} earned in all</small>`],
       [`${MT.item} owned`, `${meta.owned.length} of ${kitTotal}`],
       ['Keepsakes in the Lazaret', lazaretOpen() ? `${meta.lazaret.length} of ${KS_TOTAL}` : 'Opens when you first come home'],
       ['Achievements', `${meta.ach.length} of ${Object.keys(BL.ACHIEVEMENTS).length}`],
       ['Story so far', `${open} of ${entries.length} entries open`],
-    ];
+    ]);
     const body = `<dl class="logbook">${rows.map((x) => `<div><dt>${x[0]}</dt><dd>${x[1]}</dd></div>`).join('')}</dl>
       <p class="log-note">Expeditions and the deepest landing are counted from version 0.13.0. Abandoned expeditions and the tutorial are not counted.</p>`;
     openOverlay(modal("Keeper's logbook", body, '<button class="btn primary" data-act="close" autofocus>Close</button>', 'narrow'));
@@ -1642,6 +1684,26 @@
     openOverlay(modal('Pack for the expedition', body,
       `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, 'workshop-modal'), { focus });
     requestAnimationFrame(drawDollLines);
+  }
+
+  /* Something new is open at the lighthouse (E.FEATURES): a window that has to be acknowledged, once for each. The end
+     screen's boxes say the same, but they were easy to miss (the user's playtest: "e.g. Currents"). It opens over the
+     end screen as the expedition ends, or over the title screen if that was missed (a closed tab, the debug panel). */
+  const NEWS = {
+    workshop: () => [gearArt({ art: 'g_salvage' }), `The ${MT.shop} is open`, `Every finished expedition turns its score into <b>${MT.currency}</b>. Spend it on <b>${MT.item.toLowerCase()}</b>: gear that is yours for good. You wear one piece in each of five places.`, `Title screen &rarr; ${MT.shop}`],
+    lazaret: () => ['<span class="medal"><img src="img/icons/k_whaletooth.webp" alt=""></span>', 'The Lazaret is open', 'The locked store room at the lighthouse. Every keepsake you carry home is kept there for good. Before an expedition you choose which to bring, and each one counts toward your Hold.', 'Title screen &rarr; Lazaret'],
+    suit: () => [gearArt(BL.KIT.suit), `The ${BL.KIT.suit.name} is mended`, `You carried it home and mended it. Wear it in your <b>${placeOf(BL.KIT.suit.place).name}</b> place when you pack, and the stair below Dark Water is open.`, 'New Descent &rarr; Pack for the expedition'],
+    currents: () => [`<span class="medal">${ICON.wave}</span>`, 'Currents are open', `The sea is wide awake now, and it has moods. Switch on any <b>currents</b> when you pack: each makes the whole expedition harder and adds &times;${E.CURRENT_SCORE} to your score.`, 'New Descent &rarr; Pack for the expedition'],
+  };
+  function showNews() {
+    if (!overlayEl.hidden || (run && run.tutorial)) return false;
+    const ids = E.featureNews(meta);
+    if (!ids.length) return false;
+    const items = ids.map((id) => { const [art, name, text, where] = NEWS[id](); return `<li class="news-item">${art}<div><b>${name}</b><p>${text}</p><small>${where}</small></div></li>`; }).join('');
+    ui.news = ids;
+    openOverlay(modal('New at the lighthouse', `<ul class="news-list">${items}</ul>`, '<button class="btn primary" data-act="newsok" autofocus>Got it</button>', 'narrow news-modal').replace(/<button class="icon-btn" data-act="close"[^>]*>.*?<\/button>/, ''), { locked: true });
+    sfx('unlock');
+    return true;
   }
 
   /* Achievements reached in this run unlock kit at once, so they're kept even if the run is abandoned. */
@@ -1719,7 +1781,7 @@
     nodes += nodeHTML(m.boss);
     nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${bossY + 50}px">${bossName()}</div>`;
     const legend = ['fight', 'elite', 'event', 'rest', 'shop', 'treasure'].map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
-    const sub = !run.pos ? (run.level ? `Level ${run.level + 1} of ${E.LEVELS.length}. Choose where to begin.` : 'Choose where to begin your descent.') : avail.length ? 'Choose your next stop.' : '';
+    const sub = !run.pos ? (run.level ? `Level ${run.level + 1}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}. Choose where to begin.` : 'Choose where to begin your descent.') : avail.length ? 'Choose your next stop.' : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
       <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2><p>${sub}</p></div>
       <div class="map" style="height:${H}px"><svg class="lines" viewBox="0 0 100 ${H}" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>
@@ -1743,6 +1805,7 @@
     if (!node) return;
     sfx('step');
     E.enterNode(run, node);
+    pinSong();
     if (run.screen === 'shop') setTimeout(() => sfx('shopbell'), 280); // the bell over Barnaby's door
     ui.mapFocus = 0;
     save();
@@ -1795,11 +1858,19 @@
     return `${ward > 0 ? `<div class="ward-badge" data-tip="ward">${ward}</div>` : ''}<div class="ghost" style="width:${pct}%"></div><div class="fill" style="width:${pct}%"></div><div class="txt">${hp}/${max}</div>`;
   }
   const NO_COUNT = ['submerged', 'shell', 'belled', 'echo']; // statuses that are on or off, with no number
+  /* What was taken from Wren at the start of this turn: [status, amount] for Doused (Light) and Breathless (cards). */
+  const spentNow = (c) => [['doused', c.dousedTurn === c.turn ? c.dousedN || 0 : -1], ['breathless', c.breathlessTurn === c.turn ? c.breathlessN || 0 : -1]].filter((x) => x[1] >= 0);
+  const spentTip = (k, n) => (k === 'doused'
+    ? `<b>Doused</b><br>Something drank from your lantern: you started this turn with ${n ? `<b>${n}</b> ` : ''}less Light. It is over when the turn ends. An enemy's intent warns you a turn before.`
+    : `<b>Breathless</b><br>Something squeezed the air out of your diving dress: you drew ${n ? `<b>${n}</b> ` : ''}fewer card${n === 1 ? '' : 's'} this turn. It is over when the turn ends. An enemy's intent warns you a turn before.`);
   function statusesHTML(o, who) {
     const c = run.combat;
     const echo = who === 'p' && c && c.echo > 0 ? `<span class="st buff echo-chip" data-tip="echo">${ICON.echo}${c.echo > 1 ? c.echo : ''}</span>` : '';
     const thrash = who === 'p' && c && c.thrash ? `<span class="st debuff thrash-chip" data-tip="kw:Thrash" aria-label="Thrash ${c.thrash}">${ICON.vortex}${c.thrash}</span>` : '';
-    return echo + thrash + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
+    // Doused and Breathless are used up as the turn starts: a chip stays on Wren for that turn, so what took the Light
+    // or the cards can still be read after the float and the first-time hint are gone (the user's playtest, v0.33.0)
+    const spent = who === 'p' && c ? spentNow(c).map(([k, n]) => `<span class="st debuff spent" data-tip="spent:${k}" aria-label="${BL.STATUSES[k].name}, this turn">${ICON[BL.STATUSES[k].icon] || ''}${n || ''}</span>`).join('') : '';
+    return echo + thrash + spent + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
       const s = BL.STATUSES[k];
       const n = (s.kind === 'rite' && o.st[k] === 1 && k !== 'r_beam') || NO_COUNT.indexOf(k) >= 0 ? '' : o.st[k];
       return `<span class="st ${s.kind}" data-tip="st:${who}:${k}">${ICON[s.icon] || ''}${n}</span>`;
@@ -1812,12 +1883,13 @@
     const main = k.indexOf('attack') >= 0 ? 'attack' : k[0] || 'buff';
     // each part with a number shows it next to its icon: attack 3, Ward 4
     let parts = '';
-    if (k.indexOf('attack') >= 0) parts += `${ICON.attack}<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>`;
+    // an attack that follows the Swell (the Tolling Buoy's) shows a bell in place of the blade, with a wave beside its number
+    if (k.indexOf('attack') >= 0) parts += `${info.swell ? ICON.slot_bell : ICON.attack}<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>${info.swell ? `<i class="i-swell">${ICON.wave}</i>` : ''}`;
     if (k.indexOf('defend') >= 0) parts += `<i class="i-ward">${ICON.defend}${info.ward ? `<span>${info.ward}</span>` : ''}</i>`;
     if (k.indexOf('buff') >= 0) parts += ICON.buff;
     if (k.indexOf('debuff') >= 0) parts += ICON.debuff;
     if (k.indexOf('summon') >= 0) parts += ICON.summon;
-    return `<div class="intent ${main}" data-tip="intent:${e.uid}">${parts}</div>`;
+    return `<div class="intent ${main}${info.swell ? ' swell' : ''}" data-tip="intent:${e.uid}">${parts}</div>`;
   }
 
   function updateUnitInfo(el, hp, max, ward, o, who) {
@@ -1937,9 +2009,12 @@
       else if (selCard.id === 'ebbflow') preview = c.tide >= 3 ? Math.min(6, c.tide + v.shift) : Math.max(0, c.tide - v.shift);
       else if (selCard.id === 'tsunami') preview = 0;
     }
+    // an attack that follows the Swell marks the bar: the step (or the ends) where it is weakest, and a line that says so
+    const swellHit = E.alive(c).map((e) => E.intentInfo(run, e)).find((info) => info && info.swell);
     let segs = '';
     for (let i = 0; i <= 6; i++) {
       const cls = ['tb-seg'];
+      if (swellHit && (swellHit.swell === 'mid' ? i === 3 : i === 0 || i === 6)) cls.push('calm');
       if (i === 0) cls.push('end-low');
       if (i === 6) cls.push('end-crest');
       if (i <= c.tide && c.tide > 0) cls.push('filled');
@@ -1964,6 +2039,11 @@
         if (E.has(run, 'kelpbracelet')) parts.push(`+${8 * p.lows} Ward`);
         hint = `<div class="tb-hint">Strand${p.lows > 1 ? ' x' + p.lows : ''}! ${parts.join(', ')}</div>`;
       }
+    }
+    if (!hint && swellHit && c.phase === 'player') {
+      hint = `<div class="tb-hint note">${ICON.slot_bell}<span>${swellHit.swell === 'mid'
+        ? (swellHit.dmg > swellHit.calm ? `${swellHit.name} <b>${swellHit.dmg}</b>: only <b>${swellHit.calm}</b> at Swell 3` : `${swellHit.name} <b>${swellHit.dmg}</b>: weakest here, at Swell 3`)
+        : `${swellHit.name} <b>${swellHit.dmg}</b>: &minus;${BL.PEAL.quiet} for each Crest or Strand this turn`}</span></div>`;
     }
     tb.setAttribute('aria-label', `Swell ${c.tide} of 6`);
     // Bail and Stir: once a turn, 1 Light for one step toward Strand or Crest, without a card
@@ -2969,11 +3049,14 @@
     },
     refit: () => ['Refit your gear', 'Upgrade a card in your deck.'],
     shed: () => ['Shed a card', 'Leave a card on the stair, for good. Free: Barnaby charges Pearls for it.'],
-    flask: () => ['Fill a flask', 'Brinelight drips from the rock here. Catch it in a flask: a random tonic.'],
+    flask: (done) => {
+      const n = done ? 0 : run.tonics.filter((t) => !t).length;
+      return ['Fill your flasks', `Brinelight drips from the rock here. Fill every empty flask${n ? `: <b>${n} random tonic${n > 1 ? 's' : ''}</b>, no two alike` : ' with a random tonic'}.`];
+    },
     cache: () => ["The keepers' cache", 'The keepers before you left cards in the wall. Choose 1 of 3, uncommon or rare.'],
   };
   function stairTrack(lv) {
-    return `<ol class="stair-track" aria-label="The way down">${E.LEVELS.map((L, i) => `<li class="${i < lv ? 'past' : i === lv ? 'here' : ''}"><span class="dot">${i < lv ? STAIR_ICON.done : ''}</span><b>${L.name}</b></li>`).join('')}</ol>`;
+    return `<ol class="stair-track" aria-label="The way down">${E.LEVELS.map((L, i) => `<li class="${i < lv ? 'past' : i === lv ? 'here' : ''}${levelKnown(i) ? '' : ' unknown'}"><span class="dot">${i < lv ? STAIR_ICON.done : ''}</span><b${levelKnown(i) ? '' : ' aria-label="Not found yet"'}>${levelKnown(i) ? L.name : '?'}</b></li>`).join('')}</ol>`;
   }
   function renderStair() {
     const lv = run.level || 0, s = E.stairState(run), left = E.STAIR_PICKS - s.picks.length;
@@ -3008,7 +3091,7 @@
     const s = E.stairState(run);
     const done = (o, line, sound) => { if (!o) return; (s.log = s.log || []).push(line(o)); sfx(sound); save(); render(); };
     if (id === 'rest') done(E.stairDo(run, 'rest'), (o) => `You sleep deep beside the lantern and wake mended: ${o.healed} HP.`, 'buff');
-    else if (id === 'flask') done(E.stairDo(run, 'flask'), (o) => `You fill a flask with brinelight: ${BL.TONICS[o.tonic].name}.`, 'tonic');
+    else if (id === 'flask') done(E.stairDo(run, 'flask'), (o) => `You fill ${o.tonics.length > 1 ? `${o.tonics.length} flasks` : 'a flask'} with brinelight: ${o.tonics.map((t) => BL.TONICS[t].name).join(', ')}.`, 'tonic');
     else if (id === 'refit') {
       ui.allowCancelPick = true;
       showDeck('upgrade', (uid) => done(E.stairDo(run, 'refit', uid), (o) => `You refit by lantern light: ${E.cardName(o.card)} is ready.`, 'buff'));
@@ -3052,6 +3135,7 @@
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+    playScene('pin:' + lv); // the first time this pin breaks, its story scene plays over the choice
   }
 
   /* ----- Shop ----- */
@@ -3230,6 +3314,7 @@
       }
       fin.story = noteStory().map((en) => en.title);
       run.final = fin;
+      fin.tell = !run.tutorial; // what just opened is told in a window, once this screen is drawn
     }
     const fin = run.final;
     // the score's own lines are in the breakdown; these are the rest of the run
@@ -3259,6 +3344,8 @@
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+    // coming home with the dress or with the Heart has a story scene the first time; then what opened is told
+    if (fin.tell) { fin.tell = false; playScene(win && run.heart ? 'heart' : fin.laz && (fin.laz.found || []).indexOf('suit') >= 0 ? 'dress' : '', showNews, 'Home'); }
   }
 
   /* ================================================================== *
@@ -3285,6 +3372,7 @@
     }
     switch (act) {
       case 'close': closeOverlay(); break;
+      case 'newsok': E.tellFeatures(meta, ui.news || []); ui.news = null; saveMeta(); closeOverlay(true); break;
       case 'tutorial': closeOverlay(true); Teach.startTutorial(); break;
       case 'tutorialskip': Teach.setStatus('skipped'); closeOverlay(true); prepareDive(); break;
       case 'tutnext': Teach.next(); break;
@@ -3423,7 +3511,8 @@
       case 'story': showStory(); break;
       case 'storytab': sfx('page'); ui.storyTab = t.dataset.tab; $('.story', overlayEl).outerHTML = storyHTML(ui.storyTab); $('.modal-body', overlayEl).scrollTop = 0; { const b = $(`.tab[data-tab="${ui.storyTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'opening': closeOverlay(true); showOpening(0, () => showStory('story'), true); break;
-      case 'opnext': if (+t.dataset.i + 1 < BL.STORY.opening.length) { sfx('page'); showOpening(+t.dataset.i + 1); } else endOpening(); break;
+      case 'opnext': if (ui.opening && +t.dataset.i + 1 < ui.opening.beats.length) { sfx('page'); showOpening(+t.dataset.i + 1); } else endOpening(); break;
+      case 'scene': closeOverlay(true); showOpening(0, () => showStory('story'), true, t.dataset.id); break;
       case 'opskip': endOpening(); break;
       case 'helptab': ui.helpTab = t.dataset.tab; $('.help', overlayEl).outerHTML = helpHTML(ui.helpTab); { const b = $(`.tab[data-tab="${ui.helpTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'menu': showMenu(); break;
@@ -3436,7 +3525,7 @@
         break;
       case 'confirmabandon': clearSave(); closeOverlay(true); run = null; render(); break;
       case 'progress':
-        openOverlay(modal('Your progress', `<p>Your progress lives in this browser: ${MT.currency} and kit, the Lazaret, achievements, the Heart and the Belfry's record, best score, the Logbook, Story so far and a run in progress.</p>
+        openOverlay(modal('Your progress', `<p>Your progress lives in this browser: ${MT.currency} and kit, the Lazaret, achievements, the Heart's record, best score, the Logbook, Story so far and a run in progress.</p>
           <div class="choice-list" style="margin:0 auto">
             <button class="choice" data-act="exportsave"><b>Download a backup</b><span>Saves it all to a file, with your settings.</span></button>
             <button class="choice" data-act="importsave"><b>Restore from a backup</b><span>Loads a backup file. It replaces the progress in this browser.</span></button>
@@ -3448,7 +3537,7 @@
       case 'importconfirm': if (ui.pendingBackup) restoreBackup(ui.pendingBackup); break;
       case 'resetask':
         openOverlay(modal('Reset all progress?', `<p>This erases everything you have earned in this browser:</p>
-          <ul class="reset-list"><li>${MT.currency}, and the kit you bought in the ${MT.shop}</li><li>the Lazaret and every keepsake kept there</li><li>achievements, the Heart and the Belfry's record, best score and the Logbook</li><li>Story so far, the hints and the tutorial</li><li>any run in progress</li></ul>
+          <ul class="reset-list"><li>${MT.currency}, and the kit you bought in the ${MT.shop}</li><li>the Lazaret and every keepsake kept there</li><li>achievements, the Heart's record, best score and the Logbook</li><li>Story so far, the hints and the tutorial</li><li>any run in progress</li></ul>
           <p>Sound, music and animation settings stay. This can't be undone, unless you download a backup first.</p>`,
           '<button class="btn" data-act="close" autofocus>Cancel</button><button class="btn" data-act="exportsave">Download a backup</button><button class="btn danger" data-act="resetconfirm">Reset everything</button>', 'narrow'));
         break;

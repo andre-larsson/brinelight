@@ -23,6 +23,11 @@ const SUBPATH = arg('path', '/'); // where the game sits under ROOT, e.g. /brine
 const WORKERS = Math.max(1, Math.floor(+arg('workers', 4)) || 1);
 
 const failures = [];
+/* v0.33.0: a story scene plays the first time a pin breaks and on the end screen, and a "New at the lighthouse" window
+   says what opened. The Belfry and Lazaret scenarios go through them; the others start with them seen and told. */
+const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart'], TOLD = ['workshop', 'lazaret', 'suit', 'currents'];
+const QUIET_STORY = JSON.stringify(JSON.stringify({ opening: true, scenes: SEEN_SCENES }));
+const QUIET_META = `localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify({ told: TOLD }))});`;
 const log = (...a) => console.log(...a);
 
 /* In-page helpers, injected once per page load. */
@@ -417,7 +422,7 @@ async function debugScenario(page, base) {
   await page.viewport(1280, 800);
   page.errors.length = 0;
   await page.goto(base + '?seed=5555');
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); localStorage.setItem('brinelight.best.v1', '777'); })()`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', ${QUIET_STORY}); ${QUIET_META} localStorage.setItem('brinelight.best.v1', '777'); })()`);
   await page.goto(base + '?seed=5555');
   if (await page.eval(`!!document.querySelector('.dbg-tab')`)) failures.push('debug: the DEBUG tab shows without ?debug');
   await page.goto(base + '?seed=5555&debug');
@@ -745,7 +750,18 @@ async function lazaretScenario(page, base, name, size) {
   await dismissHints(page);
   await end('victory', ['moonshard', 'anchor']);
   await sleep(200);
+  // what opened is told in a window that stays until it is closed, once
+  const news = () => page.eval(`[...document.querySelectorAll('#overlay .news-item > div > b')].map((e) => e.textContent).join('|')`);
+  if (!/Workshop/.test(await news()) || !/Lazaret/.test(await news())) failures.push(`${name}: the first win should tell of the Workshop and the Lazaret in a window (${await news()})`);
+  await checkPage(page, name + ' news');
+  await page.key('Escape');
+  await sleep(150);
+  if (!(await news())) failures.push(`${name}: Escape closed the New at the lighthouse window; it should wait for Got it`);
+  await page.click('#overlay [data-act="newsok"]');
+  await sleep(200);
   let m = await stored();
+  if (await news()) failures.push(`${name}: Got it didn't close the New at the lighthouse window`);
+  if (!m.told || m.told.join(',') !== 'workshop,lazaret') failures.push(`${name}: what was told isn't stored (${JSON.stringify(m.told)})`);
   if (!m.lazOpen || m.lazaret.join(',') !== 'moonshard,anchor') failures.push(`${name}: the first win didn't keep both keepsakes (${JSON.stringify(m.lazaret)})`);
   if (!/The Lazaret is open/.test(await text('.lz-box')) || !/Moon Shard/.test(await text('.lz-box'))) failures.push(`${name}: the end screen doesn't say the Lazaret opened and what it kept`);
   await checkPage(page, name + ' first win');
@@ -761,12 +777,13 @@ async function lazaretScenario(page, base, name, size) {
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   await clickIf(page, '[data-act="totitle"]');
   if (!new RegExp(`2/${ksTotal}`).test(await text('[data-act="lazaret"]'))) failures.push(`${name}: the title screen doesn't show the Lazaret with 2 of ${ksTotal}`);
+  if (await news()) failures.push(`${name}: the title screen told of the Workshop and the Lazaret a second time`);
   // the title screen has three levels of button, and the logbook has counted the win
   const levels = await page.eval(`({ second: document.querySelectorAll('.title-buttons .btn.second').length, third: document.querySelectorAll('.title-buttons .btn.third').length })`);
   if (levels.second !== 2 || levels.third !== 5) failures.push(`${name}: the title screen should have 2 second-level and 5 third-level buttons (Story so far, the Logbook, the Tutorial, How to Play, the Jukebox) (${JSON.stringify(levels)})`);
   await page.click('[data-act="logbook"]');
   await sleep(200);
-  if (!/1 came home, 0 fell/.test(await text('#overlay .logbook')) || !/The Shallows, landing 8 of 8/.test(await text('#overlay .logbook')) || !/Pins broken1 of 3/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first expedition home (${await text('#overlay .logbook')})`);
+  if (!/1 came home, 0 fell/.test(await text('#overlay .logbook')) || !/The Shallows, landing 8 of 8/.test(await text('#overlay .logbook')) || !/Pins broken1 The Shallows/.test(await text('#overlay .logbook')) || /of 3|Belfry/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first expedition home, or it gives away how many levels there are (${await text('#overlay .logbook')})`);
   await checkPage(page, name + ' logbook');
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   // second descent: bring both, drop one on the way, then fall with two found keepsakes
@@ -815,7 +832,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await page.viewport(size.w, size.h, size);
   page.errors.length = 0;
   await page.goto(base + `?seed=${opts.seed}`);
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); })()`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.story.v1', ${JSON.stringify(JSON.stringify({ scenes: SEEN_SCENES }))}); ${QUIET_META} })()`);
   await page.goto(base + `?seed=${opts.seed}`);
   await inject(page);
   await page.click('[data-act="newrun"]');
@@ -985,14 +1002,40 @@ async function belfryScenario(page, base, name, size, opts) {
   await page.click('[data-act="newrun"]');
   await toMap('the first map');
   await page.eval(toDarkPin);
-  await sleep(200);
+  await sleep(300);
+  // the Tolling Buoy's story scene plays before the choice: three pictures, the last one the dress
+  const beat = () => page.eval(`(() => { const o = document.querySelector('#overlay .opening'); return o ? { text: o.querySelector('.op-text').textContent, go: o.querySelector('[data-act="opnext"]').textContent.trim(), dots: o.querySelectorAll('.op-dots i, .op-dots span').length } : null; })()`);
+  let sc = await beat();
+  if (!sc || !/Tolling Buoy/.test(sc.text)) failures.push(`${name}: no story scene when the Tolling Buoy breaks (${JSON.stringify(sc)})`);
+  await checkPage(page, name + ' buoy scene');
+  await tap('#overlay [data-act="opnext"]');
+  await sleep(300);
+  await tap('#overlay [data-act="opnext"]');
+  await sleep(300);
+  sc = await beat();
+  if (!sc || !/diving dress/.test(sc.text) || sc.go !== 'Go on') failures.push(`${name}: the Buoy's scene should end on the diving dress and a Go on button (${JSON.stringify(sc)})`);
+  await tap('#overlay [data-act="opnext"]');
+  await sleep(300);
+  if (await beat()) failures.push(`${name}: the Buoy's scene didn't close after its third picture`);
+  if ((await page.eval(`JSON.parse(localStorage.getItem('brinelight.story.v1')).scenes.join(',')`)) !== 'buoy') failures.push(`${name}: the Buoy's scene isn't stored as seen`);
   if (await has('[data-act="godeeper"]')) failures.push(`${name}: Go deeper is open without the diving dress`);
   if (!(await has('.scene .found-kit'))) failures.push(`${name}: the dress doesn't hang above the stair on Dark Water's pin`);
   if (!/Diving Dress/.test(await page.eval(`document.querySelector('[data-act="gohome"]').textContent`))) failures.push(`${name}: Go home doesn't say it carries the dress home`);
   if (!(await page.eval(`document.activeElement && document.activeElement.dataset.act === 'gohome'`))) failures.push(`${name}: with the stair shut, Go home should have the focus`);
   await checkPage(page, name + ' pin, no dress');
   await page.click('[data-act="gohome"]');
+  await sleep(400);
+  // home with the dress: the mending scene, then the window that says it is mended
+  sc = await beat();
+  if (!sc || !/boathouse/.test(sc.text) || sc.go !== 'Home') failures.push(`${name}: no mending scene when the dress comes home (${JSON.stringify(sc)})`);
+  await checkPage(page, name + ' mending scene');
+  await tap('#overlay [data-act="opnext"]');
   await sleep(300);
+  const told = await page.eval(`[...document.querySelectorAll('#overlay .news-item > div > b')].map((e) => e.textContent).join('|')`);
+  if (!/Diving Dress is mended/.test(told)) failures.push(`${name}: the New at the lighthouse window doesn't tell of the mended dress (${told})`);
+  await checkPage(page, name + ' dress news');
+  await tap('#overlay [data-act="newsok"]');
+  await sleep(200);
   if (!/You carried home the Diving Dress/.test(await body())) failures.push(`${name}: the end screen doesn't show the dress carried home`);
   if (!(await page.eval(`window.Brinelight.meta.owned.includes('suit')`))) failures.push(`${name}: the dress isn't owned after going home`);
   await checkPage(page, name + ' dress carried home');
@@ -1010,6 +1053,8 @@ async function belfryScenario(page, base, name, size, opts) {
   await toMap('the map in the dress');
   if (!(await page.eval(`window.Brinelight.E.hasKit(window.Brinelight.run, 'suit')`))) failures.push(`${name}: the dress chosen in the kit isn't worn`);
   await page.eval(toDarkPin);
+  await sleep(300);
+  if (await beat()) failures.push(`${name}: the Buoy's scene played a second time`);
   await sleep(200);
   if (await has('.scene .found-kit')) failures.push(`${name}: the dress still hangs above the stair while Wren wears it`);
   await checkPage(page, name + ' pin, in the dress');
@@ -1069,7 +1114,7 @@ async function findsScenario(page, base, name, size) {
   await page.goto(base + '?seed=8181');
   const meta = { salvage: 200, earned: 200, owned: ['suit', 'bailer', 'line'], ach: ['bothends', 'closecall'], kit: { bell: 'tidebell', coat: 'suit', ditty: 'bailer' },
     lazaret: ['whaletooth'], bring: [], lazOpen: true, record: { runs: 1, wins: 1, hearts: 0, quiets: 0, deep: { level: 0, floor: 8 } } };
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify(meta))}); })()`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', ${QUIET_STORY}); localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify(Object.assign({ told: TOLD }, meta)))}); })()`);
   await page.goto(base + '?seed=8181');
   await inject(page);
   const text = (sel) => page.eval(`(document.querySelector(${JSON.stringify(sel)}) || { textContent: '' }).textContent`);
@@ -1174,7 +1219,7 @@ async function progressScenario(page, base, name, size) {
   page.errors.length = 0;
   const PREFS = JSON.stringify({ sound: false, music: false, fast: true });
   await page.goto(base + '?seed=8888');
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', ${JSON.stringify(PREFS)}); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', ${JSON.stringify(PREFS)}); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', ${QUIET_STORY}); ${QUIET_META} })()`);
   await page.goto(base + '?seed=8888');
   await inject(page);
   const count = (sel) => page.eval(`document.querySelectorAll(${JSON.stringify(sel)}).length`);
@@ -1310,7 +1355,7 @@ async function audioScenario(page, base, name, size) {
   await page.viewport(size.w, size.h, size);
   page.errors.length = 0;
   await page.goto(base + '?seed=7171');
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: true, music: true, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: true, music: true, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', ${QUIET_STORY}); ${QUIET_META} })()`);
   await page.goto(base + '?seed=7171');
   await inject(page);
   const audio = () => page.eval(`(() => { const a = window.Brinelight.audio(); return { ctx: a.ctx, depth: a.depth, ambience: a.ambience, playing: !!a.music, target: a.music && a.music.target, intensity: a.music && a.music.intensity, song: a.song, songAt: a.songAt, songGain: a.songGain, loop: a.loop }; })()`);
@@ -1409,6 +1454,9 @@ async function audioScenario(page, base, name, size) {
   const afterDep = openTracks[(openTracks.indexOf('song:departure') + 1) % openTracks.length];
   await clickIf(page, '#overlay [data-act="jukenext"]');
   await expect(`the player: next after High Tide Departure (${afterDep})`, afterDep.startsWith('song:') ? { song: afterDep.slice(5) } : { song: null, playing: true, target: afterDep.slice(4) });
+  // (previous goes back only in a song's first 3 s; on a busy machine the wait above can outlast them, so wind back first)
+  await page.eval(`(() => { const r = document.querySelector('#overlay input.juke-pos'); if (r) { r.value = 0; r.dispatchEvent(new Event('input', { bubbles: true })); } })()`);
+  await sleep(150);
   await clickIf(page, '#overlay [data-act="jukeprev"]');
   await expect('the player: previous, back to High Tide Departure', { song: 'departure' });
   // previous more than 3 s into a song starts it again
@@ -1502,9 +1550,13 @@ async function audioScenario(page, base, name, size) {
   const round = await audio();
   if (round.playing || !(round.songGain >= 0 && round.songGain < 0.19)) failures.push(`${name}: the Hermit's song should come round again fading in, without the score (${JSON.stringify(round)})`);
   await plays("the Hermit's song, round again");
+  // the Hermit's turn no longer changes the song (v0.33.0); Ring for the Deep is its second song, for a whole fight
   await set('B.run.combat.phase2 = true');
-  await expect("the Hermit's second phase", { playing: false, song: 'deep' });
+  await expect("the Hermit's second phase", { playing: false, song: 'hermit' });
+  await set(`B.run.combat.song = 'deep'`);
+  await expect("the Hermit's second song", { playing: false, song: 'deep' });
   await plays('Ring for the Deep');
+  if (!(await heardList()).includes('song:deep')) failures.push(`${name}: Ring for the Deep didn't count as heard`);
   await set('B.E.backToMap(B.run)');
   await expect('the map, after the Hermit', { playing: true, target: 'reach', song: null });
   // Dark Water: the far bell and the drone come in, and the echo lengthens
@@ -1517,8 +1569,7 @@ async function audioScenario(page, base, name, size) {
   await expect('the Tolling Buoy', { playing: false, song: 'buoy', ambience: '' });
   await plays("the Buoy's song");
   await set('B.run.combat.phase2 = true');
-  await expect("the Buoy's second phase", { playing: false, song: 'deep' });
-  if (!(await heardList()).includes('song:deep')) failures.push(`${name}: Ring for the Deep didn't count as heard`);
+  await expect("the Buoy's second phase", { playing: false, song: 'buoy' });
   // the Bellwether has its song, in both its forms
   await set(`B.run.level = 2; B.E.startCombat(B.run, 'boss')`);
   await expect('the Drowned Bellwether', { playing: false, song: 'bell', ambience: '' });

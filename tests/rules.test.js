@@ -720,7 +720,14 @@ test('the map: 8 landings a level (7 rows of stops, then the pin), fights first,
     const count = (t) => nodes.filter((n) => n.type === t).length;
     ['fight', 'elite', 'event', 'shop', 'rest', 'treasure'].forEach((t) => assert.ok(count(t) >= 1, `seed ${seed} has a ${t}`));
     assert.ok(nodes.every((n) => n.type !== 'elite' || n.row >= 2), 'no elites in the first rows');
+    // Wren sets out with no Pearls: the Shallows have no shop on their first two landings, and still two shops in all
+    assert.ok(nodes.every((n) => n.type !== 'shop' || n.row >= 2), `seed ${seed}: no shop on the Shallows' first two landings`);
+    assert.ok(count('shop') >= 2, `seed ${seed} has two shops`);
   }
+  // deeper levels keep a shop on the second landing: by then she has Pearls to spend
+  let early = 0;
+  for (let seed = 1; seed <= 200; seed++) early += E.newRun(seed, 1).map.grid[1].filter((n) => n && n.type === 'shop').length;
+  assert.ok(early > 0, 'Dark Water can have a shop on its second landing');
 });
 
 test('Sheltered Cove: rest heals 30% of max HP (20% with the Cold Coves current), or upgrade a card', () => {

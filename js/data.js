@@ -391,7 +391,9 @@
    *  ENEMIES
    *  moves: dmg (number or fn(e, c)), hits, ward, buff{}, debuff{}, addCards{}, tide, summon[],
    *         drain (heals the HP its hits take), submerge (Submerged until it next acts),
-   *         swallow (takes the last card you played this turn, until it dies), tip (a line for the intent)
+   *         swallow (takes the last card you played this turn, until it dies), tip (a line for the intent),
+   *         swell ('mid': the attack is weakest at Swell 3; 'ends': each Crest or Strand this turn weakens it. The UI
+   *         gives such an attack a bell for its intent and marks the Swell bar)
    *  ai(e, c, R): returns the next move key. e.hist = previous moves, e.mem = memory
    * ------------------------------------------------------------------ */
   function cycleFrom(list) {
@@ -415,6 +417,9 @@
   /* A pin (a band's boss) changes once it is down to this share of its health: the Bellwether calls its shoal, the
      Tolling Buoy slips its chain. It was half until v0.16.0, which came too late for the help to matter. */
   BL.PIN_CALL = 2 / 3;
+  /* The Harbour Hermit rings for its mites at half its health (two thirds until v0.33.0: the user met it at 83 of 150
+     and found that "just a bit too early", with most of the Hermit still to break). */
+  BL.HERMIT_CALL = 1 / 2;
   /* The Pale Gulper, a Dread of Dark Water, retches up two Glimmer Leeches once it is down to this share of its health. */
   BL.DREAD_CALL = 1 / 2;
   /* The Tolling Buoy's Wild Peal: this much damage, less this much for each Crest or Strand you make that turn. */
@@ -474,7 +479,7 @@
     mite: {
       name: 'Barnacle Mite', hp: [10, 13], art: 'mite', scale: 0.7,
       moves: {
-        nibble: { name: 'Nibble', dmg: 5 },
+        nibble: { name: 'Nibble', dmg: 4 }, // 5 until v0.33.0: at 4, a Brace (5 Ward) has 1 Ward to spare, and a Brace+ (8) stops two Nibbles
         burrow: { name: 'Burrow', ward: 5, buff: { might: 1 } }, // it digs in and comes out bolder
       },
       ai: weighted([['nibble', 70], ['burrow', 30]], 1),
@@ -541,7 +546,7 @@
         ring: { name: 'Ring the Harbour Bell', summon: ['mite', 'mite'], buff: { might: 1 }, phase: 'The Harbour Bell Rings!' },
       },
       ai: (e) => {
-        if (!e.mem.summoned && e.hp <= e.maxHp * BL.PIN_CALL) { e.mem.summoned = true; return 'ring'; }
+        if (!e.mem.summoned && e.hp <= e.maxHp * BL.HERMIT_CALL) { e.mem.summoned = true; return 'ring'; }
         const seq = ['withdraw', 'pinch', 'crush', 'pinch', 'crush'];
         e.mem.step = (e.mem.step || 0) + 1;
         return seq[(e.mem.step - 1) % seq.length];
@@ -656,14 +661,14 @@
       moves: {
         haul: { name: 'Haul the Chain', ward: 12, debuff: { doused: 1 } },
         // it rocks on the Swell: the further the water is from 3, the harder it swings
-        toll: { name: 'Rocking Toll', dmg: (e, c) => 12 + 2 * (e.mem.tolls || 0) + 4 * Math.abs(((c && c.tide) == null ? 3 : c.tide) - 3), after: (e) => { e.mem.tolls = (e.mem.tolls || 0) + 1; },
+        toll: { name: 'Rocking Toll', dmg: (e, c) => 12 + 2 * (e.mem.tolls || 0) + 4 * Math.abs(((c && c.tide) == null ? 3 : c.tide) - 3), after: (e) => { e.mem.tolls = (e.mem.tolls || 0) + 1; }, swell: 'mid',
           tip: 'It hits 4 harder for each step your Swell is away from 3, and every Toll rings 2 harder than the last' },
         clang: { name: 'Clang', dmg: 8, hits: 2 },
         // at two thirds of its health its chain snaps: it swings free, and with no chain left to haul it rings wild
         slip: { name: 'Slip the Chain', ward: 15, buff: { might: 1 }, phase: 'The Chain Snaps!' },
         // a wave smothers a bell and a Strand grounds it: each Crest or Strand you make this turn muffles the Peal
         peal: { name: 'Wild Peal', dmg: (e, c) => Math.max(0, BL.PEAL.dmg - BL.PEAL.quiet * ((c && (c.turnCrests + c.turnLows)) || 0)),
-          tip: `Each Crest or Strand you make this turn muffles it by ${BL.PEAL.quiet}` },
+          swell: 'ends', tip: `Each Crest or Strand you make this turn muffles it by ${BL.PEAL.quiet}` },
       },
       ai: (e) => {
         if (!e.mem.free && e.hp <= e.maxHp * BL.PIN_CALL) { e.mem.free = true; e.mem.step = 0; return 'slip'; }
@@ -1108,7 +1113,8 @@
     /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */
     plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
-    pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, desc: 'Gain 10 extra Pearls after each fight.' },
+    // 10 until v0.33.0: with no Pearls at the start it more than paid for a keepsake in the Shallows alone (the user: "a bit over-powered")
+    pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, pearls: 6, desc: 'Gain 6 extra Pearls after each fight.' },
     marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
     flask: { place: 'ditty', name: 'Spare Flask', art: 'g_flask', price: 12, desc: 'Start each run with a random tonic.' },
     scales: { place: 'ditty', name: 'Pearl Scales', art: 'g_scales', price: 15, desc: "Barnaby's prices are 25% lower: he can't argue with honest weights." },
@@ -1119,7 +1125,9 @@
   };
   /* Story so far (title screen and menu): the opening, chapters, the world glossary and the keeper's notes.
      `when` is a mark the player has to earn (E.storyMarks in js/engine.js); an entry without it is always open.
-     `lock` is what a locked entry shows. Art paths are under img/. An opening picture is placed by `pos` on tall screens,
+     `lock` is what a locked entry shows. A world entry is [name, text], with an optional third field for one about a
+   deeper level: { level, before }. It shows once that level is known (the UI's levelKnown), and `before` is its text
+   until then (without `before` it is left out). Art paths are under img/. An opening picture is placed by `pos` on tall screens,
      and by `wide` and `zoom` on wide ones. WORLD.md has to agree with all of this. */
   BL.STORY = {
     title: 'An enchanted bell, sunk under the cliffs, has stolen the fire from your lighthouse, and it is pulling the sea up toward the town. You are the last keeper. Go down and take the fire back.',
@@ -1133,6 +1141,41 @@
       { art: 'scenes/rest', pos: 'center', wide: 'left center', zoom: 1.6, fig: 'units/keeper',
         text: 'Your lantern holds the last of that fire. Your hand-bell moves water the way the great bell does. Take both, and your harpoon. Go down through the caves, fight what lives there, and bring the Lantern Heart home.' },
     ],
+    /* Story scenes (v0.33.0, the user's idea): a few pictures with a few lines each, like the opening, the first time
+       something big happens. `at` is when one plays: 'pin:<level>' as that level's pin breaks (before the choice to go
+       home or deeper), 'dress' on coming home with the diving dress, 'heart' on bringing the Heart home. A beat with
+       `found` shows only when that kit was found there. The chapter that names a scene (`scene`) can play it again.
+       The tutorial and debug-cheated runs play none. */
+    scenes: {
+      hermit: { at: 'pin:0', beats: [
+        { art: 'scenes/sc_hermit1', pos: '30% center', wide: 'center 30%', zoom: 1.04, sfx: 'bell',
+          text: 'The harbour bell cracks from rim to crown. The crab that wore it lets go of the water it was holding, and runs. Where the sea stood a moment ago, a stair comes up out of it: the keepers\' stair, a hundred years under water.' },
+        { art: 'scenes/sc_hermit2', pos: '62% center', wide: 'center 35%', zoom: 1.04,
+          text: 'The Lantern Heart is not here. The harbour bell only answered a bigger one. Far below, something is still ringing, and the glow of the fire goes on down the stair toward it. You can go home with what you carry, or follow it down.' },
+      ] },
+      buoy: { at: 'pin:1', beats: [
+        { art: 'scenes/sc_buoy1', pos: '32% center', wide: 'center 35%', zoom: 1.04, sfx: 'bell',
+          text: 'The Tolling Buoy rocks one last time and lies still. It rang off Saltmere\'s rocks before there was a lighthouse. Now the water it held runs away down the last stair.' },
+        { art: 'scenes/sc_buoy2', pos: 'center', wide: 'center 60%', zoom: 1.04,
+          text: 'At the bottom, the water does not drain. Below Dark Water is one more chamber, and it is under the sea: a tower with its bell at the bottom. The keepers called it the Belfry. Down there the Bellwether is ringing, and the Lantern Heart burns under it.' },
+        { art: 'scenes/sc_buoy3', pos: '38% center', wide: 'center 30%', zoom: 1.04, found: 'suit',
+          text: 'An open lantern cannot go there, and neither can you. But on the wall above the last dry step hangs an old keeper\'s diving dress, with a sealed lamp on its helmet. Its seams have rotted and its lamp is dry. It cannot go down tonight. Carry it home.' },
+      ] },
+      dress: { at: 'dress', beats: [
+        { art: 'scenes/sc_mend', pos: '45% center', wide: 'center 30%', zoom: 1.04,
+          text: 'At home, in the boathouse on the harbour, you sew up the seams with waxed thread and proof them with lamp oil. You fill the sealed lamp and try it with the glass shut. It burns. Wear the dress in your Rig place on your next expedition, and the last stair is open.' },
+      ] },
+      heart: { at: 'heart', beats: [
+        { art: 'scenes/sc_heart1', pos: 'center', wide: 'center 35%', zoom: 1.04, sfx: 'bell',
+          text: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. Something lets go of it: a thing with one eye and many arms, which grew into the bell in the hundred years nobody came down. It sinks away into the dark under the floor. You do not know if you killed it.' },
+        { art: 'scenes/sc_heart2', pos: '68% center', wide: 'center 25%', zoom: 1.04,
+          text: 'You carry the Heart up three levels of stairs. The water runs away in front of it.' },
+        { art: 'scenes/op_lighthouse', pos: '36% center', wide: 'center top', zoom: 1.08,
+          text: 'By dawn the great light of Saltmere is turning again, and the sea has stopped rising. The boats go out past the rocks.' },
+        { art: 'scenes/ev_heartglow', pos: 'center', wide: 'center 60%', zoom: 1.04,
+          text: 'The Bellwether is silent. But in the Belfry a faint light stayed behind where the Heart lay, and things still grow toward it. Saltmere will need a keeper who goes down.' },
+      ] },
+    },
     chapters: [
       { id: 'night', title: 'The night the light went out', opening: true },
       { id: 'fall', title: 'The sea gives you back', when: 'fell', lock: 'Fall in the Reach.', text: [
@@ -1140,22 +1183,22 @@
         'The water the bell holds keeps everything it takes. The open sea does not. It carries the drowned back to shore, and it carried you. The keepsakes you found in the caves are gone: the bell called them back.',
         'The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again.',
       ] },
-      { id: 'home', title: 'The harbour bell', when: 'won:0', lock: "Break the Shallows' pin.", text: [
+      { id: 'home', title: 'The harbour bell', when: 'won:0', lock: "Break the Shallows' pin.", scene: 'hermit', text: [
         'On the last landing of the Shallows waited a hermit crab as big as a rowing boat. It wore Saltmere\'s old harbour bell for a shell: the bell that rang the boats home in fog, until a winter storm tore it off the harbour wall. When the bell cracked, the crab let go of the water, and the water ran away down a stair that had been under the sea for a hundred years.',
         'The Lantern Heart was not there. The harbour bell only answers a bigger one. Far below, something was still ringing, and the glow of the fire went on down the stair toward it.',
         'You can go home from there with what you carry. But before the next tide the water comes back over the landings, something answers the bell again, and the next expedition starts from the shore.',
       ] },
-      { id: 'sunk', title: 'Why the bell was sunk', when: 'won:1', lock: "Break Dark Water's pin.", text: [
+      { id: 'sunk', title: 'Why the bell was sunk', when: 'won:1', lock: "Break Dark Water's pin.", scene: 'buoy', text: [
         'The bell ringing in Dark Water was not the Bellwether either. It was Saltmere\'s old bell-buoy, lost in a storm before the lighthouse was built. It answers the great bell now, and it held the water over the last stair.',
         'The keepers made the Bellwether. A hand-bell like yours moves the water in a pool. They cast a bell big enough to move the sea, and sank it at the bottom of the cliffs to hold the water off their low stairs and their quay.',
         'A bell that size has to be tended. Keepers walked down to it at the lowest tides of the year. The last one to go was a lamplighter, a hundred years ago. He drowned on the low stair, and nobody went down after him.',
       ] },
-      { id: 'belfry', title: 'The diving dress', when: 'won:1', lock: "Break Dark Water's pin.", text: [
+      { id: 'belfry', title: 'The diving dress', when: 'won:1', lock: "Break Dark Water's pin.", scene: 'dress', text: [
         'Below Dark Water there is one more chamber, and its floor is under the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
         'The Belfry is full of water and it does not drain, and an open lantern cannot go there. But on the wall above its stair hung an old keeper\'s diving dress, with a sealed lamp on its helmet. Its seams had rotted and its lamp was dry, so you carried it home and mended it.',
         'Pack the dress in your Rig place, and the last stair is open. It does nothing in a fight, and it takes the place of anything else you would wear.',
       ] },
-      { id: 'heart', title: 'The Heart comes home', when: 'heart', lock: 'Bring the Heart home.', text: [
+      { id: 'heart', title: 'The Heart comes home', when: 'heart', lock: 'Bring the Heart home.', scene: 'heart', text: [
         'The Bellwether hung in the Belfry over the Lantern Heart, and it rang with no hand on its rope. When its bronze broke, the Heart\'s light poured out through the water, and something came out of the bell with it: a thing with one eye and many arms, which had grown into the bronze in the hundred years nobody came down.',
         'You do not know if you killed it. When it let go of the Heart, it sank away into the dark under the floor.',
         'You carried the Heart up three levels of stairs. By dawn the great light of Saltmere was turning again, and the water stopped rising.',
@@ -1176,10 +1219,12 @@
         ['Saltmere', 'A harbour town on a rocky headland. Its lighthouse warns ships off the rocks.'],
         ['The lighthouse', 'It stands above the town, and you keep it. Its lamp burns the Lantern Heart.'],
         ['The Drowned Reach', 'The sea-caves, stairs and rock terraces under the cliffs, below the lighthouse. The Bellwether keeps them flooded.'],
-        ['Expeditions', 'Every expedition starts on the shore and goes down through the Reach a level at a time: the Shallows, then Dark Water, then the Belfry. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.'],
-        ['Dark Water', 'The level below the Shallows. Its water has been held still for a hundred years, so the brinelight in it has nowhere to go, and things there have learned to live on it.'],
-        ['The Belfry', 'The last level, below Dark Water: a chamber at the bottom of a tower, under the sea. It never drains. The Bellwether hangs there over the Lantern Heart. You can only go down in a diving dress.'],
-        ['Landings', 'The stops on the way down through a level. A boss waits on the last one: the Harbour Hermit in the Shallows, the Tolling Buoy in Dark Water, and the Bellwether in the Belfry.'],
+        ['Expeditions', 'Every expedition starts on the shore and goes down through the Reach a level at a time: the Shallows, then Dark Water, then the Belfry. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.',
+          { level: 2, before: 'Every expedition starts on the shore and goes down through the Reach a level at a time, from the Shallows. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.' }],
+        ['Dark Water', 'The level below the Shallows. Its water has been held still for a hundred years, so the brinelight in it has nowhere to go, and things there have learned to live on it.', { level: 1 }],
+        ['The Belfry', 'The last level, below Dark Water: a chamber at the bottom of a tower, under the sea. It never drains. The Bellwether hangs there over the Lantern Heart. You can only go down in a diving dress.', { level: 2 }],
+        ['Landings', 'The stops on the way down through a level. A boss waits on the last one: the Harbour Hermit in the Shallows, the Tolling Buoy in Dark Water, and the Bellwether in the Belfry.',
+          { level: 2, before: 'The stops on the way down through a level. A boss waits on the last one: in the Shallows, the Harbour Hermit.' }],
         ['Pins', 'A pin is a boss that holds the water over the stair down to the next level. Break it, and the water runs away down the stair.'],
         ['Currents', 'Moods of the sea that make an expedition harder and its score higher. You choose them on shore, once the Heart has come home.'],
         ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. It opens the first time you come home.'],
@@ -1189,13 +1234,14 @@
         ['Keepers', 'The people who tend the light and the bell. A keeper carries a lantern lit from the Lantern Heart and a hand-bell tuned to the Bellwether.'],
         ['The oilskin', 'A keeper\'s coat, proofed with the oil that burns in the great lamp under the Heart\'s fire. Brine runs off it, and so does brinelight, so the Reach never soaks into a keeper the way it soaks into lost things. No keeper goes down without one. Everything else you wear goes over it, in your Rig place.'],
         ['Barnaby', 'A hermit crab who keeps a shop in his shell. He sells cards, keepsakes and tonics for pearls.'],
-        ['The diving dress', 'An old keeper\'s diving suit with a sealed lamp on its helmet. You find it the first time you break Dark Water\'s pin and carry it home. Pack it in your Rig place to go down into the Belfry.'],
+        ['The diving dress', 'An old keeper\'s diving suit with a sealed lamp on its helmet. You find it the first time you break Dark Water\'s pin and carry it home. Pack it in your Rig place to go down into the Belfry.', { level: 2 }],
       ] },
       { group: 'Light and bell', items: [
         ['The Lantern Heart', 'The magic fire that burns in the lighthouse lamp. Every keeper\'s lantern is lit from it.'],
         ['Light', 'The fire in your lantern. You spend it to play cards, and it comes back at the start of each turn.'],
         ['The Bellwether', 'An enchanted bronze bell. Its ringing holds seawater in place. Keepers sank it under the cliffs long ago to hold the sea back, and now it rings by itself.'],
-        ['Pins', 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The harbour bell in the Shallows and the Tolling Buoy in Dark Water are pins.'],
+        ['Pins', 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The harbour bell in the Shallows and the Tolling Buoy in Dark Water are pins.',
+          { level: 1, before: 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The harbour bell in the Shallows is a pin.' }],
         ['Tide-bell', 'Your hand-bell. Ring it and the water near you moves. Keepers call it a tide-bell because it is tuned to the Bellwether, the bell that holds the tide.'],
         ['The Swell', 'The water around the enemies in a fight. You stand on stone and they stand in the wash. Surge raises the water until a wave breaks on them: a Crest. Ebb pulls it away until they are left on bare rock: a Strand.'],
       ] },

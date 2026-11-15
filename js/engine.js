@@ -223,6 +223,9 @@
   };
 
   /* ---------------- Map ---------------- */
+  /* The first row of a level's map that can hold a shop (rows count from 0, and row 0 is always a fight). In the
+     Shallows it is the third landing: an expedition starts with no Pearls, and two landings earn too few to spend. */
+  E.shopFrom = (run) => ((run.level || 0) === 0 ? 2 : 1);
   function genMap(run) {
     const R = makeR(run);
     const grid = [];
@@ -257,6 +260,8 @@
     const parentsOf = (n) => (n.row === 0 ? [] : grid[n.row - 1].filter((p) => p && p.next.indexOf(n.col) >= 0));
     const childrenOf = (n) => (n.row >= MAP_ROWS - 1 ? [] : n.next.map((c) => grid[n.row + 1][c]));
     const special = ['elite', 'rest', 'shop'];
+    // Wren sets out with no Pearls, so Barnaby keeps off the Shallows' first two landings (v0.33.0, the user's idea)
+    const shopFrom = E.shopFrom(run);
 
     for (let r = 0; r < MAP_ROWS; r++) {
       for (let c = 0; c < MAP_COLS; c++) {
@@ -268,7 +273,7 @@
         let opts = [['fight', 46], ['event', 22]];
         if (r >= 2) opts.push(['elite', 13]);
         if (r >= 2 && r <= 4) opts.push(['rest', 11]);
-        if (r >= 1) opts.push(['shop', 9]);
+        if (r >= shopFrom) opts.push(['shop', 9]);
         const ptypes = parentsOf(n).map((p) => p.type);
         opts = opts.filter((o) => !(special.indexOf(o[0]) >= 0 && ptypes.indexOf(o[0]) >= 0));
         n.type = R.weighted(opts);
@@ -290,13 +295,13 @@
         parentsOf(n).every((p) => p.type !== type) && childrenOf(n).every((ch) => ch.type !== type));
       while (count < minCount && guard++ < 50) {
         let cands = free('fight');
-        if (!cands.length && type === 'elite') cands = free('event'); // a map always has its Dreads
+        if (!cands.length && (type === 'elite' || type === 'shop')) cands = free('event'); // a map always has its Dreads, and its two shops
         if (!cands.length) break;
         R.pick(cands).type = type;
         count++;
       }
     };
-    ensure('shop', 2, 1, MAP_ROWS - 2);
+    ensure('shop', 2, shopFrom, MAP_ROWS - 2);
     ensure('elite', 2, 2, MAP_ROWS - 2);
     ensure('rest', 1, 2, 4);
     ensure('event', 2, 1, MAP_ROWS - 2);
@@ -485,7 +490,7 @@
        rest   heal 50% of Max HP (a Cove heals 30%; a current that lowers Coves lowers this in step, and the Spare Wick adds its 10)
        refit  upgrade a card
        shed   remove a card, free (Barnaby charges 75 and more)
-       flask  a random tonic, into an empty slot
+       flask  a random tonic into every empty slot, no two alike (one tonic until v0.33.0: the user found it weak)
        cache  the keepers' cache: 1 of 3 cards, uncommon or rare (seen before choosing; looking costs nothing)
      She may go on down with picks unused. */
   E.STAIR_PICKS = 2;
@@ -528,7 +533,11 @@
       if (!c || (id === 'refit' && !E.canUpgrade(c))) return null;
       out.card = Object.assign({}, c, id === 'refit' ? { up: 1 } : {});
       if (id === 'refit') c.up = 1; else E.removeCard(run, arg);
-    } else if (id === 'flask') out.tonic = E.gainRandomTonic(run);
+    } else if (id === 'flask') {
+      const pool = makeR(run).shuffle(Object.keys(BL.TONICS));
+      out.tonics = [];
+      while (run.tonics.indexOf(null) >= 0 && pool.length) { const t = pool.shift(); E.gainTonic(run, t); out.tonics.push(t); }
+    }
     else if (id === 'cache') {
       const cid = E.stairCache(run)[arg];
       if (!cid) return null;
@@ -1189,11 +1198,11 @@
     const doused = P.st.doused || 0;
     delete P.st.doused;
     c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) + (E.has(run, 'cinder') && (c.turn - 1) % BL.KEEPSAKES.cinder.every === 0 ? 1 : 0) + (P.st.heartfire || 0) - doused);
-    if (doused) { c.dousedTurn = c.turn; fx(c, { t: 'doused', n: doused }); }
+    if (doused) { c.dousedTurn = c.turn; c.dousedN = doused; fx(c, { t: 'doused', n: doused }); }
     // a squeezed suit: fewer cards this turn (never fewer than 1)
     const breathless = P.st.breathless || 0;
     delete P.st.breathless;
-    if (breathless) { c.breathlessTurn = c.turn; fx(c, { t: 'breathless', n: breathless }); }
+    if (breathless) { c.breathlessTurn = c.turn; c.breathlessN = breathless; fx(c, { t: 'breathless', n: breathless }); }
     drawCards(run, c, Math.max(1, 5 + (c.turn === 1 && E.has(run, 'gullfeather') ? 2 : 0) - breathless));
     if (P.st.r_moonpull) surge(run, c, P.st.r_moonpull);
     fx(c, { t: 'turn', turn: c.turn });
@@ -1516,6 +1525,11 @@
       info.parts.push(`Attack for ${info.dmg}${info.hits > 1 ? ' x' + info.hits : ''}`);
       if (m.drain) info.parts.push('Heal as much HP as the attack takes from you');
       if (m.tip) info.parts.push(m.tip);
+      // an attack that follows the Swell: `swell` says how, and `calm` is what it would hit for at Swell 3
+      if (m.swell) {
+        info.swell = m.swell;
+        if (m.swell === 'mid') { const at3 = E.moveDamage(Object.assign({}, c, { tide: TIDE_MID }), e, m); info.calm = at3 > 0 ? attackValue(e, c.player, at3) : 0; }
+      }
     }
     if (m.ward) { info.kinds.push('defend'); info.parts.push(`Gain ${info.ward} Ward`); }
     if (m.expose) { info.kinds.push('buff'); info.parts.push('Open its eye: until it acts again it is Soaked, and takes 50% more damage from attacks and Crests. Then it Glares'); }
@@ -1583,7 +1597,7 @@
     const elite = c.kind === 'elite';
     let pearls = elite ? R.int(30, 40) : R.int(14, 22);
     pearls += c.bonusPearls || 0;
-    if (E.hasKit(run, 'pouch')) pearls += 10;
+    if (E.hasKit(run, 'pouch')) pearls += BL.KIT.pouch.pearls;
     const bonuses = [];
     if (!c.flags.hpLost) bonuses.push({ name: 'Flawless', desc: 'Won without losing HP', pearls: elite ? 20 : 12 });
     if (c.turn <= (elite ? 4 : 3)) bonuses.push({ name: 'Swift', desc: `Won on turn ${c.turn}`, pearls: elite ? 12 : 8 });
@@ -1714,7 +1728,25 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord(), reached: 0, heard: [] });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [] });
+  /* What opens at the lighthouse as the player gets on, in the order it opens: the Workshop (the first Salvage), the
+     Lazaret (the first time home), the Diving Dress (carried home) and currents (the Heart home). `meta.told` lists the
+     ones the player has been shown: the UI tells each once, in a window that has to be acknowledged (v0.33.0, the user:
+     "it is easy to miss e.g. Currents"). */
+  E.FEATURES = ['workshop', 'lazaret', 'suit', 'currents'];
+  E.featureOpen = function (meta, id) {
+    if (id === 'workshop') return meta.earned > 0 || meta.owned.length > 0;
+    if (id === 'lazaret') return E.lazaretOpen(meta);
+    if (id === 'suit') return E.ownsKit(meta, 'suit');
+    if (id === 'currents') return E.currentsOpen(meta);
+    return false;
+  };
+  /* Open, and not told yet. */
+  E.featureNews = (meta) => E.FEATURES.filter((id) => E.featureOpen(meta, id) && (meta.told || []).indexOf(id) < 0);
+  E.tellFeatures = function (meta, ids) {
+    meta.told = (meta.told || []).concat((ids || []).filter((id, i, a) => E.FEATURES.indexOf(id) >= 0 && (meta.told || []).indexOf(id) < 0 && a.indexOf(id) === i));
+    return meta.told;
+  };
   /* A run has reached a level: the deepest one counts for good, even if Wren falls or turns back (not the tutorial or a
      debug-cheated run). Returns true when it is new, so the Hold has grown. */
   E.noteReached = function (meta, run) {
@@ -1820,6 +1852,8 @@
     if (m.reached >= 1) grant('outofbell');
     if (m.reached >= 2) grant('stillwater');
     if (rec.hearts > 0) grant('heartlight');
+    // what the player has been told is open (v0.33.0): lasting state from before counts everything already open as told
+    m.told = Array.isArray(m.told) ? m.told.filter((id, i, a) => E.FEATURES.indexOf(id) >= 0 && a.indexOf(id) === i) : E.FEATURES.filter((id) => E.featureOpen(m, id));
     return m;
   };
   E.achievementsMet = (run) => (run.tutorial ? [] : Object.keys(BL.ACHIEVEMENTS).filter((id) => BL.ACHIEVEMENTS[id].met(run)));

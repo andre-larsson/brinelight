@@ -43,7 +43,7 @@ test('the stair down offers two of five: rest, refit, shed, a flask and the keep
   assert.ok(!E.stairOpen(run));
 });
 
-test('the stair: refit upgrades a card, a flask fills an empty slot, and the cache shows 3 uncommon or rare cards until one is taken', () => {
+test('the stair: refit upgrades a card, the flasks fill every empty tonic slot, and the cache shows 3 uncommon or rare cards until one is taken', () => {
   const run = onStair(22, 70);
   assert.equal(E.stairWhy(run, 'rest'), 'You are at full health.');
   const jab = run.deck.find((c) => c.id === 'jab');
@@ -64,8 +64,18 @@ test('the stair: refit upgrades a card, a flask fills an empty slot, and the cac
   assert.equal(E.stairDo(full, 'flask'), null);
   full.tonics[1] = null;
   const f = E.stairDo(full, 'flask');
-  assert.ok(BL.TONICS[f.tonic]);
-  assert.equal(full.tonics[1], f.tonic);
+  assert.equal(f.tonics.length, 1);
+  assert.ok(BL.TONICS[f.tonics[0]]);
+  assert.equal(full.tonics[1], f.tonics[0]);
+  // every empty slot is filled, and no two of the new tonics are alike
+  for (let seed = 30; seed < 60; seed++) {
+    const empty = onStair(seed, 70);
+    assert.deepEqual(empty.tonics, [null, null, null]);
+    const got = E.stairDo(empty, 'flask').tonics;
+    assert.equal(got.length, 3);
+    assert.equal(new Set(got).size, 3, 'no two alike');
+    assert.deepEqual(empty.tonics, got);
+  }
 });
 
 test('the stair\'s rest: 50% of Max HP, lowered in step by Cold Coves, and the Spare Wick adds 10', () => {

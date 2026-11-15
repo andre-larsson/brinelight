@@ -60,7 +60,7 @@ test('the Harbour Hermit: In its Bell, its Ward stays from turn to turn, and a C
   assert.equal(c.enemies[0].ward, 0);
 });
 
-test('the Harbour Hermit pulls in, pinches and crushes, each Bell Crush 3 harder; at two thirds of its health it rings the harbour bell once', () => {
+test('the Harbour Hermit pulls in, pinches and crushes, each Bell Crush 3 harder; at half its health it rings the harbour bell once', () => {
   const { run, c } = fight(['harbour'], { kind: 'boss', level: 0 });
   safe(run);
   const h = c.enemies[0];
@@ -75,12 +75,18 @@ test('the Harbour Hermit pulls in, pinches and crushes, each Bell Crush 3 harder
   }
   assert.deepEqual(seen, ['withdraw', 'pinch', 'crush', 'pinch', 'crush', 'withdraw', 'pinch', 'crush', 'pinch', 'crush']);
   assert.deepEqual(crush, [15, 18, 21, 24]);
-  // hurt to two thirds: it rings once, two mites drop off the bell, and it gains 1 Might
-  h.hp = Math.floor(h.maxHp * BL.PIN_CALL);
+  // at two thirds it used to ring (until v0.33.0): not yet
+  assert.equal(BL.HERMIT_CALL, 1 / 2);
+  h.hp = Math.floor(h.maxHp * 2 / 3);
+  E.endTurn(run);
+  assert.notEqual(h.intent, 'ring', 'not at two thirds');
+  // hurt to half: it rings once, two mites drop off the bell, and it gains 1 Might
+  h.hp = Math.floor(h.maxHp * BL.HERMIT_CALL);
   E.endTurn(run);
   assert.equal(h.intent, 'ring');
   E.endTurn(run);
   assert.deepEqual(ids(c).sort(), ['harbour', 'mite', 'mite']);
+  assert.equal(BL.ENEMIES.mite.moves.nibble.dmg, 4, 'a Nibble is 4: a Brace (5 Ward) stops one with Ward to spare');
   assert.equal(h.st.might, 1);
   assert.ok(c.fx.some((f) => f.t === 'phase'));
   E.endTurn(run);

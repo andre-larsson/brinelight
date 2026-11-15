@@ -11,9 +11,9 @@ const BL = globalThis.BL;
 const E = BL.E;
 const S = BL.STORY;
 const img = (p) => path.join(__dirname, '..', 'img', p + '.webp');
-const texts = () => [S.title].concat(S.opening.map((b) => b.text),
+const texts = () => [S.title].concat(S.opening.map((b) => b.text), Object.values(S.scenes).flatMap((sc) => sc.beats.map((b) => b.text)),
   S.chapters.flatMap((c) => [c.title].concat(c.text || [], c.lock || [])),
-  S.world.flatMap((g) => g.items.flat()),
+  S.world.flatMap((g) => g.items.flatMap((r) => [r[0], r[1]].concat(r[2] && r[2].before ? [r[2].before] : []))),
   S.notes.flatMap((n) => [n.title, n.text, n.lock]));
 
 test('the title line is short and says who you are, what was taken and what to do', () => {
@@ -32,6 +32,29 @@ test('the opening is four pictures, each with its text and art that exists', () 
   assert.match(S.opening[0].text, /Wren, the lighthouse keeper of Saltmere, a harbour town/);
   assert.match(S.opening[0].text, /a magic fire called the Lantern Heart/);
   assert.match(S.opening[1].text, /an enchanted bell, the Bellwether/);
+});
+
+test('story scenes: one for each pin above the last, one for the dress and one for the Heart, each with pictures that exist and a chapter that replays it', () => {
+  const at = Object.values(S.scenes).map((sc) => sc.at);
+  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'heart']).sort());
+  Object.keys(S.scenes).forEach((id) => {
+    const sc = S.scenes[id];
+    assert.ok(sc.beats.length >= 1 && sc.beats.length <= 4, `${id}: a scene is one to four pictures`);
+    sc.beats.forEach((b) => {
+      assert.ok(b.text.length > 40 && b.text.split(/\s+/).length <= 60, `${id}: a beat is a few lines`);
+      assert.ok(b.pos && b.wide, `${id}: a beat says where its picture sits`);
+      assert.ok(fs.existsSync(img(b.art)), b.art);
+      if (b.found) assert.ok(BL.KIT[b.found] && BL.KIT[b.found].found, `${id}: ${b.found} is kit that is found`);
+    });
+    assert.equal(S.chapters.filter((c) => c.scene === id).length, 1, `${id}: one chapter replays it`);
+  });
+  // the scene opens with the chapter that replays it: the same mark
+  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', heart: 'heart' };
+  S.chapters.filter((c) => c.scene).forEach((c) => assert.equal(c.when, mark[S.scenes[c.scene].at], c.id));
+  // the Belfry is named for the first time when Dark Water's pin breaks, and the dress is found there
+  assert.match(S.scenes.buoy.beats[1].text, /The keepers called it the Belfry/);
+  assert.equal(S.scenes.buoy.beats[2].found, 'suit');
+  assert.doesNotMatch(S.scenes.hermit.beats.map((b) => b.text).join(' '), /Belfry|Dark Water/);
 });
 
 test('chapter 1 is the opening and is always open; every other entry is locked behind a mark it names', () => {

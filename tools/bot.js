@@ -104,7 +104,7 @@ function chooseSwellAct(run, endOfTurn, opts = {}) {
 
 /* The stair down (v0.31.0): two of five, in this order of need. Rest first below 60% HP; take out a plain starter
    Brace (or a curse); the keepers' cache, its rare if it has one; upgrade a card (one that isn't a starter first);
-   a tonic for an empty slot. opts.noStair rests as at a Cove instead (the stair before v0.31.0). */
+   tonics for the empty slots (before the upgrade when two or more are empty). opts.noStair rests as at a Cove instead (the stair before v0.31.0). */
 function stair(run) {
   const { BL, E } = load();
   const want = [];
@@ -114,6 +114,7 @@ function stair(run) {
   const cache = E.stairCache(run), rare = cache.findIndex((id) => BL.CARDS[id].rarity === 'rare');
   want.push(['cache', rare >= 0 ? rare : 0]);
   const ups = E.upgradeable(run), up = ups.find((c) => !BL.STARTER_DECK.includes(c.id)) || ups[0];
+  if (run.tonics.filter((t) => !t).length >= 2) want.push(['flask']);
   if (up) want.push(['refit', up.uid]);
   want.push(['flask'], ['rest']);
   for (const [id, arg] of want) {
