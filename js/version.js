@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.33.0';
+  BL.VERSION = '0.34.0';
   BL.CHANGELOG = [
+    { v: '0.34.0', date: '2026-11-15', items: [
+      'The Belfry has only its own creatures now. Dark Water\'s Murk Ray, Lantern Eel, Gloom Jelly, Glimmer Leech and Glimmer Chain no longer come down the last stair.',
+      'New in the Belfry: the Listener. It has no eyes, and it hears every card you play: its Pounce hits 5, and 2 harder for each card you play that turn.',
+      'New in the Belfry: the Hollow Diver, an old keeper\'s diving dress that still walks. Its Cold Lamp hits 6 and douses your lantern, and its Leaden Step hits 11.',
+      'A new Dread in the Belfry: the Bell Yearling, a young Thing. It opens its eye and then glares for 20, as the Thing in the Bell does.',
+      'The Thing in the Bell has less HP and hits harder, so the fight is shorter and no easier. First time: 110 HP (was 150), Glare 30 (was 24), Drink the Light 9 (was 6). After the Heart is home: 130 HP (was 170), Glare 32, Drink the Light 10. A Grasping Arm\'s Lash hits 8 (was 7).',
+    ] },
     { v: '0.33.0', date: '2026-11-15', items: [
       'Breaking a pin tells its story in pictures, like the start of the game. The Harbour Hermit: two pictures. The Tolling Buoy: three, with the flooded stair below Dark Water and the old diving dress on the wall. One more when you carry the dress home and mend it, and four when the Heart comes home. Each plays once; Story so far plays them again.',
       'A window tells you when something opens at the lighthouse: the Workshop, the Lazaret, the mended Diving Dress, Currents. It says what the thing is and where to find it, and you close it yourself. Before, a line of small text on the end screen was all there was.',

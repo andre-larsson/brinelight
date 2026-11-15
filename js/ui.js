@@ -1884,12 +1884,13 @@
     // each part with a number shows it next to its icon: attack 3, Ward 4
     let parts = '';
     // an attack that follows the Swell (the Tolling Buoy's) shows a bell in place of the blade, with a wave beside its number
-    if (k.indexOf('attack') >= 0) parts += `${info.swell ? ICON.slot_bell : ICON.attack}<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>${info.swell ? `<i class="i-swell">${ICON.wave}</i>` : ''}`;
+    // one that grows with each card played (the Listener's) shows what a card adds after its number
+    if (k.indexOf('attack') >= 0) parts += `${info.swell ? ICON.slot_bell : ICON.attack}<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>${info.swell ? `<i class="i-swell">${ICON.wave}</i>` : ''}${info.heard ? `<i class="i-heard" aria-label="${info.heard} more for each card you play">+${info.heard}${ICON.deck || ''}</i>` : ''}`;
     if (k.indexOf('defend') >= 0) parts += `<i class="i-ward">${ICON.defend}${info.ward ? `<span>${info.ward}</span>` : ''}</i>`;
     if (k.indexOf('buff') >= 0) parts += ICON.buff;
     if (k.indexOf('debuff') >= 0) parts += ICON.debuff;
     if (k.indexOf('summon') >= 0) parts += ICON.summon;
-    return `<div class="intent ${main}${info.swell ? ' swell' : ''}" data-tip="intent:${e.uid}">${parts}</div>`;
+    return `<div class="intent ${main}${info.swell ? ' swell' : ''}${info.heard ? ' heard' : ''}" data-tip="intent:${e.uid}">${parts}</div>`;
   }
 
   function updateUnitInfo(el, hp, max, ward, o, who) {

@@ -333,6 +333,15 @@
     },
       anchor: () => `.unit.enemy[data-uid="${pealUid}"] .intent`, side: 'below',
       html: () => `<b>Wild Peal</b>: every Crest or Strand you make this turn muffles it by ${BL.PEAL.quiet}. Make ${Math.ceil(BL.PEAL.dmg / BL.PEAL.quiet)} and it doesn't hit at all.` });
+    // a Listener's Pounce, the first time one is coming
+    let pounceUid = null;
+    HINTS.push({ id: 'pounce', when: (r) => {
+      const b = r.screen === 'combat' && !r.tutorial && r.combat.phase === 'player' && r.combat.enemies.find((e) => !e.dead && e.intent === 'pounce');
+      if (b) pounceUid = b.uid;
+      return !!b;
+    },
+      anchor: () => `.unit.enemy[data-uid="${pounceUid}"] .intent`, side: 'below',
+      html: () => `<b>The Listener hears you.</b> Its Pounce hits ${BL.LISTEN.per} harder for each card you play this turn. Play fewer, or kill it first.` });
     HINTS.push({ id: 'st-doused', when: (r) => r.screen === 'combat' && r.combat.dousedTurn === r.combat.turn && r.combat.phase === 'player', anchor: '#orb',
       html: () => '<b>Doused</b>: something drank from your lantern, so you have less Light this turn. An enemy\'s intent warns you a turn before.' });
     // Breathless shows on the draw pile at the start of the turn it costs you cards

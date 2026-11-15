@@ -1460,3 +1460,7 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .tb-hint.note { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 650; color: #ffe6c0; border: 1px solid rgba(255, 196, 110, .5); }
 .tb-hint.note svg { width: 14px; height: 14px; color: #ffc46e; }
 .tb-hint.note b { color: #fff; }
+
+/* v0.34.0: the Listener's Pounce says what each card played adds */
+.intent .i-heard { display: inline-flex; align-items: center; gap: 1px; margin-left: 4px; font-style: normal; font-size: 12px; font-weight: 800; color: #ffd27a; }
+.intent .i-heard svg { width: 12px; height: 12px; }

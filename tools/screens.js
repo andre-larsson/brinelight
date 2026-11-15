@@ -58,7 +58,9 @@ const SIZES = {
       await page.goto(base + '?seed=4242');
       // review the screens themselves: mark the first-time hints and the tutorial offer as seen
       await page.eval(`(() => { localStorage.setItem('brinelight.hints.v1', JSON.stringify(window.Brinelight.teach ? window.Brinelight.teach.hintIds() : [])); localStorage.setItem('brinelight.tutorial.v1', 'done');
-        const en = window.BL.E.storyEntries(); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true, marks: en.map((x) => x.when).filter(Boolean), read: en.map((x) => x.id) })); })()`);
+        const en = window.BL.E.storyEntries(); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true, marks: en.map((x) => x.when).filter(Boolean), read: en.map((x) => x.id), scenes: Object.keys(window.BL.STORY.scenes) }));
+        // (and the story scenes as played and what opens at the lighthouse as told: each has a shot of its own below)
+        localStorage.setItem('brinelight.meta.v1', JSON.stringify({ told: window.BL.E.FEATURES })); })()`);
       await page.goto(base + '?seed=4242');
       await sleep(400);
       await shot(tag, '01_title');
@@ -187,6 +189,13 @@ const SIZES = {
       await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'elite', ['oarfish']); r.combat.enemies[0].intent = 'coil'; r.combat.player.st.breathless = 1; B.render();`);
       await sleep(1800);
       await shot(tag, '41_belfry_oarfish');
+      // v0.34.0: the Belfry's own creatures: a Listener about to pounce beside a Hollow Diver, and the Bell Yearling's Glare
+      await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'hard', ['listener', 'diver']); r.combat.enemies[0].intent = 'pounce'; r.combat.enemies[1].intent = 'lamp'; B.render();`);
+      await sleep(1800);
+      await shot(tag, '41b_belfry_listener');
+      await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'elite', ['yearling']); r.combat.enemies[0].intent = 'glare'; r.combat.enemies[0].st.soaked = 1; B.render();`);
+      await sleep(1800);
+      await shot(tag, '41c_belfry_yearling');
       await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'boss', ['bell']); r.combat.enemies[0].intent = 'toll'; B.render();`);
       await sleep(1800);
       await shot(tag, '42_bellwether');
@@ -204,6 +213,14 @@ const SIZES = {
       await setup(`const r = E.newRun(4242, 1); B.run = r; E.startCombat(r, 'elite', ['strider']); E.endTurn(r); r.combat.enemies[0].intent = 'graze'; B.render();`);
       await sleep(1800);
       await shot(tag, '47_dark_strider');
+      // v0.33.0: a story scene (the Tolling Buoy's, its last picture) and the New at the lighthouse window
+      await setup(`B.run = null; B.render(); B.closeOverlay(true); B.showOpening(0, null, true, 'buoy'); B.showOpening(2);`);
+      await sleep(700);
+      await shot(tag, '48_scene_buoy');
+      await setup(`B.closeOverlay(true); B.meta.told = []; B.meta.earned = Math.max(B.meta.earned || 0, 10); B.meta.lazOpen = true; B.run = null; B.render();`);
+      await sleep(400);
+      await shot(tag, '49_news');
+      await setup(`E.tellFeatures(B.meta, E.FEATURES); B.saveMeta(); B.closeOverlay(true);`);
       await setup(`B.run = null; B.render(); document.querySelector('[data-act="help"]').click();`);
       await setup(`document.querySelector('[data-act="helptab"][data-tab="keywords"]').click();`);
       await shot(tag, '36_help_keywords');

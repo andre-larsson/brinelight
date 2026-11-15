@@ -1168,6 +1168,7 @@
     c.phase = 'player';
     c.turnCrests = 0;
     c.turnLows = 0;
+    c.turnCards = 0; // cards played this turn: a Listener hears each one
     c.lastPlayed = null;
     const P = c.player;
     // Thrash lands before last turn's Ward washes away, so Ward left over after the enemies stops it
@@ -1247,6 +1248,7 @@
     c.light -= E.cost(card, c);
     c.hand.splice(idx, 1);
     run.stats.cardsPlayed++;
+    c.turnCards = (c.turnCards || 0) + 1;
     c.lastPlayed = card.uid; // what a Pale Gulper swallows
     fx(c, { t: 'play', uid: card.uid, target: target ? target.uid : null, type: d.type });
     const A = api(run, c);
@@ -1525,6 +1527,8 @@
       info.parts.push(`Attack for ${info.dmg}${info.hits > 1 ? ' x' + info.hits : ''}`);
       if (m.drain) info.parts.push('Heal as much HP as the attack takes from you');
       if (m.tip) info.parts.push(m.tip);
+      // an attack that hits harder for each card played this turn (the Listener's): `heard` is how much a card adds
+      if (m.heard) { info.heard = m.heard; info.parts.push(`It hears you: ${m.heard} more for each card you play this turn (${c.turnCards || 0} so far)`); }
       // an attack that follows the Swell: `swell` says how, and `calm` is what it would hit for at Swell 3
       if (m.swell) {
         info.swell = m.swell;

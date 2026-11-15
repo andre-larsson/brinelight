@@ -192,8 +192,8 @@ test('the Bellwether does not die: its bronze breaks, the Thing in the Bell come
   assert.ok(!c.won);
   assert.equal(bell.id, 'bellthing');
   assert.equal(bell.name, 'The Thing in the Bell');
-  assert.equal(bell.hp, 150);
-  assert.equal(bell.maxHp, 150);
+  assert.equal(bell.hp, 110);
+  assert.equal(bell.maxHp, 110);
   assert.deepEqual(ids(c), ['bellthing', 'arm', 'arm']);
   assert.equal(run.hp, 20 + 24, '30% of max HP');
   assert.equal(c.player.st.heartfire, 1);
@@ -252,7 +252,7 @@ test('the Thing in the Bell drinks from your lantern through its arms, opens its
   assert.equal(t.ward, 8);
   assert.ok(t.st.soaked >= 1);
   assert.equal(t.intent, 'glare');
-  assert.equal(E.intentInfo(run, t).dmg, 24);
+  assert.equal(E.intentInfo(run, t).dmg, 30);
   // cut one arm: it drinks 1 less; Reach grows it back
   a1.hp = 0;
   a1.dead = true;
@@ -424,18 +424,75 @@ test('the numbers the README gives for the Belfry, its finals and the Harbour He
   assert.equal(M('belljelly').chime.echoOne, true);
   assert.deepEqual([M('spawn').squeeze.debuff, M('arm').grip.debuff], [{ breathless: 1 }, { breathless: 1 }]);
   assert.deepEqual([M('ringer').ring.ward, M('ringer').ring.echoAll], [8, true]);
-  assert.deepEqual(BL.BANDS.belfry.enc.elite, [['ringer', 'minnow'], ['oarfish'], ['chain']]);
+  assert.deepEqual(BL.BANDS.belfry.enc.elite, [['ringer', 'minnow'], ['oarfish'], ['yearling']]);
   const oar = E.newRun(1, 2);
   E.startCombat(oar, 'elite', ['oarfish']);
   assert.equal(oar.combat.enemies[0].st.spines, 2);
   assert.deepEqual([M('oarfish').coil.dmg, M('oarfish').coil.debuff, M('oarfish').lash.dmg, M('oarfish').lash.hits, M('oarfish').ram.dmg], [6, { breathless: 1 }, 3, 4, 13]);
   // the Bellwether and its second form
-  assert.deepEqual([hp('bell'), hp('bellthing')], [[160, 160], [150, 150]]);
-  assert.deepEqual([M('bellthing').eye.expose, M('bellthing').eye.ward, M('bellthing').glare.dmg, M('bellthing').reach.grow, M('bellthing').reach.ward], [2, 8, 24, { id: 'arm', max: 2 }, 12]);
+  assert.deepEqual([hp('bell'), hp('bellthing')], [[160, 160], [110, 110]]);
+  assert.deepEqual([M('bellthing').drink.dmg, M('bellthing').eye.expose, M('bellthing').eye.ward, M('bellthing').glare.dmg, M('bellthing').reach.grow, M('bellthing').reach.ward], [9, 2, 8, 30, { id: 'arm', max: 2 }, 12]);
+  assert.deepEqual([M('arm').lash.dmg, M('arm').grip.dmg], [8, 4]);
   // the finals
-  assert.deepEqual([hp('thing'), hp('cantor')], [[170, 170], [160, 160]]);
+  assert.deepEqual([hp('thing'), hp('cantor')], [[130, 130], [160, 160]]);
+  assert.deepEqual([M('thing').drink.dmg, M('thing').glare.dmg], [10, 32]);
   assert.deepEqual([M('cantor').lead.ward, M('cantor').lead.echoAll, M('cantor').toll.dmg(stub), M('cantor').call.grow], [12, true, 10, { id: 'ringer', max: 1 }]);
   // the kit: 20 pieces plus the Brass Tide-Bell, one of them found
   assert.equal(Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter).length, 20);
   assert.deepEqual(Object.keys(BL.KIT).filter((id) => BL.KIT[id].found), ['suit']);
+});
+
+/* ---------- The Belfry's own creatures (v0.34.0) ---------- */
+test("every creature in the Belfry is its own: none of Dark Water's or the Shallows' comes down", () => {
+  const up = new Set();
+  ['shallows', 'dark'].forEach((b) => { const en = BL.BANDS[b].enc; Object.keys(en).forEach((k) => en[k].forEach((list) => list.forEach((id) => up.add(id)))); });
+  const en = BL.BANDS.belfry.enc;
+  const here = new Set();
+  Object.keys(en).forEach((k) => en[k].forEach((list) => list.forEach((id) => here.add(id))));
+  [...here].forEach((id) => assert.ok(!up.has(id), id + ' is also met above the Belfry'));
+  ['listener', 'diver', 'yearling', 'spawn', 'belljelly', 'bladder', 'minnow', 'ringer', 'oarfish'].forEach((id) => assert.ok(here.has(id), id));
+  ['listener', 'diver', 'yearling'].forEach((id) => assert.ok(BL.STORY.notes.some((n) => n.when === 'en:' + id), 'a keeper\'s note for ' + id));
+});
+
+test('a Listener hears every card: its Pounce hits 5, and 2 harder for each card played that turn', () => {
+  const { run, c } = fight(['listener'], { hand: ['brace', 'brace', 'jab'] });
+  const L = c.enemies[0];
+  L.intent = 'pounce';
+  assert.deepEqual([BL.LISTEN.dmg, BL.LISTEN.per], [5, 2]);
+  assert.equal(E.intentInfo(run, L).dmg, 5);
+  assert.equal(E.intentInfo(run, L).heard, 2);
+  E.playCard(run, c.hand[0].uid);
+  assert.equal(E.intentInfo(run, L).dmg, 7, 'one card heard');
+  E.playCard(run, c.hand[0].uid);
+  assert.equal(E.intentInfo(run, L).dmg, 9, 'two cards heard');
+  // two Braces are 10 Ward: the Pounce for 9 takes none of her HP, and the next turn it has heard nothing
+  const hp0 = c.player.hp;
+  E.endTurn(run);
+  assert.equal(c.player.hp, hp0);
+  assert.equal(c.turnCards, 0);
+  L.intent = 'pounce';
+  assert.equal(E.intentInfo(run, L).dmg, 5);
+  assert.deepEqual(BL.ENEMIES.listener.moves.hush.ward, 8);
+});
+
+test('a Hollow Diver: Cold Lamp hits 6 and douses, Leaden Step hits 11, Seal Up gives 9 Ward', () => {
+  const M = BL.ENEMIES.diver.moves;
+  assert.deepEqual([M.lamp.dmg, M.lamp.debuff, M.step.dmg, M.seal.ward], [6, { doused: 1 }, 11, 9]);
+  const { run, c } = fight(['diver']);
+  c.enemies[0].intent = 'lamp';
+  const light = c.maxLight != null ? c.maxLight : c.light;
+  E.endTurn(run);
+  assert.equal(c.light, light - 1, 'Doused: 1 less Light the next turn');
+  assert.equal(c.dousedN, 1);
+});
+
+test('the Bell Yearling does what the Thing does: Squeeze 9 and Breathless, The Eye Opens (Soaked 2, 8 Ward), then Glare 20, then Lash 5 twice', () => {
+  const M = BL.ENEMIES.yearling.moves;
+  assert.deepEqual([M.squeeze.dmg, M.squeeze.debuff, M.eye.expose, M.eye.ward, M.glare.dmg, M.lash.dmg, M.lash.hits], [9, { breathless: 1 }, 2, 8, 20, 5, 2]);
+  assert.equal(BL.ENEMIES.yearling.elite, true);
+  const { run, c } = fight(['yearling'], { kind: 'elite' });
+  const Y = c.enemies[0];
+  const seen = [];
+  for (let i = 0; i < 5 && !c.lost; i++) { seen.push(Y.intent); c.player.hp = c.player.maxHp; E.endTurn(run); if (i === 1) assert.ok((Y.st.soaked || 0) > 0, 'its eye is open: Soaked'); }
+  assert.deepEqual(seen, ['squeeze', 'eye', 'glare', 'lash', 'squeeze']);
 });

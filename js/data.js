@@ -420,6 +420,8 @@
   /* The Harbour Hermit rings for its mites at half its health (two thirds until v0.33.0: the user met it at 83 of 150
      and found that "just a bit too early", with most of the Hermit still to break). */
   BL.HERMIT_CALL = 1 / 2;
+  // a Listener's Pounce: `dmg`, and `per` more for each card played that turn
+  BL.LISTEN = { dmg: 5, per: 2 };
   /* The Pale Gulper, a Dread of Dark Water, retches up two Glimmer Leeches once it is down to this share of its health. */
   BL.DREAD_CALL = 1 / 2;
   /* The Tolling Buoy's Wild Peal: this much damage, less this much for each Crest or Strand you make that turn. */
@@ -709,7 +711,39 @@
       },
       ai: cycleFrom(['bump', 'bloat', 'bump']),
     },
+    // eyeless, with two fans of skin that hear the bell: it hunts by sound, and every card played is a sound
+    listener: {
+      name: 'Listener', hp: [26, 29], art: 'listener', scale: 0.95,
+      init: (e, R, idx) => { e.mem.offset = idx % 2; },
+      moves: {
+        pounce: { name: 'Pounce', dmg: (e, c) => BL.LISTEN.dmg + BL.LISTEN.per * ((c && c.turnCards) || 0), heard: BL.LISTEN.per },
+        hush: { name: 'Hush', ward: 8 },
+      },
+      ai: cycleFrom(['pounce', 'hush']),
+    },
+    // an old keeper's diving dress, walking, with nothing in it but what grew in through the seams
+    diver: {
+      name: 'Hollow Diver', hp: [32, 36], art: 'diver', scale: 1.05,
+      init: (e, R) => { e.mem.offset = R.int(0, 2); },
+      moves: {
+        lamp: { name: 'Cold Lamp', dmg: 6, debuff: { doused: 1 } },
+        step: { name: 'Leaden Step', dmg: 11 },
+        seal: { name: 'Seal Up', ward: 9 },
+      },
+      ai: cycleFrom(['lamp', 'step', 'seal']),
+    },
     // Dreads
+    // a young Thing, a year out of the bronze: it does what the old one does, smaller
+    yearling: {
+      name: 'Bell Yearling', hp: [72, 76], art: 'yearling', scale: 1.25, elite: true,
+      moves: {
+        squeeze: { name: 'Squeeze', dmg: 9, debuff: { breathless: 1 } },
+        eye: { name: 'The Eye Opens', expose: 2, ward: 8 },
+        glare: { name: 'Glare', dmg: 20 },
+        lash: { name: 'Lash', dmg: 5, hits: 2 },
+      },
+      ai: cycleFrom(['squeeze', 'eye', 'glare', 'lash']),
+    },
     ringer: {
       name: 'Drowned Ringer', hp: [60, 64], art: 'ringer', scale: 1.15, elite: true,
       init: (e, R, idx) => { e.mem.offset = idx ? R.int(1, 2) : 0; },
@@ -732,12 +766,12 @@
     },
     // the Bellwether's second form: the thing with one eye and many arms that grew into the bronze
     bellthing: {
-      name: 'The Thing in the Bell', hp: [150, 150], art: 'bellthing', scale: 1.55, boss: true,
+      name: 'The Thing in the Bell', hp: [110, 110], art: 'bellthing', scale: 1.55, boss: true, // 150 until v0.34.0: less HP, harder hits
       arrive: ['arm', 'arm'], // when it comes out of the bell, two of its arms come with it
       moves: {
-        drink: { name: 'Drink the Light', dmg: 6, douseArms: true },
+        drink: { name: 'Drink the Light', dmg: 9, douseArms: true },
         eye: { name: 'The Eye Opens', expose: 2, ward: 8 },
-        glare: { name: 'Glare', dmg: 24 },
+        glare: { name: 'Glare', dmg: 30 },
         reach: { name: 'Reach', grow: { id: 'arm', max: 2 }, ward: 12 },
       },
       ai: (e) => {
@@ -750,18 +784,18 @@
       name: 'Grasping Arm', hp: [15, 17], art: 'arm', scale: 0.95,
       init: (e, R, idx) => { e.mem.offset = idx % 2; },
       moves: {
-        lash: { name: 'Lash', dmg: 7 },
+        lash: { name: 'Lash', dmg: 8 },
         grip: { name: 'Grip', dmg: 4, debuff: { breathless: 1 } },
       },
       ai: cycleFrom(['lash', 'grip']),
     },
     // after the Heart has come home, the Belfry's last landing is one of these (BL.BANDS.belfry.enc.finals)
     thing: {
-      name: 'The Thing in the Bell', hp: [170, 170], art: 'bellthing', scale: 1.55, boss: true,
+      name: 'The Thing in the Bell', hp: [130, 130], art: 'bellthing', scale: 1.55, boss: true, // 170 until v0.34.0
       moves: {
-        drink: { name: 'Drink the Light', dmg: 7, douseArms: true },
+        drink: { name: 'Drink the Light', dmg: 10, douseArms: true },
         eye: { name: 'The Eye Opens', expose: 2, ward: 8 },
-        glare: { name: 'Glare', dmg: 26 },
+        glare: { name: 'Glare', dmg: 32 },
         reach: { name: 'Reach', grow: { id: 'arm', max: 2 }, ward: 12 },
       },
       ai: (e) => {
@@ -857,12 +891,14 @@
       win: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. The thing that grew into the bell lets go of the Heart and sinks away into the dark under the floor. You carry the Heart up three levels of stairs, and by dawn the great light of Saltmere is turning again.',
       quiet: 'The Belfry goes quiet. The broken bell hangs still over the place where the Heart lay, and a faint light stays behind there, as it always does. You climb home with what you found.',
       enc: {
-        easy: [['belljelly', 'minnow', 'minnow'], ['spawn', 'minnow'], ['bladder', 'bladder'], ['ray', 'belljelly'], ['spawn', 'leech'], ['bladder', 'eel']],
+        // every creature here is the Belfry's own (v0.34.0; before, Dark Water's Murk Ray, Glimmer Leech, Lantern Eel,
+        // Gloom Jelly and Glimmer Chain came down too)
+        easy: [['belljelly', 'minnow', 'minnow'], ['spawn', 'minnow'], ['bladder', 'bladder'], ['listener', 'belljelly'], ['diver', 'minnow'], ['bladder', 'listener']],
         hard: [
-          ['belljelly', 'spawn'], ['spawn', 'spawn'], ['bladder', 'bladder', 'minnow'], ['belljelly', 'ray'], ['bladder', 'spawn'],
-          ['spawn', 'jelly', 'minnow'], ['belljelly', 'bladder', 'minnow'], ['ray', 'spawn'], ['eel', 'belljelly', 'leech'],
+          ['belljelly', 'spawn'], ['spawn', 'spawn'], ['bladder', 'bladder', 'minnow'], ['diver', 'belljelly'], ['bladder', 'spawn'],
+          ['spawn', 'listener', 'minnow'], ['belljelly', 'bladder', 'minnow'], ['diver', 'spawn'], ['listener', 'diver'],
         ],
-        elite: [['ringer', 'minnow'], ['oarfish'], ['chain']],
+        elite: [['ringer', 'minnow'], ['oarfish'], ['yearling']],
         boss: [['bell']],
         finals: [['thing', 'arm', 'arm'], ['cantor']],
       },
@@ -1314,6 +1350,12 @@
         text: 'Jellyfish shaped like little bells, with a glowing clapper inside. When one chimes, the Belfry rings with it, and whatever hears it does its next thing twice.' },
       { id: 'bladder', title: 'Glimmer Bladders', when: 'en:bladder', lock: 'Found in the Belfry.', art: 'units/bladder',
         text: 'Light-eaters that found the Heart. They have drunk so much of its light that they cannot hold it, and they burst when they die. Brace before you kill one, or kill it next to its friends.' },
+      { id: 'listener', title: 'Listeners', when: 'en:listener', lock: 'Found in the Belfry.', art: 'units/listener',
+        text: 'They have no eyes. Nothing that was born under the bell has needed them. They have two fans of thin skin where the eyes would be, and with those they hear the Bellwether through a mile of rock. They hear you as well. Every card you play is a sound, and a Listener that is about to pounce hits harder for each one. Sometimes the right thing to do is less.' },
+      { id: 'diver', title: 'The Hollow Divers', when: 'en:diver', lock: 'Found in the Belfry.', art: 'units/diver',
+        text: 'Keepers went down to the bell in diving dresses like yours, and some of the dresses are still walking. There is no keeper in them. Pale things grew in through the rotted seams and filled the canvas the way a hand fills a glove, and they have learned to walk it. The lamp on the helmet still burns, cold, and it drinks from yours.' },
+      { id: 'yearling', title: 'The Bell Yearling', when: 'en:yearling', lock: 'Found at a Dread in the Belfry.', art: 'units/yearling',
+        text: 'Too big for Bellspawn and too small for a bell. It wears a piece of broken bronze on its head, as a hermit crab wears a shell it means to grow out of, and it is looking for a bigger one. It has one eye. When the eye opens it can be hurt, and then it glares. Remember that. Something larger down here does the same.' },
       { id: 'ringer', title: 'The Drowned Ringers', when: 'en:ringer', lock: 'Found at a Dread in the Belfry.', art: 'units/ringer',
         text: 'Keepers who went down to tend the bell and stayed. They still carry their hand-bells, and they still ring them for the Bellwether. When a Ringer rings out, every creature that hears it does its next thing twice. One of them may be the keeper from the diving bell, who stopped counting at two hundred and twelve days.' },
       { id: 'oarfish', title: 'The Crowned Oarfish', when: 'en:oarfish', lock: 'Found at a Dread in the Belfry.', art: 'units/oarfish',

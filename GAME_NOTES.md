@@ -1295,7 +1295,85 @@ With the old bot, the Purse, Pouch and Scales played exactly the same runs as th
 
 **Tests.** The rule tests cover each number above (192 pass). In the UI test, the Belfry scenario plays the Buoy's scene, the mending scene and the dress in the New at the lighthouse window, and checks that the scene does not play twice and that Go home has the focus when the scene closes (it did not at first: the scene covered the pin screen while it drew). The Lazaret scenario checks that the window waits for Got it and is told once. The other scenarios start with the scenes seen and the features told. The Jukebox's "previous" check now winds the song back first: previous goes back only in a song's first 3 s, and on a busy machine the test's own wait outlasted them.
 
+**Measured** (the bot that shops, 3000 seeds, first expedition in the dress; run from a copy of the commit so later edits could not leak in; spec `specs/v033.js` in the session scratchpad):
+
+| Row | Shallows' pin | Dark Water's share | Belfry's share | Heart |
+|---|---|---|---|---|
+| v0.33.0 | 39.5 | 40.0 | 67.9 | 10.7 |
+| the old values (shop from row 1, Hermit at 2/3, Nibble 5) | 29.2 | 40.3 | 73.4 | 8.6 |
+| only the shop rows put back | 38.2 | 37.8 | 68.2 | 9.9 |
+| only the Hermit's call put back | 36.2 | 40.3 | 74.0 | 10.8 |
+| only Nibble 5 put back | 36.2 | 39.6 | 67.9 | 9.7 |
+| v0.33.0 with the Gleaner's Pouch (6) | 40.4 | 39.3 | 71.3 | 11.3 |
+| the Pouch at 10 | 40.8 | 42.3 | 71.4 | 12.3 |
+| v0.33.0 with the Coin Purse | 41.3 | 41.6 | 70.2 | 12.1 |
+
+- **The Shallows' pin is 10 points easier for the bot** (29.2% to 39.5%). The Hermit's later call and the Mites' Nibble give about 3 points each alone and more together; the shop rows give 1. The bot is not the user, who fell to the Hermit on run 1 and asked for both. If the Hermit now feels soft, put Nibble back to 5 first.
+- **The Pouch at 6 is worth about what the Purse is** (Heart +0.6 against +1.4; at 10 it gave +1.6). The noise on the Heart is about ±0.6, so these three cannot be told apart by the bot.
+
 **Not built: for the user to decide.** See the proposals in the next section.
+
+### The Belfry's own creatures, and a Thing with less HP (v0.34.0, 2026-11-15)
+
+- **The user's notes** (run 4 of the playtest above): the Belfry "has some of the same enemies as Dark Water? Should have its own set of enemies, scarier/darker/more horror than previous ones. New enemies came later and I think they were good." And "Final Thing in the Bell feels too spongy, should have less hp, without being easier."
+
+**Built** (provisional numbers; the old ones are given):
+
+- **Nothing from above comes down.** The Murk Ray, Lantern Eel, Gloom Jelly, Glimmer Leech and Glimmer Chain are out of `BL.BANDS.belfry.enc`. A test checks that no creature of the Belfry is met in the Shallows or Dark Water.
+- **Listener** (26 to 29 HP). Pounce hits `BL.LISTEN.dmg` 5, and `per` 2 more for each card played that turn (`c.turnCards`, new, reset at the start of a turn); Hush gives it 8 Ward. The two alternate. The intent counts up as cards are played and shows "+2" with a card; a first-time hint explains it. It is the first creature that punishes playing cards, so the choice is new: play less this turn, or kill it first. Two Braces are 10 Ward against a Pounce of 9.
+- **Hollow Diver** (32 to 36 HP). Cold Lamp hits 6 and douses, Leaden Step hits 11, Seal Up gives 9 Ward. Doused was only the Chain's and the Thing's; now the Belfry's ordinary fights have it too, which is why the dashed mark of v0.33.0 matters more here.
+- **Bell Yearling** (a Dread, 72 to 76 HP), in the Glimmer Chain's place. Squeeze 9 and Breathless, The Eye Opens (Soaked 2 on itself, 8 Ward), Glare 20, Lash 5 twice, always in that order. It teaches the Thing's eye before the Thing: hit it while the eye is open, and have Ward ready the turn after.
+- **The Thing in the Bell**: 110 HP (was 150); after the Heart 130 (was 170). Glare 30 and 32 (were 24 and 26). Drink the Light 9 and 10 (were 6 and 7). A Grasping Arm's Lash 8 (was 7). With the Bellwether's 160 before it, the last landing is 270 HP in place of 310.
+- Three keeper's notes (37 now), three pictures (Codex; prompts in `assets-src/wanted-images.tsv`), and two shots in `tools/screens.js`.
+
+**Measured.** Few runs reach the Belfry at the real rules (about 470 of 3000), so the tuning used an instrument: every fight in the Shallows and Dark Water deals half damage, so 99% of runs arrive, with the bot's own decks (spec `specs/belfry1.js`, `belfry2.js`; 2000 seeds; noise about ±1). Compare these rows with each other only.
+
+| Row (soft levels above) | Belfry's share |
+|---|---|
+| the old Belfry (v0.33.0) | 70.8 |
+| own creatures as first written (Listener 4+2, Diver 10/5, Yearling 18/8), Thing unchanged | 73.1 |
+| the same, Thing 120/140 HP, attacks unchanged | 75.1 |
+| the same, Thing 120/140, Glare 28, Drink 8 | 72.6 |
+| the same, Thing 120/140, Glare 30, Drink 9 | 70.2 |
+| the same, Thing 110/130, Glare 30, Drink 9, arms' Lash 8 | 70.5 |
+| that Thing, Listener 5+2, Diver 11/6, Yearling 20/9 (**v0.34.0**) | 68.9 |
+| that Thing, Listener 6+2, Diver 12/7, Yearling 22/10 and 80 HP | 67.5 |
+
+At the real rules (3000 seeds, `specs/v034.js`): the Shallows' pin 39.5%, Dark Water's share 40.0%, the Belfry's share 69.2%, the Heart 10.9% (v0.33.0: 67.9% and 10.7%; the noise on the Belfry's share is about ±2.5). After the Heart, with the finals: 73.8%. So the Belfry is about as hard as it was for the bot, with 40 HP less on the Thing. The bot does not hold cards back from a Listener, so a person who does will find Listeners softer than these numbers say.
+
+### Proposals from the playtest on v0.32.0 (2026-11-15; none built, each is the user's call)
+
+**1. The Tolling Buoy is hard: "Not always you can change tide to reduce her attack."** The fight's idea is liked, so the options keep it. Each was measured alone (3000 seeds; Dark Water's share is 40.0% now, noise about ±1.5):
+
+| Option | Dark Water's share |
+|---|---|
+| a. The Toll adds 3 for each step from Swell 3 (4 now) | 42.4 |
+| b. The Toll grows 1 each time (2 now) | 44.9 |
+| c. Swell 2, 3 and 4 all count as calm: the Toll adds 4 for each step beyond those | 46.5 |
+| d. Wild Peal 24, and 8 off for each Crest or Strand (30 and 10 now) | 47.3 |
+| e. 150 HP (165 now) | 45.9 |
+| f. Haul the Chain does not douse | 44.1 |
+
+The agent recommends **c**. It answers the complaint directly: one Bail or Stir (1 Light, once a turn) always reaches the calm band from Swell 1 or 5, and a hand with no Swell card is no longer a full hit. It keeps the numbers that make the fight tense. If it is still too hard after that, add f, since Doused takes the Light the Bail needs.
+
+**2. Keepsakes and the Hold "need to do something more interesting".** What they do now: a keepsake is a passive bonus with a Roil number; over the Hold of 20, every 12 Roil adds a penalty to every fight; the choice is to take or leave. The user's three thoughts were rarer and stronger, sacrificing, and a Hold that grows. Directions, cheapest first:
+   - **a. Give one to the sea.** At a Cove or the stair, in place of resting: throw a keepsake in. It is gone for this expedition (it stays in the Lazaret if it came from there), and the sea pays for it by its Roil: heal 2 HP a Roil, or refit a card for every 10 Roil. A keepsake becomes something you can spend, and going over the Hold on purpose for a few fights becomes a plan. Small: one Cove choice, one screen.
+   - **b. A Roiled aether pays.** Each step over the Hold also adds to what a fight gives: +15% Pearls, or a better chance of a rare card. Now Roil is only a cost, so the right play is always to stay under. Small: numbers and two texts.
+   - **c. The Hold grows with deeds, inside one expedition.** +3 Hold for each pin broken (20, 23, 26). It was 20, 30, 40 by depth until v0.31.0, when the user fixed it at 20; this is a smaller version tied to what you did, not where you stand. Small.
+   - **d. Fewer and stronger.** Now every route passes a Wreck (1 of 3 keepsakes) on each level, a Dread gives 1 of 2, and shops sell them. With d, Dreads give no keepsake (a rare card and more Pearls in its place), and every keepsake does about half as much again for the same Roil. Each one matters more and the Hold fills more slowly. Medium: 20 keepsakes to retune and measure.
+   - **e. Keepsakes that wake.** Each has a deed that wakes it for the rest of the run (the Whale Tooth: make 5 Crests; the Tidewatch: end 3 turns at Swell 3), and awake it does double. Gives each fight a small side goal. Large: 20 deeds, UI for progress.
+   - The agent recommends **a and b together**: both are small, and together they turn the Hold from a limit into a dial. d is the direct answer to "more rare/powerful" and can follow once a and b have been played.
+
+**3. Starting at a level already completed.** The user: "it should be possible to start at previous completed levels ... by unlocking story slide (show in shortcut)". This reverses the 2026-11-12 call that every expedition starts at the shore, and the story says the water comes back before the next tide. Both can be kept if the shortcut is a place: **the keepers' shaft**, a well from the lighthouse cellar to each stair, barred from below; breaking a pin lets Wren unbar it (one more picture in that pin's scene). What has to be decided:
+   - **What Wren carries at the bottom of the shaft.** A deck that arrives at Dark Water has about 8 landings of cards, refits, a keepsake or two and Pearls. The starter deck there loses every time. Options: (i) a short draft at the top of the shaft (say 5 picks of 1 in 3 cards, 2 refits, 1 keepsake of 3, 60 Pearls for Dark Water; double for the Belfry), tuned with the bot so that the shaft is a little worse than a good arrival; (ii) the deck from her last arrival at that stair, saved; (iii) a fixed deck for each level. The agent recommends (i): it is quick, it is a choice, and it cannot be gamed.
+   - **What it costs.** Levels skipped give no score, Salvage or keepsakes, and the Logbook counts a Heart brought home "from the shore" apart from one by the shaft.
+   - **Size:** large (a new screen, a draft, balance for two starts, the Logbook, tests). A first slice could be the shaft to Dark Water only.
+
+**4. Different battle music in Dark Water.** Now every ordinary fight plays the score's "The Waves", with more parts the deeper you are. Options: (a) a second fight piece for the music box, written into `music/brinelight.scrim`, darker and slower, for Dark Water and the Belfry (the agent can write it; no cost); (b) a Gemini song without words for Dark Water's fights (the agent writes the prompt, the user generates it); (c) both, the song on Dreads only. The agent recommends (a) first.
+
+**5. New art for the Tolling Buoy.** "Tide Swings Its Tongue" has a woman's voice, and the user asked for a picture to fit it. Three drafts are in `assets-src/drafts/buoy/` (Codex; the same buoy, cage, lamp and chain in each): **figurehead** (a ship's figurehead of a woman lashed to the buoy's side with chain), **belle** (the bell itself cast as a woman in a wide skirt, the clapper glowing under the hem) and **singer** (a pale drowned woman inside the cage with her arms around the bell, singing). In-fight screenshots of each beside the current picture are in the report. Nothing in the game or the story changed. Each would need a line in WORLD.md: the buoy "rang off Saltmere's rocks before there was a lighthouse", so a figurehead from a wreck it failed to save fits best with what is written.
+
+**6. Which effects were unclear?** The user named Breathless and Doused "e.g.". Those two now leave a mark. Asked in the handoff which others.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -1752,6 +1830,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.34.0** (the bot that shops, 3000 seeds, first expedition in the dress): the Shallows' pin 39.5%, Dark Water's after it 40.0%, the Belfry's after that 69.2%, the Heart 10.9%; after the Heart, the finals 73.8%. v0.33.0: 39.5%, 40.0%, 67.9%, 10.7%. The Shallows' pin rose from 29.2% with v0.33.0's later Hermit call, Nibble 4 and shop rows (see "Playtest notes on v0.32.0").
 - **Bot run outcomes, v0.31.0** (the bot that shops, 1000 seeds, first expedition in the dress): the Shallows' pin 28.9%, Dark Water's after it 41.9%, the Belfry's after that 71.9%, the Heart 8.7% (see "The stair down, and a Hold that doesn't grow").
 - **Keepsake and kit values with the bot that shops, v0.31.0 rules** (2026-11-15): the Shallows' pin with each keepsake brought (34.5% with none; 1.07 Roil a point is the median price), and the expedition in the dress with each piece of kit (Heart 8.6% with none). The tables are in "Stair pictures, badges, the Jukebox player and the new bot's balance".
 - **Bot run outcomes** with the bot that shops, drinks tonics and uses the Bailer (2026-11-14), v0.24.0, 2000 seeds, first expedition in the dress: the Shallows' pin 33.8%, Dark Water's after it 32.9%, the Belfry's after that 70.7%, the Heart 7.8%. The same seeds with the old bot: 19.9%, 17.6%, 40.0%, 1.4% (see "The bot shops, drinks tonics and uses the Bailer"). Every number below is from the old bot.
@@ -1930,6 +2009,13 @@ The user asked how more characters could be added, and wanted to judge the look 
 
 ## Open questions for the next playtest
 
+- v0.33.0: Is the Harbour Hermit fair now, or soft (he calls at half, the Mites nibble for 4)? The bot wins 10 points more often.
+- v0.33.0: Do the story scenes come at the right moment, and are they the right length? Does the mending scene say enough about the dress?
+- v0.33.0: Did you see the New at the lighthouse window for each thing that opened? Is it too much, or should more things use it (a new kit piece, a new keepsake kept)?
+- v0.33.0: Can you read the Tolling Buoy's Toll and Peal from the bell intent and the note above the Swell bar? Is the fight still too hard (see proposal 1)?
+- v0.33.0: Besides Doused and Breathless, which effects were unclear after their hint was closed?
+- v0.34.0: Do the Listener, the Hollow Diver and the Bell Yearling make the Belfry feel like its own place, and darker? Did you hold cards back from a Listener?
+- v0.34.0: Is the Thing in the Bell less of a sponge at 110 HP, and is Glare 30 fair when the eye warns you a turn ahead?
 - Could you play the first real fight without opening How to Play?
 - Is the tutorial too long? Which bubbles felt unnecessary?
 - On the fight screen, what did you look at first?
