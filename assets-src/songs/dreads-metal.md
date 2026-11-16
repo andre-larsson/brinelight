@@ -24,6 +24,12 @@ Notes for the prompts:
   and "heavy" went through in the Buoy's versions B and D.
 - Each song is one voice (a male voice here, for contrast with the women's voices at the Buoy and on the title screen),
   with gang shouts or a choir where asked.
+- **Vocals in the nu-metal songs (1 to 3).** Gemini made the screamed Gardener's voice "a bit too stereotypically
+  screaming", "teen angst" (the user). What the user wants is a grown man's voice that contrasts with the music: soft,
+  low and menacing in the quiet parts, and a heavy, dark, deep growl in the loud ones (the user named Corey Taylor; the
+  prompts name no one). So the prompts describe that voice, mark each part as "low" or "a deep growl" rather than
+  "screamed", drop the capitals from the hooks, and say what to avoid (high-pitched, whiny, emo or pop-punk shouting,
+  teenage angst). The user's view of the ceiling: past this, quality is set by the model and by luck between takes.
 
 ## 1. The Gardener (the Garden Strider; early-Slipknot-like, as extreme as it goes)
 
@@ -35,20 +41,22 @@ Made more extreme twice on 2026-11-16 at the user's request: first "darker/heavi
 Slipknot", then "even more extreme (musicality-wise). Lyrics does not have to be very dark and extreme. only the music."
 So the style now asks for everything at once (sludge to blast beats, dissonant odd-time riffs, growls and shrieks, the
 kegs out of step with the kit, harsh noise), and the words are a furious groundskeeper ("Keep off!", "Put it back!")
-with no threat beyond that, which also makes a refusal less likely. Earlier versions are in git history (755e390, the
-melodic one; e419273, the first screamed one).
+with no threat beyond that, which also makes a refusal less likely. Gemini made that one (a770232) and did not refuse;
+the user found the feel right but the voice too stereotypically screaming, so the voice is now low and soft in the
+verses and a deep growl on the hooks (see the notes above). Earlier versions are in git history (755e390, the melodic
+one; e419273, the first screamed one; a770232, the extreme one with the screamed voice).
 
 ```
-The most extreme, abrasive metal you can make: raw late-1990s nu-metal crossed with death metal, grindcore, mathcore and harsh industrial noise. The tempo lurches without warning between a crushing half-time sludge at about 70 BPM and blast beats at about 220 BPM. Guitars tuned impossibly low play dissonant, atonal, stop-start riffs in odd time signatures, with squealing pinch harmonics, screaming feedback and walls of distortion, and slow, crushing breakdowns. A distorted bass grinds like a machine. The drums never rest: blast beats, machine-gun double-kicks, chaotic fills. Two extra percussionists hammer metal kegs, oil drums and trash cans at once, out of step with the drum kit; a DJ scratches records into shrieking noise; a sampler throws in static, grinding metal and bursts of harsh noise. Vocals: one male voice switching between deep guttural growls, high shrieks and rapid rap-screams, with a gang of voices screaming the hooks; one whispered break is the only quiet moment. Mixed raw, saturated and overwhelming, like a band in a basement at full volume. Between the blasts, water dripping in a cave and the click of long thin legs on stone. No clean singing, no clean guitar, no keyboards, no melody to hold on to. A scream in the first two seconds; it ends with one last blast cut to silence. Chaotic, relentless, overwhelming. About 3 minutes.
+The most extreme, abrasive metal you can make: raw late-1990s nu-metal crossed with death metal, grindcore, mathcore and harsh industrial noise. The tempo lurches without warning between a crushing half-time sludge at about 70 BPM and blast beats at about 220 BPM. Guitars tuned impossibly low play dissonant, atonal, stop-start riffs in odd time signatures, with squealing pinch harmonics, screaming feedback and walls of distortion, and slow, crushing breakdowns. A distorted bass grinds like a machine. The drums never rest: blast beats, machine-gun double-kicks, chaotic fills. Two extra percussionists hammer metal kegs, oil drums and trash cans at once, out of step with the drum kit; a DJ scratches records into shrieking noise; a sampler throws in static, grinding metal and bursts of harsh noise. The voice is the contrast: one grown man with a deep, dark, controlled voice, close to the microphone, calm at the centre of the chaos. In the verses he is low and menacing, half-spoken in a rhythmic, gravelly murmur, almost soft, which makes the music around him sound even heavier. On the hooks his voice drops into a deep, guttural growl from the chest, heavy and powerful, with weight and grit, never strained or high. A gang of deep voices shouts the hooks behind him. The whispered break is soft and intimate. Never whiny, never shrill, no high-pitched screaming, no emo or pop-punk shouting, no teenage angst. Mixed raw, saturated and overwhelming, like a band in a basement at full volume. Between the blasts, water dripping in a cave and the click of long thin legs on stone. No clean singing, no clean guitar, no keyboards, no melody to hold on to. A deep growl in the first two seconds; it ends with one last blast cut to silence. Chaotic, relentless, overwhelming. About 3 minutes.
 
 Lyrics:
 
 [Intro]
-(feedback, static, dripping water; a whisper) Someone's been in my garden.
-(screamed) SOMEONE'S BEEN IN MY GARDEN!
+(feedback, static, dripping water; low and soft, close) Someone's been in my garden.
+(a deep growl) Someone's been in my garden.
 
 [Verse 1]
-(rap-screamed, rapid)
+(low, calm and menacing, half-spoken, rhythmic)
 Up on my stilts in the still black pool,
 I tend every bead and I keep one rule,
 every bead's a light and every light is mine,
@@ -59,23 +67,23 @@ you picked one bead and it hardened to a pearl,
 you took a little light from the Gardener's world!
 
 [Pre-Chorus]
-(whispered)
+(soft, almost a whisper)
 Something tends the garden.
 Something walks the rows.
 Something counts the beads at night,
-(screamed) AND SOMETHING ALWAYS KNOWS!
+(a deep growl) and something always knows.
 
 [Chorus]
-(screamed, the gang screaming with him)
-PUT IT BACK! (PUT IT BACK!)
-KEEP OFF! (KEEP OFF!)
+(a deep, heavy growl, deep voices shouting with him)
+Put it back! (Put it back!)
+Keep off! (Keep off!)
 I'm the Gardener, I keep what grows,
 I plant the leeches in the rows,
 the light I drink glows through my skin,
 put it back where it's always been!
 
 [Verse 2]
-(rap-screamed, faster)
+(low and rhythmic, faster, the growl building under it)
 Legs like a ladder, I'm taller than you,
 I've walked this garden a hundred years through,
 step, step, step, I'm coming down the row,
@@ -86,47 +94,47 @@ they kept their lanterns low and they took one look,
 and you broke it, you broke it, you little fool!
 
 [Pre-Chorus]
-(whispered)
+(soft, almost a whisper)
 Something tends the garden.
 Something walks the rows.
 Something counts the beads at night,
-(screamed) AND SOMETHING ALWAYS KNOWS!
+(a deep growl) and something always knows.
 
 [Chorus]
-(screamed, the gang screaming with him)
-PUT IT BACK! (PUT IT BACK!)
-KEEP OFF! (KEEP OFF!)
+(a deep, heavy growl, deep voices shouting with him)
+Put it back! (Put it back!)
+Keep off! (Keep off!)
 I'm the Gardener, I keep what grows,
 I plant the leeches in the rows,
 the light I drink glows through my skin,
 put it back where it's always been!
 
 [Breakdown]
-(slow and crushing, every drum and keg at once, call and response)
+(slow and crushing, every drum and keg at once; deep voices in call and response)
 Tend the garden! (TEND!)
 Graze the light! (GRAZE!)
 Stilts in the water! (STEP!)
 Every! Single! Night!
 
 [Bridge]
-(whispered over static and dripping water)
+(soft and intimate, almost tender, over static and dripping water)
 Count the beads.
 Count them again.
 One is gone.
 One is gone.
-(screamed) I NOTICED!
+(a deep growl) I noticed.
 
 [Final Chorus]
-(blast beats, everyone screaming)
-PUT IT BACK! (PUT IT BACK!)
-KEEP OFF! (KEEP OFF!)
+(blast beats; his deepest growl, everyone with him)
+Put it back! (Put it back!)
+Keep off! (Keep off!)
 I'm the Gardener, I keep what grows,
 I plant the leeches in the rows,
 the light I drink glows through my skin,
 put it back where it's always been!
 
 [Outro]
-(one last scream and blast, cut to silence; one click of a long leg on stone)
+(one last growl and blast, cut to silence; one click of a long leg on stone)
 ```
 
 ## 2. Nobody in the Dress (the Hollow Divers; Korn-like)
@@ -137,7 +145,7 @@ WORLD.md leaves open what became of the keepers, so the bridge asks "who wore it
 The threat to Wren is that her dress has seams too.
 
 ```
-Dark, groovy mid-1990s nu-metal at about 95 BPM. Seven-string guitars tuned very low, playing heavy, bouncy, syncopated riffs over hip-hop drum grooves; a clanky, slapped bass that clicks like a typewriter; dissonant, high, wailing guitar noises in the gaps, like metal scraping on metal. One male voice: whispered and uneasy in the verses, a stuttering build in the pre-chorus, a raw, aching, melodic chorus, and a breakdown of fast, wordless scat syllables over the groove. Under it all: the hiss of an old air pump, breathing echoing inside a brass helmet, slow heavy boots on stone. Creepy and claustrophobic. Heavy within the first ten seconds. About 3 minutes.
+Dark, groovy mid-1990s nu-metal at about 95 BPM. Seven-string guitars tuned very low, playing heavy, bouncy, syncopated riffs over hip-hop drum grooves; a clanky, slapped bass that clicks like a typewriter; dissonant, high, wailing guitar noises in the gaps, like metal scraping on metal. One grown man's voice, low and controlled, the calm at the centre of the noise: an unsettling, breathy murmur in the verses, close to the microphone; a stuttering build in the pre-chorus; a deep, dark, melodic chorus sung from the chest with a gravelly edge; a breakdown of fast, wordless scat syllables over the groove; and a deep growl at the peak. Never whiny or high-pitched, no emo shouting, no teenage angst. Under it all: the hiss of an old air pump, breathing echoing inside a brass helmet, slow heavy boots on stone. Creepy and claustrophobic. Heavy within the first ten seconds. About 3 minutes.
 
 Lyrics:
 
@@ -180,7 +188,7 @@ and walk it where the keepers passed.
 (fast, wordless scat syllables over the groove, like a voice trying to make words through an air hose)
 
 [Bridge]
-(whispered, then yelled)
+(whispered, then a deep growl)
 Who wore it first? Who wore it first?
 We don't know. We don't know.
 We only know the way to walk.
@@ -203,7 +211,7 @@ Something larger down here does the same." The words hint, as the note does, tha
 ("I hear one humming through the stone": the Listeners hear the Bellwether through the rock). They do not name the Thing.
 
 ```
-Technical, off-kilter late-1990s metal with math-rock rhythms. Riffs in shifting odd time signatures (7/8, 5/4, 9/8) that lurch, stop dead and restart, then snap into a heavy, swinging 4/4 groove for the chorus. The bass is the lead instrument: busy, virtuosic fingerstyle bass with slides, harmonics and tapping, loud in the mix, answered by stabbing down-tuned guitars. Precise, polyrhythmic drums with many tom fills. One male voice that switches in an instant between a calm, eerie clean voice and a tight, barked yell, sometimes inside one line. Broken bronze clanging as percussion, and small bells. Tense and unpredictable. Heavy within the first ten seconds. About 3 minutes.
+Technical, off-kilter late-1990s metal with math-rock rhythms. Riffs in shifting odd time signatures (7/8, 5/4, 9/8) that lurch, stop dead and restart, then snap into a heavy, swinging 4/4 groove for the chorus. The bass is the lead instrument: busy, virtuosic fingerstyle bass with slides, harmonics and tapping, loud in the mix, answered by stabbing down-tuned guitars. Precise, polyrhythmic drums with many tom fills. One grown man's voice that switches in an instant between a calm, eerie, low clean voice and a deep, guttural growl from the chest, sometimes inside one line. Never high-pitched or whiny, no emo shouting, no teenage angst. Broken bronze clanging as percussion, and small bells. Tense and unpredictable. Heavy within the first ten seconds. About 3 minutes.
 
 Lyrics:
 
@@ -248,7 +256,7 @@ Remember the eye. Remember the eye.
 Something larger down here does the same.
 
 [Breakdown]
-(the heaviest part: the lurching riff, bronze clanging on every hit, barked)
+(the heaviest part: the lurching riff, bronze clanging on every hit, a deep growl)
 Too small! Too tight! Too small! Too tight!
 
 [Final Chorus]
