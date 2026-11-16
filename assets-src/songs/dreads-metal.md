@@ -49,6 +49,12 @@ How it got here (all 2026-11-16, at the user's requests):
   and the growl only in short bursts (the shouted hooks, the breakdown, the last word). The band drops to a menacing
   rumble under the soft verses and explodes for the chorus, so the soft voice has room. The verses are shorter and
   smoother to sing; the keepers' rule moved to the bridge.
+- The user on that take (02d609e): better vocals, but the phrasing of the singing was "a bit weird in places", and the
+  contrast was gone: "music became too soft, except for bridge which was too much screaming". **Next try (not written
+  yet):** keep the band at full force all the way through and put the contrast between the voice and the music at the
+  same moment (he sings softly over the full, brutal band), not in quiet verses; drop "beautiful", "lullaby" and "the
+  band drops to a rumble", which probably softened the whole track; make the sung lines even in length and stress so
+  the phrasing settles; keep any growl in the bridge to a word or two.
 
 ```
 The most extreme, abrasive metal you can make, with a beautiful, dark, sung voice at its centre: raw late-1990s nu-metal crossed with death metal, grindcore, mathcore and harsh industrial noise. The tempo lurches without warning between a crushing half-time sludge at about 70 BPM and blast beats at about 220 BPM. Guitars tuned impossibly low play dissonant, stop-start riffs in odd time signatures, with squealing pinch harmonics, screaming feedback and walls of distortion, and slow, crushing breakdowns. A distorted bass grinds like a machine. Machine-gun double-kicks and chaotic fills. Two extra percussionists hammer metal kegs, oil drums and trash cans, out of step with the drum kit; a DJ scratches records into shrieking noise; a sampler throws in static and grinding metal. Most of the vocal is sung, by one grown man with a deep, dark, rich voice. In the verses the band drops to a menacing rumble of bass, kegs and feedback, and he sings softly and cleanly, low and close to the microphone, a slow, haunting melody, almost a lullaby. The chorus explodes: a big, dark, melodic hook sung in a full, warm voice with a little grit, soaring over the heaviest music. Deep, guttural growls come only in short bursts: the shouted hooks, with a gang of deep voices, the breakdown, and the last word. The bridge is sung softly and tenderly. The contrast between his soft singing and the brutal music is the point of the song. Never whiny, never shrill, no high-pitched screaming, no emo or pop-punk shouting, no teenage angst. Mixed raw and loud, like a band in a basement. Water dripping in a cave and the click of long thin legs on stone between the blasts. No clean guitar, no keyboards. It opens with his soft voice over feedback for a few seconds, then explodes; it ends with one last blast cut to silence. About 3 minutes.
@@ -332,6 +338,12 @@ the king has come for me!
 ```
 
 ## 5. Ring It Once Again (the Drowned Cantor; Iron Maiden-like epic)
+
+**Failed (2026-11-16):** Gemini said "Something went wrong while trying to generate your track. Please try again, or
+adjust your prompt slightly and we can give it another shot!" That is not the wording of the Buoy refusal (which named
+"sensitive or dark" themes), so it may be a passing fault or a quieter filter. **Next (not done yet):** try it once more
+as it is; then a shorter style paragraph (one tempo change, not two); then gentler words where they touch death ("Go
+back into the dark, and rest", the choir of the drowned).
 
 The Cantor sings, and his choir answers. It plays only after the Heart is home, so it may say more than the others. Its
 keeper's note: with the Bellwether silent, the drowned keepers gather under it and try to ring it again; silence the
