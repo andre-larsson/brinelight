@@ -7,7 +7,7 @@ Shallows keep the score.
 
 | Song | Style | For | Where it would play |
 |---|---|---|---|
-| 1. The Gardener | Slipknot-like nu-metal | The Garden Strider (Dark Water's Dread) | Its fight, instead of the `dread` cue |
+| 1. The Gardener | Early-Slipknot-like: screamed, blast beats | The Garden Strider (Dark Water's Dread) | Its fight, instead of the `dread` cue |
 | 2. Nobody in the Dress | Korn-like nu-metal | The Hollow Divers (Belfry) | Belfry fights with a Diver, taking turns with the score |
 | 3. Bigger Bell | Mudvayne-like math metal | The Bell Yearling (Belfry Dread) | Its fight, instead of the `dread` cue |
 | 4. King of the Herrings | Iron Maiden-like gallop | The Crowned Oarfish (Belfry Dread) | Its fight, instead of the `dread` cue |
@@ -25,82 +25,106 @@ Notes for the prompts:
 - Each song is one voice (a male voice here, for contrast with the women's voices at the Buoy and on the title screen),
   with gang shouts or a choir where asked.
 
-## 1. The Gardener (the Garden Strider; Slipknot-like)
+## 1. The Gardener (the Garden Strider; early-Slipknot-like)
 
 The Strider sings to Wren, who has been picking its beads. Its keeper's note gives the hook: it tends the garden, and it
-notices what is taken. Its moves are in the breakdown (Tend the Garden, Graze, Stilt Legs). Says nothing new.
+notices what is taken. Its moves are in the breakdown (Tend the Garden, Graze, Stilt Legs). Says nothing new; the
+keepers telling each other to leave the garden be is flavour.
+
+Made darker, heavier and more intense on 2026-11-16 at the user's request ("like early Slipknot"): screamed, not sung,
+with blast beats, a screamed "Put it back!" hook and shorter, harder lines. The threat stays at creature level (no blood,
+no killing). The first, more melodic version is in git history (commit 755e390). If Gemini refuses this one, soften
+"throat-tearing" in the style and "now you're stuck with me" in the words first.
 
 ```
-Aggressive, chaotic late-1990s nu-metal at about 100 BPM, with sudden double-time bursts. A big nine-piece band sound: down-tuned seven-string guitars playing crushing, stop-start riffs; two extra percussionists pounding metal kegs and big toms; a DJ scratching records; a sampler adding industrial noise, creaks and drips. One male lead voice: fast, barked, half-rapped verses, a whispered pre-chorus, and a huge, melodic, sung chorus. A breakdown where the whole band shouts a call-and-response chant over the kegs. Behind it all, still black water dripping in a cave, and the click of something tall walking on long thin legs. Loud from the first seconds: no slow intro. Intense, menacing, cinematic. About 3 minutes.
+Brutal, chaotic late-1990s metal: nu-metal crossed with death metal and industrial noise, at its most extreme. About 105 BPM, with sudden bursts of blast beats at double speed. Guitars tuned extremely low play crushing, stuttering, palm-muted riffs with squealing pinch harmonics and feedback; a distorted bass rumbles like an engine; relentless double-kick drums. Two extra percussionists hammer metal kegs, oil drums and toms at the same time; a DJ scratches records into noise; a sampler adds static, grinding metal and wet clicks. One male voice, unhinged and furious: rapid-fire rap-screamed verses, raw throat-tearing screams, a whispered, menacing pre-chorus, and a chorus that is screamed, not sung, with a gang of voices screaming the hook with him. The mix is raw, dense and loud, like a basement recording. Under it, a wet black cave: water dripping, and the click of long thin legs on stone. No clean singing, no clean guitar, no keyboards. A scream within the first five seconds, then full force; it ends abruptly on one hit. Dark, menacing, relentless. About 3 minutes.
 
 Lyrics:
 
 [Intro]
-(record scratch, metal kegs, then a whisper) I noticed.
+(static and dripping water; a whisper) I noticed.
+(screamed) I NOTICED!
 
 [Verse 1]
-Night in the garden and the beads are lit,
-every bead's a mouth and I tend to it,
-up on my stilts where the water lies still,
-I graze what is glowing and I drink my fill.
-Then you came down the stair with a lamp in your hand,
-the brightest thing that ever came to my land,
-you picked a bead and it turned to a pearl,
-and I know you did. I know you did.
+(rap-screamed, rapid)
+Up on the stilts in the black and the still,
+grazing the glow, I drink, I drink my fill,
+every bead's a mouth and every mouth is mine,
+I sow the leeches down the line, line, line!
+Then a lamp on the stair, then a light on the stone,
+then a little thief comes creeping in alone,
+you pulled a bead and it hardened in your hand,
+now you're standing in the garden where the Gardener stands!
 
 [Pre-Chorus]
-(whispered) Something tends the garden,
-something walks the rows,
-(shouted) and it notices what's taken!
+(whispered)
+Something tends the garden.
+Something walks the rows.
+Something counts the beads at night,
+(screamed) and something always knows!
 
 [Chorus]
-I am the Gardener, I keep what grows,
-I sow the leeches between the rows,
-the light I drink shows through my skin,
-put back what you took, or I'll take you in.
+(screamed, the gang screaming with him)
+PUT IT BACK! (PUT IT BACK!)
+PUT IT BACK! (PUT IT BACK!)
+I'm the Gardener, I keep what grows,
+I sow the leeches in the rows,
+the light I drink glows through my skin,
+put it back, or I take you in!
 
 [Verse 2]
-Legs like a ladder with my gut inside,
-a body too small for a hunger this wide,
-step, step, step on the stilts in the black,
-three times I strike and I never hold back.
-The keepers wrote me down in their books,
-they called me the Gardener, they took one look,
-they kept their lanterns low and they backed away,
-but you didn't. You didn't.
+(rap-screamed, faster)
+Legs like a ladder and my gut runs inside,
+too small a body for a hunger this wide,
+I suck the soft things out of their shells,
+I walk where the light is and I graze it well!
+The keepers wrote me down, they wrote me in their books,
+they kept their lanterns low and they never took a look,
+a hundred years they whispered, "Leave the garden be,"
+and you didn't, you didn't, now you're stuck with me!
 
 [Pre-Chorus]
-(whispered) Something tends the garden,
-something walks the rows,
-(shouted) and it notices what's taken!
+(whispered)
+Something tends the garden.
+Something walks the rows.
+Something counts the beads at night,
+(screamed) and something always knows!
 
 [Chorus]
-I am the Gardener, I keep what grows,
-I sow the leeches between the rows,
-the light I drink shows through my skin,
-put back what you took, or I'll take you in.
+(screamed, the gang screaming with him)
+PUT IT BACK! (PUT IT BACK!)
+PUT IT BACK! (PUT IT BACK!)
+I'm the Gardener, I keep what grows,
+I sow the leeches in the rows,
+the light I drink glows through my skin,
+put it back, or I take you in!
 
 [Breakdown]
-(call and response, the whole band shouting over the kegs)
-Tend the garden! (Tend the garden!)
-Graze the light! (Graze the light!)
-Stilts in the water! (Stilts in the water!)
-Every single night!
+(the heaviest part: every drum and keg at once, call and response)
+Tend the garden! (TEND!)
+Graze the light! (GRAZE!)
+Stilts in the water! (STEP!)
+Every! Single! Night!
 
 [Bridge]
-(half-spoken, quiet, then building)
-Count the beads. Count them again.
-One is gone. One is gone.
-I noticed.
+(whispered over static and dripping water)
+Count the beads.
+Count them again.
+One is gone.
+One is gone.
+(screamed) I NOTICED!
 
 [Final Chorus]
-I am the Gardener, I keep what grows,
-I sow the leeches between the rows,
-the light I drink shows through my skin,
-put back what you took, or I'll take you in.
+(blast beats, everyone screaming)
+PUT IT BACK! (PUT IT BACK!)
+PUT IT BACK! (PUT IT BACK!)
+I'm the Gardener, I keep what grows,
+I sow the leeches in the rows,
+the light I drink glows through my skin,
+put it back, or I take you in!
 
 [Outro]
-(the kegs stop; one click of a long leg on stone)
+(one last scream; everything stops dead; one click of a long leg on stone)
 ```
 
 ## 2. Nobody in the Dress (the Hollow Divers; Korn-like)
