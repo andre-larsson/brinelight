@@ -393,7 +393,9 @@ function step(run, opts = {}) {
   }
   if (s === 'event') {
     const ev = E.eventDef(run);
-    const i = ev.options.findIndex((o) => E.optionAvailable(run, o) === true);
+    // the first option it can take, unless opts.event(run, ev, open) chooses (open: the indexes it can take)
+    const open = ev.options.map((o, j) => (E.optionAvailable(run, o) === true ? j : -1)).filter((j) => j >= 0);
+    const i = opts.event ? opts.event(run, ev, open) : open.length ? open[0] : -1;
     const res = E.chooseEventOption(run, i) || {};
     const next = res.next;
     if (next && next.fight) { run.event = null; E.startCombat(run, next.fight, null, { bonusPearls: next.bonusPearls || 0 }); return 'event-fight'; }
