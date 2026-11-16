@@ -77,6 +77,7 @@ function fxLines(run) {
   if (!c || !c.fx || !c.fx.length) return [];
   const who = (u) => (u === 'p' ? 'You' : (c.enemies.find((e) => e.uid === u) || { name: 'it' }).name);
   const lines = [];
+  let tide = 0;
   c.fx.forEach((f) => {
     switch (f.t) {
       case 'turn': lines.push(`-- Your turn ${f.turn} --`); break;
@@ -97,6 +98,10 @@ function fxLines(run) {
       case 'burst': lines.push(`${who(f.who)} bursts for ${f.n}.`); break;
       case 'ks': if (BL.KEEPSAKES[f.k]) lines.push(`(${BL.KEEPSAKES[f.k].name} acts.)`); break;
       case 'echo': lines.push(`Echo: ${f.name} again.`); break;
+      case 'swellact': lines.push(`You ${f.kind === 'bail' ? 'Bail (Ebb 1)' : 'Stir (Surge 1)'} for 1 Light.`); break;
+      case 'tide': tide += f.d; lines.push(`Swell ${f.d > 0 ? '+' : ''}${f.d}${f.undertow ? ' (the undertow)' : ''}.`); break;
+      case 'light': lines.push(`+${f.n} Light.`); break;
+      case 'kit': { const id = E.kitIds(run).find((x) => BL.KIT[x].place === f.k) || (f.k === 'bell' ? E.bell(run) : null); if (id && BL.KIT[id]) lines.push(`(Your ${BL.KIT[id].name} acts${f.k === 'bell' ? `: ${strip(BL.KIT[id].desc)}` : ''}.)`); break; }
       case 'roil': lines.push(`The aether is Roiled: ${[f.seep && `${f.seep} Seep in your deck`, f.thrash && `Thrash ${f.thrash}`, f.minnows && `${f.minnows} Bell Minnows`].filter(Boolean).join(', ')}.`); break;
       default: break;
     }
@@ -292,31 +297,36 @@ function show(run) {
 
 const HELP = {
   any: ["deck: your deck with card texts (numbers are for 'refit', 'remove', 'pick' and so on)", 'info <name>: look up a card, keepsake, tonic, creature, status or keyword', 'rules [basics|tide|keywords|map|controls]: How to Play', 'look: show this screen again'],
-  combat: ['play <hand number> [enemy number]: play a card (an enemy number when it targets one; with one enemy you can leave it out)', 'several moves in one go: "play 1 2; play 3; end" (card numbers are the hand as listed now; stops at the first that fails)', 'end: end your turn', 'bail: spend 1 Light to Ebb 1', 'stir: spend 1 Light to Surge 1', 'tonic <slot> [enemy number]: drink a tonic', 'piles: what is in your draw, discard and sunk piles'],
+  combat: ['play <hand number> [enemy number]: play a card (an enemy number when it targets one; with one enemy you can leave it out)', 'several moves in one go: "play 1 2; play 3; end" (all card and enemy numbers are from the screen you are looking at, before any of these moves, even after a card is played or an enemy dies; stops at the first that fails)', 'end: end your turn', 'bail: spend 1 Light to Ebb 1', 'stir: spend 1 Light to Surge 1', 'tonic <slot> [enemy number]: drink a tonic', 'piles: what is in your draw, discard and sunk piles'],
   map: ['go <number>: go to one of the stops listed', 'tonic <slot>: drink a tonic (only some work outside a fight)', 'drop <keepsake number>: drop a keepsake for good'],
   reward: ['card <number> / skip: take a card, or skip it', 'keepsake <number> / leave: take a keepsake, or leave them', 'tonic: take the tonic', 'continue: back to the map (what you have not taken is left)'],
   shop: ['buy card|keepsake|tonic <number>', 'remove <deck number>: pay to remove a card', 'continue: leave the shop'],
-  rest: ['rest', 'refit <deck number>', 'sea <keepsake number> <deck number>', 'shed <deck number> (stair)', 'flask (stair)', 'cache, then cache <number> (stair)', 'fog (lesser bell)', 'continue: go on'],
+  rest: ['rest', 'refit <deck number>', 'sea <keepsake number> <deck number>', 'continue: go on'],
+  stair: ['rest', 'refit <deck number>', 'shed <deck number>', 'flask', 'cache (look), then cache <number> (take)', 'sea <keepsake number> <deck number>', 'fog (under a lesser bell only)', 'continue: go on, picks unused or not'],
   treasure: ['open', 'keepsake <number> / leave', 'continue'],
   event: ['choose <number>', 'pick <deck number> (when it asks for a card from your deck)', 'card <number> / skip (when it offers cards)', 'continue'],
   pin: ['deeper', 'home'],
 };
 function help(run) {
-  const s = run ? run.screen : null;
+  const s = run ? (E.stairOpen(run) ? 'stair' : run.screen) : null;
   say('Commands here:', ...(HELP[s] || ['new [seed]: start an expedition']).map((l) => '  ' + l), 'Anywhere:', ...HELP.any.map((l) => '  ' + l));
 }
 
 /* ---------------- lookups ---------------- */
 function info(run, q) {
-  const k = q.toLowerCase().trim();
-  const hit = (o) => o && (o.name || '').toLowerCase() === k;
+  const k = q.toLowerCase().trim().replace(/^the /, '');
+  const hit = (o) => o && (o.name || '').toLowerCase().replace(/^the /, '') === k;
   const found = [];
   Object.keys(BL.CARDS).forEach((id) => { if (hit(BL.CARDS[id]) || id === k) { found.push('Card: ' + cardLine(run, pseudo(id)) + ` (${BL.CARDS[id].rarity})`); if (E.canUpgrade(pseudo(id))) found.push('  Upgraded: ' + cardLine(run, { uid: 0, id, up: 1 })); } });
   Object.keys(BL.KEEPSAKES).forEach((id) => { if (hit(BL.KEEPSAKES[id])) found.push(`Keepsake: ${BL.KEEPSAKES[id].name} (Roil ${BL.KEEPSAKES[id].charge}): ${strip(BL.KEEPSAKES[id].desc)}`); });
   Object.keys(BL.TONICS).forEach((id) => { if (hit(BL.TONICS[id])) found.push(`Tonic: ${BL.TONICS[id].name}: ${strip(BL.TONICS[id].desc)}`); });
   Object.keys(BL.STATUSES).forEach((id) => { if (hit(BL.STATUSES[id])) found.push(`Status: ${BL.STATUSES[id].name}: ${strip(BL.STATUSES[id].desc(1))}`); });
   Object.keys(BL.KEYWORDS).forEach((w) => { if (w.toLowerCase() === k) found.push(`${w}: ${strip(BL.KEYWORDS[w])}`); });
+  Object.keys(BL.KIT).forEach((id) => { if (hit(BL.KIT[id])) found.push(`Kit: ${BL.KIT[id].name}: ${strip(BL.KIT[id].desc)}`); });
   const c = run && run.combat;
+  if (run && !(c && E.alive(c).some((e) => e.name.toLowerCase() === k))) {
+    if (bossName(run).toLowerCase().replace(/^the /, '') === k) found.push(`${bossName(run)}: the boss on this level's last landing. You learn its moves in the fight.`);
+  }
   if (c) E.alive(c).forEach((e) => { if (e.name.toLowerCase() === k) { const i = E.intentInfo(run, e); found.push(`${e.name}: ${e.hp}/${e.maxHp} HP${e.ward ? `, Ward ${e.ward}` : ''}. ${i ? `Intends ${i.name}: ${i.parts.join('. ')}.` : ''} ${statusLine(e)}`); } });
   say(found.length ? found.join('\n') : `Nothing called "${q}".`);
 }
@@ -367,6 +377,8 @@ async function rules(tab) {
   const ids = tab ? [tab] : Object.keys(tabs);
   ids.forEach((id) => say(`== ${id} ==`, tabs[id] || '(no such tab)', ''));
 }
+
+const seaWords = (o) => `The ${BL.KEEPSAKES[o.keepsake].name} goes into the sea. You heal ${o.healed} HP${o.card ? ` and ${E.cardName(o.card)} is upgraded` : ''}.`;
 
 /* ---------------- commands ---------------- */
 const num = (s) => { const n = parseInt(s, 10); return Number.isFinite(n) ? n - 1 : -1; };
@@ -452,16 +464,16 @@ function act(run, cmd, args) {
   if (s === 'rest') {
     if (E.stairOpen(run)) {
       if (['rest', 'flask', 'fog'].includes(cmd)) { const o = E.stairDo(run, cmd); if (!o) return no(E.stairWhy(run, cmd) || 'not here.'); if (o.healed) say(`Healed ${o.healed}.`); if (run.screen === 'event') say('You swim out into the dark.'); return true; }
-      if (cmd === 'refit' || cmd === 'shed') { const uid = deckUid(run, args[0]); if (!uid) return no('say which card (see deck).'); if (!E.stairDo(run, cmd, uid)) return no(E.stairWhy(run, cmd) || 'not that card.'); return true; }
+      if (cmd === 'refit' || cmd === 'shed') { const uid = deckUid(run, args[0]); if (!uid) return no('say which card (see deck).'); const o = E.stairDo(run, cmd, uid); if (!o) return no(E.stairWhy(run, cmd) || 'not that card.'); say(cmd === 'refit' ? `${E.cardName(o.card)} is upgraded.` : `${E.cardName(o.card)} is gone from your deck.`); return true; }
       if (cmd === 'cache') {
         if (args[0] == null) { E.stairCache(run); return true; }
-        if (!E.stairDo(run, 'cache', num(args[0]))) return no(E.stairWhy(run, 'cache') || 'no such card.'); return true;
+        const o = E.stairDo(run, 'cache', num(args[0])); if (!o) return no(E.stairWhy(run, 'cache') || 'no such card.'); say(`${E.cardName(o.card)} joins your deck.`); return true;
       }
-      if (cmd === 'sea') { const k = run.keepsakes[num(args[0])]; const uid = deckUid(run, args[1]); if (!k) return no('which keepsake?'); if (!E.stairDo(run, 'sea', { k, uid })) return no(E.stairWhy(run, 'sea') || 'no.'); return true; }
+      if (cmd === 'sea') { const k = run.keepsakes[num(args[0])]; const uid = deckUid(run, args[1]); if (!k) return no('which keepsake?'); const o = E.stairDo(run, 'sea', { k, uid }); if (!o) return no(E.stairWhy(run, 'sea') || 'not that card.'); say(seaWords(o)); return true; }
     } else {
       if (cmd === 'rest') { if (run.restDone) return no('done already.'); const h = E.rest(run); run.restMsg = `You sleep beside the lantern and wake mended. Healed ${h} HP.`; return true; }
-      if (cmd === 'refit') { if (run.restDone) return no('done already.'); const uid = deckUid(run, args[0]); const card = run.deck.find((x) => x.uid === uid); if (!card || !E.canUpgrade(card) || card.up) return no('cannot upgrade that card.'); E.upgradeCard(run, uid); run.restDone = true; run.restMsg = `${E.cardName(card)} is ready.`; return true; }
-      if (cmd === 'sea') { const k = run.keepsakes[num(args[0])]; const uid = deckUid(run, args[1]); if (!k) return no('which keepsake?'); const o = E.giveToSea(run, k, uid); if (!o) return no('not now.'); run.restMsg = `The ${BL.KEEPSAKES[k].name} goes into the sea.`; return true; }
+      if (cmd === 'refit') { if (run.restDone) return no('done already.'); const uid = deckUid(run, args[0]); const card = run.deck.find((x) => x.uid === uid); if (!card || !E.canUpgrade(card) || card.up) return no('cannot upgrade that card.'); E.upgradeCard(run, uid); run.restDone = true; run.restMsg = `${E.cardName(card)} is ready.`; say(run.restMsg); return true; }
+      if (cmd === 'sea') { const k = run.keepsakes[num(args[0])]; const uid = deckUid(run, args[1]); if (!k) return no('which keepsake?'); const o = E.giveToSea(run, k, uid); if (!o) return no('not now (or that card cannot be upgraded).'); run.restMsg = seaWords(o); return true; }
     }
     if (cmd === 'continue' || cmd === 'leave') { run.restMsg = null; E.backToMap(run); return true; }
   }
