@@ -1531,7 +1531,7 @@ The agent recommends **c**. It answers the complaint directly: one Bail or Stir 
 
 **Fast-forward in the musicbox pieces:** a musicbox cue has no fixed length. It plays an intro, then a loop whose parts are chosen again at random on each pass, forever, so there is no timeline to seek in. What could be built in `../musicbox`: a seek within the current pass of the loop, or a "next part" button. Neither is built; it is the user's call.
 
-### The Belfry as a short dive, and keepers after the Heart (design, 2026-11-16; not built)
+### The Belfry as a short dive, and keepers after the Heart (design, 2026-11-16; steps 1 and 2 built in v0.37.0)
 
 The user's idea: make the last, underwater level a shorter boss-run kind of level. The user's answers to the agent's questions:
 
@@ -1576,6 +1576,34 @@ The user's idea: make the last, underwater level a shorter boss-run kind of leve
 
 The intermediary level can come before or after step 3; it does not depend on the keepers.
 
+
+### The Belfry dive and the Dark Watch (v0.37.0, 2026-11-16)
+
+Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and 2").
+
+**Built:**
+- **The dive** (`E.LEVELS[2].dive`, `E.DIVE`, `genDive`, `E.landingsOf`, `E.mapRows`). The Belfry's map is one stop a row in the middle column: Dread, lesser bell, Dread, lesser bell, then the pin. The top bar, the floor tip and the Logbook count 5 landings there. A dive's Dreads are set on the map (`node.enc`): before the Heart `BL.BANDS.belfry.enc.dive` in order, after it two different ones of `enc.diveAfter` in a random order. The Belfry has no easy or hard fights any more.
+- **The lesser bell** (`'pocket'` node; `run.pocket`; `E.stairPicks`, `E.stairOptions`, `E.POCKET_OPTIONS`). The stair's screen and rules with one pick, and its own words and picture (`img/scenes/pocket.webp`, `BL.BANDS.belfry.pocketArt`). Its six: rest, refit, shed, flask, the sea, and `fog`, which starts one of the Belfry's Fog events (`E.startEvent`) and uses the pick.
+- **Score:** `landing: 128` in the Belfry, so 5 landings pay 640 as 8 at 80 did (the user: the same in total).
+- **After the Heart:** the Dark Watch is the only final (`enc.finals: [['darkwatch']]`). The Thing grown back (`thing`) is gone. The Drowned Cantor is a Dread (`elite`, 90-94 HP, `leads`: its Ringer stops when it falls, through `scatter`).
+- **The Dark Watch** (180 HP): Ring Her Bell (14 Ward, Swell back to 3), Her Harpoon (9 x2), Pinch the Wick (11, Doused 1), Lights Out (22, +4 each time); at half its health (`BL.WATCH_CALL`) Nobody Comes Home: one Hollow Diver and 10 Ward. Name card: "The light went out on her watch".
+- **Wren's first-win reward:** the scene `watch` (at `'quiet'`, two beats, `sc_watch1` and the lit lighthouse), the chapter *The Dark Watch* (`when: 'quiet'`), the keeper's note, the achievement The Long Watch, and the **Watch Glass** (Pocket, 40 Salvage): 1 more Light on the first turn of each fight.
+- **The lit title** (`.title-screen.lit`, `img/bg/bg_title_lit.webp`, a Codex edit of `bg_title` with the lamp lit and a beam) once the Heart is home.
+- **Story:** *What stays below* rewritten for the new lore; 9 chapters, 38 notes. The Belfry's creature notes that are now met only after the Heart say so.
+- **Art (Codex, built-in image tool):** `units/darkwatch` (Wren's picture as reference), `scenes/sc_watch1`, `scenes/pocket`, `icons/g_watchglass`, `bg/bg_title_lit`. Sources in `assets-src/` (git-ignored PNGs).
+- **Tests:** `tests/dive.test.js` (the dive, the lesser bell, the fog option, the score, the Dreads after the Heart, the Dark Watch, the Watch Glass, and that every creature with a note can still be met). The Belfry UI scenario checks the dive map and a lesser bell.
+
+**Measured (bot that chooses, 1000 seeds, first expedition in the dress):** the Belfry after Dark Water 63.7% (73.4% on v0.36.0 with the same bot), the Heart 23.2% (26.7%). The Belfry was the easiest leg; now it is level with Dark Water (62.5%). After the Heart: the Belfry 79.9% (80.5% on v0.36.0). The Dark Watch at the first draft's 150 HP and softer moves lost almost never (the bot won the dive 91.5%); 180 HP and the numbers above bring it back to where the old finals were. Where expeditions after the Heart end in the Belfry (600 seeds): mostly at the Dark Watch, a few at the Oarfish's two Dreads.
+
+**The agent's calls (each the user's to judge):**
+1. No keepers' cache under a lesser bell, and a sixth option to swim out into the dark: the Belfry had no Fog left on its map, and three Fog events and their notes would have become unreachable. The Sunken Shrine and the Glimmer Garden no longer come down to the Belfry.
+2. The Glimmer Bladder (turned down by the user as a guard of the first dive), the Listener, the Bell Yearling and the Hollow Diver are met only after the Heart: in `diveAfter` (the Bladder with the Oarfish) and as the Dark Watch's call. Otherwise their notes could not be opened.
+3. The Cantor as a Dread at 90-94 HP (160 as a final).
+4. The Watch Glass's effect and price. Not measured yet.
+5. The fight music for the Dark Watch is the score's pin cue, as for the old finals. "It Went Dark on My Watch" is Wren's song about that night and could be its song; the user's call.
+6. Pearls have no use in the Belfry any more (no shop). They still count nowhere in the score.
+7. A run saved in the Belfry before v0.37.0 keeps its 8-landing map, and each landing there now scores 128.
+8. Barnacle clusters in the lesser bell's picture look a little like small skulls.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -2034,6 +2062,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.37.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 58.2%, Dark Water's after it 62.5%, the Belfry (a dive now) after that 63.7%, the Heart 23.2%. After the Heart, the Belfry 79.9%. See "The Belfry dive and the Dark Watch".
 - **Bot run outcomes, v0.36.0, with the bot that chooses** (2026-11-16; 1500 seeds, first expedition in the dress): the Shallows' pin 58.7%, Dark Water's after it 62.5%, the Belfry's after that 75.7%, the Heart 27.8%. The same bot on v0.35.0: 58.2%, 70.1%, 82.7%, the Heart 33.7%. With `bot: { classic: true }` (the bot before 2026-11-16): v0.36.0 the Heart 12.7%, v0.35.0 17.7%. See "The bot chooses" below. Numbers from here down are from the classic bot or older ones.
 - **Bot run outcomes, v0.35.0** (the bot that shops and gives keepsakes to the sea, 3000 seeds, first expedition in the dress): the Shallows' pin 43.7%, Dark Water's after it 54.7%, the Belfry's after that 70.8%, the Heart 16.9%. Of the rise from v0.34.0's 10.9%, about 5 points are the sea and 1 the Wild Peal (see "Give one to the sea, and a Roiled aether pays").
 - **Bot run outcomes, v0.34.0** (the bot that shops, 3000 seeds, first expedition in the dress): the Shallows' pin 39.5%, Dark Water's after it 40.0%, the Belfry's after that 69.2%, the Heart 10.9%; after the Heart, the finals 73.8%. v0.33.0: 39.5%, 40.0%, 67.9%, 10.7%. The Shallows' pin rose from 29.2% with v0.33.0's later Hermit call, Nibble 4 and shop rows (see "Playtest notes on v0.32.0").

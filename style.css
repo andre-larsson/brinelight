@@ -110,6 +110,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; overflow-y: auto;
   background: #06121c url(img/bg/bg_title.webp) center/cover no-repeat; text-align: center; padding: 24px 24px 12px;
 }
+.title-screen.lit { background-image: url(img/bg/bg_title_lit.webp); }
 .title-screen .logo { margin-top: auto; }
 .title-screen::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(5, 15, 24, .15), rgba(5, 15, 24, .85) 75%); }
 .title-screen > * { position: relative; }
@@ -210,6 +211,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .node svg { width: 26px; height: 26px; }
 .node.t-elite { border-color: #e26a5a; color: #ffb0a2; width: 52px; height: 52px; }
 .node.t-rest { color: #ffcf7a; }
+.node.t-pocket { color: #9fe3e0; }
 .node.t-shop { color: #f3e2b5; }
 .node.t-event { color: #b5e6ff; }
 .node.t-treasure { color: #ffd76a; }

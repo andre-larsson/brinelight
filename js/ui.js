@@ -97,6 +97,8 @@
     shop: svg('<path d="M9 2.5h6l-1.6 3.2h-2.8z"/><path d="M8.2 6.6h7.6c3 3 4.2 6.2 4.2 9.2a4.4 4.4 0 0 1-4.4 4.4H8.4A4.4 4.4 0 0 1 4 15.8c0-3 1.2-6.2 4.2-9.2z"/><circle cx="12" cy="14" r="2.6" fill="#0b1e2b"/>'),
     event: svg('<path d="M8.6 8.8a3.6 3.6 0 1 1 5.2 3.2c-1.1.6-1.8 1.3-1.8 2.6v.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="19.6" r="1.7"/>'),
     treasure: svg('<path d="M3 11h18v9H3z"/><path d="M4 10c0-3.3 2.2-5.5 8-5.5S20 6.7 20 10z" opacity=".75"/><rect x="10.4" y="12" width="3.2" height="4.4" rx=".8" fill="#0b1e2b"/>'),
+    // a lesser bell in the Belfry, with air under it (v0.37.0)
+    pocket: svg('<path d="M12 3.2a5.4 5.4 0 0 1 5.4 5.4v3.9l2.1 3.1H4.5l2.1-3.1V8.6A5.4 5.4 0 0 1 12 3.2z" opacity=".5"/><circle cx="12" cy="10.2" r="1.7"/><circle cx="9.4" cy="12.9" r="1.1"/><circle cx="14.5" cy="13.2" r="1"/><path d="M3 20.4c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'),
     boss: svg('<path d="M12 2a1.6 1.6 0 0 1 1.6 1.6v.8A6.2 6.2 0 0 1 18.2 10.4v4.8l2.3 3.2H3.5l2.3-3.2v-4.8a6.2 6.2 0 0 1 4.6-6v-.8A1.6 1.6 0 0 1 12 2z"/><circle cx="12" cy="20.6" r="2"/>'),
     might: svg('<path d="M4.5 19.5 16 8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M13.5 3.5H20.5V10.5L18 8 16.4 9.6 14.4 7.6 16 6z"/>'),
     spines: svg('<path d="M12 1.8l2 6.2 6-2.4-3.4 5.4 5.6 3-6.3.6 1.1 6.3-5-4.1-5 4.1 1.1-6.3-6.3-.6 5.6-3L4 5.6 10 8z"/>'),
@@ -132,10 +134,10 @@
     air: svg('<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="4.6" opacity=".45"/><path d="M8.5 6.5l2.6 4.2-2 2.2 3.4 4.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'),
     chevron: svg('<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
-  const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss };
-  const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', boss: 'Boss' };
-  const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'Boss' };
-  /* Who waits on the last landing. After the Heart is home, the Belfry's last landing holds one of several finals,
+  const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss, pocket: ICON.pocket };
+  const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', boss: 'Boss', pocket: 'Air' };
+  const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'Boss', pocket: 'A lesser bell (air: choose one)' };
+  /* Who waits on the last landing. After the Heart is home, the Belfry's last landing holds the keeper's own fear,
      so the map names it vaguely; in the fight it is the boss creature's own name. */
   const bossName = () => {
     const c = run.combat, B = E.band(run);
@@ -593,7 +595,7 @@
     switch (parts[0]) {
       case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
-      case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.LANDINGS}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? ' Break it, then go home or go deeper.' : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
+      case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.mapRows(run) + 1}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? ' Break it, then go home or go deeper.' : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}${k.deep ? `<div class="tip-row muted">${foundIn(parts[1])}</div>` : ''}`; }
       case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
       case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
@@ -927,10 +929,11 @@
         + (levelKnown(1) ? `<h3 class="help-sub">In Dark Water</h3>` + dl(['Doused', 'Submerged', 'Shell'].map((k) => [k, BL.KEYWORDS[k]])) : '')
         + (levelKnown(2) ? `<h3 class="help-sub">In the Belfry</h3>` + dl(['Breathless', 'Burst', 'Heartfire'].map((k) => [k, BL.KEYWORDS[k]])) : '');
       case 'map': return `<ul class="help-list">
-        <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map(levelName).join(', then ')}${allLevelsKnown() ? '' : ', then deeper'}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
+        <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map(levelName).join(', then ')}${allLevelsKnown() ? '' : ', then deeper'}. ${levelKnown(2) ? `The Shallows and Dark Water have ${E.LANDINGS} landings each, ${levelName(2)} ${E.landingsOf(2)}` : `Each level has ${E.LANDINGS} landings`}. Choose a route down; lit stops are where you can go next.</li>
         <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of six: rest deeply, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, open the keepers' cache or give a keepsake to the sea. Break the last pin to bring the Lantern Heart home.</li>
         ${levelKnown(2) ? `<li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
-        <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>` : ''}
+        <li><b>The Belfry is a dive</b>: no branches, no shops, no Coves. Two Dreads, each with a <b>lesser bell</b> after it, then the Bellwether. Under a lesser bell there is air: choose <b>one</b> of six there: rest, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, give a keepsake to the sea, or swim out into the dark (a Fog event).</li>
+        <li>Once the Heart is home, the deep grows toward your own lantern. The Belfry's Dreads change, and its last landing holds your own fear. Beat it to quiet the Belfry and come home.</li>` : ''}
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map((i) => `${E.LEVELS[i].landing} in ${levelName(i)}`).join(', ')}${allLevelsKnown() ? '' : ', and more below'}. Coming home adds 5 for each HP you have left. Bringing the Heart home${levelKnown(2) ? ', or quieting the Belfry,' : ''} adds ${E.FINAL_SCORE}.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
@@ -938,8 +941,9 @@
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
         [`${NODE_ICON.rest} Cove`, `Rest to heal 30% of your max HP, or upgrade a card, or give a keepsake to the sea: it is gone, and you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.`],
+      ].concat(levelKnown(2) ? [[`${NODE_ICON.pocket} Lesser bell`, 'In the Belfry: air under a hanging bell. Choose one of six.']] : [], [
         [`${NODE_ICON.treasure} Wreck`, 'Pearls, and you may take 1 of 3 keepsakes.'],
-      ])}<ul class="help-list">
+      ]))}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
         <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''}${workshopOpen() ? ` In the ${MT.shop}, a steadier lantern adds ${E.HOLD_UP.step} to your Hold for each of its ${E.HOLD_UP.prices.length} steps.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.</li>
@@ -1056,7 +1060,7 @@
     return `<header class="hud${run.screen === 'combat' ? ' in-combat' : ''}">
       <div class="stat hp" data-tip="hp" aria-label="Health">${ICON.heart}<span>${run.hp}/${run.maxHp}</span></div>
       <div class="stat pearls" data-tip="pearls" aria-label="Pearls">${ICON.pearl}<span>${run.pearls}</span></div>
-      <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Landing </span>${run.floor}/${E.MAP_ROWS + 1}</span></div>
+      <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Landing </span>${run.floor}/${E.mapRows(run) + 1}</span></div>
       <div class="hud-break"></div>
       ${bell ? `<button class="medal gear bell" data-tip="bell" data-act="kitinfo" data-k="bell" aria-label="${bell.name}: ${bell.desc}"><img src="img/icons/${bell.art}.webp" alt=""></button>` : ''}
       ${kitIds.length ? `<button class="medal gear-pack" data-tip="kit" data-act="kitinfo" aria-label="${MT.item}: ${kitIds.map((id) => BL.KIT[id].name).join(', ')}">${ICON.pack}<span class="n">${kitIds.length}</span></button>` : ''}
@@ -1209,7 +1213,8 @@
   /* ----- Title ----- */
   function renderTitle() {
     const saved = loadSave();
-    screenEl.innerHTML = `<div class="title-screen">
+    // once the Heart is home the lighthouse on the title screen is lit (v0.37.0, the user's idea)
+    screenEl.innerHTML = `<div class="title-screen${E.heartIsHome(meta) ? ' lit' : ''}">
       <div class="title-corner"><button class="icon-btn" data-act="menu" aria-label="Settings">${ICON.menu}</button></div>
       <div class="title-now"></div>
       <div class="logo">BRINELIGHT</div>
@@ -1709,7 +1714,7 @@
       ['Expeditions finished', r.runs ? `${r.runs} <small>${r.wins} came home, ${r.runs - r.wins} fell</small>` : '0'],
       ['The Lantern Heart', r.hearts ? 'Brought home' : levelKnown(2) ? 'Still in the Belfry' : 'Still somewhere below'],
     ].concat(levelKnown(2) ? [['Belfry quieted', r.hearts ? `${r.quiets || 0} time${r.quiets === 1 ? '' : 's'}` : 'Bring the Heart home first']] : [], [
-      ['Deepest landing reached', r.deep ? `${LevelName(r.deep.level)}, landing ${r.deep.floor} of ${E.LANDINGS}` : 'Not recorded yet'],
+      ['Deepest landing reached', r.deep ? `${LevelName(r.deep.level)}, landing ${r.deep.floor} of ${E.landingsOf(r.deep.level)}` : 'Not recorded yet'],
       ['Your Hold', `${E.metaHold(meta)} Roil${meta.holdUp ? ` <small>${E.holdUpOf(meta)} of it from the lantern</small>` : ''}${E.HOLD_STEP ? ` <small>${(meta.reached || 0) < E.LEVELS.length - 1 ? `${E.holdAt((meta.reached || 0) + 1)} once you reach ${levelName((meta.reached || 0) + 1)}` : 'as deep as it grows'}</small>` : ''}`],
       ['Pins broken', `${cleared.length}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}${cleared.length ? ` <small>${cleared.join(', ')}</small>` : ''}`],
       ['Best score', getNum(BEST_KEY) || 0],
@@ -1889,8 +1894,9 @@
     all.forEach((n) => { nodes += nodeHTML(n); });
     nodes += nodeHTML(m.boss);
     nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${bossY + 50}px">${bossName()}</div>`;
-    const legend = ['fight', 'elite', 'event', 'rest', 'shop', 'treasure'].map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
-    const sub = !run.pos ? (run.level ? `Level ${run.level + 1}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}. Choose where to begin.` : 'Choose where to begin your descent.') : avail.length ? 'Choose your next stop.' : '';
+    const legend = (m.dive ? ['elite', 'pocket'] : ['fight', 'elite', 'event', 'rest', 'shop', 'treasure']).map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
+    const sub = m.dive ? (!run.pos ? `Level ${run.level + 1}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}. A dive: two Dreads, air under a lesser bell after each, then ${bossName()}.` : avail.length ? 'Swim on down.' : '')
+      : !run.pos ? (run.level ? `Level ${run.level + 1}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}. Choose where to begin.` : 'Choose where to begin your descent.') : avail.length ? 'Choose your next stop.' : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
       <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2><p>${sub}</p></div>
       <div class="map" style="height:${H}px"><svg class="lines" viewBox="0 0 100 ${H}" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>
@@ -2695,8 +2701,7 @@
   const FINAL_CARD = {
     bell: ['The Drowned Bellwether', 'The keepers\' great bell, ringing with no hand on its rope'],
     bellthing: ['The Thing in the Bell', 'It grew into the bronze, around the Heart'],
-    thing: ['The Thing in the Bell', 'Grown back in the broken bronze'],
-    cantor: ['The Drowned Cantor', 'Leading the drowned keepers to ring the bell again'],
+    darkwatch: ['The Dark Watch', 'The light went out on her watch'],
   };
   const finalFight = () => !!(run && !run.tutorial && run.combat && run.combat.kind === 'boss' && E.lastLevel(run));
   function bossCard(title, sub, kicker) {
@@ -3195,7 +3200,7 @@
   // the lantern's light flickers over a rest's picture, and motes drift up through it (still with reduced motion)
   const restGlow = '<div class="rest-glow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
   function renderRest() {
-    if (run.passage) return renderStair();
+    if (run.passage || run.pocket) return renderStair();
     const amt = E.restAmount(run), heal = Math.min(amt, run.maxHp - run.hp);
     const done = run.restDone;
     const body = done
@@ -3223,6 +3228,7 @@
     shed: svg('<rect x="3.5" y="2.5" width="11.5" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6l6 6M20.6 14.6l-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'),
     flask: svg('<path d="M9.5 2.5h5v2h-.8v4l4.9 8.3A3.4 3.4 0 0 1 15.7 22H8.3a3.4 3.4 0 0 1-2.9-5.2l4.9-8.3v-4h-.8z" opacity=".4"/><path d="M7.3 15.2h9.4l1.3 2.3A2.3 2.3 0 0 1 16 21H8a2.3 2.3 0 0 1-2-3.5z"/>'),
     cache: ICON.treasure,
+    fog: ICON.event,
     sea: svg('<path d="M12 2.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 7.8l5-.7z" opacity=".9"/><path d="M2.5 19.5c2-2.6 4.3-2.6 6.3 0s4.4 2.6 6.4 0c1.6-2 3.4-2.4 6.3-.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'),
     done: svg('<path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
@@ -3232,22 +3238,23 @@
       return ['Rest', `${h ? `Heal ${h} HP: ${run.hp} &rarr; ${run.hp + h} of ${run.maxHp}. ` : ''}${Math.round(E.STAIR_REST * 100)}% of your Max HP, as at a Cove.`, h ? hpGainBar(run.hp, h, run.maxHp) : ''];
     },
     refit: () => ['Refit your gear', 'Upgrade a card in your deck.'],
-    shed: () => ['Shed a card', 'Leave a card on the stair, for good. Free: Barnaby charges Pearls for it.'],
+    shed: () => ['Shed a card', `Leave a card ${run.pocket ? 'under the bell' : 'on the stair'}, for good. Free: Barnaby charges Pearls for it.`],
     flask: (done) => {
       // up to E.STAIR_FLASKS of the empty slots (v0.36.0; every empty one before)
       const n = done ? 0 : Math.min(E.STAIR_FLASKS, run.tonics.filter((t) => !t).length);
-      return ['Fill your flasks', `Brinelight drips from the rock here. Fill up to ${E.STAIR_FLASKS} empty flasks${n ? `: <b>${n} random tonic${n > 1 ? 's' : ''}</b>, no two alike` : ' with random tonics'}.`];
+      return ['Fill your flasks', `${run.pocket ? 'Brinelight gathers in the bell\'s crown' : 'Brinelight drips from the rock here'}. Fill up to ${E.STAIR_FLASKS} empty flasks${n ? `: <b>${n} random tonic${n > 1 ? 's' : ''}</b>, no two alike` : ' with random tonics'}.`];
     },
     cache: () => ["The keepers' cache", 'The keepers before you left cards in the wall. Choose 1 of 3, uncommon or rare.'],
+    fog: () => ['Swim out into the dark', 'Leave the air and see what the Belfry hides: one of its Fog events.'],
     sea: () => ['Give one to the sea', `Throw a keepsake into the water. It is gone, with its Roil, and the sea pays for it: heal ${E.SEA_HEAL} HP for each Roil it had, and refit a card.`],
   };
   function stairTrack(lv) {
     return `<ol class="stair-track" aria-label="The way down">${E.LEVELS.map((L, i) => `<li class="${i < lv ? 'past' : i === lv ? 'here' : ''}${levelKnown(i) ? '' : ' unknown'}"><span class="dot">${i < lv ? STAIR_ICON.done : ''}</span><b${levelKnown(i) ? '' : ' aria-label="Not found yet"'}>${levelKnown(i) ? L.name : '?'}</b></li>`).join('')}</ol>`;
   }
   function renderStair() {
-    const lv = run.level || 0, s = E.stairState(run), left = E.STAIR_PICKS - s.picks.length;
+    const lv = run.level || 0, s = E.stairState(run), picks = E.stairPicks(run), left = picks - s.picks.length;
     let first = true;
-    const cards = E.STAIR_OPTIONS.map((id, i) => {
+    const cards = E.stairOptions(run).map((id, i) => {
       const why = E.stairWhy(run, id), done = why === 'done', [name, desc, extra] = STAIR_TEXT[id](done);
       const note = done ? '<em class="st-done">Done</em>' : why && why !== 'full' ? `<em class="reason">${why}</em>` : '';
       const focus = !why && first ? ' autofocus' : '';
@@ -3258,16 +3265,24 @@
     const log = (s.log || []).map((l) => `<li>${l}</li>`).join('');
     const B = E.band(run);
     // the five rise into place the first time the stair is seen, not again after each pick
-    const key = `${run.seed}:${lv}`, fresh = ui.stairSeen !== key;
+    const key = `${run.seed}:${lv}:${run.pocket ? run.floor : 's'}`, fresh = ui.stairSeen !== key;
     ui.stairSeen = key;
-    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene stair-scene" style="background-image:url(img/scenes/${B.stairArt || 'rest'}.webp)">${restGlow}<div class="scene-inner">
-      ${stairTrack(lv)}
+    // under a lesser bell in the Belfry (v0.37.0): the same screen, one pick, its own words
+    const pocket = !!run.pocket, last = pocket && run.pos && run.pos.row >= E.mapRows(run) - 1;
+    const art = pocket ? (B.pocketArt || B.stairArt || 'rest') : (B.stairArt || 'rest');
+    const head = pocket
+      ? `<h1 class="stair-title"><small>Landing ${run.floor} of ${E.mapRows(run) + 1}</small>Under a lesser bell</h1>
+      <p class="lead">${B.pocket || 'A lesser bell hangs here, and air is caught under it. You come up into the dark inside the bronze and open your helmet.'}</p>`
+      : `${stairTrack(lv)}
       <h1 class="stair-title"><small>The stair down</small>Into ${levelName(lv)}</h1>
-      <p class="lead">${B.stair || `The broken pin's water has run away down the stair, toward ${levelName(lv)}. Halfway down is a dry hollow above the tide line, the last shelter before the dark.`}</p>
-      <p class="stair-count">${left ? `Choose <b>${left === E.STAIR_PICKS ? 'two' : 'one more'}</b>, each once.` : 'You are ready to go down.'}</p>
+      <p class="lead">${B.stair || `The broken pin's water has run away down the stair, toward ${levelName(lv)}. Halfway down is a dry hollow above the tide line, the last shelter before the dark.`}</p>`;
+    const go = pocket ? (last ? `Swim on to ${bossName()}` : 'Swim on') : `Go down into ${levelName(lv)}`;
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene stair-scene${pocket ? ' pocket' : ''}" style="background-image:url(img/scenes/${art}.webp)">${restGlow}<div class="scene-inner">
+      ${head}
+      <p class="stair-count">${left ? `Choose <b>${left === 1 ? (picks === 1 ? 'one' : 'one more') : 'two'}</b>${picks > 1 ? ', each once' : ''}.` : pocket ? 'You close your helmet.' : 'You are ready to go down.'}</p>
       <div class="stair-grid${fresh ? ' fresh' : ''}">${cards}</div>
       ${log ? `<ul class="stair-log">${log}</ul>` : ''}
-      <button class="btn ${left ? 'ghost' : 'primary'} stair-go" data-act="tomap"${left ? '' : ' autofocus'}>Go down into ${levelName(lv)}${left ? ` <small>(${left} unused)</small>` : ''}</button>
+      <button class="btn ${left ? 'ghost' : 'primary'} stair-go" data-act="tomap"${left ? '' : ' autofocus'}>${go}${left ? ` <small>(${left} unused)</small>` : ''}</button>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
@@ -3277,13 +3292,14 @@
     const s = E.stairState(run);
     const done = (o, line, sound) => { if (!o) return; (s.log = s.log || []).push(line(o)); sfx(sound); save(); render(); };
     if (id === 'rest') done(E.stairDo(run, 'rest'), (o) => `You sleep deep beside the lantern and wake mended: ${o.healed} HP.`, 'buff');
+    else if (id === 'fog') { if (E.stairDo(run, 'fog')) { sfx('step'); save(); render(); } }
     else if (id === 'flask') done(E.stairDo(run, 'flask'), (o) => `You fill ${o.tonics.length > 1 ? `${o.tonics.length} flasks` : 'a flask'} with brinelight: ${o.tonics.map((t) => BL.TONICS[t].name).join(', ')}.`, 'tonic');
     else if (id === 'refit') {
       ui.allowCancelPick = true;
       showDeck('upgrade', (uid) => done(E.stairDo(run, 'refit', uid), (o) => `You refit by lantern light: ${E.cardName(o.card)} is ready.`, 'buff'));
     } else if (id === 'shed') {
       ui.allowCancelPick = true;
-      showDeck('remove', (uid) => done(E.stairDo(run, 'shed', uid), (o) => `You leave ${E.cardName(o.card)} on the stair.`, 'douse'));
+      showDeck('remove', (uid) => done(E.stairDo(run, 'shed', uid), (o) => `You leave ${E.cardName(o.card)} ${run.pocket ? 'under the bell' : 'on the stair'}.`, 'douse'));
     } else if (id === 'cache') {
       const ids = E.stairCache(run);
       save(); // the three stay the same after a reload
@@ -3573,7 +3589,7 @@
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
     // coming home with the dress or with the Heart has a story scene the first time; then what opened is told
-    if (fin.tell) { fin.tell = false; playScene(win && run.heart ? 'heart' : fin.laz && (fin.laz.found || []).indexOf('suit') >= 0 ? 'dress' : '', showNews, 'Home'); }
+    if (fin.tell) { fin.tell = false; playScene(win && run.heart ? 'heart' : win && run.quieted ? 'quiet' : fin.laz && (fin.laz.found || []).indexOf('suit') >= 0 ? 'dress' : '', showNews, 'Home'); }
   }
 
   /* ================================================================== *

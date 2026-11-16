@@ -957,8 +957,10 @@ test('an expedition goes down level by level: after a pin, go home or go deeper;
   assert.equal(E.goHome(run), false);
 });
 
-test('the score: each landing scores 40 in the Shallows, 60 in Dark Water and 80 in the Belfry; coming home adds 5 per HP left; the Heart, or quieting the Belfry after it, adds 600', () => {
-  assert.deepEqual(E.LEVELS.map((l) => l.landing), [40, 60, 80]);
+test('the score: each landing scores 40 in the Shallows, 60 in Dark Water and 128 in the Belfry (5 landings pay the 640 that 8 at 80 did); coming home adds 5 per HP left; the Heart, or quieting the Belfry after it, adds 600', () => {
+  assert.deepEqual(E.LEVELS.map((l) => l.landing), [40, 60, 128]);
+  assert.deepEqual(E.LEVELS.map((l, i) => E.landingsOf(i)), [8, 8, 5]);
+  assert.equal(E.LEVELS[2].landing * E.landingsOf(2), 640);
   const run = E.newRun(1);
   run.floor = 5;
   const line = (r, won, label) => (E.scoreParts(r, won).parts.find((p) => p.label === label) || {}).pts;

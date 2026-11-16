@@ -202,9 +202,21 @@ const SIZES = {
       await setup(`const r = B.run, c = r.combat; c.enemies[0].hp = 1; c.enemies[0].ward = 0; const j = E.newCard(r, 'jab'); c.hand.unshift(j); c.light = 3; E.playCard(r, j.uid, c.enemies[0].uid); B.render();`);
       await sleep(2400);
       await shot(tag, '43_thing_in_the_bell');
-      await setup(`const r = E.newRun(4242, 2, null, null, [], true); r.kit.coat = 'suit'; B.run = r; E.startCombat(r, 'boss', ['cantor']); B.render();`);
+      await setup(`const r = E.newRun(4242, 2, null, null, [], true); r.kit.coat = 'suit'; B.run = r; E.startCombat(r, 'elite', ['cantor']); B.render();`);
       await sleep(1800);
       await shot(tag, '44_cantor');
+      // v0.37.0: the dive's map, a lesser bell, and the Dark Watch with the diver it calls
+      await setup(`const r = E.newRun(4242, 2, { coat: 'suit' }); B.run = r; B.render();`);
+      await shot(tag, '44a_belfry_dive_map');
+      await setup(`const r = B.run; r.pos = { row: 0, col: 2 }; r.floor = 1; E.enterNode(r, r.map.grid[1][2]); B.render();`);
+      await sleep(900);
+      await shot(tag, '44b_lesser_bell');
+      await setup(`const r = E.newRun(4242, 2, { coat: 'suit' }, null, [], true); B.run = r; E.startCombat(r, 'boss'); B.render();`);
+      await sleep(2400);
+      await shot(tag, '44c_dark_watch');
+      await setup(`const r = B.run, c = r.combat, w = c.enemies[0]; w.hp = 80; w.intent = 'nobody'; E.endTurn(r); B.render();`);
+      await sleep(1600);
+      await shot(tag, '44d_dark_watch_nobody');
       await setup(`const r = B.run; E.backToMap(r); r.event = { id: 'lanterns', stage: 'choose', text: null, next: null }; r.screen = 'event'; B.render();`);
       await shot(tag, '45_belfry_event');
       await setup(`const r = E.newRun(4242, 2); r.landed = [8, 8]; r.floor = 8; r.cleared = [0, 1, 2]; r.heart = true; r.screen = 'victory'; B.run = r; B.render();`);

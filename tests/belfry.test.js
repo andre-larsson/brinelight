@@ -309,8 +309,8 @@ test('the diving dress: not for sale; found above the Belfry\'s stair and carrie
 });
 
 /* ---------- After the Heart ---------- */
-test('after the Heart has come home, the Belfry\'s last landing is one of its finals, and beating it quiets the Belfry', () => {
-  assert.deepEqual(BL.BANDS.belfry.enc.finals, [['thing', 'arm', 'arm'], ['cantor']]);
+test('after the Heart has come home, the Belfry\'s last landing is Wren\'s own fear, the Dark Watch, and beating it quiets the Belfry', () => {
+  assert.deepEqual(BL.BANDS.belfry.enc.finals, [['darkwatch']]);
   const seen = new Set();
   for (let seed = 1; seed <= 40; seed++) {
     const run = E.newRun(seed, 2, null, null, null, true);
@@ -322,9 +322,9 @@ test('after the Heart has come home, the Belfry\'s last landing is one of its fi
     E.startCombat(top, 'boss');
     assert.deepEqual(top.combat.enc, ['harbour']);
   }
-  assert.deepEqual([...seen].sort(), ['cantor', 'thing+arm+arm']);
+  assert.deepEqual([...seen].sort(), ['darkwatch']);
   const run = E.newRun(3, 2, null, null, null, true);
-  run.floor = 8;
+  run.floor = 5;
   E.startCombat(run, 'boss');
   run.combat.enemies.forEach((e) => { e.dead = true; e.hp = 0; });
   run.combat.won = true;
@@ -338,11 +338,12 @@ test('after the Heart has come home, the Belfry\'s last landing is one of its fi
   assert.ok(E.heartIsHome(meta));
 });
 
-test('the Drowned Cantor leads the peal (everyone echoes), tolls 2 harder each time, and calls one Drowned Ringer of its choir', () => {
-  const { run, c } = fight(['cantor'], { kind: 'boss', heartHome: true });
+test('the Drowned Cantor, a Dread after the Heart: it leads the peal (everyone echoes), tolls 2 harder each time, and calls one Drowned Ringer of its choir', () => {
+  const { run, c } = fight(['cantor'], { kind: 'elite', heartHome: true });
   safe(run);
   const [cantor] = c.enemies;
-  assert.equal(cantor.maxHp, 160);
+  assert.ok(BL.ENEMIES.cantor.elite && !BL.ENEMIES.cantor.boss && BL.ENEMIES.cantor.leads);
+  assert.ok(cantor.maxHp >= 90 && cantor.maxHp <= 94);
   assert.equal(cantor.intent, 'lead');
   E.endTurn(run);
   assert.equal(cantor.ward, 12);
@@ -383,7 +384,7 @@ test('the Drowned Cantor leads the peal (everyone echoes), tolls 2 harder each t
 
 /* ---------- The Belfry's Fog ---------- */
 test('the Belfry\'s Fog: the Lost Lanterns, the Glow under the Bell (which knows if the Heart is home) and the Bell-Rope', () => {
-  assert.deepEqual(BL.BANDS.belfry.events, ['lanterns', 'heartglow', 'rope', 'shrine', 'garden']);
+  assert.deepEqual(BL.BANDS.belfry.events, ['lanterns', 'heartglow', 'rope']);
   const ev = (id) => BL.EVENTS.find((x) => x.id === id);
   const choose = (id, i, heartHome) => {
     const r = E.newRun(3, 2, null, null, null, heartHome);
@@ -424,7 +425,8 @@ test('the numbers the README gives for the Belfry, its finals and the Harbour He
   assert.equal(M('belljelly').chime.echoOne, true);
   assert.deepEqual([M('spawn').squeeze.debuff, M('arm').grip.debuff], [{ breathless: 1 }, { breathless: 1 }]);
   assert.deepEqual([M('ringer').ring.ward, M('ringer').ring.echoAll], [8, true]);
-  assert.deepEqual(BL.BANDS.belfry.enc.elite, [['ringer', 'minnow'], ['oarfish'], ['yearling']]);
+  assert.deepEqual(BL.BANDS.belfry.enc.dive, [['ringer', 'belljelly'], ['oarfish', 'spawn']]);
+  assert.deepEqual(BL.BANDS.belfry.enc.diveAfter, [['ringer', 'belljelly'], ['oarfish', 'spawn'], ['yearling', 'listener'], ['cantor'], ['oarfish', 'bladder']]);
   const oar = E.newRun(1, 2);
   E.startCombat(oar, 'elite', ['oarfish']);
   assert.equal(oar.combat.enemies[0].st.spines, 2);
@@ -433,12 +435,15 @@ test('the numbers the README gives for the Belfry, its finals and the Harbour He
   assert.deepEqual([hp('bell'), hp('bellthing')], [[160, 160], [110, 110]]);
   assert.deepEqual([M('bellthing').drink.dmg, M('bellthing').eye.expose, M('bellthing').eye.ward, M('bellthing').glare.dmg, M('bellthing').reach.grow, M('bellthing').reach.ward], [9, 2, 8, 30, { id: 'arm', max: 2 }, 12]);
   assert.deepEqual([M('arm').lash.dmg, M('arm').grip.dmg], [8, 4]);
-  // the finals
-  assert.deepEqual([hp('thing'), hp('cantor')], [[130, 130], [160, 160]]);
-  assert.deepEqual([M('thing').drink.dmg, M('thing').glare.dmg], [10, 32]);
+  // the Dark Watch, the final after the Heart, and the Cantor, a Dread after the Heart
+  assert.deepEqual(hp('darkwatch'), [180, 180]);
+  const W = M('darkwatch');
+  assert.deepEqual([W.ring.ward, W.ring.tideSet, W.harpoon.dmg, W.harpoon.hits, W.snuff.dmg, W.snuff.debuff, W.out.dmg(stub), W.nobody.grow, W.nobody.ward, BL.WATCH_CALL],
+    [14, 3, 9, 2, 11, { doused: 1 }, 22, { id: 'diver', max: 1 }, 10, 1 / 2]);
+  assert.deepEqual(hp('cantor'), [90, 94]);
   assert.deepEqual([M('cantor').lead.ward, M('cantor').lead.echoAll, M('cantor').toll.dmg(stub), M('cantor').call.grow], [12, true, 10, { id: 'ringer', max: 1 }]);
-  // the kit: 20 pieces plus the Brass Tide-Bell, one of them found
-  assert.equal(Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter).length, 20);
+  // the kit: 21 pieces plus the Brass Tide-Bell, one of them found
+  assert.equal(Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter).length, 21);
   assert.deepEqual(Object.keys(BL.KIT).filter((id) => BL.KIT[id].found), ['suit']);
 });
 
@@ -450,7 +455,9 @@ test("every creature in the Belfry is its own: none of Dark Water's or the Shall
   const here = new Set();
   Object.keys(en).forEach((k) => en[k].forEach((list) => list.forEach((id) => here.add(id))));
   [...here].forEach((id) => assert.ok(!up.has(id), id + ' is also met above the Belfry'));
-  ['listener', 'diver', 'yearling', 'spawn', 'belljelly', 'bladder', 'minnow', 'ringer', 'oarfish'].forEach((id) => assert.ok(here.has(id), id));
+  ['listener', 'yearling', 'spawn', 'belljelly', 'bladder', 'ringer', 'oarfish', 'cantor', 'darkwatch', 'bell'].forEach((id) => assert.ok(here.has(id), id));
+  // the Hollow Diver comes when the Dark Watch calls it; Bell Minnows come with the Bellwether's shoal and the Roil
+  assert.deepEqual(BL.ENEMIES.darkwatch.moves.nobody.grow, { id: 'diver', max: 1 });
   ['listener', 'diver', 'yearling'].forEach((id) => assert.ok(BL.STORY.notes.some((n) => n.when === 'en:' + id), 'a keeper\'s note for ' + id));
 });
 

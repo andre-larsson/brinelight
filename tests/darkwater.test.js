@@ -41,7 +41,8 @@ test('each level of an expedition draws fights, its pin and Fog events from its 
     const band = BL.BANDS[L.band];
     for (let seed = 1; seed <= 30; seed++) {
       const run = E.newRun(seed, lv);
-      ['easy', 'hard', 'elite', 'boss'].forEach((kind) => {
+      // a dive (the Belfry) has no Skirmishes: its Dreads are set on its map (tests/dive.test.js)
+      (L.dive ? ['boss'] : ['easy', 'hard', 'elite', 'boss']).forEach((kind) => {
         E.startCombat(run, kind);
         assert.ok(key(band.enc[kind]).includes(run.combat.enc.join('+')), `${L.name} ${kind}: ${run.combat.enc}`);
       });

@@ -34,9 +34,9 @@ test('the opening is four pictures, each with its text and art that exists', () 
   assert.match(S.opening[1].text, /an enchanted bell, the Bellwether/);
 });
 
-test('story scenes: one for each pin above the last, one for the dress and one for the Heart, each with pictures that exist and a chapter that replays it', () => {
+test('story scenes: one for each pin above the last, one for the dress, one for the Heart and one for the first quiet (the Dark Watch), each with pictures that exist and a chapter that replays it', () => {
   const at = Object.values(S.scenes).map((sc) => sc.at);
-  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'heart']).sort());
+  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'heart', 'quiet']).sort());
   Object.keys(S.scenes).forEach((id) => {
     const sc = S.scenes[id];
     assert.ok(sc.beats.length >= 1 && sc.beats.length <= 4, `${id}: a scene is one to four pictures`);
@@ -49,7 +49,7 @@ test('story scenes: one for each pin above the last, one for the dress and one f
     assert.equal(S.chapters.filter((c) => c.scene === id).length, 1, `${id}: one chapter replays it`);
   });
   // the scene opens with the chapter that replays it: the same mark
-  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', heart: 'heart' };
+  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', heart: 'heart', quiet: 'quiet' };
   S.chapters.filter((c) => c.scene).forEach((c) => assert.equal(c.when, mark[S.scenes[c.scene].at], c.id));
   // the Belfry is named for the first time when Dark Water's pin breaks, and the dress is found there
   assert.match(S.scenes.buoy.beats[1].text, /The keepers called it the Belfry/);
@@ -85,14 +85,14 @@ test('every mark can be earned in the game as it is', () => {
   assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
-test('there are eight chapters and 37 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
-  assert.equal(S.chapters.length, 8);
-  assert.equal(S.notes.length, 37);
+test('there are nine chapters and 38 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
+  assert.equal(S.chapters.length, 9);
+  assert.equal(S.notes.length, 38);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));
-  ['shop', 'cove', 'wreck', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit', 'en:harbour', 'en:bellthing', 'en:cantor'].forEach((m) => assert.ok(whens.includes(m), m));
+  ['shop', 'cove', 'wreck', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit', 'en:harbour', 'en:bellthing', 'en:cantor', 'en:darkwatch'].forEach((m) => assert.ok(whens.includes(m), m));
   // every boss has a note
-  Object.keys(BL.ENEMIES).filter((id) => BL.ENEMIES[id].boss && !BL.ENEMIES[id].tutorial && id !== 'thing').forEach((id) => assert.ok(whens.includes('en:' + id), id));
+  Object.keys(BL.ENEMIES).filter((id) => BL.ENEMIES[id].boss && !BL.ENEMIES[id].tutorial).forEach((id) => assert.ok(whens.includes('en:' + id), id));
   assert.ok(S.chapters.some((c) => c.when === 'fell'));
 });
 

@@ -120,7 +120,7 @@ function stair(run, opts) {
   if (up) want.push(['refit', up.uid]);
   want.push(['flask'], ['rest']);
   for (const [id, arg] of want) {
-    if (E.stairState(run).picks.length >= E.STAIR_PICKS) break;
+    if (E.stairState(run).picks.length >= (E.stairPicks ? E.stairPicks(run) : E.STAIR_PICKS)) break;
     E.stairDo(run, id, arg);
   }
 }

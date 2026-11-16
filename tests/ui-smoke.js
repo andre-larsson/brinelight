@@ -1132,6 +1132,22 @@ async function belfryScenario(page, base, name, size, opts) {
   await toMap('the Belfry map');
   if ((await page.eval('window.Brinelight.run.level')) !== 2) failures.push(`${name}: the run is not in the Belfry`);
   if (!/Belfry/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name the Belfry`);
+  // v0.37.0: the Belfry is a dive: one stop a row, 5 landings, and under a lesser bell one of six
+  const dive = await page.eval(`(() => { const r = window.Brinelight.run; return { rows: r.map.rows, nodes: document.querySelectorAll('.map .node').length, hud: document.querySelector('.stat.floor').textContent, legend: document.querySelector('.map-legend').textContent }; })()`);
+  if (dive.rows !== 4 || dive.nodes !== 5 || !/0\/5/.test(dive.hud) || !/lesser bell/i.test(dive.legend)) failures.push(`${name}: the Belfry should be a dive of 4 stops and the pin, 5 landings (${JSON.stringify(dive)})`);
+  await checkPage(page, name + ' belfry dive map');
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.pos = { row: 0, col: 2 }; r.floor = 1; E.enterNode(r, r.map.grid[1][2]); B.render(); })()`);
+  await waitIdle(page);
+  await dismissHints(page);
+  const bellStop = await page.eval(`({ opts: [...document.querySelectorAll('.stair-opt')].map((b) => b.dataset.id), title: document.querySelector('.stair-title').textContent, count: document.querySelector('.stair-count').textContent })`);
+  if (bellStop.opts.join() !== 'rest,refit,shed,flask,sea,fog' || !/lesser bell/i.test(bellStop.title) || !/one/.test(bellStop.count)) failures.push(`${name}: a lesser bell should offer one of six (${JSON.stringify(bellStop)})`);
+  await checkPage(page, name + ' lesser bell');
+  await page.eval(`document.querySelector('.stair-opt[data-id="fog"]').scrollIntoView({ block: 'center' })`);
+  await tap('.stair-opt[data-id="fog"]');
+  await page.waitFor('window.Brinelight.run.screen === "event"', 5000, 'a Belfry Fog event from the lesser bell');
+  if (!(await page.eval(`BL.BANDS.belfry.events.includes(window.Brinelight.run.event.id)`))) failures.push(`${name}: swimming out from a lesser bell should open one of the Belfry's own Fog events`);
+  await page.eval(`(() => { const B = window.Brinelight; B.E.backToMap(B.run); B.render(); })()`);
+  await waitIdle(page);
 
   const setFight = async (enc, kind, setup) => {
     await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.combat = null; r.screen = 'map'; E.startCombat(r, ${JSON.stringify(kind)}, ${JSON.stringify(enc)}); const c = r.combat; c.enemies.forEach((e) => { e.hp = e.maxHp = 400; }); ${setup || ''}; B.render(); })()`);

@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.36.0';
+  BL.VERSION = '0.37.0';
   BL.CHANGELOG = [
+    { v: '0.37.0', date: '2026-11-16', items: [
+      'The Belfry is a short dive. No branches, no shops, no Coves: the Drowned Ringer with a Bell Jelly, then the Crowned Oarfish with a Bellspawn, then the Bellwether, 5 landings in all. Each landing there scores 128, so the whole Belfry pays what its 8 landings did.',
+      'After each Dread in the Belfry you come up under a lesser bell, where air is caught. Choose one of six: rest, refit, shed a card, fill your flasks, give a keepsake to the sea, or swim out into the dark to one of the Belfry\'s Fog events.',
+      'Once the Heart is home, the deep grows toward your own lantern. The Belfry\'s two Dreads are two of five, the Drowned Cantor among them, and its last landing holds your own fear: the Dark Watch, a keeper in your coat with your lantern unlit. Before, the Thing in the Bell grown back or the Drowned Cantor waited there.',
+      'Beat the Dark Watch for the first time and a story scene plays, a new chapter opens, and the Workshop can make the Watch Glass: 1 more Light on the first turn of each fight.',
+      'Once the Heart is home, the lighthouse on the title screen is lit.',
+    ] },
     { v: '0.36.0', date: '2026-11-16', items: [
       'Choosing a card, a keepsake or a tonic no longer takes it at once. Tap one to mark it, tap another to change your mind, and press Take to take it. Under a choice of cards, the words are explained for the card you marked, and only for that card.',
       'The Lazaret keeps as many of each keepsake as you bring home. A keepsake you bring on an expedition leaves the Lazaret: it goes back if you come home with it, and it is gone if you fall, drop it or give it to the sea. A spare copy can be broken down for Salvage, half its Roil.',

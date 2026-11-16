@@ -11,7 +11,7 @@
   const TIDE_MID = 3;
   const HAND_MAX = 10;
   E.MAP_ROWS = MAP_ROWS;
-  E.LANDINGS = MAP_ROWS + 1; // landings in a level, the pin's included
+  E.LANDINGS = MAP_ROWS + 1; // landings in a walkable level, the pin's included (the Belfry, a dive, has fewer: E.landingsOf)
   E.WRECK_ROW = 3; // every path passes one Wreck, halfway down
   E.MAP_COLS = MAP_COLS;
   E.TIDE_MAX = TIDE_MAX;
@@ -148,8 +148,16 @@
   E.LEVELS = [
     { name: 'The Shallows', the: 'the Shallows', band: 'shallows', landing: 40 },
     { name: 'Dark Water', the: 'Dark Water', band: 'dark', landing: 60 },
-    { name: 'The Belfry', the: 'the Belfry', band: 'belfry', landing: 80, needs: 'suit' },
+    // a dive (v0.37.0, the user's idea): Dread, a lesser bell, Dread, a lesser bell, the pin. 5 landings at 128 pay the
+    // 640 that 8 landings at 80 paid before (the user: the same in total)
+    { name: 'The Belfry', the: 'the Belfry', band: 'belfry', landing: 128, needs: 'suit', dive: true },
   ];
+  /* The Belfry is a dive: no branches, no shops or Fog, two Dreads with a stop under a lesser bell after each, then
+     the pin. A dive's map rows are DIVE (stops), and the pin is the landing after them. */
+  E.DIVE = ['elite', 'pocket', 'elite', 'pocket'];
+  E.isDive = (lv) => !!(E.LEVELS[lv || 0] && E.LEVELS[lv || 0].dive);
+  E.landingsOf = (lv) => (E.isDive(lv) ? E.DIVE.length : MAP_ROWS) + 1;
+  E.mapRows = (run) => (run.map && run.map.rows) || MAP_ROWS;
   E.lastLevel = (run) => (run.level || 0) >= E.LEVELS.length - 1;
   E.levelName = (lv) => E.LEVELS[lv || 0].the;
   /* Currents: chosen on shore before an expedition, once the Heart has come home. Each makes the whole expedition
@@ -230,7 +238,26 @@
   /* The first row of a level's map that can hold a shop (rows count from 0, and row 0 is always a fight). In the
      Shallows it is the third landing: an expedition starts with no Pearls, and two landings earn too few to spend. */
   E.shopFrom = (run) => ((run.level || 0) === 0 ? 2 : 1);
+  /* A dive's route: one stop a row in the middle column. Its Dreads are set here: on the first expeditions the
+     Drowned Ringer then the Crowned Oarfish (BL.BANDS.belfry.enc.dive), and once the Heart is home two of the
+     Dreads that grow toward a keeper's lantern (enc.diveAfter), in a random order. */
+  function genDive(run) {
+    const R = makeR(run);
+    const enc = E.band(run).enc;
+    const dreads = run.heartHome && enc.diveAfter ? R.shuffle(enc.diveAfter.slice()).slice(0, 2) : enc.dive.slice();
+    const grid = [];
+    let d = 0;
+    E.DIVE.forEach((type, r) => {
+      const row = new Array(MAP_COLS).fill(null);
+      const n = { row: r, col: 2, type, next: r < E.DIVE.length - 1 ? [2] : [], x: 0.5, jy: 0 };
+      if (type === 'elite') n.enc = dreads[d++].slice();
+      row[2] = n;
+      grid.push(row);
+    });
+    return { rows: E.DIVE.length, cols: MAP_COLS, grid, dive: true, boss: { row: E.DIVE.length, col: 2, type: 'boss', x: 0.5, jy: 0 } };
+  }
   function genMap(run) {
+    if (E.isDive(run.level)) return genDive(run);
     const R = makeR(run);
     const grid = [];
     for (let r = 0; r < MAP_ROWS; r++) grid.push(new Array(MAP_COLS).fill(null));
@@ -319,13 +346,14 @@
   }
   E.genMap = genMap;
 
-  E.nodeAt = (run, pos) => (pos.row >= MAP_ROWS ? run.map.boss : run.map.grid[pos.row][pos.col]);
+  E.nodeAt = (run, pos) => (pos.row >= E.mapRows(run) ? run.map.boss : run.map.grid[pos.row][pos.col]);
 
   E.availableNodes = function (run) {
     if (run.screen !== 'map') return [];
     if (!run.pos) return run.map.grid[0].filter(Boolean);
-    if (run.pos.row >= MAP_ROWS) return [];
-    if (run.pos.row === MAP_ROWS - 1) return [run.map.boss];
+    const rows = E.mapRows(run);
+    if (run.pos.row >= rows) return [];
+    if (run.pos.row === rows - 1) return [run.map.boss];
     const n = run.map.grid[run.pos.row][run.pos.col];
     return n.next.map((c) => run.map.grid[run.pos.row + 1][c]);
   };
@@ -338,9 +366,11 @@
     run.visited.push(node.row + ',' + node.col);
     switch (node.type) {
       case 'fight': E.startCombat(run, run.normalFights < 3 ? 'easy' : 'hard'); break;
-      case 'elite': E.startCombat(run, 'elite'); break;
+      case 'elite': E.startCombat(run, 'elite', node.enc ? node.enc.slice() : null); break;
       case 'boss': E.startCombat(run, 'boss'); break;
       case 'rest': run.screen = 'rest'; run.restDone = false; break;
+      // a lesser bell in the Belfry: one of the stair's six (E.stairDo)
+      case 'pocket': run.screen = 'rest'; run.restDone = false; run.pocket = true; run.stair = { picks: [], cache: null }; break;
       case 'shop': genShop(run); run.screen = 'shop'; break;
       case 'treasure': genTreasure(run); run.screen = 'treasure'; break;
       case 'event': E.startEvent(run); break;
@@ -354,6 +384,7 @@
     if (rw && rw.tonic && !rw.tonicTaken && run.tonics.indexOf(null) >= 0) E.decline(run, 'tonic');
     run.screen = 'map';
     run.passage = false;
+    run.pocket = false;
     run.combat = null;
     run.rewards = null;
     run.event = null;
@@ -509,7 +540,7 @@
   }
   /* At a Cove inside a level: it is the Cove's one thing. Returns what happened, or null. (On the stair: E.stairDo(run, 'sea', { k, uid }).) */
   E.giveToSea = function (run, k, uid) {
-    if (run.screen !== 'rest' || run.passage || run.restDone) return null;
+    if (run.screen !== 'rest' || run.passage || run.pocket || run.restDone) return null;
     const out = seaGive(run, k, uid);
     if (out) run.restDone = true;
     return out;
@@ -528,17 +559,23 @@
        sea    give a keepsake to the sea (v0.35.0, E.seaGive): heal by its Roil and refit a card
      She may go on down with picks unused. */
   E.STAIR_PICKS = 2;
+  E.POCKET_PICKS = 1; // under a lesser bell in the Belfry (v0.37.0): one of the same six
+  E.stairPicks = (run) => (run && run.pocket ? E.POCKET_PICKS : E.STAIR_PICKS);
   E.STAIR_REST = 0.3; // 0.5 until v0.36.0
   E.STAIR_FLASKS = 2; // the most tonics the stair's flask fills (v0.36.0, the user: "Limit max flasks filled in stairs to two or three")
   E.STAIR_OPTIONS = ['rest', 'refit', 'shed', 'flask', 'cache', 'sea']; // 'sea' since v0.35.0: two of six
+  /* Under a lesser bell (v0.37.0): one of six. No keepers' cache down here; `fog` swims out into the dark to one of
+     the Belfry's Fog events (E.startEvent). */
+  E.POCKET_OPTIONS = ['rest', 'refit', 'shed', 'flask', 'sea', 'fog'];
+  E.stairOptions = (run) => (run && run.pocket ? E.POCKET_OPTIONS : E.STAIR_OPTIONS);
   E.stairRestAmount = (run) => Math.floor(run.maxHp * E.STAIR_REST * (E.mods(run).rest / E.COVE_REST)) + (E.hasKit(run, 'wick') ? 10 : 0);
-  E.stairOpen = (run) => !!run && run.screen === 'rest' && !!run.passage;
+  E.stairOpen = (run) => !!run && run.screen === 'rest' && !!(run.passage || run.pocket);
   E.stairState = (run) => run.stair || (run.stair = { picks: [], cache: null });
   /* Why an option can't be taken now: '' when it can, 'done' when it was, 'full' when both picks are used, else a reason. */
   E.stairWhy = function (run, id) {
     const s = E.stairState(run);
     if (s.picks.indexOf(id) >= 0) return 'done';
-    if (s.picks.length >= E.STAIR_PICKS) return 'full';
+    if (s.picks.length >= E.stairPicks(run)) return 'full';
     if (id === 'rest' && run.hp >= run.maxHp) return 'You are at full health.';
     if (id === 'refit' && !E.upgradeable(run).length) return 'Every card is upgraded.';
     if (id === 'shed' && run.deck.length <= 1) return 'Your deck is down to one card.';
@@ -561,8 +598,15 @@
   };
   /* Do one of the five: `arg` is a card uid (refit, shed) or the cache's index. Returns what happened, or null. */
   E.stairDo = function (run, id, arg) {
-    if (!E.stairOpen(run) || E.STAIR_OPTIONS.indexOf(id) < 0 || E.stairWhy(run, id)) return null;
+    if (!E.stairOpen(run) || E.stairOptions(run).indexOf(id) < 0 || E.stairWhy(run, id)) return null;
     const out = { id };
+    if (id === 'fog') {
+      E.stairState(run).picks.push(id);
+      run.restDone = true;
+      E.startEvent(run); // the event's own screen; leaving it goes back to the map
+      out.event = run.event.id;
+      return out;
+    }
     if (id === 'rest') out.healed = E.heal(run, E.stairRestAmount(run));
     else if (id === 'refit' || id === 'shed') {
       const c = run.deck.find((x) => x.uid === arg);
@@ -585,7 +629,7 @@
     }
     const s = E.stairState(run);
     s.picks.push(id);
-    if (s.picks.length >= E.STAIR_PICKS) run.restDone = true;
+    if (s.picks.length >= E.stairPicks(run)) run.restDone = true;
     return out;
   };
 
@@ -911,8 +955,8 @@
       fx(c, { t: 'burst', who: e.uid, n, horn: true });
       E.alive(c).forEach((o) => dealDamage(run, c, o, n, null, false));
     }
-    // when the boss falls, its shoal scatters
-    if (BL.ENEMIES[e.id].boss) scatter(c, e);
+    // when the boss falls, its shoal scatters (and when the Drowned Cantor falls, its choir stops: `leads`)
+    if (BL.ENEMIES[e.id].boss || BL.ENEMIES[e.id].leads) scatter(c, e);
     if (E.alive(c).length === 0 && !c.lost && !c.won) {
       c.won = true;
       fx(c, { t: 'victory' });
@@ -1262,7 +1306,7 @@
     // a doused lantern starts the turn with less Light
     const doused = P.st.doused || 0;
     delete P.st.doused;
-    c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) + (E.has(run, 'cinder') && (c.turn - 1) % BL.KEEPSAKES.cinder.every === 0 ? 1 : 0) + (P.st.heartfire || 0) - doused);
+    c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) + (E.has(run, 'cinder') && (c.turn - 1) % BL.KEEPSAKES.cinder.every === 0 ? 1 : 0) + (P.st.heartfire || 0) + (c.turn === 1 && E.hasKit(run, 'watchglass') ? 1 : 0) - doused);
     if (doused) { c.dousedTurn = c.turn; c.dousedN = doused; fx(c, { t: 'doused', n: doused }); }
     // a squeezed suit: fewer cards this turn (never fewer than 1)
     const breathless = P.st.breathless || 0;
