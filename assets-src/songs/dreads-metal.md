@@ -357,9 +357,73 @@ crab's shell and looks for a bigger one; when its eye opens it can be hurt, and 
 Something larger down here does the same." The words hint, as the note does, that the great bell is the shell it wants
 ("I hear one humming through the stone": the Listeners hear the Bellwether through the rock). They do not name the Thing.
 
+**The user's lyrics (2026-11-16)** replace the agent's draft below. The Yearling no longer complains that its shell
+pinches; it hears a deeper voice in the stone and goes down toward it, and the chorus grows each time (greater, distant,
+mighty bell). The bridge keeps the note's line about the eye. The agent's draft is kept after the prompt.
+
 ```
 Technical, off-kilter late-1990s metal with math-rock rhythms. Riffs in shifting odd time signatures (7/8, 5/4, 9/8) that lurch, stop dead and restart, then snap into a heavy, swinging 4/4 groove for the chorus. The bass is the lead instrument: busy, virtuosic fingerstyle bass with slides, harmonics and tapping, loud in the mix, answered by stabbing down-tuned guitars. Precise, polyrhythmic drums with many tom fills. One grown man's voice that switches in an instant between a calm, eerie, low clean voice and a deep, guttural growl from the chest, sometimes inside one line. Never high-pitched or whiny, no emo shouting, no teenage angst. Broken bronze clanging as percussion, and small bells. Tense and unpredictable. Heavy within the first ten seconds. About 3 minutes.
 
+Lyrics:
+
+[Intro]
+(the bass alone, a lurching odd-time riff; bronze scraping on stone)
+
+[Verse 1]
+I was all arms and one watchful eye,
+I squeezed the air from a diver's dress,
+with a broken bell on my head,
+I heard a deeper voice inside the stone.
+
+[Pre-Chorus]
+It's calling, it's calling, from somewhere below,
+I'm diving, I'm diving where dark currents flow.
+
+[Chorus 1]
+Greater bell, greater bell,
+I hear you tolling far below,
+greater bell, greater bell,
+I'll find a voice to call my own.
+
+[Verse 2]
+One eye, I used to keep it shut,
+safe under bronze where you couldn't see,
+now I open it, keeper, and face the dark,
+whatever waits there will answer me.
+
+[Pre-Chorus]
+It's calling, it's calling, from somewhere below,
+I'm diving, I'm diving where dark currents flow.
+
+[Chorus 2]
+Distant bell, distant bell,
+I hear you singing through the deep,
+distant bell, distant bell,
+You call to me beneath my sleep.
+
+[Bridge]
+(clean and eerie, over the odd-time riff)
+Remember the eye. Remember the eye.
+Something larger down here does the same.
+
+[Breakdown]
+(the heaviest part: the lurching riff, bronze clanging on every hit, a deep guttural growl)
+DIVE DEEP! REACH HIGH!
+DIVE DEEP! REACH HIGH!
+
+[Final Chorus]
+Mighty bell, mighty bell,
+Your thunder rolls beneath the sea,
+mighty bell, mighty bell,
+One day your voice will answer me.
+
+[Outro]
+(the bass riff alone again, then one clang of bronze)
+```
+
+The agent's earlier lyrics, replaced:
+
+```
 Lyrics:
 
 [Intro]
