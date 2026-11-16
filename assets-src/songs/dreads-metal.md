@@ -9,6 +9,7 @@ Shallows keep the score.
 |---|---|---|---|
 | 1. The Gardener | Early-Slipknot-like, pushed to grindcore and noise, with a soft, sung voice and short growls | The Garden Strider (Dark Water's Dread) | Its fight, instead of the `dread` cue |
 | 2. Nobody in the Dress | Korn-like nu-metal | The Hollow Divers (Belfry) | Belfry fights with a Diver, taking turns with the score |
+| 2b, 2c. Nobody in the Dress, alternates | Korn-like, the voice and the slapped bass up front | The Hollow Divers | As 2 |
 | 3. Bigger Bell | Mudvayne-like math metal | The Bell Yearling (Belfry Dread) | Its fight, instead of the `dread` cue |
 | 4. King of the Herrings | Iron Maiden-like gallop | The Crowned Oarfish (Belfry Dread) | Its fight, instead of the `dread` cue |
 | 5. Ring It Once Again | Iron Maiden-like epic with a choir | The Drowned Cantor (a Belfry final, after the Heart is home) | Its fight, instead of the `pin` cues |
@@ -202,6 +203,153 @@ and walk it where the keepers passed.
 (the air pump stops; one last breath inside the helmet)
 ```
 
+## 2b. Nobody in the Dress, alternate B: the voice and the bass up front, same words
+
+The user asked (2026-11-16) for alternates with "more Jonathan Davies like vocals, and Fieldy-like bass playing". The
+prompt names neither; it describes them. The voice: a nasal, wavering baritone that whispers and breathes into the
+microphone, taunts in a nursery-rhyme sing-song, stutters, doubles itself with a whisper, scats like a drum fill and
+tears into a roar for a line or two. The bass: a low five-string slapped with the whole hand, trebly and mid-scooped,
+more clack than note, locked to the kick like a second snare. The intro's drone is the dress's air pump wheezing like
+bagpipes. Same words as 2, with a direction on each part, so it can be compared with 2 directly.
+
+```
+Dark, bouncy mid-1990s nu-metal at about 95 BPM, raw and creepy. The bass is up front, as loud as the guitars: a five-string bass tuned very low and slapped with the whole hand, so it clacks more than it rings; bright and trebly with the middle scooped out, dry and percussive like a second snare drum, playing busy, syncopated hip-hop patterns locked to the kick drum, with ghost notes and dead-string clicks between the notes. Two seven-string guitars tuned very low play simple, heavy, bouncing riffs that leave room for the bass, and fill the gaps with eerie noises: whammy dives, delay squeals, metal scraping on metal. Hip-hop drum grooves with ghost notes on the snare. The voice is one grown man with a distinctive, nasal, wavering baritone, eerie and haunted. He breathes and whispers right into the microphone; he sings the melodies with a quavering, unsettled tone; he taunts in a creepy sing-song like a nursery rhyme; he stutters and repeats words; a whispered double of his own voice runs under his singing; in the breakdown he scats fast, rhythmic nonsense syllables like a drum fill; and at the peak his voice tears into a deep, guttural roar for a line or two, then drops back to a whisper. Unsettling and personal, never generic shouting, never pop-punk. It opens with a wheezing drone like bagpipes, the old air pump of a diving dress, and the slapped bass comes in within seconds. Under it all: breathing echoing inside a brass helmet, slow heavy boots on stone. Creepy and claustrophobic. About 3 minutes.
+
+Lyrics:
+
+[Intro]
+(a wheezing drone like bagpipes; breathing inside a brass helmet; a whisper) Is anybody in there?
+
+[Verse 1]
+(whispered and breathy, right into the microphone, the slapped bass bouncing under it)
+Canvas and brass and a window of glass,
+boots full of lead on the stone below,
+the seams went soft in a hundred years,
+and we came in where the stitches go.
+
+[Pre-Chorus]
+(stuttering, building)
+W-w-we learned the boots, we learned the stride,
+we-we-we learned to fill it from the inside.
+
+[Chorus]
+(sung, nasal and wavering, haunted, a whisper doubling it underneath)
+There's nobody in the dress,
+nobody behind the glass,
+we fill it like a hand in a glove,
+and walk it where the keepers passed.
+
+[Verse 2]
+(a creepy sing-song, like a nursery rhyme)
+Our lamp is cold and your lamp is bright,
+come a little closer, give us your light,
+you wear a dress the same as this,
+and seams go soft in the deep like this.
+
+[Pre-Chorus]
+(stuttering, building)
+W-w-we learned the boots, we learned the stride,
+we-we-we learned to fill it from the inside.
+
+[Chorus]
+(sung, nasal and wavering, haunted, a whisper doubling it underneath)
+There's nobody in the dress,
+nobody behind the glass,
+we fill it like a hand in a glove,
+and walk it where the keepers passed.
+
+[Breakdown]
+(fast, rhythmic nonsense scat syllables like a drum fill, trading bar for bar with the slapped bass)
+
+[Bridge]
+(whispered, then a deep, guttural roar on the last line)
+Who wore it first? Who wore it first?
+We don't know. We don't know.
+We only know the way to walk.
+
+[Final Chorus]
+(sung, the roar breaking through on the last line)
+There's nobody in the dress,
+nobody behind the glass,
+we fill it like a hand in a glove,
+and walk it where the keepers passed.
+
+[Outro]
+(the air pump wheezes down and stops; one last breath inside the helmet)
+```
+
+## 2c. Nobody in the Dress, alternate C: the same sound, with counting-rhyme verses
+
+The same style as 2b, with verses rewritten as a counting rhyme, so the sing-song taunt has words built for it (boots,
+seams, lamps, counted like a skipping rhyme). The chorus, pre-chorus and bridge stay. The threat is the same as in 2:
+Wren's dress has seams too.
+
+```
+Dark, bouncy mid-1990s nu-metal at about 95 BPM, raw and creepy. The bass is up front, as loud as the guitars: a five-string bass tuned very low and slapped with the whole hand, so it clacks more than it rings; bright and trebly with the middle scooped out, dry and percussive like a second snare drum, playing busy, syncopated hip-hop patterns locked to the kick drum, with ghost notes and dead-string clicks between the notes. Two seven-string guitars tuned very low play simple, heavy, bouncing riffs that leave room for the bass, and fill the gaps with eerie noises: whammy dives, delay squeals, metal scraping on metal. Hip-hop drum grooves with ghost notes on the snare. The voice is one grown man with a distinctive, nasal, wavering baritone, eerie and haunted. He breathes and whispers right into the microphone; he sings the melodies with a quavering, unsettled tone; he taunts in a creepy sing-song like a nursery rhyme; he stutters and repeats words; a whispered double of his own voice runs under his singing; in the breakdown he scats fast, rhythmic nonsense syllables like a drum fill; and at the peak his voice tears into a deep, guttural roar for a line or two, then drops back to a whisper. Unsettling and personal, never generic shouting, never pop-punk. It opens with a wheezing drone like bagpipes, the old air pump of a diving dress, and the slapped bass comes in within seconds. Under it all: breathing echoing inside a brass helmet, slow heavy boots on stone. Creepy and claustrophobic. About 3 minutes.
+
+Lyrics:
+
+[Intro]
+(a wheezing drone like bagpipes; breathing inside a brass helmet; a whisper) Knock, knock. Is anybody in there?
+
+[Verse 1]
+(a creepy sing-song, like a nursery rhyme, the slapped bass bouncing under it)
+One boot, two boots, lead in the heel,
+walk it around and it doesn't feel,
+three seams, four seams, soft and thin,
+knock on the glass, there's nobody in.
+
+[Pre-Chorus]
+(stuttering, building)
+W-w-we learned the boots, we learned the stride,
+we-we-we learned to fill it from the inside.
+
+[Chorus]
+(sung, nasal and wavering, haunted, a whisper doubling it underneath)
+There's nobody in the dress,
+nobody behind the glass,
+we fill it like a hand in a glove,
+and walk it where the keepers passed.
+
+[Verse 2]
+(the sing-song again, sweeter and creepier)
+Five lamps, six lamps, burning bright,
+ours is cold, so give us your light,
+seven, eight, come closer, come in,
+your dress has seams, and your seams are thin.
+
+[Pre-Chorus]
+(stuttering, building)
+W-w-we learned the boots, we learned the stride,
+we-we-we learned to fill it from the inside.
+
+[Chorus]
+(sung, nasal and wavering, haunted, a whisper doubling it underneath)
+There's nobody in the dress,
+nobody behind the glass,
+we fill it like a hand in a glove,
+and walk it where the keepers passed.
+
+[Breakdown]
+(fast, rhythmic nonsense scat syllables like a drum fill, trading bar for bar with the slapped bass)
+
+[Bridge]
+(whispered, then a deep, guttural roar on the last line)
+Who wore it first? Who wore it first?
+We don't know. We don't know.
+We only know the way to walk.
+
+[Final Chorus]
+(sung, the roar breaking through on the last line)
+There's nobody in the dress,
+nobody behind the glass,
+we fill it like a hand in a glove,
+and walk it where the keepers passed.
+
+[Outro]
+(the air pump wheezes down and stops; a whisper) Nobody's in there.
+```
+
 ## 3. Bigger Bell (the Bell Yearling; Mudvayne-like)
 
 The Yearling sings. Its keeper's note: too big for Bellspawn, too small for a bell, it wears broken bronze like a hermit
@@ -339,11 +487,11 @@ the king has come for me!
 
 ## 5. Ring It Once Again (the Drowned Cantor; Iron Maiden-like epic)
 
-**Failed (2026-11-16):** Gemini said "Something went wrong while trying to generate your track. Please try again, or
-adjust your prompt slightly and we can give it another shot!" That is not the wording of the Buoy refusal (which named
-"sensitive or dark" themes), so it may be a passing fault or a quieter filter. **Next (not done yet):** try it once more
-as it is; then a shorter style paragraph (one tempo change, not two); then gentler words where they touch death ("Go
-back into the dark, and rest", the choir of the drowned).
+**Made (2026-11-16), on the second try.** The first style paragraph failed with Gemini's "Something went wrong while
+trying to generate your track. Please try again, or adjust your prompt slightly and we can give it another shot!" (not
+the Buoy refusal's wording). The user took out the two tempos ("at a steady mid tempo, about 120 BPM" and "about 165
+BPM") and it worked; the style below is the user's working one, the words are unchanged. Whether the numbers or the
+retry did it is not known: the Gardener has two tempos in BPM and was made.
 
 The Cantor sings, and his choir answers. It plays only after the Heart is home, so it may say more than the others. Its
 keeper's note: with the Bellwether silent, the drowned keepers gather under it and try to ring it again; silence the
@@ -353,7 +501,7 @@ Ringers went down to tend the bell and stayed. "The bell kept every name" is a h
 keeps the keepers who stay with it; it is not a fact yet.
 
 ```
-An epic early-1980s British heavy metal song with a choir. It opens slow and solemn: a great bell tolling, a low male choir humming, a clean, arpeggiated guitar, and one male tenor voice singing the first verse quietly. Then the band crashes in at a steady mid tempo, about 120 BPM, and later breaks into a fast gallop, about 165 BPM: a galloping bass, two lead guitars playing harmonised melodies, a soaring, operatic tenor. The choir answers the singer in every chorus like a congregation. In the instrumental the bell rings faster and louder on every beat. At the end the band stops, the choir fades out one voice at a time, and the bell rings once more, quietly. Grand, solemn, heroic and sad. About 3 minutes.
+An epic early-1980s British heavy metal song with a choir. It opens slow and solemn: a great bell tolling, a low male choir humming, a clean, arpeggiated guitar, and one male tenor voice singing the first verse quietly. Then the band crashes in and later breaks into a fast gallop: a galloping bass, two lead guitars playing harmonised melodies, a soaring, operatic tenor. The choir answers the singer in every chorus like a congregation. In the instrumental the bell rings faster and louder on every beat. At the end the band stops, the choir fades out one voice at a time, and the bell rings once more, quietly. Grand, solemn, heroic and sad. About 3 minutes.
 
 Lyrics:
 
