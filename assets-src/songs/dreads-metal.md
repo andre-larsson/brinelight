@@ -7,7 +7,7 @@ Shallows keep the score.
 
 | Song | Style | For | Where it would play |
 |---|---|---|---|
-| 1. The Gardener | Early-Slipknot-like, pushed to grindcore and noise: growls, shrieks, blast beats | The Garden Strider (Dark Water's Dread) | Its fight, instead of the `dread` cue |
+| 1. The Gardener | Early-Slipknot-like, pushed to grindcore and noise, with a soft, sung voice and short growls | The Garden Strider (Dark Water's Dread) | Its fight, instead of the `dread` cue |
 | 2. Nobody in the Dress | Korn-like nu-metal | The Hollow Divers (Belfry) | Belfry fights with a Diver, taking turns with the score |
 | 3. Bigger Bell | Mudvayne-like math metal | The Bell Yearling (Belfry Dread) | Its fight, instead of the `dread` cue |
 | 4. King of the Herrings | Iron Maiden-like gallop | The Crowned Oarfish (Belfry Dread) | Its fight, instead of the `dread` cue |
@@ -37,104 +37,97 @@ The Strider sings to Wren, who has been picking its beads. Its keeper's note giv
 notices what is taken. Its moves are in the breakdown (Tend the Garden, Graze, Stilt Legs). Says nothing new; the
 keepers' rule "leave the garden be" is flavour.
 
-Made more extreme twice on 2026-11-16 at the user's request: first "darker/heavier/much more intense like early
-Slipknot", then "even more extreme (musicality-wise). Lyrics does not have to be very dark and extreme. only the music."
-So the style now asks for everything at once (sludge to blast beats, dissonant odd-time riffs, growls and shrieks, the
-kegs out of step with the kit, harsh noise), and the words are a furious groundskeeper ("Keep off!", "Put it back!")
-with no threat beyond that, which also makes a refusal less likely. Gemini made that one (a770232) and did not refuse;
-the user found the feel right but the voice too stereotypically screaming, so the voice is now low and soft in the
-verses and a deep growl on the hooks (see the notes above). Earlier versions are in git history (755e390, the melodic
-one; e419273, the first screamed one; a770232, the extreme one with the screamed voice).
+How it got here (all 2026-11-16, at the user's requests):
+
+- 755e390: the first version, melodic chorus.
+- e419273: "darker/heavier/much more intense like early Slipknot": screamed.
+- a770232: "even more extreme (musicality-wise)", milder words. Gemini made it without refusing; the feel was right,
+  but the voice was "too stereotypically screaming", "teen angst".
+- fa665f4: a low, half-spoken voice and a deep growl instead. The user: "different but not better. Need to include more
+  soft singing." That style still said "No clean singing ... no melody to hold on to", which worked against it.
+- Now: the same extreme music, but most of the voice is **sung**: soft, low, clean verses, a big dark melodic chorus,
+  and the growl only in short bursts (the shouted hooks, the breakdown, the last word). The band drops to a menacing
+  rumble under the soft verses and explodes for the chorus, so the soft voice has room. The verses are shorter and
+  smoother to sing; the keepers' rule moved to the bridge.
 
 ```
-The most extreme, abrasive metal you can make: raw late-1990s nu-metal crossed with death metal, grindcore, mathcore and harsh industrial noise. The tempo lurches without warning between a crushing half-time sludge at about 70 BPM and blast beats at about 220 BPM. Guitars tuned impossibly low play dissonant, atonal, stop-start riffs in odd time signatures, with squealing pinch harmonics, screaming feedback and walls of distortion, and slow, crushing breakdowns. A distorted bass grinds like a machine. The drums never rest: blast beats, machine-gun double-kicks, chaotic fills. Two extra percussionists hammer metal kegs, oil drums and trash cans at once, out of step with the drum kit; a DJ scratches records into shrieking noise; a sampler throws in static, grinding metal and bursts of harsh noise. The voice is the contrast: one grown man with a deep, dark, controlled voice, close to the microphone, calm at the centre of the chaos. In the verses he is low and menacing, half-spoken in a rhythmic, gravelly murmur, almost soft, which makes the music around him sound even heavier. On the hooks his voice drops into a deep, guttural growl from the chest, heavy and powerful, with weight and grit, never strained or high. A gang of deep voices shouts the hooks behind him. The whispered break is soft and intimate. Never whiny, never shrill, no high-pitched screaming, no emo or pop-punk shouting, no teenage angst. Mixed raw, saturated and overwhelming, like a band in a basement at full volume. Between the blasts, water dripping in a cave and the click of long thin legs on stone. No clean singing, no clean guitar, no keyboards, no melody to hold on to. A deep growl in the first two seconds; it ends with one last blast cut to silence. Chaotic, relentless, overwhelming. About 3 minutes.
+The most extreme, abrasive metal you can make, with a beautiful, dark, sung voice at its centre: raw late-1990s nu-metal crossed with death metal, grindcore, mathcore and harsh industrial noise. The tempo lurches without warning between a crushing half-time sludge at about 70 BPM and blast beats at about 220 BPM. Guitars tuned impossibly low play dissonant, stop-start riffs in odd time signatures, with squealing pinch harmonics, screaming feedback and walls of distortion, and slow, crushing breakdowns. A distorted bass grinds like a machine. Machine-gun double-kicks and chaotic fills. Two extra percussionists hammer metal kegs, oil drums and trash cans, out of step with the drum kit; a DJ scratches records into shrieking noise; a sampler throws in static and grinding metal. Most of the vocal is sung, by one grown man with a deep, dark, rich voice. In the verses the band drops to a menacing rumble of bass, kegs and feedback, and he sings softly and cleanly, low and close to the microphone, a slow, haunting melody, almost a lullaby. The chorus explodes: a big, dark, melodic hook sung in a full, warm voice with a little grit, soaring over the heaviest music. Deep, guttural growls come only in short bursts: the shouted hooks, with a gang of deep voices, the breakdown, and the last word. The bridge is sung softly and tenderly. The contrast between his soft singing and the brutal music is the point of the song. Never whiny, never shrill, no high-pitched screaming, no emo or pop-punk shouting, no teenage angst. Mixed raw and loud, like a band in a basement. Water dripping in a cave and the click of long thin legs on stone between the blasts. No clean guitar, no keyboards. It opens with his soft voice over feedback for a few seconds, then explodes; it ends with one last blast cut to silence. About 3 minutes.
 
 Lyrics:
 
 [Intro]
-(feedback, static, dripping water; low and soft, close) Someone's been in my garden.
-(a deep growl) Someone's been in my garden.
+(sung softly, alone over feedback and dripping water)
+Someone's been in my garden.
+(the band explodes; deep voices growl) Put it back!
 
 [Verse 1]
-(low, calm and menacing, half-spoken, rhythmic)
+(sung softly and low, a slow, haunting melody over a menacing rumble)
 Up on my stilts in the still black pool,
-I tend every bead and I keep one rule,
+I tend every bead, I keep one rule,
 every bead's a light and every light is mine,
-I count them every night and they're all in line.
+I count them every night, and they're all in line.
+
+[Pre-Chorus]
+(sung softly, building)
+Something tends the garden,
+something walks the rows,
+something counts the beads at night,
+and something always knows.
+
+[Chorus]
+(sung, big, dark and melodic, over the heaviest music)
+I'm the Gardener, I keep what grows,
+I plant the leeches in the rows,
+the light I drink glows through my skin,
+so put it back where it's always been.
+(growled, deep voices) Put it back! Keep off!
+
+[Verse 2]
+(sung softly and low again)
 Then a lamp on the stair and a step on the stone,
 a keeper in the garden who should leave it alone,
 you picked one bead and it hardened to a pearl,
-you took a little light from the Gardener's world!
+you took a little light from the Gardener's world.
 
 [Pre-Chorus]
-(soft, almost a whisper)
-Something tends the garden.
-Something walks the rows.
-Something counts the beads at night,
-(a deep growl) and something always knows.
+(sung softly, building)
+Something tends the garden,
+something walks the rows,
+something counts the beads at night,
+and something always knows.
 
 [Chorus]
-(a deep, heavy growl, deep voices shouting with him)
-Put it back! (Put it back!)
-Keep off! (Keep off!)
+(sung, big, dark and melodic, over the heaviest music)
 I'm the Gardener, I keep what grows,
 I plant the leeches in the rows,
 the light I drink glows through my skin,
-put it back where it's always been!
-
-[Verse 2]
-(low and rhythmic, faster, the growl building under it)
-Legs like a ladder, I'm taller than you,
-I've walked this garden a hundred years through,
-step, step, step, I'm coming down the row,
-three steps, three stamps, and here I go!
-The keepers wrote me down in their little books,
-they kept their lanterns low and they took one look,
-"Leave the garden be" was the keepers' rule,
-and you broke it, you broke it, you little fool!
-
-[Pre-Chorus]
-(soft, almost a whisper)
-Something tends the garden.
-Something walks the rows.
-Something counts the beads at night,
-(a deep growl) and something always knows.
-
-[Chorus]
-(a deep, heavy growl, deep voices shouting with him)
-Put it back! (Put it back!)
-Keep off! (Keep off!)
-I'm the Gardener, I keep what grows,
-I plant the leeches in the rows,
-the light I drink glows through my skin,
-put it back where it's always been!
+so put it back where it's always been.
+(growled, deep voices) Put it back! Keep off!
 
 [Breakdown]
-(slow and crushing, every drum and keg at once; deep voices in call and response)
-Tend the garden! (TEND!)
-Graze the light! (GRAZE!)
-Stilts in the water! (STEP!)
-Every! Single! Night!
+(slow and crushing, every drum and keg at once; deep growls in call and response)
+Tend the garden! (Tend!)
+Graze the light! (Graze!)
+Stilts in the water! (Step!)
+Every single night!
 
 [Bridge]
-(soft and intimate, almost tender, over static and dripping water)
-Count the beads.
-Count them again.
-One is gone.
-One is gone.
-(a deep growl) I noticed.
+(sung softly and tenderly, over static and dripping water)
+"Leave the garden be," the keepers said,
+and they kept their lanterns low,
+count the beads, and count them again,
+and one is gone.
 
 [Final Chorus]
-(blast beats; his deepest growl, everyone with him)
-Put it back! (Put it back!)
-Keep off! (Keep off!)
+(sung, his fullest voice, over blast beats)
 I'm the Gardener, I keep what grows,
 I plant the leeches in the rows,
 the light I drink glows through my skin,
-put it back where it's always been!
+so put it back where it's always been.
 
 [Outro]
-(one last growl and blast, cut to silence; one click of a long leg on stone)
+(one deep growl) I noticed.
+(one last blast, cut to silence; one click of a long leg on stone)
 ```
 
 ## 2. Nobody in the Dress (the Hollow Divers; Korn-like)
