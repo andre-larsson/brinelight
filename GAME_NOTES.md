@@ -1531,7 +1531,7 @@ The agent recommends **c**. It answers the complaint directly: one Bail or Stir 
 
 **Fast-forward in the musicbox pieces:** a musicbox cue has no fixed length. It plays an intro, then a loop whose parts are chosen again at random on each pass, forever, so there is no timeline to seek in. What could be built in `../musicbox`: a seek within the current pass of the loop, or a "next part" button. Neither is built; it is the user's call.
 
-### The Belfry as a short dive (proposal, 2026-11-16; not built)
+### The Belfry as a short dive, and keepers after the Heart (design, 2026-11-16; not built)
 
 The user's idea: make the last, underwater level a shorter boss-run kind of level. The user's answers to the agent's questions:
 
@@ -1550,16 +1550,32 @@ The user's idea: make the last, underwater level a shorter boss-run kind of leve
 - **Score:** today a full Belfry pays 8 landings x 80 = 640. Keep 640: 5 landings x 128. Fewer fights also means fewer creatures killed (12 each) and two sure Dreads (80 each), which roughly evens out. Check with `npm run measure` that a winning expedition's median score stays close.
 - **Balance:** the Belfry is the easiest leg now (the bot clears it 75.7% of the time after Dark Water, v0.36.0). Two Dreads and the pin with one pick between them should be harder; measure, then tune the stop (for example two picks at one of them).
 
-**After the Heart comes home (lore draft; the agent owns lore, so this is the agent's proposal for the user to judge):**
+**After the Heart comes home (the user liked the draft and asked to write it down, 2026-11-16).** The fiction is in WORLD.md, "After the Heart comes home" and "How a new keeper is lit". In short: the first win lights the lighthouse and ends the immediate danger; the deep still grows toward the brightest light, which is now the keeper's lantern, and takes the shape of the keeper's fears; each keeper's final is their own fear; Wren's is the Dark Watch (draft).
 
-- The first win ends the immediate disaster: the Heart is home, the water stops climbing toward Saltmere, the lighthouse turns. But the Reach has soaked in brinelight for a hundred years, and brinelight still grows toward the brightest light near it.
-- With the Heart gone, the brightest light below is the lantern of the keeper who comes down. Every keeper's lantern is lit from the Heart, and a wick keeps a little of whoever carried it (already canon). So what grows in the deep now grows toward the keeper, and takes its shape from what the keeper carries down: grief, regret, fear. The creatures the game already calls **Dreads** become literal.
-- Keep it ambiguous whether they are real creatures or the keeper's mind. Both readings stay open: the sea makes real what is brought down to it. That keeps the cosmic horror (the thing has no intention) and the environmental theme (the light people put into the sea does not stay theirs).
-- **The last boss is the keeper's own.** Wren's: the light went out on her watch (canon). A draft: *the Dark Watch*, a keeper in her own oilskin with an unlit lantern, who rings a hand-bell and wants the lighthouse dark again. Each later keeper gets their own final. That also gives each keeper "something of their own under the same bell", which the keeper plans still need.
-- The Thing grown back and the Drowned Cantor, today's finals: the Cantor (drowned keepers trying to ring the bell again) can become a Dread of the dives after the Heart. The Thing grown back can retire, or stay as one of the two finals until a keeper's own final exists.
-- This answers two open questions in WORLD.md: what restores held water and ringers after the Bellwether falls silent, and why fresh keepsakes are still called back and Minnows still follow Roil (the deep answers the keeper's own light now).
+- **Today's finals:** the Thing grown back and the Drowned Cantor. The Cantor can become a Dread of the dives after the Heart. The Thing grown back can retire, or stay as a final until Wren's own exists.
+- **The lit lighthouse on the title screen (the user's idea).** After the first win the title screen shows the lighthouse lit. The opening's `scenes/op_lighthouse` can stand in until a title picture of its own exists. Small; it can ship with the short dive.
 
-**Suggested order:** first the short dive with today's creatures and finals (engine, stop, score, tests, bot, measure, text). Then the keeper's-own final as its own version: a new creature, art, keeper's notes, a chapter after *What stays below*, and WORLD.md.
+**New keepers (the user's calls, 2026-11-16; replace "keepers light keepers").**
+
+- **Scope** as set the same day under "Keepers light keepers, and a theme song each": new art, a small twist (an ability or a bell, and Wren gets one too), card wording that fits, the one shared Logbook, no card set of their own.
+- **The unlock loop:**
+  1. On a dive after the Heart is home, a **stranger's Dread** can stand in for one of the Dreads. It is always the fear of a keeper not yet unlocked, and any keeper can meet any other keeper's. Nobody meets their own (that is their final).
+  2. Beating it opens a keeper's note that names someone in Saltmere, and records it in meta (for example `meta.met[keeper] = true`).
+  3. On the next homecoming (going home, or a fall too: open), a story picture plays: they knock at the lighthouse door, climb the tower and light their lamp at the Heart. The keeper is unlocked.
+  4. They are chosen on the Pack screen. Their dives' final is their own fear at full size.
+- **The giver feels the new keeper's fear:** a story beat only (the user's call), in the stranger's Dread's note, a dream before it, or the knock scene. No rule.
+- **Some keepers come another way** (drafts): the Lamp Engine found and carried home like the dress (reuses `run.found` and `E.carryHome`), Winkle through Barnaby, Gulp following the lantern.
+- **Reward for a keeper's first win (the agent's proposal, the user's call):** their ending (a story picture, their fear quieted, an entry in the shared Logbook), their song in the Jukebox (the theme-song plan), and something from their trade that any keeper can carry after that (a keepsake or a piece of kit), plus an achievement if wanted. Wren gets the same when she first beats the Dark Watch.
+- **Open (the user's calls):** whether a homecoming after a fall also brings the knock; whether a stranger's Dread can appear on every dive or only once a keeper's own final has been beaten; how many keepers to build first, and which.
+
+**Build order:**
+
+1. The short dive with today's creatures and finals: the per-level map length, the stop under a lesser bell, the score, tests, the bot, measuring, text. The lit lighthouse on the title screen can come with it.
+2. Wren's own final, the Dark Watch, in place of today's finals: a new creature with art, keeper's notes, a chapter after *What stays below*, and her first-win reward.
+3. The first new keeper: a choice of keeper, their twist and Wren's, their stranger's Dread, the knock scene, their final and their reward.
+
+The intermediary level can come before or after step 3; it does not depend on the keepers.
+
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -1979,7 +1995,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Starting at a level already completed (postponed by the user, 2026-11-15: "lets postpone this").** The user's idea, from the playtest on v0.32.0: start at level 2 once it is completed, and at level 3 once that is, "by unlocking story slide (show in shortcut)". The agent's sketch (the keepers' shaft, a short draft at its top, what it costs) is proposal 3 in "Proposals from the playtest on v0.32.0". Not agreed, not built.
 - **Keepers light keepers, and a theme song each (planned 2026-11-14, postponed by the user: "only save in plan").**
   - **Scope (the user's call, 2026-11-16; still postponed):** a new keeper is light, not a new game. It gets new art and a small twist to play: a special ability, or a special bell. If keepers get one, Wren gets one too. The wording of weapons and card attacks may need to fit each keeper. Logbook entries go into the same Logbook in the lighthouse, not a Logbook per keeper. No separate card set per keeper ("it would have been cool"). A few signature cards could come later. This replaces the agent's earlier foundation of a Logbook per keeper and its "own cards" option (see "Keeper and costume drafts").
-  - **Unlocks (the user's decision):** new keepers unlock new keepers. Wren lights the first new keeper's lantern from hers, and each later one is lit by a keeper who already has a flame (WORLD.md, "Why they go down"). The agent had suggested Wren lighting the first few and the Heart lighting the rest once home; the user chose keeper to keeper. Open: the order (who lights whom), what lighting costs the giver, whether the Heart also lights lanterns after it is home, and what the player does to unlock one (an achievement, meeting them in the Reach first, Salvage).
+  - **Unlocks: superseded on 2026-11-16** by "The Belfry as a short dive, and keepers after the Heart": new keepers light their lamps at the Heart once it is home, after a keeper beats their stranger's Dread. Before: new keepers unlock new keepers. Wren lights the first new keeper's lantern from hers, and each later one is lit by a keeper who already has a flame (WORLD.md, "Why they go down"). The agent had suggested Wren lighting the first few and the Heart lighting the rest once home; the user chose keeper to keeper. Open: the order (who lights whom), what lighting costs the giver, whether the Heart also lights lanterns after it is home, and what the player does to unlock one (an achievement, meeting them in the Reach first, Salvage).
   - **Theme songs:** the user asked whether each extra keeper could have a theme song that fits their backstory. Yes, but each draft keeper still needs "something of their own under the same bell" first, so the agent drafted one each (lore drafts, not agreed), with a song from their trade:
     - Josiah: steered fifty years by the Heart's light and wants to see it. Slow gospel-blues love song to a light, "Fifty Years by Your Light".
     - Dev: his great-grandfather's 212-day tally in the Diving Bell; why did he stop counting? Bright stomping indie-folk, a boy counting the stairs he was never allowed down, "Two Hundred and Twelve". Wholesome (Dev is a child).
