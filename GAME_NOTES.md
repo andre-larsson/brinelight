@@ -1531,6 +1531,36 @@ The agent recommends **c**. It answers the complaint directly: one Bail or Stir 
 
 **Fast-forward in the musicbox pieces:** a musicbox cue has no fixed length. It plays an intro, then a loop whose parts are chosen again at random on each pass, forever, so there is no timeline to seek in. What could be built in `../musicbox`: a seek within the current pass of the loop, or a "next part" button. Neither is built; it is the user's call.
 
+### The Belfry as a short dive (proposal, 2026-11-16; not built)
+
+The user's idea: make the last, underwater level a shorter boss-run kind of level. The user's answers to the agent's questions:
+
+- **Between fights:** a short stop.
+- **Fights:** the Drowned Ringer, then the Crowned Oarfish, then the Bellwether and the Thing. The Bell Jelly and the Bellspawn guard the Dreads instead of having fights of their own. Not the Glimmer Bladder.
+- **After the Heart comes home:** it must stay repeatable. The last boss can change, and the lore matters here. The user's idea: the first win saves the local environment from the immediate disaster, but the magic in the aether is still strong and new creatures fill the caves. The last boss is a concrete shape of a grief, worry, regret or fear of the keeper on the run, and the monsters become the keeper's anxiety and dread made real: psychological horror, a metaphysical action film, or a Lovecraftian novel.
+- **Score:** the short Belfry pays the same in total as before.
+
+**The agent's draft (each point is the user's call):**
+
+- **Shape:** the stair (as now, 2 of 6), then Dread, stop, Dread, stop, the pin. 5 landings, not 8. The top bar reads "Landing 3/5" there (`E.MAP_ROWS` becomes per level, or the Belfry gets a straight route with no branches).
+  - First Dread: the Drowned Ringer with a Bell Jelly (in place of its Minnow). Second: the Crowned Oarfish with a Bellspawn.
+  - The pin: the Bellwether, then the Thing in the Bell, as now.
+  - The Bell Yearling, Listener, Hollow Diver and Glimmer Bladder no longer appear in the Belfry. They can wait for the intermediary level or for the dives after the Heart (below).
+- **The stop: under a lesser bell.** The Belfry has lesser bells (the Bell Clapper keepsake comes from one), and a hanging bell holds a pocket of air, as a diving bell does. Wren comes up into it, opens her helmet and takes one pick from the stair's options (rest, refit, shed, flask, cache, sea). Reuses `E.stairWhy`/the stair screen with `picks: 1`. No new art is needed; a picture of the air pocket can come later.
+- **Score:** today a full Belfry pays 8 landings x 80 = 640. Keep 640: 5 landings x 128. Fewer fights also means fewer creatures killed (12 each) and two sure Dreads (80 each), which roughly evens out. Check with `npm run measure` that a winning expedition's median score stays close.
+- **Balance:** the Belfry is the easiest leg now (the bot clears it 75.7% of the time after Dark Water, v0.36.0). Two Dreads and the pin with one pick between them should be harder; measure, then tune the stop (for example two picks at one of them).
+
+**After the Heart comes home (lore draft; the agent owns lore, so this is the agent's proposal for the user to judge):**
+
+- The first win ends the immediate disaster: the Heart is home, the water stops climbing toward Saltmere, the lighthouse turns. But the Reach has soaked in brinelight for a hundred years, and brinelight still grows toward the brightest light near it.
+- With the Heart gone, the brightest light below is the lantern of the keeper who comes down. Every keeper's lantern is lit from the Heart, and a wick keeps a little of whoever carried it (already canon). So what grows in the deep now grows toward the keeper, and takes its shape from what the keeper carries down: grief, regret, fear. The creatures the game already calls **Dreads** become literal.
+- Keep it ambiguous whether they are real creatures or the keeper's mind. Both readings stay open: the sea makes real what is brought down to it. That keeps the cosmic horror (the thing has no intention) and the environmental theme (the light people put into the sea does not stay theirs).
+- **The last boss is the keeper's own.** Wren's: the light went out on her watch (canon). A draft: *the Dark Watch*, a keeper in her own oilskin with an unlit lantern, who rings a hand-bell and wants the lighthouse dark again. Each later keeper gets their own final. That also gives each keeper "something of their own under the same bell", which the keeper plans still need.
+- The Thing grown back and the Drowned Cantor, today's finals: the Cantor (drowned keepers trying to ring the bell again) can become a Dread of the dives after the Heart. The Thing grown back can retire, or stay as one of the two finals until a keeper's own final exists.
+- This answers two open questions in WORLD.md: what restores held water and ringers after the Bellwether falls silent, and why fresh keepsakes are still called back and Minnows still follow Roil (the deep answers the keeper's own light now).
+
+**Suggested order:** first the short dive with today's creatures and finals (engine, stop, score, tests, bot, measure, text). Then the keeper's-own final as its own version: a new creature, art, keeper's notes, a chapter after *What stays below*, and WORLD.md.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
