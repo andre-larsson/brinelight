@@ -153,7 +153,7 @@
   });
   card('brinespear', {
     name: 'Brine Spear', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
-    v: { dmg: 6, brine: 4 }, up: { dmg: 7, brine: 6 }, art: 'c_brinespear',
+    v: { dmg: 6, brine: 3 }, up: { dmg: 7, brine: 4 }, art: 'c_brinespear', // Brine 4 / 6 until v0.38.0 (a playtest: Brine too strong)
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Apply ${v.brine} Brine.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.apply(t, 'brine', v.brine); },
   });
@@ -172,7 +172,7 @@
   card('spindrift', {
     name: 'Spindrift', type: 'rite', rarity: 'uncommon', cost: 1, target: 'none',
     v: { n: 3 }, up: { n: 5 }, art: 'c_spindrift',
-    text: (v) => `Whenever you Surge, deal ${v.n} damage to a random enemy.`,
+    text: (v) => `Each time you Surge (by any amount), deal ${v.n} damage to a random enemy.`,
     play: (A, v) => A.rite('r_spindrift', v.n),
   });
   card('sirensecho', {
@@ -331,13 +331,13 @@
     Surge: 'Raise the Swell. At 6 you Crest; any extra keeps rising from 3, so a big Surge can Crest twice.',
     Ebb: 'Lower the Swell. At 0 you Strand the enemies; any extra keeps falling from 3.',
     Swell: 'The water around the enemies, from 0 to 6. It starts each fight at 3.',
-    Crest: 'The wave breaks: deal 6 damage to ALL enemies, +3 for every earlier Crest this turn. Then the Swell resets to 3.',
+    Crest: 'The wave breaks: deal 6 damage to ALL enemies, +3 for every earlier Crest this turn. Ward blocks it, as it blocks any hit. Then the Swell resets to 3.',
     Strand: 'The water pulls back and strands the enemies: they lose all their Ward, and you gain 1 Light. Then the Swell resets to 3.',
     Sink: 'After you play it, this card is gone for the rest of the fight.',
     Float: 'Stays in your hand at the end of your turn.',
     Rite: 'Rites stay in effect for the rest of the fight once played.',
     Echo: 'Your next card is played twice. On a creature: its next move happens twice.',
-    Bail: 'Once a turn, without a card: spend 1 Light to Ebb 1. If it makes a Strand, the Strand gives the Light back. Bail or Stir, not both.',
+    Bail: 'Once a turn, without a card: spend 1 Light to Ebb 1. A Bail that makes a Strand is free: the Strand\'s 1 Light pays it back. Bail or Stir, not both.',
     Stir: 'Once a turn, without a card: spend 1 Light to Surge 1. Bail or Stir, not both.',
     Might: 'Each hit of an attack deals that much more damage.',
     Spines: 'Whenever you are attacked, deal that much damage back.',
@@ -369,7 +369,7 @@
     r_moonpull: { name: 'Moon Pull', kind: 'rite', icon: 'moon', desc: (n) => `At the start of your turn, Surge ${n}.` },
     r_tidalmemory: { name: 'Tidal Memory', kind: 'rite', icon: 'shell', desc: (n) => `Whenever you Crest, gain ${n} Light.` },
     r_maelstrom: { name: 'Maelstrom', kind: 'rite', icon: 'vortex', desc: (n) => `Crests deal ${n + 1}x damage.` },
-    r_spindrift: { name: 'Spindrift', kind: 'rite', icon: 'wave', desc: (n) => `Whenever you Surge, deal ${n} damage to a random enemy.` },
+    r_spindrift: { name: 'Spindrift', kind: 'rite', icon: 'wave', desc: (n) => `Each time you Surge (by any amount), deal ${n} damage to a random enemy.` },
     r_abyss: { name: 'Abyssal Pull', kind: 'rite', icon: 'anchor', desc: (n) => `Whenever you Strand, deal ${n} damage to ALL enemies.` },
     r_beam: { name: 'Lighthouse Beam', kind: 'rite', icon: 'beam', desc: (n) => `At the end of your turn, deal ${n} damage per Swell to a random enemy.` },
     grief: { name: 'Twin Bond', kind: 'buff', icon: 'bond', desc: () => `When its twin dies, it gains 4 Might.` },
@@ -377,9 +377,10 @@
     doused: { name: 'Doused', kind: 'debuff', icon: 'doused', desc: (n) => `Your lantern is doused: you start your next turn with ${n} less Light.` },
     submerged: { name: 'Submerged', kind: 'buff', icon: 'submerged', desc: () => 'Sunk out of reach until it acts. You cannot target it, and attacks cannot reach it. Crests and other waves still hit it, and a Strand brings it up.' },
     shell: { name: 'Shell', kind: 'buff', icon: 'shell', desc: () => 'Its Ward does not wash away from turn to turn. A Strand still strips it.' },
+    fullbelly: { name: 'Full Belly', kind: 'buff', icon: 'swallowed', desc: () => 'Two Glimmer Leeches are alive in its belly. The moment a blow brings it to half its HP or below, it Retches them up, out of turn, with any cards it swallowed. They act this turn.' },
     swallowed: { name: 'Swallowed', kind: 'buff', icon: 'swallowed', desc: (n) => `It has swallowed ${n} of your card${n > 1 ? 's' : ''}. They come back to your discard pile when it dies.` },
     // the Shallows' pin
-    belled: { name: 'In its Bell', kind: 'buff', icon: 'boss', desc: () => 'Its Ward does not wash away from turn to turn. A Crest or a Strand shakes it out of the bell: it loses all its Ward.' },
+    belled: { name: 'In its Bell', kind: 'buff', icon: 'boss', desc: () => 'Its Ward does not wash away from turn to turn. Each Crest or Strand rings the bell around it and shakes off all its Ward, but it stays in its bell.' },
     // the Belfry
     echo: { name: 'Echo', kind: 'buff', icon: 'echo', desc: () => 'Its next move happens twice.' },
     burst: { name: 'Burst', kind: 'buff', icon: 'burst', desc: (n) => `When it dies, it bursts: ${n} damage to you and to every other creature. Your Ward stops it.` },
@@ -644,7 +645,7 @@
         // an intent: it happens the moment the Gulper is hurt to half (`hurt`, E's hurtReact)
         retch: { name: 'Retch', summon: ['leech', 'leech'], disgorge: true, phase: 'It Retches!' },
       },
-      hurt: { at: BL.DREAD_CALL, move: 'retch' },
+      hurt: { at: BL.DREAD_CALL, move: 'retch', status: 'fullbelly' },
       ai: (e) => {
         const seq = ['bite', 'gulp', 'whip'];
         return seq[((e.mem.offset || 0) + e.hist.filter((h) => h !== 'retch').length) % seq.length];

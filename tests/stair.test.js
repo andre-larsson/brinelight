@@ -119,16 +119,22 @@ function atCove(seed, hp, keeps) {
   return run;
 }
 
-test('at a Cove, give a keepsake to the sea: it is gone with its Roil, you heal 2 HP for each Roil and refit a card, and that is the Cove', () => {
-  assert.equal(E.SEA_HEAL, 2);
+test('at a Cove, give a keepsake to the sea: it is gone with its Roil, you heal 3 HP for each fight you won carrying it (up to a rest) and refit a card, and that is the Cove', () => {
+  assert.equal(E.SEA_HEAL, 3);
   const run = atCove(31, 20, ['tidewatch', 'whaletooth']);
   assert.equal(E.charge(run), 31);
   assert.equal(E.roil(run).steps, 1, '11 over a Hold of 20');
   const jab = run.deck.find((c) => c.id === 'jab');
-  assert.equal(E.seaHeal('tidewatch'), 24);
+  assert.equal(E.seaHeal(run, 'tidewatch'), 0, 'just taken: it has soaked up nothing yet');
+  run.ksFights = { tidewatch: 5, whaletooth: 9 };
+  assert.equal(E.carried(run, 'tidewatch'), 5);
+  assert.equal(E.seaHeal(run, 'tidewatch'), 15);
+  assert.equal(E.seaHeal(run, 'whaletooth'), E.restAmount(run), 'never more than a rest: 27 is cut to 21');
+  assert.equal(E.restAmount(run), 21);
   const o = E.giveToSea(run, 'tidewatch', jab.uid);
-  assert.deepEqual([o.keepsake, o.healed, o.card.id, o.card.up], ['tidewatch', 24, 'jab', 1]);
-  assert.equal(run.hp, 44);
+  assert.deepEqual([o.keepsake, o.healed, o.card.id, o.card.up], ['tidewatch', 15, 'jab', 1]);
+  assert.equal(run.hp, 35);
+  assert.ok(!('tidewatch' in run.ksFights), 'it is forgotten');
   assert.equal(jab.up, 1);
   assert.deepEqual(run.keepsakes, ['whaletooth']);
   assert.equal(E.roil(run).steps, 0, 'Calm again');
@@ -139,6 +145,7 @@ test('at a Cove, give a keepsake to the sea: it is gone with its Roil, you heal 
 
 test('the sea: a keepsake you do not carry, a card that cannot be upgraded, a fight and a used Cove all give nothing; no card to refit still heals', () => {
   const run = atCove(32, 10, ['moonshard']);
+  run.ksFights.moonshard = 8;
   assert.equal(E.giveToSea(run, 'anchor', null), null);
   const jab = run.deck.find((c) => c.id === 'jab');
   jab.up = 1;
@@ -148,16 +155,34 @@ test('the sea: a keepsake you do not carry, a card that cannot be upgraded, a fi
   assert.equal(E.giveToSea(run, 'moonshard', null), null, 'only at a Cove');
   run.screen = 'rest';
   const o = E.giveToSea(run, 'moonshard', null);
-  assert.deepEqual([o.healed, o.card], [24, null]);
-  assert.equal(run.hp, 34);
+  assert.deepEqual([o.healed, o.card], [21, null]);
+  assert.equal(run.hp, 31);
   // the heal stops at Max HP, and a Scallop Charm takes its 10 Max HP with it first
   const full = atCove(33, null, ['biscuit']);
   assert.equal(full.maxHp, 80);
   full.hp = 75;
+  full.ksFights.biscuit = 4;
   const p = E.giveToSea(full, 'biscuit', null);
   assert.equal(full.maxHp, 70);
   assert.equal(full.hp, 70);
   assert.equal(p.healed, 0);
+});
+
+test('the fights a keepsake was carried through are counted when a fight is won, from the fight after it was taken', () => {
+  const run = E.newRun(36, 0);
+  E.gainKeepsake(run, 'tidewatch');
+  const win = () => { E.startCombat(run, 'easy', ['kelp']); E.alive(run.combat).forEach((e) => { e.dead = true; e.hp = 0; }); run.combat.won = true; E.finishCombat(run); };
+  win();
+  win();
+  E.gainKeepsake(run, 'whaletooth');
+  win();
+  assert.deepEqual([E.carried(run, 'tidewatch'), E.carried(run, 'whaletooth')], [3, 1]);
+  E.dropKeepsake(run, 'tidewatch');
+  E.gainKeepsake(run, 'tidewatch');
+  assert.equal(E.carried(run, 'tidewatch'), 0, 'dropped and found again starts over');
+  // a save from before v0.38.0 counts every fight of the expedition
+  delete run.ksFights;
+  assert.equal(E.carried(run, 'whaletooth'), run.stats.fights);
 });
 
 test('a keepsake brought from the Lazaret and given to the sea is not carried home, and is still in the Lazaret', () => {
@@ -177,11 +202,12 @@ test('a keepsake brought from the Lazaret and given to the sea is not carried ho
 test('on the stair the sea is one of the two picks', () => {
   const run = onStair(35, 30);
   E.gainKeepsake(run, 'whaletooth');
+  run.ksFights.whaletooth = 4;
   assert.equal(E.stairWhy(run, 'sea'), '');
   const jab = run.deck.find((c) => c.id === 'jab');
   const o = E.stairDo(run, 'sea', { k: 'whaletooth', uid: jab.uid });
-  assert.deepEqual([o.id, o.keepsake, o.healed, o.card.up], ['sea', 'whaletooth', 38, 1]);
-  assert.equal(run.hp, 68);
+  assert.deepEqual([o.id, o.keepsake, o.healed, o.card.up], ['sea', 'whaletooth', 12, 1]);
+  assert.equal(run.hp, 42);
   assert.deepEqual(E.stairState(run).picks, ['sea']);
   assert.ok(!run.restDone);
   assert.equal(E.stairWhy(run, 'sea'), 'done');

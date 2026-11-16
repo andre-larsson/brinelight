@@ -5,8 +5,17 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.37.1';
+  BL.VERSION = '0.38.0';
   BL.CHANGELOG = [
+    { v: '0.38.0', date: '2026-11-16', items: [
+      'Giving a keepsake to the sea pays by how long you carried it: 3 HP for each fight you won while carrying it, never more than a Cove\'s rest, and a card upgrade as before. It used to pay 2 HP for each Roil, so a keepsake taken only to throw in at the next Cove could heal 60 HP.',
+      'The game is harder. Creatures in Skirmishes have 15% more HP. Fights, Dreads and Wrecks pay about a quarter fewer Pearls, and so do the Flawless and Swift bonuses. Brine Spear applies 3 Brine (4 upgraded), down from 4 (6).',
+      'On the landing before each pin, one of the Coves is usually Barnaby\'s shop: a last place to spend your Pearls. Every route still has a Cove beside it.',
+      'Ward blocks a Crest, as it blocks any hit, and How to Play now says so: Strand first, then Crest. It also says plainly that a Bail that makes a Strand is free.',
+      'The Pale Gulper shows Full Belly until it Retches, so you can see that hitting it to half its health brings up two Glimmer Leeches at once.',
+      'Before you set out from the Shallows\' pin, and on Dark Water\'s map, the game tells you when the stair below runs under the sea and you have nothing to dive in, so you know where this expedition ends.',
+      'Clearer words: the Harbour Hermit\'s In its Bell (a Crest or a Strand shakes off its Ward, but it stays in its bell), and Spindrift (each Surge, of any size, deals its damage once).',
+    ] },
     { v: '0.37.1', date: '2026-11-16', items: [
       'The lighthouse stands on its own rock off Saltmere\'s harbour, as on the title screen. The opening\'s first picture is redrawn to show it, and its words say so.',
       'A new title picture: the lighthouse on its rock, the stair down the rock under the sea, and the great bell on the seabed with its broken chains. Once the Heart is home, the lighthouse throws two beams.',

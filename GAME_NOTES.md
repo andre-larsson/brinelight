@@ -1605,6 +1605,47 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 7. A run saved in the Belfry before v0.37.0 keeps its 8-landing map, and each landing there now scores 128.
 8. Barnacle clusters in the lesser bell's picture look a little like small skulls.
 
+### An agent's blind playtest, and a harder game (v0.38.0, 2026-11-16)
+
+- **The playtest.** `tools/play.js` (new, tools only) plays a run as text through the engine: every screen in words, chained moves, and the page's own How to Play (`rules`, read once in headless Chrome). A fresh agent played seed 4242 blind (no code, only the tool and How to Play). It broke both pins and came home (score 1538), never close to dying. Its notes and log were in a session scratch folder that was later cleared; keep playtest folders under `.play/` from now on.
+- **The user's response:** keep the LETHAL badge as it is ("Creates small puzzle for player to find out which"). Agreed with the rest: Pearls pile up, the game is too easy, the sea is too strong, and "The pattern with taking a keepsake and throwing it away next turn (if next turn is Cove) can be exploited, not sure how to fix. Maybe needs overhaul."
+
+**Built (each number is the agent's provisional call):**
+
+- **The sea pays by the fights carried** (`E.SEA_HEAL` 3, `E.carried`, `run.ksFights`, counted in `E.finishCombat`). 3 HP for each fight won while carrying the keepsake, capped at a Cove's rest (`E.restAmount`), plus the refit as before. A keepsake taken and thrown straight back pays only the refit, which the Cove gives anyway, and the player loses the +80 for leaving it: the loophole is closed. One carried a whole level pays about a rest and a refit. A save from before v0.38.0 counts every fight of the expedition for each keepsake. The lore: the sea gives back the light the keepsake drank from Wren's lantern, not the old light it soaked up (WORLD.md).
+  - The bot gives one to the sea only when it pays at least what a rest would heal (`seaChoice`; `bot: { seaAlways: true }` as before). With the new rule the sea is about neutral for the bot (never using it: 10.8% Heart, against 9.5%): it is a choice for a keepsake you no longer want, not a heal potion.
+- **Skirmishes are tougher** (`E.SKIRMISH_HP` 1.15): creatures in easy and hard fights (and fights a Fog event starts) have 15% more HP.
+- **Fewer Pearls** (`E.PEARLS`): a Skirmish 11 to 17 (14 to 22), a Dread 24 to 32 (30 to 40), a Wreck 26 to 40 (35 to 55), Flawless 8 / 14 (12 / 20), Swift 5 / 8 (8 / 12).
+- **A shop before the pin** (`E.PIN_SHOP`): the 7th landing was all Coves. One of them is Barnaby's, where each landing that leads to it also leads to a Cove (about 4 maps in 5). It answers "Landing 7 was three identical Coves" and "my route passed the only shop early, so 156 Pearls went nowhere".
+- **Brine Spear** applies 3 Brine (4 upgraded), from 4 (6). The playtest's two Brine Spear+ put 20 Brine on the Tolling Buoy, about 75 of its 165 HP. Brine's own rule (it drops by 1 a turn) is unchanged; Brine Bloom too.
+- **Telegraphs and words:**
+  - Ward blocks a Crest (it always did): the Crest keyword, How to Play and README say so, with "Strand first, then Crest".
+  - "A Bail that makes a Strand is free: the Strand's 1 Light pays it back" (the old words read like two refunds).
+  - The Pale Gulper wears **Full Belly** (`hurt.status`, a status set at spawn and taken away when it Retches).
+  - `E.deepestReachable`: the Shallows' pin's Go deeper, Dark Water's landing tip and How to Play (Dark Water known, the Belfry not yet) say the stair below runs under the sea and this expedition ends at Dark Water's pin. The playtest paced its first run for a third level.
+  - In its Bell (the Hermit stays in its bell after a Crest shakes its Ward off) and Spindrift ("Each time you Surge (by any amount)") reworded.
+- **Not changed:** the LETHAL badge (the user's call); Thrash (the playtest noted Ward left over never stopped it; it can, against creatures that don't attack); the Tidewatch making Stir-to-Crest the usual spare Light. The end screen and the keepsake tiles already showed what the playtest missed (the n x each on score lines, the Roil steps after a pick); the text tool now shows them too.
+
+**Measured** (the bot that chooses, 1000 seeds a row, expedition in the dress; pin 2 and 3 are shares of the pin before; noise about ±1.5 on the Heart). Specs: `.play/specs/v038c.js` and `v038b.js` (git-ignored).
+
+| Row | Heart | Shallows' pin | Dark Water's share | Belfry's share | HP lost |
+|---|---|---|---|---|---|
+| v0.37 rules | 23.2 | 58.2 | 62.5 | 63.7 | 150 |
+| **v0.38.0** | **9.5** | 47.6 | 43.1 | 46.3 | 126 |
+| v0.38 with the old sea (2 HP a Roil, given whenever Roiled) | 14.9 | 51.2 | 48.6 | 59.8 | 136 |
+| v0.38, never the sea | 10.8 | 47.6 | 43.5 | 52.2 | 125 |
+| v0.38, Skirmish HP 1 | 11.8 | 49.9 | 49.5 | 47.8 | 131 |
+| v0.38, the old Pearls | 10.7 | 49.5 | 42.2 | 51.2 | 128 |
+| v0.37 + only the new sea (the bot still giving whenever Roiled) | 5.8 | 50.6 | 48.0 | 23.9 | 114 |
+| v0.37 + only fewer Pearls | 21.7 | 56.3 | 58.6 | 65.8 | 144 |
+| v0.37 + only Skirmish HP 1.15 | 20.1 | 57.9 | 54.6 | 63.6 | 145 |
+| v0.37 + only Brine Spear 3/4 | 21.3 | 57.3 | 61.1 | 60.9 | 150 |
+| v0.37 + only the shop before the pin | 20.7 | 55.8 | 60.6 | 61.2 | 147 |
+
+- **The bot brings the Heart home on 9.5% of expeditions, from 23.2%.** The old sea was worth about 5.4 points; the other four changes about 8 together (they compound: each alone is 1.5 to 3).
+- **The Belfry's share fell most (64% to 46%).** Its lesser bells used to let the bot throw in a high-Roil keepsake for a huge heal (the Bell Clapper, Roil 41: 82 HP).
+- The bot does not read cards, so a person does much better: the blind playtest came home from Dark Water easily on v0.37. This release is meant to be clearly harder; whether it overshoots is for the next playtests. **Levers back, gentlest first:** `E.SKIRMISH_HP` 1.1, the old `E.PEARLS`, the stair's rest (`E.STAIR_REST`), `E.SEA_HEAL` 4.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -2062,6 +2103,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.38.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 47.6%, Dark Water's after it 43.1%, the Belfry after that 46.3%, the Heart 9.5%. See "An agent's blind playtest, and a harder game".
 - **Bot run outcomes, v0.37.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 58.2%, Dark Water's after it 62.5%, the Belfry (a dive now) after that 63.7%, the Heart 23.2%. After the Heart, the Belfry 79.9%. See "The Belfry dive and the Dark Watch".
 - **Bot run outcomes, v0.36.0, with the bot that chooses** (2026-11-16; 1500 seeds, first expedition in the dress): the Shallows' pin 58.7%, Dark Water's after it 62.5%, the Belfry's after that 75.7%, the Heart 27.8%. The same bot on v0.35.0: 58.2%, 70.1%, 82.7%, the Heart 33.7%. With `bot: { classic: true }` (the bot before 2026-11-16): v0.36.0 the Heart 12.7%, v0.35.0 17.7%. See "The bot chooses" below. Numbers from here down are from the classic bot or older ones.
 - **Bot run outcomes, v0.35.0** (the bot that shops and gives keepsakes to the sea, 3000 seeds, first expedition in the dress): the Shallows' pin 43.7%, Dark Water's after it 54.7%, the Belfry's after that 70.8%, the Heart 16.9%. Of the rise from v0.34.0's 10.9%, about 5 points are the sea and 1 the Wild Peal (see "Give one to the sea, and a Roiled aether pays").

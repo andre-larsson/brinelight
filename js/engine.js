@@ -200,7 +200,7 @@
       seed: seed >>> 0,
       rng: seed >>> 0,
       hp: 70, maxHp: 70, pearls: 0, // none gathered yet (75 until v0.30.0; the Coin Purse still adds 30)
-      deck: [], keepsakes: [], tonics: [null, null, null], kit: E.fitKit(),
+      deck: [], keepsakes: [], ksFights: {}, tonics: [null, null, null], kit: E.fitKit(),
       nextUid: 1, floor: 0, pos: null, screen: 'map',
       combat: null, rewards: null, shop: null, event: null, treasure: null,
       removeCost: 75, seenEvents: [], lastEnc: [], normalFights: 0,
@@ -336,6 +336,13 @@
     ensure('elite', 2, 2, MAP_ROWS - 2);
     ensure('rest', 1, 2, 4);
     ensure('event', 2, 1, MAP_ROWS - 2);
+    // v0.38.0: the landing before the pin was all Coves. One of them is Barnaby's instead, where every route still has a
+    // Cove beside it (each landing that leads to it leads to a Cove too): a last chance to spend Pearls, against a rest
+    if (E.PIN_SHOP) {
+      const last = all.filter((n) => n.row === MAP_ROWS - 1);
+      const ok = last.filter((n) => parentsOf(n).every((p) => p.type !== 'shop' && childrenOf(p).some((ch) => ch !== n && ch.type === 'rest')));
+      if (last.length >= 2 && ok.length) R.pick(ok).type = 'shop';
+    }
 
     grid.forEach((row) => row.forEach((n) => {
       if (!n) return;
@@ -345,6 +352,7 @@
     return { rows: MAP_ROWS, cols: MAP_COLS, grid, boss: { row: MAP_ROWS, col: 2, type: 'boss', x: 0.5, jy: 0 } };
   }
   E.genMap = genMap;
+  E.PIN_SHOP = true; // one shop on the landing before the pin, where it leaves every route a Cove (v0.38.0)
 
   E.nodeAt = (run, pos) => (pos.row >= E.mapRows(run) ? run.map.boss : run.map.grid[pos.row][pos.col]);
 
@@ -442,6 +450,7 @@
     const i = run.keepsakes.indexOf(k);
     if (i < 0 || run.screen === 'combat') return false;
     run.keepsakes.splice(i, 1);
+    if (run.ksFights) delete run.ksFights[k];
     if (k === 'biscuit') E.loseMaxHp(run, 10);
     if (k === 'leechjar' && run.leechHp) { E.loseMaxHp(run, run.leechHp); run.leechHp = 0; }
     return true;
@@ -523,17 +532,26 @@
      The user found that keepsakes and the Hold "need to do something more interesting", and one thought was to make
      them "possible to sacrifice". At a Cove (in place of resting or refitting) or on the stair (one of its two picks)
      Wren can throw a keepsake she carries into the water. It is gone for this expedition, with its Roil; one brought
-     from the Lazaret is still kept there. The sea pays for it: SEA_HEAL HP for each Roil of the keepsake, and a refit
-     of one card (`uid`; none if nothing can be upgraded, or if she chooses none). So a keepsake is something to spend,
-     and carrying one too many for a few fights (which pays: E.ROIL_PAY) and giving it up at the next Cove is a plan. */
-  E.SEA_HEAL = 2;
-  E.seaHeal = (k) => E.chargeOf(k) * E.SEA_HEAL;
+     from the Lazaret is still kept there. The sea pays for it: SEA_HEAL HP for each fight she won while carrying it
+     (E.carried), up to a Cove's rest, and a refit of one card (`uid`; none if nothing can be upgraded, or if she
+     chooses none). So a keepsake is something to spend, and carrying one too many for a few fights (which pays:
+     E.ROIL_PAY) and giving it up at a later Cove is a plan.
+     v0.38.0: until then the sea paid 2 HP for each Roil, with no cap. The user and a playtest found it too strong, and a
+     loophole: take a keepsake of high Roil only to throw it in at the next Cove (the Glimmer Bulb, Roil 30: 60 HP and
+     a refit). Paying by the fights it was carried, a keepsake taken and thrown straight back pays only the refit, which
+     the Cove gives anyway. */
+  E.SEA_HEAL = 3;
+  /* The fights won while carrying a keepsake (run.ksFights, counted in E.finishCombat; a save from before v0.38.0 has
+     none, so every keepsake counts the expedition's fights). */
+  E.carried = (run, k) => (run.ksFights ? run.ksFights[k] || 0 : (run.stats && run.stats.fights) || 0);
+  E.seaHeal = (run, k) => Math.min(E.carried(run, k) * E.SEA_HEAL, E.restAmount(run));
   function seaGive(run, k, uid) {
     if (!E.has(run, k)) return null;
     const card = uid != null ? run.deck.find((x) => x.uid === uid) : null;
     if (uid != null && (!card || !E.canUpgrade(card))) return null;
+    const pay = E.seaHeal(run, k); // before the drop: the drop forgets how long she carried it
     if (!E.dropKeepsake(run, k)) return null; // a keepsake that gave Max HP takes it along, before the heal
-    const out = { keepsake: k, healed: E.heal(run, E.seaHeal(k)), card: null };
+    const out = { keepsake: k, healed: E.heal(run, pay), card: null };
     if (card) { card.up = 1; out.card = Object.assign({}, card); }
     run.stats.given = (run.stats.given || 0) + 1;
     return out;
@@ -636,6 +654,10 @@
   /* Barnaby's prices, lowest and highest (one card is always on sale at half). v0.36.0 raised them, the user: "Barnaby
      shop too cheap, especially cards". Until then: common 45-55, uncommon 70-85, rare 140-160, keepsake 130-165,
      tonic 45-60. */
+  /* What Pearls pay: a Skirmish, a Dread and a Wreck (a range), and the Flawless and Swift bonuses ([a fight, a Dread]).
+     v0.38.0 (the user and a playtest: Pearls pile up with nothing to buy): about a quarter less. Until then a Skirmish
+     paid 14 to 22, a Dread 30 to 40, a Wreck 35 to 55, Flawless 12 / 20 and Swift 8 / 12. */
+  E.PEARLS = { fight: [11, 17], elite: [24, 32], wreck: [26, 40], flawless: [8, 14], swift: [5, 8] };
   E.SHOP_PRICES = { common: [60, 72], uncommon: [95, 112], rare: [180, 205], keepsake: [150, 185], tonic: [50, 65] };
   E.price = (run, base) => (E.hasKit(run, 'scales') ? Math.round(base * 0.75) : base);
 
@@ -684,7 +706,7 @@
 
   function genTreasure(run) {
     const R = makeR(run);
-    run.treasure = { opened: false, pearls: R.int(35, 55), keepsake: null, choices: [] };
+    run.treasure = { opened: false, pearls: R.int(E.PEARLS.wreck[0], E.PEARLS.wreck[1]), keepsake: null, choices: [] };
   }
   /* A choice of keepsakes (a Wreck, a Dread, Barnaby's shop). Deeper finds are richer: below the Shallows the first one
      offered is from the level's own keepsakes while any are left. */
@@ -741,6 +763,9 @@
   };
 
   /* ---------------- Combat ---------------- */
+  /* Creatures in a Skirmish (an easy or hard fight, also one a Fog event starts) have this much more HP. v0.38.0: the
+     user and a playtest found Skirmishes trivial, ended in 1 to 3 turns without a scratch. 1 until then. */
+  E.SKIRMISH_HP = 1.15;
   function pickEncounter(run, kind) {
     const R = makeR(run);
     const tables = E.band(run).enc;
@@ -757,9 +782,12 @@
   function spawnEnemy(run, c, id, idx) {
     const R = makeR(run);
     const d = BL.ENEMIES[id];
-    const hp = Math.round(R.int(d.hp[0], d.hp[1]) * E.mods(run).hp);
+    const skirmish = c.kind === 'easy' || c.kind === 'hard';
+    const hp = Math.round(R.int(d.hp[0], d.hp[1]) * E.mods(run).hp * (skirmish ? E.SKIRMISH_HP : 1));
     const e = { uid: 'e' + c.nextEid++, id, name: d.name, hp, maxHp: hp, ward: 0, st: {}, hist: [], mem: {}, intent: null, dead: false, acted: false };
     if (d.init) d.init(e, R, idx || 0);
+    // a creature that reacts when it is hurt shows it, until it has (the Pale Gulper's Full Belly)
+    if (d.hurt && d.hurt.status) e.st[d.hurt.status] = 1;
     c.enemies.push(e);
     chooseIntent(run, c, e);
     return e;
@@ -912,6 +940,7 @@
     const d = BL.ENEMIES[e.id], h = d.hurt;
     if (!h || e.dead || e.mem.reacted || e.mem.summoned || e.hp > e.maxHp * h.at || c.won || c.lost) return; // summoned: a save from before v0.36.0
     e.mem.reacted = true;
+    if (h.status) delete e.st[h.status];
     const m = d.moves[h.move];
     fx(c, { t: 'act', who: e.uid, name: m.name, attack: false, react: true });
     if (m.phase) fx(c, { t: 'phase', who: e.uid, text: m.phase });
@@ -1685,6 +1714,9 @@
     if (!c || !c.won) return;
     const R = makeR(run);
     run.stats.fights++;
+    // each keepsake carried through a won fight: what the sea pays for it (E.carried)
+    run.ksFights = run.ksFights || {};
+    run.keepsakes.forEach((k) => { run.ksFights[k] = (run.ksFights[k] || 0) + 1; });
     if (c.kind === 'elite') run.stats.elites++;
     if (!c.flags.hpLost) run.stats.flawless = (run.stats.flawless || 0) + 1;
     if (c.kind === 'elite' && run.deck.length <= 12) run.stats.leanDread = true;
@@ -1707,12 +1739,13 @@
       return;
     }
     const elite = c.kind === 'elite';
-    let pearls = elite ? R.int(30, 40) : R.int(14, 22);
+    const P = E.PEARLS;
+    let pearls = elite ? R.int(P.elite[0], P.elite[1]) : R.int(P.fight[0], P.fight[1]);
     pearls += c.bonusPearls || 0;
     if (E.hasKit(run, 'pouch')) pearls += BL.KIT.pouch.pearls;
     const bonuses = [];
-    if (!c.flags.hpLost) bonuses.push({ name: 'Flawless', desc: 'Won without losing HP', pearls: elite ? 20 : 12 });
-    if (c.turn <= (elite ? 4 : 3)) bonuses.push({ name: 'Swift', desc: `Won on turn ${c.turn}`, pearls: elite ? 12 : 8 });
+    if (!c.flags.hpLost) bonuses.push({ name: 'Flawless', desc: 'Won without losing HP', pearls: elite ? P.flawless[1] : P.flawless[0] });
+    if (c.turn <= (elite ? 4 : 3)) bonuses.push({ name: 'Swift', desc: `Won on turn ${c.turn}`, pearls: elite ? P.swift[1] : P.swift[0] });
     if (c.maxChain >= 2) bonuses.push({ name: 'Tidal Fury', desc: `${c.maxChain} Crests in a single turn`, pearls: E.chainBonus(c.maxChain) });
     if ((c.maxLowChain || 0) >= 2) bonuses.push({ name: 'High and Dry', desc: `${c.maxLowChain} Strands in a single turn`, pearls: E.chainBonus(c.maxLowChain) });
     bonuses.forEach((b) => { pearls += b.pearls; });
@@ -1744,6 +1777,18 @@
     if (run.screen !== 'pin' || E.lastLevel(run)) return false;
     const needs = E.LEVELS[(run.level || 0) + 1].needs;
     return !needs || E.wears(run, needs);
+  };
+  /* The deepest level this expedition can reach with the kit it wears: the first level whose stair needs kit she isn't
+     wearing (the Belfry's diving dress) stops it (v0.38.0: a playtest paced a first run for a third level it could
+     not reach, so the map and the pin now say so in time). */
+  E.deepestReachable = function (run) {
+    let lv = run.level || 0;
+    while (lv < E.LEVELS.length - 1) {
+      const needs = E.LEVELS[lv + 1].needs;
+      if (needs && !E.wears(run, needs)) break;
+      lv++;
+    }
+    return lv;
   };
   E.goDeeper = function (run) {
     if (!E.canGoDeeper(run)) return false;

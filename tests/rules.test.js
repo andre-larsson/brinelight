@@ -722,11 +722,13 @@ test('a Roiled aether pays: 4 more Pearls after a fight for each step over the H
   };
   const calm = win(['tidewatch']); // 12 of 20
   assert.deepEqual([calm.steps, calm.rw.roilPay, calm.rw.bonuses.length], [0, 0, 0]);
-  assert.ok(calm.got >= 14 && calm.got <= 22, 'a Skirmish pays 14 to 22');
+  const [lo, hi] = E.PEARLS.fight;
+  assert.deepEqual(E.PEARLS.fight, [11, 17]); // 14 to 22 until v0.38.0
+  assert.ok(calm.got >= lo && calm.got <= hi, 'a Skirmish pays 11 to 17');
   const two = win(['whaletooth', 'stormbottle', 'moonshard']); // 49: 29 over, 3 steps
   assert.equal(E.roil({ keepsakes: ['whaletooth', 'stormbottle', 'moonshard'], hold: 20 }).steps, 3);
   assert.deepEqual([two.steps, two.rw.roilPay, two.rw.roilSteps, two.scored], [3, 12, 3, 0]);
-  assert.ok(two.got >= 14 + 12 && two.got <= 22 + 12);
+  assert.ok(two.got >= lo + 12 && two.got <= hi + 12);
   assert.equal(two.rw.pearls, two.got, 'the reward\'s total includes it');
   // a keepsake taken or dropped after the fight began does not change what that fight pays
   const { run, c } = fight(['kelp'], { keepsakes: ['whaletooth', 'tidewatch'] }); // 31: 1 step
@@ -739,6 +741,7 @@ test('a Roiled aether pays: 4 more Pearls after a fight for each step over the H
 });
 
 test('the map: 8 landings a level (7 rows of stops, then the pin), fights first, a wreck halfway, a cove before the pin, and enough variety', () => {
+  let pinShops = 0;
   for (let seed = 1; seed <= 200; seed++) {
     const run = E.newRun(seed);
     const nodes = run.map.grid.flat().filter(Boolean);
@@ -746,7 +749,11 @@ test('the map: 8 landings a level (7 rows of stops, then the pin), fights first,
     assert.equal(E.LANDINGS, 8);
     assert.ok(run.map.grid[0].filter(Boolean).every((n) => n.type === 'fight'));
     assert.ok(run.map.grid[3].filter(Boolean).every((n) => n.type === 'treasure'));
-    assert.ok(run.map.grid[6].filter(Boolean).every((n) => n.type === 'rest'));
+    // the landing before the pin: Coves, and since v0.38.0 one Barnaby's where every route still has a Cove beside it
+    const last = run.map.grid[6].filter(Boolean);
+    assert.ok(last.every((n) => n.type === 'rest' || n.type === 'shop') && last.filter((n) => n.type === 'shop').length <= 1);
+    run.map.grid[5].filter(Boolean).forEach((p) => assert.ok(p.next.some((c) => run.map.grid[6][c].type === 'rest'), `seed ${seed}: every route keeps a Cove before the pin`));
+    if (last.some((n) => n.type === 'shop')) pinShops++;
     const count = (t) => nodes.filter((n) => n.type === t).length;
     ['fight', 'elite', 'event', 'shop', 'rest', 'treasure'].forEach((t) => assert.ok(count(t) >= 1, `seed ${seed} has a ${t}`));
     assert.ok(nodes.every((n) => n.type !== 'elite' || n.row >= 2), 'no elites in the first rows');
@@ -754,6 +761,7 @@ test('the map: 8 landings a level (7 rows of stops, then the pin), fights first,
     assert.ok(nodes.every((n) => n.type !== 'shop' || n.row >= 2), `seed ${seed}: no shop on the Shallows' first two landings`);
     assert.ok(count('shop') >= 2, `seed ${seed} has two shops`);
   }
+  assert.ok(pinShops > 100, `most maps have a shop before the pin (${pinShops} of 200)`);
   // deeper levels keep a shop on the second landing: by then she has Pearls to spend
   let early = 0;
   for (let seed = 1; seed <= 200; seed++) early += E.newRun(seed, 1).map.grid[1].filter((n) => n && n.type === 'shop').length;
@@ -988,7 +996,7 @@ test('the score: each landing scores 40 in the Shallows, 60 in Dark Water and 12
 
 test('currents: each makes the expedition harder and adds 0.25 to the score multiplier; they combine, and they open once the Heart has come home', () => {
   assert.deepEqual(Object.keys(E.CURRENTS), ['fed', 'teeth', 'cold', 'backwash']);
-  const hpWith = (cur) => { const r = E.newRun(11, 0, null, [], cur); E.startCombat(r, 'easy', ['ray']); return r.combat.enemies[0].maxHp; };
+  const hpWith = (cur) => { const r = E.newRun(11, 0, null, [], cur); E.startCombat(r, 'elite', ['ray']); return r.combat.enemies[0].maxHp; }; // not a Skirmish, so E.SKIRMISH_HP stays out of it
   const base = hpWith([]);
   assert.equal(hpWith(['fed']), Math.round(base * 1.1));
   const dmgWith = (cur) => { const r = E.newRun(11, 0, null, [], cur); E.startCombat(r, 'easy', ['kelp']); r.combat.enemies[0].intent = 'lash'; return E.intentInfo(r, r.combat.enemies[0]).dmg; };

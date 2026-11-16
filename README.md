@@ -43,14 +43,14 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 
 **The Swell** is the game's central mechanic. Wren works the water around the enemies with her bell. The Swell is a gauge from 0 to 6 that starts every fight at 3.
 - **Surge** raises it and **Ebb** lowers it.
-- At 6 the wave **Crests**: it deals 6 damage to every enemy, then the Swell resets to 3.
+- At 6 the wave **Crests**: it deals 6 damage to every enemy, then the Swell resets to 3. Ward blocks a Crest as it blocks any hit, so a Strand first, then a Crest, hits hardest.
 - At 0 you **Strand** the enemies: the water pulls back, they lose all their Ward, and you gain 1 Light. Then the Swell resets to 3.
 - **Extra Surge or Ebb carries over.** It keeps flowing from 3, so Surge 6 from Swell 3 Crests twice.
 - **Chains:**
   - Every extra Crest in the same turn hits 3 harder (6, 9, 12, 15...).
   - Every Strand gives 1 Light, so a turn with two Strands gets 2 back.
   - Saving up Surges for one big turn is the core skill.
-- **Bail and Stir:** once a turn, without a card, you can spend 1 Light to **Bail** (Ebb 1) or **Stir** (Surge 1). The two buttons are at the ends of the Swell bar. A Bail that makes a Strand gets its Light back, because the Strand gives 1 Light; a Stir that makes a Crest does not. You can Bail or Stir in a turn, not both. With the Bailer in your Ditty Bag you can Bail or Stir twice a turn, in any mix. The tutorial teaches Bail on its third turn.
+- **Bail and Stir:** once a turn, without a card, you can spend 1 Light to **Bail** (Ebb 1) or **Stir** (Surge 1). The two buttons are at the ends of the Swell bar. A Bail that makes a Strand is free: the Strand's 1 Light pays it back. A Stir that makes a Crest is not. You can Bail or Stir in a turn, not both. With the Bailer in your Ditty Bag you can Bail or Stir twice a turn, in any mix. The tutorial teaches Bail on its third turn.
 - Your bell pays out when you Crest or Strand. You start with the Brass Tide-Bell, which draws a card on every one. Other bells from the Workshop pay differently.
 - Some cards scale with the Swell (Undercurrent, Tsunami, Lighthouse Beam) or with chains (Toppled Tower costs 1 less per Crest this turn).
 
@@ -75,7 +75,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Murk Ray:** when it Sinks it is **Submerged** until it next acts. You can't target it, your attacks (on one enemy, on ALL or on a random one) can't reach it, and tonics can't be aimed at it. Crests and other waves still hit it, and a Strand brings it up. If nothing else is in reach, cards that need a target can't be played.
 - **Lamp Hermit:** its **Shell** keeps its Ward from turn to turn. A Strand still strips it.
 - **Glimmer Chain** (a Dread): Drink the Light **Douses** your lantern: you start your next turn with 1 less Light. On the turn Doused takes your Light, or Breathless takes a card from your draw, a dashed mark stays on Wren until the turn ends; hover or tap it to read what it took.
-- **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies. At half its health it Retches: two Glimmer Leeches come up, and so does every card it swallowed.
+- **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies. It shows **Full Belly** until then: the moment a blow brings it to half its health, it Retches, out of turn: two Glimmer Leeches come up, and so does every card it swallowed. The Leeches act that turn.
 - **Garden Strider** (a Dread): Tend the Garden calls Glimmer Leeches until two are alive, and gives it 8 Ward. Its Graze heals it by the HP it takes from you, like a Leech's Latch.
 - **The Tolling Buoy** (the boss): its Rocking Toll hits for 12, plus 4 for each step your Swell is away from 3 when your turn ends, and every Toll hits 2 harder than the one before. Haul the Chain gives it 12 Ward and douses your lantern. At two thirds of its health it Slips the Chain (15 Ward and 1 Might). From then on it rings a **Wild Peal** in place of Haul the Chain: 30 damage, 15 less for each Crest or Strand you make that turn. Make two and it doesn't hit at all. Both attacks have a bell and a wave on their intent. The Swell bar marks the steps where they hit softest (3 for the Toll, 0 and 6 for the Peal), and a note above the bar gives the numbers.
 - **The Glimmer Garden** (a Fog event): if you pick the beads, a Glimmer Leech follows you into your next fight.
@@ -94,11 +94,11 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **The Dark Watch** waits on the last landing instead of the Bellwether once the Heart is home (180 HP): your own fear, in your coat, with your lantern unlit. Ring Her Bell gives it 14 Ward and sets your Swell back to 3; Her Harpoon hits 9 twice; Pinch the Wick hits 11 and Douses your lantern; Lights Out hits 22, and 4 harder each time. At half its health it calls **Nobody Comes Home**: one Hollow Diver, and 10 Ward. When the Dark Watch falls, the diver goes with it.
 
 **Between fights.** Choose your route on the map:
-- **Skirmishes:** normal fights.
+- **Skirmishes:** normal fights. Their creatures have 15% more HP than the same creatures elsewhere.
 - **Dreads:** elites. They're harder. They pay Pearls, and you may take 1 of 2 keepsakes. A Dread offers no card and no tonic.
 - **Fog:** events with choices, some of them gambles.
 - **Barnaby's shop:** buy cards (60 to 72 Pearls for a common, 95 to 112 for an uncommon, 180 to 205 for a rare, and one of the five at half price), keepsakes (150 to 185) and tonics (50 to 65), or pay to remove a card (75, then 25 more each time). You set out with no Pearls, so the Shallows have no shop on their first two landings.
-- **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card, or **give a keepsake to the sea**. The keepsake is gone for the rest of the expedition, with its Roil. The sea pays for it: you heal 2 HP for each Roil it had (a Tidewatch, Roil 12, heals 24), and you upgrade a card. One you brought from the Lazaret is gone from there too.
+- **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card, or **give a keepsake to the sea**. The keepsake is gone for the rest of the expedition, with its Roil. The sea pays for it: you heal 3 HP for each fight you won while carrying it, never more than a Cove's rest (21 HP at 70 Max HP), and you upgrade a card. A keepsake taken and thrown straight back pays only the upgrade. One you brought from the Lazaret is gone from there too.
 - **Wrecks:** a chest of pearls where you may take 1 of 3 keepsakes.
 
 **Keepsakes, Roil and a Roiled aether.** A keepsake lasts the whole run, and it stirs the aether around you. How much is its **Roil** (shown on each keepsake). Every keepsake you carry counts.
@@ -136,7 +136,7 @@ Fights also pay bonus Pearls for:
 Both are announced the moment you earn them. The score counts Crests and Strands, and the best chain of each, the same way.
 
 **Expeditions and score.** Every expedition starts on the shore, in the Shallows. The top bar counts the landings you have reached in the level you are in.
-- Each level has 8 landings: 7 rows of stops, then its pin. Every route passes a Wreck on the 4th landing and a Cove on the 7th.
+- Each level has 8 landings: 7 rows of stops, then its pin. Every route passes a Wreck on the 4th landing. The 7th is Coves, and on most maps one of them is Barnaby's shop instead, where every route still has a Cove to choose.
 - The Shallows, Dark Water and the Belfry each have their own creatures, Dreads, pin and Fog events. The Shallows' pin is the Harbour Hermit, Dark Water's is the Tolling Buoy, and the Belfry's is the Drowned Bellwether.
 - **The Belfry is under the sea.** To go down into it you must wear the **Diving Dress** in your Rig place, over your oilskin. The first time you break Dark Water's pin without one, it hangs above the stair: go home, and it is yours in the Workshop. It can't be bought, it does nothing in a fight, and it takes the place of the Cork Vest or the Shell Gorget. Once the Heart has come home, the Workshop sells the **Plated Dress**, which opens the Belfry too and gives 3 Ward at the start of each fight.
 - After a pin that is not the last, choose: **go home**, which ends the expedition and keeps everything you carry, or **go deeper** with your deck, keepsakes and HP. The stair down is the last shelter before the next level, and it gives more than a Cove. Choose **two** of six, each once: **rest** (heal 30% of your Max HP, as at a Cove; the Spare Wick adds 10), **refit your gear** (upgrade a card), **shed a card** (remove it from your deck, free), **fill your flasks** (a random tonic in up to two empty tonic slots, no two alike), **the keepers' cache** (take 1 of 3 uncommon or rare cards; you may look and back out, and the three stay the same) or **give one to the sea** (as at a Cove: a keepsake for 2 HP a Roil and an upgrade). What you don't use is gone when you go down.
@@ -184,7 +184,7 @@ Both are announced the moment you earn them. The score counts Crests and Strands
     - Reefback Hulk, which has Spines.
     - Hollow Siren, whose lullaby flattens your Swell back to 3.
     - Angler Twins, where the survivor enrages when its twin dies.
-  - The Shallows' boss, the Harbour Hermit (150 HP), a hermit crab wearing Saltmere's old harbour bell. **In its Bell**, its Ward does not wash away from turn to turn. A Crest or a Strand shakes it out: it loses all its Ward, and a Crest's wave then hits its HP. Pull In gives it 20 Ward, Pinch hits 6 twice, and Bell Crush hits 15, 3 harder each time. At half its health it rings the harbour bell: two Barnacle Mites drop off it (a Mite's Nibble hits for 4), and it gains 1 Might.
+  - The Shallows' boss, the Harbour Hermit (150 HP), a hermit crab wearing Saltmere's old harbour bell. **In its Bell**, its Ward does not wash away from turn to turn. Each Crest or Strand rings the bell around it and shakes off all its Ward (it stays in its bell), and a Crest's wave then hits its HP. Pull In gives it 20 Ward, Pinch hits 6 twice, and Bell Crush hits 15, 3 harder each time. At half its health it rings the harbour bell: two Barnacle Mites drop off it (a Mite's Nibble hits for 4), and it gains 1 Might.
   - The Bell Minnow, the Bellwether's, follows a Roiled aether.
   - Dark Water: 4 new normal creatures (Glimmer Leech, Pistol Shrimp, Murk Ray, Lamp Hermit), with the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp; 3 elite encounters (Glimmer Chain, Pale Gulper and the Garden Strider, which calls Glimmer Leeches); and its boss, the Tolling Buoy.
   - The Belfry, a dive: 2 Dreads before the Heart (Drowned Ringer with a Bell Jelly, Crowned Oarfish with a Bellspawn) and 5 after it (also the Bell Yearling with a Listener, the Drowned Cantor, and the Oarfish with a Glimmer Bladder); nothing from the levels above comes down; its boss, the Drowned Bellwether, and its second form, the Thing in the Bell with its Grasping Arms; and, after the Heart, the Dark Watch, which calls a Hollow Diver.

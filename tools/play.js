@@ -149,7 +149,8 @@ function showMap(run) {
   hud(run);
   const av = E.availableNodes(run);
   const rows = E.mapRows(run);
-  say('', `MAP: ${E.LEVELS[run.level || 0].name}. ${bossName(run)} waits on landing ${rows + 1}, the last.`);
+  const lv = run.level || 0;
+  say('', `MAP: ${E.LEVELS[lv].name}. ${bossName(run)} waits on landing ${rows + 1}, the last.${!E.lastLevel(run) && E.deepestReachable(run) === lv ? ' Below it the stair runs under the sea, and you have nothing to dive in: this pin is as deep as this expedition can go.' : ''}`);
   for (let r = rows - 1; r >= 0; r--) {
     const nodes = run.map.grid[r].filter(Boolean).map((n) => {
       const here = run.pos && run.pos.row === r && run.pos.col === n.col ? ' (YOU WERE HERE)' : '';
@@ -183,9 +184,11 @@ function showReward(run) {
     }
   }
 }
+/* As the game's keepsake tiles say it: the Roil after taking it, and what a Roiled aether would add to every fight. */
 function roilAfter(run, k) {
   const rf = E.roil(run, k);
-  return rf.steps ? ` [taking it would Roil the aether: ${E.charge(run, k)} of Hold ${E.hold(run)}]` : '';
+  const words = [rf.seep && `${rf.seep} Seep`, rf.thrash && `Thrash ${rf.thrash}`, rf.minnows && `${rf.minnows} Bell Minnow${rf.minnows > 1 ? 's' : ''}`].filter(Boolean).join(', ');
+  return ` [then ${E.charge(run, k)}/${E.hold(run)}${rf.steps ? `: Roiled ${rf.steps} step${rf.steps > 1 ? 's' : ''}, every fight gets ${words}` : ', Calm'}]`;
 }
 
 function showShop(run) {
@@ -208,7 +211,7 @@ function showRest(run) {
     const words = {
       rest: `Rest deeply: heal ${E.stairRestAmount(run)} HP.`, refit: 'Refit: upgrade a card.', shed: 'Shed: remove a card, free.',
       flask: `Fill flasks: a random tonic into up to ${E.STAIR_FLASKS} empty slots.`, cache: "The keepers' cache: 1 of 3 cards, uncommon or rare.",
-      sea: `Give a keepsake to the sea: heal ${E.SEA_HEAL} HP for each Roil it had, and upgrade a card.`, fog: 'Swim out into the dark (a Fog event).',
+      sea: `Give a keepsake to the sea: heal ${E.SEA_HEAL} HP for each fight you won while carrying it (never more than a Cove's rest), and upgrade a card. ${seaList(run)}`, fog: 'Swim out into the dark (a Fog event).',
     };
     E.stairOptions(run).forEach((id) => { const why = E.stairWhy(run, id); say(`  ${id}: ${words[id]}${why ? ` -- ${why === 'done' ? 'done' : why === 'full' ? 'no picks left' : why}` : ''}`); });
     if (E.stairState(run).cache) say(`  Cache cards: ${E.stairState(run).cache.map((id, i) => `${i + 1}. ${cardLine(run, pseudo(id))}`).join(' | ')}`);
@@ -216,11 +219,13 @@ function showRest(run) {
     say('', `SHELTERED COVE. ${run.restDone ? 'Done here.' : 'Choose one:'}`);
     if (!run.restDone) {
       say(`  rest: heal ${E.restAmount ? E.restAmount(run) : '30% of max'} HP.`, '  refit <deck number>: upgrade a card.',
-        `  sea <keepsake number> <deck number>: give a keepsake to the sea: heal ${E.SEA_HEAL} HP for each Roil it had, and upgrade a card.`);
+        `  sea <keepsake number> <deck number>: give a keepsake to the sea: heal ${E.SEA_HEAL} HP for each fight you won while carrying it (never more than a Cove's rest, ${E.restAmount(run)}), and upgrade a card. ${seaList(run)}`);
     }
   }
   if (run.restMsg) say(strip(run.restMsg));
 }
+
+const seaList = (run) => (run.keepsakes.length ? `(${run.keepsakes.map((k, i) => `${i + 1}. ${BL.KEEPSAKES[k].name}: carried ${E.carried(run, k)} fights, pays ${E.seaHeal(run, k)} HP`).join('; ')})` : '(You carry no keepsake.)');
 
 function showTreasure(run) {
   const t = run.treasure;
@@ -265,7 +270,7 @@ function showPin(run) {
   const B = E.band(run), lv = run.level || 0, next = E.LEVELS[lv + 1];
   hud(run);
   say('', 'THE PIN IS BROKEN.', strip(B.pin));
-  if (E.canGoDeeper(run)) say(`  deeper: go down the stair into ${next.the}, with your deck, keepsakes and HP. The stair down comes first: two of six. Each landing there scores ${next.landing}.`);
+  if (E.canGoDeeper(run)) say(`  deeper: go down the stair into ${next.the}, with your deck, keepsakes and HP. The stair down comes first: two of six. Each landing there scores ${next.landing}.${E.deepestReachable(run) === lv + 1 && lv + 1 < E.LEVELS.length - 1 ? ' Below it the stair runs under the sea, and you have nothing to dive in: its pin is as deep as this expedition can go.' : ''}`);
   else if (next) say(`  (You cannot go deeper: ${next.the} needs the ${BL.KIT[next.needs].name}.)`);
   say('  home: end the expedition here and keep what you carry. Each HP you have left adds 5 to the score.');
 }
@@ -275,7 +280,7 @@ function showEnd(run) {
   say(won ? 'THE EXPEDITION IS OVER: you came home.' : 'THE EXPEDITION IS OVER: you fell.');
   try {
     const sp = E.scoreParts(run, won);
-    sp.parts.forEach((p) => say(`  ${p.label}: ${p.pts}`));
+    sp.parts.forEach((p) => say(`  ${p.label}${p.n != null && p.each ? ` (${p.n} x ${p.each})` : p.n ? ` (${p.n})` : ''}: +${p.pts}`));
     say(`  Score: ${E.score(run, won)}`);
   } catch (e) { /* the score needs nothing more */ }
   say(`Fights ${run.stats.fights}, cards played ${run.stats.cardsPlayed}, damage dealt ${run.stats.dmgDealt}, taken ${run.stats.dmgTaken}, Crests ${run.stats.crests}, Strands ${run.stats.lows}.`);

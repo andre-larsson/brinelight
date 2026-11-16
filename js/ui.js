@@ -595,7 +595,7 @@
     switch (parts[0]) {
       case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
-      case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.mapRows(run) + 1}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? ' Break it, then go home or go deeper.' : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
+      case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.mapRows(run) + 1}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? (E.deepestReachable(run) === (run.level || 0) ? ' Below it the stair runs under the sea, and you have nothing to dive in: this pin is as deep as this expedition can go.' : ' Break it, then go home or go deeper.') : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}${k.deep ? `<div class="tip-row muted">${foundIn(parts[1])}</div>` : ''}`; }
       case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
       case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
@@ -918,10 +918,10 @@
       case 'tide': return `<ul class="help-list">
         <li>The <b>Swell</b> is the water around the enemies: a gauge from <b>0 to 6</b>. It starts every fight at 3 and stays put between turns.</li>
         <li><b>Surge</b> raises it. <b>Ebb</b> lowers it.</li>
-        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. <b>Strand</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Swell resets to 3.</li>
+        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. Ward blocks it, as it blocks any hit. <b>Strand</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Swell resets to 3. So a Strand first, then a Crest, hits hardest.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Strand gives 1 Light. Save Surge for one big turn.</li>
-        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand gets its Light back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
+        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand is free: the Strand's 1 Light pays it back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
         <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn, or Ward instead of a card.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST&times;2</span> means that card makes two Crests.</li>
       </ul>`;
@@ -931,6 +931,7 @@
       case 'map': return `<ul class="help-list">
         <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map(levelName).join(', then ')}${allLevelsKnown() ? '' : ', then deeper'}. ${levelKnown(2) ? `The Shallows and Dark Water have ${E.LANDINGS} landings each, ${levelName(2)} ${E.landingsOf(2)}` : `Each level has ${E.LANDINGS} landings`}. Choose a route down; lit stops are where you can go next.</li>
         <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of six: rest deeply, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, open the keepers' cache or give a keepsake to the sea. Break the last pin to bring the Lantern Heart home.</li>
+        ${levelKnown(1) && !levelKnown(2) ? `<li>Below ${levelName(1)} the stair runs under the sea. Until you have something to dive in, ${levelName(1)}'s pin is as deep as an expedition can go.</li>` : ''}
         ${levelKnown(2) ? `<li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
         <li><b>The Belfry is a dive</b>: no branches, no shops, no Coves. Two Dreads, each with a <b>lesser bell</b> after it, then the Bellwether. Under a lesser bell there is air: choose <b>one</b> of six there: rest, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, give a keepsake to the sea, or swim out into the dark (a Fog event).</li>
         <li>Once the Heart is home, the deep grows toward your own lantern. The Belfry's Dreads change, and its last landing holds your own fear. Beat it to quiet the Belfry and come home.</li>` : ''}
@@ -940,13 +941,13 @@
         [`${NODE_ICON.elite} Dread`, 'An elite: harder. It pays Pearls, and you may take 1 of 2 keepsakes. No card or tonic.'],
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
-        [`${NODE_ICON.rest} Cove`, `Rest to heal 30% of your max HP, or upgrade a card, or give a keepsake to the sea: it is gone, and you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.`],
+        [`${NODE_ICON.rest} Cove`, `Rest to heal 30% of your max HP, or upgrade a card, or give a keepsake to the sea: it is gone, and you ${SEA_PAYS} and upgrade a card.`],
       ].concat(levelKnown(2) ? [[`${NODE_ICON.pocket} Lesser bell`, 'In the Belfry: air under a hanging bell. Choose one of six.']] : [], [
         [`${NODE_ICON.treasure} Wreck`, 'Pearls, and you may take 1 of 3 keepsakes.'],
       ]))}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
-        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''}${workshopOpen() ? ` In the ${MT.shop}, a steadier lantern adds ${E.HOLD_UP.step} to your Hold for each of its ${E.HOLD_UP.prices.length} steps.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.</li>
+        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''}${workshopOpen() ? ` In the ${MT.shop}, a steadier lantern adds ${E.HOLD_UP.step} to your Hold for each of its ${E.HOLD_UP.prices.length} steps.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you ${SEA_PAYS} and upgrade a card.</li>
         <li><b>Deeper finds are stronger.</b> Some keepsakes are found only ${levelKnown(2) ? 'in Dark Water and deeper, or only in the Belfry' : levelKnown(1) ? 'in Dark Water and deeper' : 'below the Shallows'}, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
         <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens the first time you come home. When you come home, every keepsake you carry is kept there, and it can keep many of each. Before an expedition you may bring any number of kinds, one of each, and each counts toward your Hold. A keepsake you bring leaves the Lazaret: it comes back if you come home with it, and if you fall, drop it or give it to the sea, it is gone. When you fall you may hold on to one keepsake you carried, and it goes into the Lazaret. A spare copy (a second of the same kind) can be broken down for ${MT.currency}: half its Roil, rounded up.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
@@ -1015,6 +1016,7 @@
     return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts.join('');
   }
   const ROIL_LADDER = `Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step, and each step adds one thing to every fight: first a <b>Seep</b> (an unplayable card), then <b>Thrash</b> (1 damage at the start of each turn, unless you kept Ward for it), then a <b>Bell Minnow</b> (an extra enemy, at half health), then a second Seep, and so on round`;
+  const SEA_PAYS = `heal ${E.SEA_HEAL} HP for each fight you won while carrying it (never more than a Cove's rest)`;
   const ROIL_PAYS = `A Roiled aether also pays: <b>${E.ROIL_PAY} more Pearls</b> after each fight for each step`;
   /* What a Roiled aether pays after each fight: "+16 Pearls". */
   const roilPay = (fx) => (fx.steps ? `+${fx.steps * E.ROIL_PAY} Pearls` : '');
@@ -1029,7 +1031,7 @@
     const without = roilWords(E.roilFor(ch - K.charge, h));
     const body = `<div style="display:flex;gap:14px;align-items:center"><div class="medal" style="width:72px;height:72px;flex:0 0 auto"><img src="img/icons/${K.art}.webp" alt=""></div><p style="margin:0;font-size:16px">${K.desc}</p></div>
       ${K.deep ? `<p class="buy-left muted">${foundIn(k)}</p>` : ''}<p class="buy-left">Roil ${K.charge}. You carry ${ch} of your Hold of ${h}${rf.steps ? `: <b>${roilWords(rf)}</b> in every fight, and ${roilPay(rf)} after it` : ''}.${rf.steps ? ` Without it: ${without || 'the aether is Calm'}.` : ''}</p>
-      <p class="buy-left muted">At a Cove or on the stair you can give it to the sea: heal ${E.seaHeal(k)} HP and refit a card.</p>
+      <p class="buy-left muted">At a Cove or on the stair you can give it to the sea: heal ${E.seaHeal(run, k)} HP now (${E.SEA_HEAL} for each fight you have won carrying it, up to a Cove's rest) and refit a card.</p>
       <p class="buy-left muted">${E.wasBrought(run, k) && !run.takenOut ? 'You brought it from the Lazaret. Dropping it leaves it out of this descent, and it is in the Lazaret again when you get home' : E.wasBrought(run, k) ? 'You brought it from the Lazaret, so dropping it takes it out of the Lazaret too: it is gone for good' : 'Dropping it is for good'}${k === 'biscuit' ? `${E.wasBrought(run, k) ? '. Its' : ', and its'} 10 Max HP go with it` : ''}.</p>`;
     openOverlay(modal(K.name, body, `<button class="btn" data-act="ksdrop" data-k="${k}">Drop it</button><button class="btn primary" data-act="close" autofocus>Keep it</button>`, 'narrow'));
   }
@@ -1977,7 +1979,7 @@
     const pct = Math.max(0, Math.min(100, (hp / max) * 100));
     return `${ward > 0 ? `<div class="ward-badge" data-tip="ward">${ward}</div>` : ''}<div class="ghost" style="width:${pct}%"></div><div class="fill" style="width:${pct}%"></div><div class="txt">${hp}/${max}</div>`;
   }
-  const NO_COUNT = ['submerged', 'shell', 'belled', 'echo']; // statuses that are on or off, with no number
+  const NO_COUNT = ['submerged', 'shell', 'belled', 'echo', 'fullbelly']; // statuses that are on or off, with no number
   /* What was taken from Wren at the start of this turn: [status, amount] for Doused (Light) and Breathless (cards). */
   const spentNow = (c) => [['doused', c.dousedTurn === c.turn ? c.dousedN || 0 : -1], ['breathless', c.breathlessTurn === c.turn ? c.breathlessN || 0 : -1]].filter((x) => x[1] >= 0);
   const spentTip = (k, n) => (k === 'doused'
@@ -3208,7 +3210,7 @@
       : `<div class="choice-list">
           <button class="choice with-ic" data-act="rest" autofocus><span class="ch-ic">${ICON.rest}</span><span class="ch-txt"><b>Rest by the lantern</b><span>${heal ? `Heal ${heal} HP: ${run.hp} &rarr; ${run.hp + heal} of ${run.maxHp}.` : 'You are already at full health.'}</span>${heal ? hpGainBar(run.hp, heal, run.maxHp) : ''}</span></button>
           <button class="choice with-ic" data-act="refit" ${E.upgradeable(run).length ? '' : 'disabled'}><span class="ch-ic">${STAIR_ICON.refit}</span><span class="ch-txt"><b>Refit your gear</b><span>Upgrade a card in your deck.</span></span></button>
-          <button class="choice with-ic" data-act="sea" ${run.keepsakes.length ? '' : 'disabled'}><span class="ch-ic">${STAIR_ICON.sea}</span><span class="ch-txt"><b>Give a keepsake to the sea</b><span>${run.keepsakes.length ? `It is gone, with its Roil. The sea pays for it: heal ${E.SEA_HEAL} HP for each Roil it had, and refit a card.` : 'You carry no keepsake.'}</span></span></button>
+          <button class="choice with-ic" data-act="sea" ${run.keepsakes.length ? '' : 'disabled'}><span class="ch-ic">${STAIR_ICON.sea}</span><span class="ch-txt"><b>Give a keepsake to the sea</b><span>${run.keepsakes.length ? `It is gone, with its Roil. The sea pays for it: ${SEA_PAYS}, and refit a card.` : 'You carry no keepsake.'}</span></span></button>
         </div>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene rest-scene" style="background-image:url(img/scenes/rest.webp)">${restGlow}<div class="scene-inner">
       <h1>Sheltered Cove</h1>
@@ -3246,7 +3248,7 @@
     },
     cache: () => ["The keepers' cache", 'The keepers before you left cards in the wall. Choose 1 of 3, uncommon or rare.'],
     fog: () => ['Swim out into the dark', 'Leave the air and see what the Belfry hides: one of its Fog events.'],
-    sea: () => ['Give one to the sea', `Throw a keepsake into the water. It is gone, with its Roil, and the sea pays for it: heal ${E.SEA_HEAL} HP for each Roil it had, and refit a card.`],
+    sea: () => ['Give one to the sea', `Throw a keepsake into the water. It is gone, with its Roil, and the sea pays for it: ${SEA_PAYS}, and refit a card.`],
   };
   function stairTrack(lv) {
     return `<ol class="stair-track" aria-label="The way down">${E.LEVELS.map((L, i) => `<li class="${i < lv ? 'past' : i === lv ? 'here' : ''}${levelKnown(i) ? '' : ' unknown'}"><span class="dot">${i < lv ? STAIR_ICON.done : ''}</span><b${levelKnown(i) ? '' : ' aria-label="Not found yet"'}>${levelKnown(i) ? L.name : '?'}</b></li>`).join('')}</ol>`;
@@ -3316,15 +3318,15 @@
     ui.seaGo = go;
     const ch = E.charge(run), h = E.hold(run), now = E.roil(run);
     const tiles = run.keepsakes.map((k) => {
-      const K = BL.KEEPSAKES[k], heal = Math.min(E.seaHeal(k), Math.max(0, run.maxHp - (k === 'biscuit' ? 10 : 0) - run.hp));
+      const K = BL.KEEPSAKES[k], pay = E.seaHeal(run, k), heal = Math.min(pay, Math.max(0, run.maxHp - (k === 'biscuit' ? 10 : 0) - run.hp)), n = E.carried(run, k);
       const after = E.roilFor(ch - K.charge, h);
       return `<div class="shop-tile ks-pick sea-pick" tabindex="0" role="button" data-act="seapick" data-k="${k}" aria-label="Give the ${K.name}, Roil ${K.charge}, to the sea">
         <span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>
-        <span class="k-after sea-pay">Heal ${E.seaHeal(k)}${heal < E.seaHeal(k) ? ` (${heal} now)` : ''} HP, refit a card</span>
+        <span class="k-after sea-pay">Carried ${n} fight${n === 1 ? '' : 's'}: heal ${pay}${heal < pay ? ` (${heal} now)` : ''} HP, refit a card</span>
         <span class="k-after">Then ${ch - K.charge}/${h}${after.steps ? `: ${roilWords(after, true)}` : now.steps ? ': Calm' : ''}</span>
         ${E.wasBrought(run, k) ? `<span class="k-deep">${run.takenOut ? 'From the Lazaret: gone from there too' : 'Stays in the Lazaret'}</span>` : ''}</div>`;
     }).join('');
-    const body = `<p class="buy-left">Choose a keepsake to throw into the water. It is gone for this expedition, and what it did for you goes with it. The sea pays: <b>${E.SEA_HEAL} HP for each Roil</b> it had, and you <b>refit a card</b>.${now.steps ? ` You carry ${ch} of your Hold of ${h}.` : ''}</p>
+    const body = `<p class="buy-left">Choose a keepsake to throw into the water. It is gone for this expedition, and what it did for you goes with it. The sea pays back the brinelight it soaked up while you carried it: <b>${E.SEA_HEAL} HP for each fight you won</b> with it (never more than a Cove's rest, ${E.restAmount(run)} HP), and you <b>refit a card</b>.${now.steps ? ` You carry ${ch} of your Hold of ${h}.` : ''}</p>
       <div class="shop-row sea-row">${tiles}</div>`;
     openOverlay(modal('Give one to the sea', body, '<button class="btn primary" data-act="close" autofocus>Keep them all</button>', 'sea-modal'));
   }
@@ -3353,7 +3355,7 @@
       ? `<p class="lead dbg-note"><b>Debug run:</b> a run that used a cheat carries nothing home, ${newKit ? 'not even the dress' : 'not even its keepsakes'}. To keep what you find, turn on <b>Cheats count as real runs</b> in the debug panel before you set out, or use <b>Own all kit</b>.</p>` : '';
     const homeKeeps = run.cheated ? '' : extra.length ? `, ${extra.join(', ')} too` : '';
     const deeper = can
-      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. The stair down comes first: two of six, stronger than a Cove. Each landing there scores ${next.landing}.${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
+      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. The stair down comes first: two of six, stronger than a Cove. Each landing there scores ${next.landing}.${E.deepestReachable(run) === lv + 1 && lv + 1 < E.LEVELS.length - 1 ? ` Below it the stair runs under the sea, and you have nothing to dive in: its pin is as deep as this expedition can go.` : ''}${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
       : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner">
       <h1>The pin is broken</h1>

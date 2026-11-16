@@ -108,7 +108,7 @@ function chooseSwellAct(run, endOfTurn, opts = {}) {
 function stair(run, opts) {
   const { BL, E } = load();
   const want = [];
-  const sea = opts && opts.noSea ? null : seaChoice(run);
+  const sea = opts && opts.noSea ? null : seaChoice(run, opts);
   if (sea) want.push(['sea', sea]);
   if (run.hp < run.maxHp * 0.6) want.push(['rest']);
   const junk = run.deck.find((c) => BL.CARDS[c.id].type === 'curse') || run.deck.find((c) => c.id === 'brace' && !c.up);
@@ -311,12 +311,16 @@ function coveRefit(run) {
 /* Give one to the sea (v0.35.0): when the aether is Roiled, the keepsake with the least Roil whose loss takes off a
    step (the one with the least Roil if none does), and the refit goes to a card that isn't a starter first. Null when
    the aether is Calm or nothing is carried: the bot does not give up a keepsake it can carry for free. */
-function seaChoice(run) {
+function seaChoice(run, opts) {
   const { BL, E } = load();
   const now = E.roil(run).steps;
   if (!now || !run.keepsakes.length) return null;
   const by = run.keepsakes.slice().sort((a, b) => E.chargeOf(a) - E.chargeOf(b));
   const k = by.find((x) => E.roilFor(E.charge(run) - E.chargeOf(x), E.hold(run)).steps < now) || by[0];
+  // since v0.38.0 the sea pays by the fights the keepsake was carried (E.carried): give it only when that heals at
+  // least what a rest would here (opts.seaAlways: whenever Roiled, as before)
+  const rest = Math.min(run.pocket || run.passage ? E.stairRestAmount(run) : E.restAmount(run), run.maxHp - run.hp);
+  if (!(opts && opts.seaAlways) && E.seaHeal.length >= 2 && E.seaHeal(run, k) < rest) return null;
   const ups = E.upgradeable(run), up = ups.find((c) => !BL.STARTER_DECK.includes(c.id)) || ups[0];
   return { k, uid: up ? up.uid : null };
 }
@@ -365,7 +369,7 @@ function step(run, opts = {}) {
   }
   if (s === 'rest') {
     if (E.stairOpen && E.stairOpen(run) && !opts.noStair) { stair(run, opts); E.backToMap(run); return 'stair'; }
-    const sea = opts.noSea ? null : seaChoice(run);
+    const sea = opts.noSea ? null : seaChoice(run, opts);
     if (sea && E.giveToSea(run, sea.k, sea.uid)) { E.backToMap(run); return 'sea'; }
     const up = opts.alwaysRest || opts.classic ? null : coveRefit(run);
     if (up) { E.upgradeCard(run, up.uid); run.restDone = true; E.backToMap(run); return 'refit'; }

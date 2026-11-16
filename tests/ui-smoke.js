@@ -1716,14 +1716,15 @@ async function seaScenario(page, base, name, size) {
   await sleep(200);
   if (!(await page.eval(`(() => { const b = document.querySelector('[data-act="sea"]'); return !!b && b.disabled && /no keepsake/.test(b.textContent); })()`))) failures.push(`${name}: a Cove without a keepsake should show the sea, disabled`);
   // with three keepsakes (Roiled, 43 of 20): choose one, then the card; backing out of either costs nothing
-  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; ['tidewatch', 'whaletooth', 'moonshard'].forEach((k) => E.gainKeepsake(r, k)); B.render(); })()`);
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; ['tidewatch', 'whaletooth', 'moonshard'].forEach((k) => E.gainKeepsake(r, k)); r.ksFights = { tidewatch: 5, whaletooth: 9, moonshard: 1 }; B.render(); })()`);
   await sleep(200);
   await dismissHints(page);
   await checkPage(page, name + ' cove');
   await page.click('[data-act="sea"]');
   await sleep(250);
   const tiles = await page.eval(`[...document.querySelectorAll('#overlay [data-act="seapick"]')].map((t) => t.dataset.k + ':' + t.querySelector('.sea-pay').textContent.trim()).join('|')`);
-  if (tiles !== 'tidewatch:Heal 24 HP, refit a card|whaletooth:Heal 38 HP, refit a card|moonshard:Heal 24 HP, refit a card') failures.push(`${name}: the sea should offer the three keepsakes with what it pays (${tiles})`);
+  // since v0.38.0 the sea pays 3 HP for each fight won carrying it, up to a Cove's rest (21 at 70 Max HP)
+  if (tiles !== 'tidewatch:Carried 5 fights: heal 15 HP, refit a card|whaletooth:Carried 9 fights: heal 21 HP, refit a card|moonshard:Carried 1 fight: heal 3 HP, refit a card') failures.push(`${name}: the sea should offer the three keepsakes with what it pays (${tiles})`);
   await checkPage(page, name + ' sea picker');
   await page.click('#overlay .modal-foot [data-act="close"]');
   await sleep(200);
@@ -1739,7 +1740,7 @@ async function seaScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="deckconfirm"]');
   await page.waitFor('window.Brinelight.run.restDone === true', 3000, 'the Cove used after giving to the sea');
   const after = await R(`({ hp: r.hp, keeps: r.keepsakes.join(','), ups: r.deck.filter((c) => c.up).length, steps: E.roil(r).steps })`);
-  if (after.hp !== 55 || after.keeps !== 'whaletooth,moonshard' || after.ups !== 1 || after.steps !== 1) failures.push(`${name}: after giving the Tidewatch: ${JSON.stringify(after)}, expected 55 HP, two keepsakes, one card upgraded, one step`);
+  if (after.hp !== 46 || after.keeps !== 'whaletooth,moonshard' || after.ups !== 1 || after.steps !== 1) failures.push(`${name}: after giving the Tidewatch: ${JSON.stringify(after)}, expected 46 HP, two keepsakes, one card upgraded, one step`);
   if (!/You give the Tidewatch to the sea/.test(await page.eval('document.body.innerText'))) failures.push(`${name}: the Cove doesn't say what the sea gave`);
   await checkPage(page, name + ' cove after');
   // a fight begun Roiled pays for it, and the reward says so
@@ -1755,6 +1756,7 @@ async function seaScenario(page, base, name, size) {
   if ((await page.eval(`document.querySelectorAll('.stair-opt').length`)) !== 6) failures.push(`${name}: the stair should offer six`);
   await checkPage(page, name + ' stair');
   await page.eval(`document.querySelector('.stair-opt[data-id="sea"]').scrollIntoView({ block: 'center' })`);
+  const seaPay = await R(`({ hp: r.hp, pay: Math.min(E.seaHeal(r, 'moonshard'), r.maxHp - r.hp) })`); // v0.38.0: by the fights carried
   await page.click('.stair-opt[data-id="sea"]');
   await sleep(250);
   await page.eval(`document.querySelector('#overlay [data-act="seapick"][data-k="moonshard"]').scrollIntoView({ block: 'center' })`);
@@ -1765,7 +1767,7 @@ async function seaScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="deckconfirm"]');
   await page.waitFor('window.Brinelight.E.stairState(window.Brinelight.run).picks.join(",") === "sea"', 3000, 'the sea as a pick on the stair');
   const st = await R(`({ hp: r.hp, keeps: r.keepsakes.join(','), ups: r.deck.filter((c) => c.up).length })`);
-  if (st.hp !== 54 || st.keeps !== 'whaletooth' || st.ups !== 2) failures.push(`${name}: after giving the Moon Shard on the stair: ${JSON.stringify(st)}`);
+  if (st.hp !== seaPay.hp + seaPay.pay || seaPay.pay <= 0 || st.keeps !== 'whaletooth' || st.ups !== 2) failures.push(`${name}: after giving the Moon Shard on the stair: ${JSON.stringify(st)}`);
   if (!(await page.eval(`document.querySelector('.stair-opt[data-id="sea"]').classList.contains('done')`))) failures.push(`${name}: the stair doesn't mark the sea as done`);
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }

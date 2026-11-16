@@ -246,7 +246,7 @@ test('whole expeditions with shopping, tonics and the Bailer are deterministic a
 test('at a Cove the bot gives a keepsake to the sea only when the aether is Roiled: the one with the least Roil whose loss takes off a step', () => {
   const cove = (ks) => {
     const run = E.newRun(1, 0);
-    ks.forEach((k) => E.gainKeepsake(run, k));
+    ks.forEach((k) => { E.gainKeepsake(run, k); run.ksFights[k] = 8; });
     run.hp = 30;
     run.screen = 'rest';
     run.restDone = false;
@@ -261,10 +261,17 @@ test('at a Cove the bot gives a keepsake to the sea only when the aether is Roil
   const roiled = cove(['gullfeather', 'barnacleplate', 'whaletooth']);
   assert.equal(E.roil(roiled).steps, 2);
   assert.equal(E.roilFor(E.charge(roiled) - E.chargeOf('gullfeather'), E.hold(roiled)).steps, 2);
+  const pay = E.seaHeal(roiled, 'barnacleplate');
+  assert.equal(pay, 21, '8 fights at 3, cut to a rest');
   assert.equal(step(roiled), 'sea');
   assert.deepEqual(roiled.keepsakes, ['gullfeather', 'whaletooth']);
-  assert.equal(roiled.hp, 30 + E.seaHeal('barnacleplate'));
+  assert.equal(roiled.hp, 30 + pay);
   assert.equal(roiled.deck.filter((c) => c.up).length, 1, 'and it refits a card');
+  // since v0.38.0 the sea pays by the fights carried: a keepsake carried 3 fights pays 9, less than a rest, so it rests
+  const fresh = cove(['gullfeather', 'barnacleplate', 'whaletooth']);
+  Object.keys(fresh.ksFights).forEach((k) => { fresh.ksFights[k] = 3; });
+  assert.equal(step(fresh), 'rest');
+  assert.equal(step(Object.assign(cove(['gullfeather', 'barnacleplate', 'whaletooth']), { ksFights: { barnacleplate: 3 } }), { seaAlways: true }), 'sea');
   // told not to, it rests
   const off = cove(['gullfeather', 'barnacleplate', 'whaletooth']);
   assert.equal(step(off, { noSea: true }), 'rest');
