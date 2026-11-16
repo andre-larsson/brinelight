@@ -1646,6 +1646,26 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 - **The Belfry's share fell most (64% to 46%).** Its lesser bells used to let the bot throw in a high-Roil keepsake for a huge heal (the Bell Clapper, Roil 41: 82 HP).
 - The bot does not read cards, so a person does much better: the blind playtest came home from Dark Water easily on v0.37. This release is meant to be clearly harder; whether it overshoots is for the next playtests. **Levers back, gentlest first:** `E.SKIRMISH_HP` 1.1, the old `E.PEARLS`, the stair's rest (`E.STAIR_REST`), `E.SEA_HEAL` 4.
 
+### Three blind playtests of v0.38.0 (v0.38.1, 2026-11-16)
+
+- **The user asked** for the first playtest agent to play again, and also Codex and a Cursor agent on Grok. All three played seed 5150 blind through `tools/play.js`, with the same brief (`.play/brief.md`); reports and notes are in `.play/pt-claude`, `pt-codex`, `pt-grok` (git-ignored). Codex's log shows only game commands and its notes; Grok's log keeps only its answer; no file in the repo changed.
+- **Results:** all three broke both pins and went home (the Belfry needs the dress). Claude 1798 (lowest HP 25/70, after the Reefback Hulk), Codex 1853 (lowest 49/70; 37 damage taken in all), Grok 1725 (lowest 29/70, on the last turn against the Tolling Buoy).
+- **What they agree on:**
+  - **Difficulty: the early game is about right now, and the late game is still easy.** Once the deck has its burst, Dark Water's Skirmishes, Dreads and bosses die on turn 1 or 2. All three named **Siren's Echo+** (0 cost: the next card twice), two named the **Whispering Conch** (every enemy starts Soaked 2, Roil 17), with big single hits (Depth Charge+, Breaker+, Undercurrent) or Strand cards.
+  - **Pearls feel right**: "useful, not excessive" (Codex), spent nearly all at two shops (Claude), "just short" of a rare or a second removal (Grok). The shop before the pin was used.
+  - **The sea is fixed**: a real trade, no longer tempting as a heal.
+  - **The v0.38.0 wording works**: the Claude agent, who played v0.37, says every earlier confusion is gone.
+- **Fixed in v0.38.1 (wording, no rules changed):**
+  - How to Play: an enemy's Ward lasts until it acts again (Grok read "washes away at the start of your next turn" as true for enemies too); an intent's number already counts statuses such as Might and your Soaked (Codex added Soaked's 50% to an intent that had it already).
+  - "Call for help" names who comes, how many and their HP (Codex couldn't plan for the Hermit's two Mites).
+  - The shop's removal says its price rises by 25 (`E.REMOVE_STEP`; Claude and Grok were surprised by 100).
+  - Text tool: Rite lookups showed a placeholder 1 (Grok skipped a rare over it); a card's numbers now count the target's Soaked when there is one target; keepsakes say what they did; a drop is confirmed; plurals.
+- **Proposals for the user (balance; not built):**
+  1. **Siren's Echo+ costs 1, like the base card** (its upgrade then needs something else, e.g. Echo 2 for the next two cards, or a card drawn). A 0-cost doubler is in every winning deck of the three.
+  2. **Whispering Conch**: Soaked 1, or Roil 22. Soaked 2 on every enemy from turn 1 sets up the turn-1 burst.
+  3. **Dark Water's Skirmishes** a bit tougher than the Shallows' (a per-level `E.SKIRMISH_HP`, e.g. 1.15 in the Shallows and 1.3 in Dark Water), since a built deck meets them there.
+  4. Starter Jab/Brace turns felt tedious to two of three (the long Hermit fight); no proposal yet.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.

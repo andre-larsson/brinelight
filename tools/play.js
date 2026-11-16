@@ -49,7 +49,9 @@ function cardLine(run, card, inCombat) {
   const d = BL.CARDS[card.id];
   const cost = E.cost(card, inCombat ? run.combat : null);
   const v = inCombat ? E.playVals(run, card) : E.vals(card);
-  const fmt = inCombat ? { d: (n) => String(n), tide: run.combat.tide, ward: run.combat.player.ward } : plainFmt;
+  const tg = inCombat ? E.targets(run.combat) : [];
+  const aim = tg.length === 1 ? tg[0] : null; // the game counts the aimed creature's Soaked; with one creature it is that one
+  const fmt = inCombat ? { d: (n) => String(E.attackValue(run.combat.player, aim, n)), tide: run.combat.tide, ward: run.combat.player.ward } : plainFmt;
   return `${E.cardName(card)} [${cost == null ? '-' : cost}] ${TYPE_LABEL[d.type]}: ${strip(d.text(v, fmt))}`;
 }
 const pseudo = (id) => ({ uid: 0, id, up: 0 });
@@ -96,12 +98,12 @@ function fxLines(run) {
       case 'swallow': lines.push(`${who(f.who)} swallows your ${f.name}.`); break;
       case 'submerge': lines.push(`${who(f.who)} sinks out of reach.`); break;
       case 'burst': lines.push(`${who(f.who)} bursts for ${f.n}.`); break;
-      case 'ks': if (BL.KEEPSAKES[f.k]) lines.push(`(${BL.KEEPSAKES[f.k].name} acts.)`); break;
+      case 'ks': if (BL.KEEPSAKES[f.k]) lines.push(`(${BL.KEEPSAKES[f.k].name} acts: ${strip(BL.KEEPSAKES[f.k].desc).replace(/\.$/, '')}.)`); break;
       case 'echo': lines.push(`Echo: ${f.name} again.`); break;
       case 'swellact': lines.push(`You ${f.kind === 'bail' ? 'Bail (Ebb 1)' : 'Stir (Surge 1)'} for 1 Light.`); break;
       case 'tide': tide += f.d; lines.push(`Swell ${f.d > 0 ? '+' : ''}${f.d}${f.undertow ? ' (the undertow)' : ''}.`); break;
       case 'light': lines.push(`+${f.n} Light.`); break;
-      case 'kit': { const id = E.kitIds(run).find((x) => BL.KIT[x].place === f.k) || (f.k === 'bell' ? E.bell(run) : null); if (id && BL.KIT[id]) lines.push(`(Your ${BL.KIT[id].name} acts${f.k === 'bell' ? `: ${strip(BL.KIT[id].desc)}` : ''}.)`); break; }
+      case 'kit': { const id = E.kitIds(run).find((x) => BL.KIT[x].place === f.k) || (f.k === 'bell' ? E.bell(run) : null); if (id && BL.KIT[id]) lines.push(`(Your ${BL.KIT[id].name} acts${f.k === 'bell' ? `: ${strip(BL.KIT[id].desc).replace(/\.$/, '')}` : ''}.)`); break; }
       case 'roil': lines.push(`The aether is Roiled: ${[f.seep && `${f.seep} Seep in your deck`, f.thrash && `Thrash ${f.thrash}`, f.minnows && `${f.minnows} Bell Minnows`].filter(Boolean).join(', ')}.`); break;
       default: break;
     }
@@ -225,13 +227,13 @@ function showRest(run) {
   if (run.restMsg) say(strip(run.restMsg));
 }
 
-const seaList = (run) => (run.keepsakes.length ? `(${run.keepsakes.map((k, i) => `${i + 1}. ${BL.KEEPSAKES[k].name}: carried ${E.carried(run, k)} fights, pays ${E.seaHeal(run, k)} HP`).join('; ')})` : '(You carry no keepsake.)');
+const seaList = (run) => (run.keepsakes.length ? `(${run.keepsakes.map((k, i) => `${i + 1}. ${BL.KEEPSAKES[k].name}: carried ${E.carried(run, k)} fight${E.carried(run, k) === 1 ? '' : 's'}, pays ${E.seaHeal(run, k)} HP`).join('; ')})` : '(You carry no keepsake.)');
 
 function showTreasure(run) {
   const t = run.treasure;
   hud(run);
   say('', "A WRECK'S LAST CARGO. A sea chest, half buried, banded in iron gone green.");
-  if (!t.opened) { say('  (open it)'); return; }
+  if (!t.opened) { say("  (Pry it open: 'open'.)"); return; }
   say(`  ${t.pearls} Pearls.`);
   if (t.choices && t.choices.length) {
     if (t.keepsake) say(`  You took the ${BL.KEEPSAKES[t.keepsake].name}.`);
@@ -310,7 +312,7 @@ const HELP = {
   stair: ['rest', 'refit <deck number>', 'shed <deck number>', 'flask', 'cache (look), then cache <number> (take)', 'sea <keepsake number> <deck number>', 'fog (under a lesser bell only)', 'continue: go on, picks unused or not'],
   treasure: ['open', 'keepsake <number> / leave', 'continue'],
   event: ['choose <number>', 'pick <deck number> (when it asks for a card from your deck)', 'card <number> / skip (when it offers cards)', 'continue'],
-  pin: ['deeper', 'home'],
+  pin: ['deeper (when you can)', 'home'],
 };
 function help(run) {
   const s = run ? (E.stairOpen(run) ? 'stair' : run.screen) : null;
@@ -325,7 +327,7 @@ function info(run, q) {
   Object.keys(BL.CARDS).forEach((id) => { if (hit(BL.CARDS[id]) || id === k) { found.push('Card: ' + cardLine(run, pseudo(id)) + ` (${BL.CARDS[id].rarity})`); if (E.canUpgrade(pseudo(id))) found.push('  Upgraded: ' + cardLine(run, { uid: 0, id, up: 1 })); } });
   Object.keys(BL.KEEPSAKES).forEach((id) => { if (hit(BL.KEEPSAKES[id])) found.push(`Keepsake: ${BL.KEEPSAKES[id].name} (Roil ${BL.KEEPSAKES[id].charge}): ${strip(BL.KEEPSAKES[id].desc)}`); });
   Object.keys(BL.TONICS).forEach((id) => { if (hit(BL.TONICS[id])) found.push(`Tonic: ${BL.TONICS[id].name}: ${strip(BL.TONICS[id].desc)}`); });
-  Object.keys(BL.STATUSES).forEach((id) => { if (hit(BL.STATUSES[id])) found.push(`Status: ${BL.STATUSES[id].name}: ${strip(BL.STATUSES[id].desc(1))}`); });
+  Object.keys(BL.STATUSES).forEach((id) => { const st = BL.STATUSES[id]; if (hit(st) && st.kind !== 'rite') found.push(`Status: ${st.name}: ${strip(st.desc('N'))}`); });
   Object.keys(BL.KEYWORDS).forEach((w) => { if (w.toLowerCase() === k) found.push(`${w}: ${strip(BL.KEYWORDS[w])}`); });
   Object.keys(BL.KIT).forEach((id) => { if (hit(BL.KIT[id])) found.push(`Kit: ${BL.KIT[id].name}: ${strip(BL.KIT[id].desc)}`); });
   const c = run && run.combat;
@@ -437,7 +439,7 @@ function act(run, cmd, args) {
   if (s === 'map') {
     if (cmd === 'go') { const n = E.availableNodes(run)[num(args[0])]; if (!n) return no('not one of the listed stops.'); E.enterNode(run, n); if (run.combat) say(...fxLines(run)); return true; }
     if (cmd === 'tonic') { const slot = num(args[0]); if (!run.tonics[slot]) return no('no tonic in that slot.'); if (!E.useTonic(run, slot)) return no('that tonic works only in a fight.'); return true; }
-    if (cmd === 'drop') { const k = run.keepsakes[num(args[0])]; if (!k || !E.dropKeepsake(run, k)) return no('no such keepsake.'); return true; }
+    if (cmd === 'drop') { const k = run.keepsakes[num(args[0])]; if (!k || !E.dropKeepsake(run, k)) return no('no such keepsake.'); say(`You drop the ${BL.KEEPSAKES[k].name} for good.`); return true; }
   }
   if (s === 'reward') {
     const rw = run.rewards;

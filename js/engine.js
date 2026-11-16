@@ -693,12 +693,13 @@
   };
   E.freeRemoval = (run) => E.hasKit(run, 'marker') && !run.markerUsed;
   E.removePrice = (run) => (E.freeRemoval(run) ? 0 : E.price(run, run.removeCost));
+  E.REMOVE_STEP = 25; // each removal at Barnaby's costs this much more than the last
   E.buyRemoval = function (run, uid) {
     const p = E.removePrice(run);
     if (run.shop.removed || run.pearls < p) return false;
     run.pearls -= p;
     if (E.freeRemoval(run)) run.markerUsed = true;
-    else run.removeCost += 25;
+    else run.removeCost += E.REMOVE_STEP;
     run.shop.removed = true;
     E.removeCard(run, uid);
     return true;
@@ -1698,7 +1699,18 @@
     if (m.tide) { info.kinds.push('debuff'); info.parts.push(m.tide < 0 ? `Drag your Swell down by ${-m.tide}` : `Raise your Swell by ${m.tide}`); }
     if (m.tideSet != null) { info.kinds.push('debuff'); info.parts.push(`Flatten your Swell back to ${m.tideSet}`); }
     if (m.disgorge && e.mem.swallowed && e.mem.swallowed.length) info.parts.push('Bring up the cards it swallowed: they go back to your discard pile');
-    if (m.summon) { info.kinds.push('summon'); info.parts.push('Call for help'); }
+    if (m.summon) {
+      // who comes, and how many (no more than five creatures stand in a fight): a playtest couldn't plan for "Call for help"
+      const room = Math.max(0, 5 - E.alive(c).length), ids = m.summon.slice(0, room), counts = {};
+      ids.forEach((id) => { counts[id] = (counts[id] || 0) + 1; });
+      const mult = E.mods(run).hp * (c.kind === 'easy' || c.kind === 'hard' ? E.SKIRMISH_HP : 1);
+      const who = Object.keys(counts).map((id) => {
+        const d = BL.ENEMIES[id], lo = Math.round(d.hp[0] * mult), hi = Math.round(d.hp[1] * mult);
+        return `${counts[id]} ${counts[id] > 1 ? E.plural(id) : d.name} (${lo === hi ? lo : lo + ' to ' + hi} HP${counts[id] > 1 ? ' each' : ''})`;
+      });
+      info.kinds.push('summon');
+      info.parts.push(who.length ? `Call for help: ${who.join(' and ')}` : 'Call for help, but there is no room for more');
+    }
     if (m.grow) {
       const n = Math.max(0, m.grow.max - E.alive(c).filter((o) => o.id === m.grow.id).length);
       if (n) { info.kinds.push('summon'); info.parts.push(`Call ${n} ${n > 1 ? E.plural(m.grow.id) : BL.ENEMIES[m.grow.id].name}`); }

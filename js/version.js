@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.38.0';
+  BL.VERSION = '0.38.1';
   BL.CHANGELOG = [
+    { v: '0.38.1', date: '2026-11-16', items: [
+      'How to Play says that an enemy\'s Ward lasts until it acts again, and that an intent\'s number already counts statuses such as its Might and your Soaked.',
+      'A creature that calls for help says who comes and how many, with their HP: "Call for help: 2 Barnacle Mites (10 to 13 HP each)".',
+      'Barnaby\'s card removal says that its price rises by 25 each time.',
+    ] },
     { v: '0.38.0', date: '2026-11-16', items: [
       'Giving a keepsake to the sea pays by how long you carried it: 3 HP for each fight you won while carrying it, never more than a Cove\'s rest, and a card upgrade as before. It used to pay 2 HP for each Roil, so a keepsake taken only to throw in at the next Cove could heal 60 HP.',
       'The game is harder. Creatures in Skirmishes have 15% more HP. Fights, Dreads and Wrecks pay about a quarter fewer Pearls, and so do the Flawless and Swift bonuses. Brine Spear applies 3 Brine (4 upgraded), down from 4 (6).',

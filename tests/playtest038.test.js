@@ -83,3 +83,24 @@ test('Brine Spear applies 3 Brine (4 upgraded); Pearls: a Skirmish 11 to 17, a D
     assert.ok(run.treasure.pearls >= 26 && run.treasure.pearls <= 40);
   }
 });
+
+test('v0.38.1: an intent counts your Soaked; a call for help says who comes; removal rises by 25', () => {
+  const { run, c } = fight(['kelp']);
+  const e = c.enemies[0];
+  e.intent = 'lash';
+  const plain = E.intentInfo(run, e).dmg;
+  c.player.st.soaked = 1;
+  assert.equal(E.intentInfo(run, e).dmg, Math.floor(plain * 1.5), 'the number already has your Soaked in it');
+  // the Soaked you have now covers the attack that follows, as the intent showed
+  c.player.ward = 0;
+  run.hp = run.maxHp = 200;
+  const hp = run.hp;
+  E.endTurn(run);
+  assert.equal(hp - run.hp, Math.floor(plain * 1.5));
+  // a call for help names who comes and their HP
+  const h = E.newRun(3, 0);
+  E.startCombat(h, 'boss', ['harbour']);
+  h.combat.enemies[0].intent = 'ring';
+  assert.match(E.intentInfo(h, h.combat.enemies[0]).parts.join('. '), /Call for help: 2 Barnacle Mites \(\d+ to \d+ HP each\)/);
+  assert.equal(E.REMOVE_STEP, 25);
+});

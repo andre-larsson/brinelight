@@ -963,8 +963,8 @@
       default: return `<ul class="help-list">
         <li><b>Win a fight</b> by bringing every enemy to 0 HP. If your HP reaches 0, the run is over.</li>
         <li><b>Each turn</b> you get <b>3 Light</b> and draw <b>5 cards</b>. A card costs the Light in its corner.</li>
-        <li>The <b>intent</b> above an enemy shows what it will do on its turn. The number is the damage.</li>
-        <li><b>Ward</b> blocks damage, then washes away at the start of your next turn. Enemies can have Ward too.</li>
+        <li>The <b>intent</b> above an enemy shows what it will do on its turn. The number is the damage it will deal, already counting statuses such as its Might and your Soaked.</li>
+        <li><b>Ward</b> blocks damage, then washes away at the start of your next turn. Enemies can have Ward too; theirs lasts until they act again.</li>
         <li>Played and unplayed cards go to the <b>discard pile</b>. When the draw pile runs out, the discard pile is shuffled back in.</li>
       </ul>`;
     }
@@ -3388,7 +3388,7 @@
     const ts = s.tonics.map((it, i) => tile('tonics', it, i, BL.TONICS[it.id])).join('');
     const rp = E.removePrice(run);
     const remove = `<div class="shop-tile${s.removed ? ' sold' : ''}" tabindex="0" role="button" data-act="shopremove" aria-label="Remove a card">
-        <span class="medal" style="display:grid;place-items:center;color:#f1e6cf">${ICON.sunk}</span><b>Scrub a card</b><small>Remove a card from your deck. Once per visit.</small>${s.removed ? '<span class="muted">Done</span>' : `<span class="price${run.pearls < rp ? ' cant' : ''}">${ICON.pearl}${rp}</span>`}</div>`;
+        <span class="medal" style="display:grid;place-items:center;color:#f1e6cf">${ICON.sunk}</span><b>Scrub a card</b><small>Remove a card from your deck. Once per visit. The price rises by ${E.REMOVE_STEP} each time.</small>${s.removed ? '<span class="muted">Done</span>' : `<span class="price${run.pearls < rp ? ' cant' : ''}">${ICON.pearl}${rp}</span>`}</div>`;
     const lines = ['"Pearls for wares, keeper. Fair trades only, no haggling, no biting."', '"Mind the shell. The shop is also my house."', '"Everything here came down with a wreck. Everything still works. Mostly."'];
     const line = lines[(run.floor + run.seed) % lines.length];
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner">
