@@ -183,8 +183,13 @@ and let go when you get there.
 ## D: djent (atmospheric progressive metal)
 
 The guitars are the storm and the chain; she stays clean and calm over them and never screams (the Hollow Siren is the
-one who screams). The breakdown is the Wild Peal. The hint: the lights hold her shape "like a hand that held on to me
-last". The bridge says she lets go when the lantern reaches the bottom, as in version C.
+one who screams). The breakdown is the Wild Peal. The words tell one small story: the bell rang for a boat that was out
+on a stormy night, the boat never came back, and the light-eaters took the shape of "a hand that held on to me last".
+That is the hint; it names no one. The bridge says she lets go when the lantern reaches the bottom, as in version C.
+"The dark is eating the light" is Dark Water's lore (things there live on the held light) and a threat to Wren's lantern.
+
+Reworded on 2026-11-16 at the user's request, before it was generated: "ring for the late" read as "the dead", and
+"the little lights" were not explained. The first wording, which Gemini accepted, is in git history (commit c1400f2).
 
 ```
 An atmospheric djent and progressive metal song in A minor, on a slow half-time 6/8 pulse at about 52 BPM. Down-tuned 8-string guitars play tight, palm-muted, syncopated chugs in odd groupings that cycle against the 6/8 pulse and land together at the end of each phrase, locked to punchy kick drums and a deep, growling bass. Above them, wide ambient layers: clean guitar harmonics that ring like small bells, shimmering delay, an old bell-buoy's iron bell that strikes on each swing, the sea in the background. One female voice, clean, ethereal and calm, singing long smooth lines over the rhythm; in the chorus she soars. No harsh vocals, no screaming, no male vocals. The breakdown is the heaviest part: polyrhythmic chugs hammering against the iron bell ringing on every beat, crashing cymbals, her voice high and wordless over it. Then a huge wave crashes, and everything drops away to one clean guitar and her voice alone, before the last heavy chorus. Crisp, heavy, cavernous and cinematic. About 3 minutes.
@@ -198,20 +203,20 @@ Lyrics:
 Down on the chain I swing and I swing,
 the rocks are close and I ring and I ring,
 a hundred years under the black,
-and nothing I warned of ever comes back.
+and the boat I rang for never came back.
 
 [Pre-Chorus]
 Hold on, hold on, the iron is cold,
 hold on the way the drowning hold.
 
 [Chorus]
-Ring for the lost, ring for the late,
-ring for the ones who could not wait,
-I sing what the bell sings, deep and slow,
-down where the little lights go.
+Ring for the rocks, ring for the reef,
+ring for the boat that was out that night,
+I sing what the bell sings, slow and deep,
+down where the dark is eating the light.
 
 [Verse 2]
-The lights came in through the bars like rain,
+The light-eaters came through the bars like rain,
 they learned to kneel, they learned the chain,
 they found a shape and they held it fast,
 like a hand that held on to me last.
@@ -221,10 +226,10 @@ Hold on, hold on, the iron is cold,
 hold on the way the drowning hold.
 
 [Chorus]
-Ring for the lost, ring for the late,
-ring for the ones who could not wait,
-I sing what the bell sings, deep and slow,
-down where the little lights go.
+Ring for the rocks, ring for the reef,
+ring for the boat that was out that night,
+I sing what the bell sings, slow and deep,
+down where the dark is eating the light.
 
 [Breakdown]
 (wordless, high, over the heaviest riff and the bell on every beat)
@@ -235,10 +240,10 @@ Let the lantern come down the stair,
 I will let go when it gets there.
 
 [Final Chorus]
-Ring for the lost, ring for the late,
-ring for the ones who could not wait,
-I sing what the bell sings, deep and slow,
-down where the little lights go.
+Ring for the rocks, ring for the reef,
+ring for the boat that was out that night,
+I sing what the bell sings, slow and deep,
+down where the dark is eating the light.
 
 [Outro]
 (bell harmonics fading into the sea)
