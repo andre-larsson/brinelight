@@ -353,9 +353,9 @@ test('The Wild Peal hits for 30, and each Crest or Strand you make that turn muf
   assert.ok(!f2.c.fx.some((f) => f.t === 'dmg' && f.who === 'p'), 'no hit for 0');
 });
 
-test('Pale Gulper: at half its health it retches up two Glimmer Leeches and every card it swallowed', () => {
+test('Pale Gulper: the moment it is hurt to half its health it retches up two Glimmer Leeches and every card it swallowed', () => {
   assert.equal(BL.DREAD_CALL, 1 / 2);
-  const { run, c } = fight(['gulper'], { hand: ['jab', 'brace'] });
+  const { run, c } = fight(['gulper'], { hand: ['jab', 'brace', 'jab', 'jab'] });
   const g = c.enemies[0];
   g.hp = g.maxHp;
   g.intent = 'gulp';
@@ -364,23 +364,32 @@ test('Pale Gulper: at half its health it retches up two Glimmer Leeches and ever
   c.player.ward = 99;
   E.endTurn(run);
   assert.equal(g.st.swallowed, 1);
-  assert.notEqual(g.intent, 'retch', 'not yet: still at full health');
-  g.hp = Math.floor(g.maxHp / 2);
+  assert.deepEqual(enc(c), ['gulper'], 'not yet: still at full health');
+  // brought to half by a card in your own turn: it retches at once, before its own move
+  g.hp = Math.floor(g.maxHp / 2) + 3;
   g.intent = 'bite';
-  c.player.ward = 99;
-  E.endTurn(run);
-  assert.equal(g.intent, 'retch');
-  assert.match(E.intentInfo(run, g).parts.join('. '), /Bring up the cards it swallowed/);
-  E.endTurn(run);
-  assert.deepEqual(enc(c), ['gulper', 'leech', 'leech']);
+  c.hand.push(E.newCard(run, 'jab'));
+  play(run, 'jab', g);
+  assert.ok(g.hp <= g.maxHp / 2 && !g.dead);
+  assert.deepEqual(enc(c), ['gulper', 'leech', 'leech'], 'the leeches are up in the same turn');
   assert.ok(c.discard.some((x) => x.uid === brace.uid), 'the Brace is back in the discard pile');
   assert.ok(!g.st.swallowed);
   assert.ok(c.fx.some((f) => f.t === 'disgorge'));
-  // it goes back to Bite, Gulp and Tail Whip, and never retches twice
+  assert.ok(c.fx.some((f) => f.t === 'phase' && f.text === 'It Retches!'));
+  assert.equal(g.intent, 'bite', 'its own move this turn is still to come');
+  // never an intent, and never twice
   const seen = [];
   for (let i = 0; i < 6; i++) { seen.push(g.intent); c.player.ward = 999; g.hp = 10; E.endTurn(run); }
   assert.ok(!seen.includes('retch'));
   assert.deepEqual([...new Set(seen)].sort(), ['bite', 'gulp', 'whip']);
+  assert.equal(enc(c).filter((id) => id === 'leech').length, 2, 'it retched once');
+  // a killing blow leaves nothing to retch
+  const f2 = fight(['gulper'], { hand: ['jab'] });
+  const g2 = f2.c.enemies[0];
+  g2.hp = 6;
+  play(f2.run, 'jab', g2);
+  assert.ok(g2.dead);
+  assert.ok(!f2.c.enemies.some((e) => e.id === 'leech'));
 });
 
 test('Garden Strider: Tend the Garden calls Glimmer Leeches until two are alive and gives it 8 Ward; Graze heals it by what it takes', () => {

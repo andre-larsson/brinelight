@@ -31,8 +31,8 @@ test('the score compiles with the bundled musicbox, with no errors or warnings',
 test('every cue the game switches to is in the score, and its intensity runs 0 to 2 with the depth', () => {
   const song = globalThis.Musicbox.compile(BL.MUSIC_SCORE);
   const body = ui.slice(ui.indexOf('function updateSound()'), ui.indexOf('function renderScreen()'));
-  const cues = [...new Set([...body.matchAll(/'(title|reach|home|fallen|pin2|pin|dread|fight)'/g)].map((m) => m[1]))];
-  assert.equal(cues.length, 8);
+  const cues = [...new Set([...body.matchAll(/'(title|reach|home|fallen|pin2|pin|dread|fight|buoy)'/g)].map((m) => m[1]))];
+  assert.equal(cues.length, 9);
   cues.forEach((c) => assert.ok(song.cues[c], `cue ${c}`));
   assert.equal(Math.max(...song.voices.map((v) => v.layer || 0), ...song.beds.map((b) => b.layer || 0)), 2);
 });

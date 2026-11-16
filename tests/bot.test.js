@@ -205,16 +205,16 @@ test('at a Cove the bot gives a keepsake to the sea only when the aether is Roil
   assert.equal(E.roil(calm).steps, 0);
   assert.equal(step(calm), 'rest');
   assert.deepEqual(calm.keepsakes, ['tidewatch']);
-  // Roiled by two steps: losing the Moon Shard would take off neither, losing the Barnacle Plate takes off one
-  const roiled = cove(['moonshard', 'barnacleplate', 'whaletooth']);
+  // Roiled by two steps: losing the Gull Feather (8 Roil; the Moon Shard's 12 has taken off a step since v0.36.0) would take off neither, losing the Barnacle Plate takes off one
+  const roiled = cove(['gullfeather', 'barnacleplate', 'whaletooth']);
   assert.equal(E.roil(roiled).steps, 2);
-  assert.equal(E.roilFor(E.charge(roiled) - E.chargeOf('moonshard'), E.hold(roiled)).steps, 2);
+  assert.equal(E.roilFor(E.charge(roiled) - E.chargeOf('gullfeather'), E.hold(roiled)).steps, 2);
   assert.equal(step(roiled), 'sea');
-  assert.deepEqual(roiled.keepsakes, ['moonshard', 'whaletooth']);
+  assert.deepEqual(roiled.keepsakes, ['gullfeather', 'whaletooth']);
   assert.equal(roiled.hp, 30 + E.seaHeal('barnacleplate'));
   assert.equal(roiled.deck.filter((c) => c.up).length, 1, 'and it refits a card');
   // told not to, it rests
-  const off = cove(['moonshard', 'barnacleplate', 'whaletooth']);
+  const off = cove(['gullfeather', 'barnacleplate', 'whaletooth']);
   assert.equal(step(off, { noSea: true }), 'rest');
   assert.equal(off.keepsakes.length, 3);
 });

@@ -25,8 +25,8 @@ test('the stair down offers two of six: rest, refit, shed, a flask, the keepers\
   assert.equal(E.STAIR_PICKS, 2);
   E.STAIR_OPTIONS.forEach((id) => assert.equal(E.stairWhy(run, id), id === 'sea' ? 'You carry no keepsake.' : '', id));
   const rest = E.stairDo(run, 'rest');
-  assert.equal(rest.healed, 35, 'half of 70 Max HP');
-  assert.equal(run.hp, 65);
+  assert.equal(rest.healed, 21, '30% of 70 Max HP');
+  assert.equal(run.hp, 51);
   assert.equal(E.stairWhy(run, 'rest'), 'done');
   assert.equal(E.stairDo(run, 'rest'), null, 'each once');
   assert.ok(!run.restDone);
@@ -43,7 +43,7 @@ test('the stair down offers two of six: rest, refit, shed, a flask, the keepers\
   assert.ok(!E.stairOpen(run));
 });
 
-test('the stair: refit upgrades a card, the flasks fill every empty tonic slot, and the cache shows 3 uncommon or rare cards until one is taken', () => {
+test('the stair: refit upgrades a card, the flasks fill up to two empty tonic slots, and the cache shows 3 uncommon or rare cards until one is taken', () => {
   const run = onStair(22, 70);
   assert.equal(E.stairWhy(run, 'rest'), 'You are at full health.');
   const jab = run.deck.find((c) => c.id === 'jab');
@@ -67,21 +67,28 @@ test('the stair: refit upgrades a card, the flasks fill every empty tonic slot, 
   assert.equal(f.tonics.length, 1);
   assert.ok(BL.TONICS[f.tonics[0]]);
   assert.equal(full.tonics[1], f.tonics[0]);
-  // every empty slot is filled, and no two of the new tonics are alike
+  // up to two empty slots are filled (every empty slot until v0.36.0), and no two of the new tonics are alike
+  assert.equal(E.STAIR_FLASKS, 2);
   for (let seed = 30; seed < 60; seed++) {
     const empty = onStair(seed, 70);
     assert.deepEqual(empty.tonics, [null, null, null]);
     const got = E.stairDo(empty, 'flask').tonics;
-    assert.equal(got.length, 3);
-    assert.equal(new Set(got).size, 3, 'no two alike');
-    assert.deepEqual(empty.tonics, got);
+    assert.equal(got.length, 2);
+    assert.equal(new Set(got).size, 2, 'no two alike');
+    assert.deepEqual(empty.tonics, got.concat([null]));
   }
+  // with the Spare Flask's fourth slot, still two
+  const four = onStair(61, 70);
+  four.tonics = [null, null, null, null];
+  assert.equal(E.stairDo(four, 'flask').tonics.length, 2);
+  assert.deepEqual(four.tonics.slice(2), [null, null]);
 });
 
-test('the stair\'s rest: 50% of Max HP, lowered in step by Cold Coves, and the Spare Wick adds 10', () => {
-  assert.equal(E.stairRestAmount(onStair(24)), 35);
-  assert.equal(E.stairRestAmount(onStair(24, null, null, ['cold'])), Math.floor(70 * 0.5 * (0.2 / 0.3)));
-  assert.equal(E.stairRestAmount(onStair(24, null, ['wick'])), 45);
+test('the stair\'s rest: 30% of Max HP (50% until v0.36.0), lowered in step by Cold Coves, and the Spare Wick adds 10', () => {
+  assert.equal(E.STAIR_REST, 0.3);
+  assert.equal(E.stairRestAmount(onStair(24)), 21);
+  assert.equal(E.stairRestAmount(onStair(24, null, null, ['cold'])), Math.floor(70 * 0.3 * (0.2 / 0.3)));
+  assert.equal(E.stairRestAmount(onStair(24, null, ['wick'])), 31);
   // a Cove inside a level is unchanged: 30%, rest or refit, and no stair picks
   const cove = E.newRun(25);
   E.enterNode(cove, { row: 2, col: 0, type: 'rest' });
@@ -141,8 +148,8 @@ test('the sea: a keepsake you do not carry, a card that cannot be upgraded, a fi
   assert.equal(E.giveToSea(run, 'moonshard', null), null, 'only at a Cove');
   run.screen = 'rest';
   const o = E.giveToSea(run, 'moonshard', null);
-  assert.deepEqual([o.healed, o.card], [16, null]);
-  assert.equal(run.hp, 26);
+  assert.deepEqual([o.healed, o.card], [24, null]);
+  assert.equal(run.hp, 34);
   // the heal stops at Max HP, and a Scallop Charm takes its 10 Max HP with it first
   const full = atCove(33, null, ['biscuit']);
   assert.equal(full.maxHp, 80);

@@ -152,7 +152,8 @@ async function handleOverlay(page) {
   for (let i = 0; i < 4; i++) {
     const open = await page.eval(`!document.getElementById('overlay').hidden`);
     if (!open) return;
-    if (await clickIf(page, '#overlay [data-act="choosecard"][data-i]')) continue;
+    // a card choice (v0.36.0): mark one, then take it
+    if (await clickIf(page, '#overlay [data-act="pick"][data-scope="choice"]')) { await clickIf(page, '#overlay [data-act="pickok"]:not([disabled])'); continue; }
     if (await clickIf(page, '#overlay [data-act="deckconfirm"]')) continue;
     if (await clickIf(page, '#overlay [data-act="buyconfirm"]')) continue;
     if (await clickIf(page, '#overlay [data-act="deckpick"]')) continue;
@@ -192,14 +193,45 @@ async function playStops(page, label, opts) {
   return visited;
 }
 
-/* Keepsake picks alternate between taking one and leaving them, so both paths run (counted per scenario, page.ksTurn). */
-async function decideKeepsake(page, label, takeAct) {
-  if (!(await page.eval(`!!document.querySelector('[data-act="${takeAct}"]')`))) return;
+/* Keepsake picks alternate between taking one and leaving them, so both paths run (counted per scenario, page.ksTurn).
+   Since v0.36.0 a tap marks the keepsake and the Take button takes it. `scope` is rw-ks (a Dread's reward) or tr-ks (a Wreck). */
+async function decideKeepsake(page, label, scope) {
+  const sel = `[data-act="pick"][data-scope="${scope}"]`;
+  if (!(await page.eval(`!!document.querySelector('${sel}')`))) return;
   // a keepsake on offer is taken or left before Continue is offered
   if (await page.eval(`!!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: Continue was offered before the keepsake pick was decided`);
   if (!(await page.eval(`!!document.querySelector('.ks-pick .k-charge') && !!document.querySelector('.ks-pick .k-after')`))) failures.push(`${label}: the keepsake pick doesn't show Roil`);
-  if ((page.ksTurn = (page.ksTurn || 0) + 1) % 2 === 0) await clickIf(page, '[data-act="leaveks"]');
-  else await clickIf(page, `[data-act="${takeAct}"]`);
+  if ((page.ksTurn = (page.ksTurn || 0) + 1) % 2 === 0) { await clickIf(page, '[data-act="leaveks"]'); return; }
+  const ks0 = await page.eval('window.Brinelight.run.keepsakes.length');
+  await clickIf(page, sel);
+  if ((await page.eval('window.Brinelight.run.keepsakes.length')) !== ks0) failures.push(`${label}: marking a keepsake took it before Take was pressed`);
+  if (!(await page.eval(`!!document.querySelector('${sel}.picked') && !!document.querySelector('[data-act="pickok"][data-scope="${scope}"]:not([disabled])')`))) failures.push(`${label}: a marked keepsake isn't shown, or its Take button isn't ready`);
+  await clickIf(page, `[data-act="pickok"][data-scope="${scope}"]:not([disabled])`);
+  if ((await page.eval('window.Brinelight.run.keepsakes.length')) !== ks0 + 1) failures.push(`${label}: Take didn't take the marked keepsake`);
+}
+
+/* A reward card is marked first and taken with the button below it (v0.36.0, the user: "pressing card does not lock
+   choice, until continue is pressed. Selecting a card shows explanations of effects for that card only"). Marking takes
+   nothing, a second mark moves it, the legend explains only words on the marked card, and Take adds it to the deck. */
+async function pickRewardCard(page, label) {
+  const sel = '[data-act="pick"][data-scope="rw-card"]';
+  const n = await page.eval(`document.querySelectorAll('${sel}').length`);
+  if (!n) return;
+  const deck0 = await page.eval('window.Brinelight.run.deck.length');
+  await clickIf(page, `${sel}[data-key="${n - 1}"]`);
+  if (n > 1) await clickIf(page, `${sel}[data-key="0"]`);
+  const st = await page.eval(`(() => { const r = window.Brinelight.run; const picked = [...document.querySelectorAll('${sel}.picked')];
+    const txt = picked.length ? picked[0].innerText.toLowerCase() : '';
+    const shown = [...document.querySelectorAll('.pick-legend [data-kw]')].map((d) => d.dataset.kw);
+    const near = (k) => txt.indexOf(k.toLowerCase()) >= 0 || shown.some((o) => o !== k && txt.indexOf(o.toLowerCase()) >= 0 && window.BL.KEYWORDS[o].indexOf(k) >= 0);
+    return { taken: r.rewards.cardTaken, deck: r.deck.length, picked: picked.map((e) => e.dataset.key), stray: shown.filter((k) => !near(k)),
+      legend: !!document.querySelector('.pick-legend'), ok: !!document.querySelector('[data-act="pickok"][data-scope="rw-card"]:not([disabled])') }; })()`);
+  if (st.taken || st.deck !== deck0) failures.push(`${label}: marking a reward card took it before Take was pressed`);
+  if (st.picked.join(',') !== '0') failures.push(`${label}: a second tap didn't move the reward pick (${st.picked.join(',')})`);
+  if (!st.legend || st.stray.length) failures.push(`${label}: the legend should explain only the marked card's words (also ${st.stray.join(', ')})`);
+  if (!st.ok) failures.push(`${label}: the reward's Take button isn't ready after a pick`);
+  await clickIf(page, '[data-act="pickok"][data-scope="rw-card"]:not([disabled])');
+  if ((await page.eval('window.Brinelight.run.deck.length')) !== deck0 + 1) failures.push(`${label}: Take didn't add the marked card`);
 }
 
 async function afterStop(page, label) {
@@ -212,8 +244,8 @@ async function afterStop(page, label) {
     if (s === 'combat') { await fight(page, label + ' event fight', {}); continue; }
     if (s === 'reward') {
       await clickIf(page, '[data-act="taketonic"]:not([disabled])');
-      await clickIf(page, '[data-act="rewardcard"][data-i="0"]');
-      await decideKeepsake(page, label, 'rewardks');
+      await pickRewardCard(page, label);
+      await decideKeepsake(page, label, 'rw-ks');
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'rest') {
       if (!(await clickIf(page, '[data-act="rest"]'))) await clickIf(page, '[data-act="tomap"]');
@@ -230,7 +262,7 @@ async function afterStop(page, label) {
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'treasure') {
       await clickIf(page, '[data-act="opentreasure"]');
-      await decideKeepsake(page, label, 'treasureks');
+      await decideKeepsake(page, label, 'tr-ks');
       await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'event') {
       if (!(await clickIf(page, '[data-act="evopt"]:not([disabled])'))) await clickIf(page, '[data-act="evcontinue"]');
@@ -715,8 +747,8 @@ async function storyScenario(page, base, name, size) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
-/* The Lazaret: a first win opens it and keeps what Wren carries, she chooses what to bring, a fall loses
-   only what she found, and a keepsake the Lazaret already holds becomes Salvage. */
+/* The Lazaret: a first win opens it and keeps what Wren carries, she chooses what to bring and it leaves the Lazaret,
+   coming home puts it back, a drop or a fall loses it, and it keeps many of each, a spare broken down for Salvage (v0.36.0). */
 async function lazaretScenario(page, base, name, size) {
   log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
   await page.viewport(size.w, size.h, size);
@@ -786,41 +818,71 @@ async function lazaretScenario(page, base, name, size) {
   if (!/1 came home, 0 fell/.test(await text('#overlay .logbook')) || !/The Shallows, landing 8 of 8/.test(await text('#overlay .logbook')) || !/Pins broken1 The Shallows/.test(await text('#overlay .logbook')) || /of 3|Belfry/.test(await text('#overlay .logbook'))) failures.push(`${name}: the logbook doesn't show the first expedition home, or it gives away how many levels there are (${await text('#overlay .logbook')})`);
   await checkPage(page, name + ' logbook');
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
-  // second descent: bring both, drop one on the way, then fall with two found keepsakes
+  // second descent: bring both (they leave the Lazaret), drop one on the way (gone for good), and come home with the
+  // other, which goes back, and with the dropped kind found again
   await setOut('the second descent');
   await checkPage(page, name + ' pack');
   await clickIf(page, '#overlay [data-act="ksbring"][data-k="moonshard"]');
   await sleep(150);
-  if (!/Roiled/.test(await text('#overlay .lz-line'))) failures.push(`${name}: Moon Shard and Drowned Anchor (Roil 26) should be Roiled in the Shallows (Hold 20)`);
+  if (!/Roiled/.test(await text('#overlay .lz-line'))) failures.push(`${name}: Moon Shard and Drowned Anchor (Roil 30) should be Roiled in the Shallows (Hold 20)`);
   await dive('the second descent');
   if ((await keeps()) !== 'anchor,moonshard' || (await count('.hud .medal[data-k="anchor"]')) !== 1) failures.push(`${name}: the run didn't start with the keepsakes brought (${await keeps()})`);
+  m = await stored();
+  if (m.lazaret.length) failures.push(`${name}: the keepsakes brought should have left the Lazaret (${JSON.stringify(m.lazaret)})`);
   await clickIf(page, '.hud .medal[data-k="anchor"]');
   await sleep(200);
-  if (!/Lazaret/.test(await text('#overlay .modal-body'))) failures.push(`${name}: a brought keepsake doesn't say it stays in the Lazaret when dropped`);
+  if (!/gone for good/.test(await text('#overlay .modal-body'))) failures.push(`${name}: dropping a brought keepsake doesn't say it is gone for good`);
   await clickIf(page, '#overlay [data-act="ksdrop"]');
   await sleep(200);
   if ((await keeps()) !== 'moonshard') failures.push(`${name}: dropping a brought keepsake didn't remove it from the run`);
-  await end('defeat', ['gullfeather', 'tidewatch']);
+  await end('victory', ['anchor', 'tidewatch']);
   await sleep(200);
   m = await stored();
-  if (m.lazaret.join(',') !== 'moonshard,anchor') failures.push(`${name}: a fall changed the Lazaret (${JSON.stringify(m.lazaret)})`);
-  if (!/Gull Feather/.test(await text('.lz-box.lost')) || !/safe in the Lazaret/.test(await text('.lz-box.lost'))) failures.push(`${name}: the fall doesn't list what the bell called back`);
-  await checkPage(page, name + ' fall');
-  // third descent: leave the Anchor at home, find it again and win
+  if (m.lazaret.join(',') !== 'moonshard,anchor,tidewatch') failures.push(`${name}: coming home should put back what was brought and keep what was found (${JSON.stringify(m.lazaret)})`);
+  await checkPage(page, name + ' second win');
+  await clickIf(page, '[data-act="totitle"]');
+  // third descent: leave the Anchor at home, bring the Moon Shard, and fall: the bell calls back the Moon Shard and what
+  // was found, and Wren holds on to one of them (v0.36.0): the Moon Shard, which goes back into the Lazaret
   await setOut('the third descent');
   await clickIf(page, '#overlay [data-act="ksbring"][data-k="anchor"]');
   await sleep(150);
   await dive('the third descent');
   if ((await keeps()) !== 'moonshard') failures.push(`${name}: a keepsake left at home came along (${await keeps()})`);
-  const before = (await stored()).salvage;
-  await end('victory', ['anchor', 'tidewatch']);
+  await end('defeat', ['gullfeather']);
   await sleep(200);
   m = await stored();
-  const score = await page.eval('window.Brinelight.run.final.salvage');
-  if (m.lazaret.join(',') !== 'moonshard,anchor,tidewatch') failures.push(`${name}: the second win should add only Tidewatch (${JSON.stringify(m.lazaret)})`);
-  if (m.salvage !== before + score + 9) failures.push(`${name}: a second Drowned Anchor should become 9 Salvage (had ${before}, run ${score}, now ${m.salvage})`);
-  if (!/already holds/.test(await text('.lz-box'))) failures.push(`${name}: the end screen doesn't say the duplicate became Salvage`);
-  await checkPage(page, name + ' second win');
+  if (m.lazaret.join(',') !== 'anchor,tidewatch') failures.push(`${name}: a fall should lose the brought Moon Shard and keep what stayed home (${JSON.stringify(m.lazaret)})`);
+  if ((await count('.lz-keep [data-act="pick"][data-scope="fall-ks"]')) !== 2 || !/gone from there too/.test(await text('.lz-box.lost')) || !/safe/.test(await text('.lz-box.lost'))) failures.push(`${name}: the fall should offer the Moon Shard and the Gull Feather to keep (${await text('.lz-box.lost')})`);
+  await checkPage(page, name + ' fall');
+  await clickIf(page, '.lz-keep [data-act="pick"][data-key="moonshard"]');
+  if ((await stored()).lazaret.length !== 2) failures.push(`${name}: marking a keepsake to keep kept it before Keep was pressed`);
+  await clickIf(page, '.lz-keep [data-act="pickok"]:not([disabled])');
+  m = await stored();
+  if (m.lazaret.join(',') !== 'anchor,tidewatch,moonshard' || m.bring.indexOf('moonshard') < 0) failures.push(`${name}: keeping the Moon Shard should put it back in the Lazaret, chosen (${JSON.stringify(m)})`);
+  if (!/held on to the Moon Shard/.test(await text('.lz-box.lost')) || !/Gull Feather/.test(await text('.lz-box.lost')) || (await count('.lz-keep'))) failures.push(`${name}: the fall doesn't say what was kept and what the bell called back (${await text('.lz-box.lost')})`);
+  await checkPage(page, name + ' fall, one kept');
+  await clickIf(page, '[data-act="totitle"]');
+  // fourth descent: bring nothing, come home with a second Drowned Anchor: the Lazaret keeps both, and one breaks down
+  await setOut('the fourth descent');
+  if ((await count('#overlay .kit-tile.chosen[data-act="ksbring"]')) !== 1) failures.push(`${name}: the kept Moon Shard should still be chosen to bring`);
+  await clickIf(page, '#overlay [data-act="ksbring"][data-k="moonshard"]');
+  await sleep(150);
+  await dive('the fourth descent');
+  if (await keeps()) failures.push(`${name}: the fourth descent should bring nothing (${await keeps()})`);
+  await end('victory', ['anchor']);
+  await sleep(200);
+  m = await stored();
+  if (m.lazaret.filter((k) => k === 'anchor').length !== 2) failures.push(`${name}: the Lazaret should keep two Drowned Anchors (${JSON.stringify(m.lazaret)})`);
+  await clickIf(page, '.lz-box');
+  await sleep(200);
+  if (!/2/.test(await text('#overlay [data-act="ksbring"][data-k="anchor"] .lz-count'))) failures.push(`${name}: the Lazaret doesn't show two Drowned Anchors`);
+  const salv0 = (await stored()).salvage;
+  await clickIf(page, '#overlay [data-act="ksbreak"][data-k="anchor"]');
+  await sleep(200);
+  m = await stored();
+  if (m.salvage !== salv0 + 9 || m.lazaret.filter((k) => k === 'anchor').length !== 1) failures.push(`${name}: breaking down a spare Drowned Anchor should give 9 Salvage and leave one (had ${salv0}, now ${m.salvage}; ${JSON.stringify(m.lazaret)})`);
+  if (await count('#overlay [data-act="ksbreak"]')) failures.push(`${name}: the last copy can still be broken down`);
+  await checkPage(page, name + ' lazaret stock');
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
@@ -858,15 +920,15 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await checkPage(page, name + ' stair');
   // the keepers' cache shows three cards, and Back uses nothing
   await tapIn('[data-act="stairdo"][data-id="cache"]');
-  await page.waitFor(`document.querySelectorAll('.modal [data-act="choosecard"]:not([data-id=""])').length === 3`, 3000, "the keepers' cache");
+  await page.waitFor(`document.querySelectorAll('.modal [data-act="pick"][data-scope="choice"]').length === 3`, 3000, "the keepers' cache");
   await page.click('.modal [data-act="choosecard"][data-id=""]');
   await sleep(200);
   if ((await page.eval('window.Brinelight.run.stair.picks.length')) !== 0) failures.push(`${name}: backing out of the keepers' cache used a pick`);
-  // rest deeply: half of Max HP
+  // rest deeply: 30% of Max HP (half until v0.36.0)
   await tapIn('[data-act="stairdo"][data-id="rest"]');
   await sleep(200);
   const [hpNow, hpMax] = await page.eval('[window.Brinelight.run.hp, window.Brinelight.run.maxHp]');
-  if (hpNow !== 10 + Math.floor(hpMax / 2)) failures.push(`${name}: resting deeply on the stair should heal half of ${hpMax} Max HP (HP 10 -> ${hpNow})`);
+  if (hpNow !== 10 + Math.floor(hpMax * 0.3)) failures.push(`${name}: resting deeply on the stair should heal 30% of ${hpMax} Max HP (HP 10 -> ${hpNow})`);
   // shed a card through the deck picker
   const deck0 = await page.eval('window.Brinelight.run.deck.length');
   await tapIn('[data-act="stairdo"][data-id="shed"]');
@@ -1347,7 +1409,7 @@ async function progressScenario(page, base, name, size) {
 /* v0.25.0: sound and music on. Nothing starts before a click; the music follows the screen (a cue for each kind of
    screen, its intensity the depth) and the place's own sounds play, fewer in a fight; the menu's switches and
    sliders work and are saved; and a whole fight's sounds raise no error. The recorded songs take over from the score
-   on the title screen, at Barnaby's and in the Harbour Hermit's and the Tolling Buoy's fights, really play, and hand
+   on the title screen, at Barnaby's and in the Harbour Hermit's and the Bellwether's fights, really play, and hand
    back to the score when you leave. The Jukebox plays a song, pauses it, plays a piece of the score at a depth, and
    keeps playing after it closes until a descent starts. */
 async function audioScenario(page, base, name, size) {
@@ -1368,7 +1430,7 @@ async function audioScenario(page, base, name, size) {
   await expect('before any click', { ctx: null, playing: false, song: null });
   // the first click starts the music: the title screen's song, in place of the score's title cue
   await page.click('.title-corner [data-act="menu"]');
-  await expect('the title, after a click', { ctx: 'running', playing: false, song: 'title', ambience: '', loop: 'title,bells,hermit,buoy' });
+  await expect('the title, after a click', { ctx: 'running', playing: false, song: 'title', ambience: '', loop: 'title,bells,hermit,buoy,watch' }); // It Went Dark on My Watch is open from the start since v0.36.0
   // a song is heard: its time moves on
   const plays = async (label) => {
     const t0 = (await audio()).songAt;
@@ -1406,13 +1468,13 @@ async function audioScenario(page, base, name, size) {
   await page.click('.title-now [data-act="jukebox"]'); // the song's name opens the Jukebox
   const jb = (js) => page.eval(`(() => { const o = document.querySelector('#overlay'); return ${js}; })()`);
   const items = await jb(`o.querySelectorAll('.juke-item').length`);
-  if (items !== 18) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 10 songs and 8 pieces of the score`);
-  if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 10 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 8) failures.push(`${name}: the Jukebox doesn't mark the 10 Gemini songs and the 8 music box pieces`);
+  if (items !== 19) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 10 songs and 9 pieces of the score`);
+  if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 10 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 9) failures.push(`${name}: the Jukebox doesn't mark the 10 Gemini songs and the 9 music box pieces`);
   if (!(await jb(`!!o.querySelector('.juke-item.cur [data-key="title"][aria-pressed="true"]')`))) failures.push(`${name}: the Jukebox doesn't show the title song playing`);
-  // open from the start: the four title songs and the score's title tune
+  // open from the start: the five title songs (It Went Dark on My Watch too, since v0.36.0) and the score's title tune
   const locked = await jb(`[...o.querySelectorAll('.juke-item.locked .juke-row')].filter((b) => b.disabled).length`);
-  if (locked !== 13) failures.push(`${name}: ${locked} tracks are locked, expected all but the four title songs and the Keeper's Song`);
-  if (!(await jb(`/Finish a descent/.test(o.querySelector('.juke-item.locked [aria-label^="It Went Dark"]').textContent)`))) failures.push(`${name}: a locked It Went Dark on My Watch doesn't say a descent opens it`);
+  if (locked !== 13) failures.push(`${name}: ${locked} tracks are locked, expected all but the five title songs and the Keeper's Song`);
+  if (!(await jb(`[...o.querySelectorAll('.juke-item:not(.locked) .juke-row')].some((b) => /It Went Dark/.test(b.getAttribute('aria-label')))`))) failures.push(`${name}: It Went Dark on My Watch should be open from the start`);
   if (!(await jb(`o.querySelector('[data-act="jukedepth"][data-depth="0"]') && !o.querySelector('[data-act="jukedepth"][data-depth="1"]')`))) failures.push(`${name}: the Jukebox's depths beyond the Shallows aren't locked`);
   // the song playing has a Words button: its words on a page of their own, and Back returns to the Jukebox, the song still playing
   await page.click('#overlay [data-act="jukewords"][data-key="title"]');
@@ -1428,7 +1490,7 @@ async function audioScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="close"]');
   await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 1; B.meta.record.hearts = 1; B.meta.reached = 2; B.meta.heard.push('cue:dread'); })()`);
   await page.click('.title-third [data-act="jukebox"]');
-  if ((await jb(`o.querySelectorAll('.juke-item.locked').length`)) !== 10) failures.push(`${name}: hearing a Dread, finishing a descent and bringing the Heart home didn't open 3 more tracks`);
+  if ((await jb(`o.querySelectorAll('.juke-item.locked').length`)) !== 11) failures.push(`${name}: hearing a Dread and bringing the Heart home didn't open 2 more tracks`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: High Tide Departure', { playing: false, song: 'departure' });
   await plays('High Tide Departure');
@@ -1566,10 +1628,10 @@ async function audioScenario(page, base, name, size) {
   await set(`B.E.startCombat(B.run, 'elite')`);
   await expect('a Dread', { target: 'dread', ambience: 'dark/0.5' });
   await set(`B.E.startCombat(B.run, 'boss')`);
-  await expect('the Tolling Buoy', { playing: false, song: 'buoy', ambience: '' });
-  await plays("the Buoy's song");
+  // the Buoy has its own piece of the score since v0.36.0, for the whole fight (before, Tide Swings Its Tongue, Wren's song)
+  await expect('the Tolling Buoy', { playing: true, target: 'buoy', song: null, ambience: '' });
   await set('B.run.combat.phase2 = true');
-  await expect("the Buoy's second phase", { playing: false, song: 'buoy' });
+  await expect("the Buoy's second phase", { playing: true, target: 'buoy', song: null });
   // the Bellwether has its song, in both its forms
   await set(`B.run.level = 2; B.E.startCombat(B.run, 'boss')`);
   await expect('the Drowned Bellwether', { playing: false, song: 'bell', ambience: '' });
@@ -1637,7 +1699,7 @@ async function seaScenario(page, base, name, size) {
   await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.hp = 31; r.screen = 'rest'; r.restDone = false; B.render(); })()`);
   await sleep(200);
   if (!(await page.eval(`(() => { const b = document.querySelector('[data-act="sea"]'); return !!b && b.disabled && /no keepsake/.test(b.textContent); })()`))) failures.push(`${name}: a Cove without a keepsake should show the sea, disabled`);
-  // with three keepsakes (Roiled, 39 of 20): choose one, then the card; backing out of either costs nothing
+  // with three keepsakes (Roiled, 43 of 20): choose one, then the card; backing out of either costs nothing
   await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; ['tidewatch', 'whaletooth', 'moonshard'].forEach((k) => E.gainKeepsake(r, k)); B.render(); })()`);
   await sleep(200);
   await dismissHints(page);
@@ -1645,7 +1707,7 @@ async function seaScenario(page, base, name, size) {
   await page.click('[data-act="sea"]');
   await sleep(250);
   const tiles = await page.eval(`[...document.querySelectorAll('#overlay [data-act="seapick"]')].map((t) => t.dataset.k + ':' + t.querySelector('.sea-pay').textContent.trim()).join('|')`);
-  if (tiles !== 'tidewatch:Heal 24 HP, refit a card|whaletooth:Heal 38 HP, refit a card|moonshard:Heal 16 HP, refit a card') failures.push(`${name}: the sea should offer the three keepsakes with what it pays (${tiles})`);
+  if (tiles !== 'tidewatch:Heal 24 HP, refit a card|whaletooth:Heal 38 HP, refit a card|moonshard:Heal 24 HP, refit a card') failures.push(`${name}: the sea should offer the three keepsakes with what it pays (${tiles})`);
   await checkPage(page, name + ' sea picker');
   await page.click('#overlay .modal-foot [data-act="close"]');
   await sleep(200);
@@ -1668,7 +1730,7 @@ async function seaScenario(page, base, name, size) {
   await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; E.backToMap(r); E.startCombat(r, 'easy'); const c = r.combat; c.turn = 9; c.flags.hpLost = true; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); c.won = true; E.finishCombat(r); B.render(); })()`);
   await sleep(300);
   const chip = await page.eval(`(document.querySelector('.chip.bonus.roil') || { textContent: '' }).textContent.trim()`);
-  if (chip !== 'Roiled +8') failures.push(`${name}: the reward should show "Roiled +8" for one step (got "${chip}")`);
+  if (chip !== 'Roiled +4') failures.push(`${name}: the reward should show "Roiled +4" for one step (got "${chip}")`);
   await checkPage(page, name + ' reward');
   // the stair has six, and the sea is one of its two picks
   await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.rewards = null; r.hp = 30; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; E.goDeeper(r); B.render(); })()`);
@@ -1687,7 +1749,7 @@ async function seaScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="deckconfirm"]');
   await page.waitFor('window.Brinelight.E.stairState(window.Brinelight.run).picks.join(",") === "sea"', 3000, 'the sea as a pick on the stair');
   const st = await R(`({ hp: r.hp, keeps: r.keepsakes.join(','), ups: r.deck.filter((c) => c.up).length })`);
-  if (st.hp !== 46 || st.keeps !== 'whaletooth' || st.ups !== 2) failures.push(`${name}: after giving the Moon Shard on the stair: ${JSON.stringify(st)}`);
+  if (st.hp !== 54 || st.keeps !== 'whaletooth' || st.ups !== 2) failures.push(`${name}: after giving the Moon Shard on the stair: ${JSON.stringify(st)}`);
   if (!(await page.eval(`document.querySelector('.stair-opt[data-id="sea"]').classList.contains('done')`))) failures.push(`${name}: the stair doesn't mark the sea as done`);
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }

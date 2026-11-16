@@ -1450,6 +1450,59 @@ The agent recommends **c**. It answers the complaint directly: one Bail or Stir 
 - **Lore (the agent's):** the light-eaters in the cage have grown together into her shape, and she sings what the bell rings. She has no move in the fight. WORLD.md has the entry, and the Buoy's keeper's note has two sentences on her. The lamp on top is amber now (it was turquoise); nothing in the text depends on it.
 - **Not done:** the story picture of the broken Buoy (`sc_buoy1`) shows an empty cage and a turquoise lamp. The lore covers the cage (she comes apart when the Buoy lies still, and her beads run off with the water; the picture has lit specks in the water going down the stair), so it was not repainted. The lamp's colour differs between the two pictures.
 
+### Playtest on v0.35.0: picks, the Lazaret as a stock, the lantern, prices and the last pin (v0.36.0, 2026-11-16)
+
+- **The user's playtest list** (an Android phone): sound crackles, and goes on after switching apps; long card text cut off; picking a card locks it at once (it should wait for Continue, and explain only that card's words; the same for keepsakes and tonics); Barnaby too cheap, cards most of all, or Pearls too easy with a Roiled aether; the Pale Gulper dies before it calls; the Jukebox volume looks like the time bar; "Cannot fast-forward musicbox songs, is that a technical limitation?"; the stair's rest down to 30%; the Buoy's music is Wren's song; the bell in the first picture after the Hermit; the Spare Flask "one more tonic, and one more tonic slot, and increase in cost"; the Lazaret "taking things from Lazaret should remove them from there. But could keep many items of each"; the Moon Shard too good for its cost; a way to raise the Hold; "Game a bit too easy"; It Went Dark on My Watch open from the start; the last boss "even more epic, without making it longer".
+- **The user's answers to four questions:** the Lazaret as a stock with spares broken down; the Hold as a Workshop upgrade; the Buoy's music as a music-box cue now and a Gemini song in the singer's voice later; for the last pin, the entrance and the rising, and the final blow (not a wind-up before the Glare, and not its own second-phase music).
+
+**Built (the user's calls):**
+
+- **Pick, then take** (`data-act="pick"` with a `data-scope`, `ui.picks`, `setPick`, `pickok` in `js/ui.js`). A tap, click, Enter or number key marks a reward card, a keepsake at a Dread or a Wreck, or a card in a card choice (an event's, the keepers' cache). Another tap moves the mark. The button under it ("Take Ebb and Flow", "Take the Tidewatch") takes it. Skip and Leave stay one tap. The keyword legend under a card choice explains the marked card's words, and the words those explanations use (Surge brings Crest), and nothing else; before a mark it says "Choose a card to see what its words mean". Taking the reward's card goes on to the map when nothing else on the screen waits (a keepsake to decide, or a tonic that could still be taken); else the screen stays with Continue. Tonics on the reward have their own Take button already, so they are unchanged.
+- **The Lazaret is a stock** (`E.takeBrought`, `E.lazCount`, `E.lazKinds`, `E.breakDown`, `E.storeKeepsakes`). It keeps every copy brought home. Bringing a keepsake takes one copy out when the run starts. Coming home puts it back with what was found. A fall, a drop or the sea loses it. A spare copy breaks down for half its Roil in Salvage, rounded up (the same as the old duplicate rule, which now waits for the player). A save from before v0.36.0 keeps the old rule for that run (`run.takenOut` unset: the brought keepsakes never left).
+  - **Provisional:** Abandon and New Descent over a saved run lose the brought keepsakes too, as a fall does; their dialogs say so. Otherwise abandoning would be a free way to undo a bad descent and keep everything.
+- **The lantern** (`E.HOLD_UP = { step: 5, prices: [25, 50, 90] }`, `E.buyHoldUp`, `meta.holdUp`). Three steps in the Workshop, under the kit: Scour the glass, Trim a finer wick, Grind a lens. Each adds 5 to the Hold on every expedition. The prices were the agent's proposal, which the user picked. The Logbook says how much of the Hold is from the lantern.
+- **The Buoy's music** is the music-box cue `buoy`, "The Rocking Toll" (written by a subagent: 6/8 at 52 in A minor, an iron bell rocking on its chain, a wordless voice that sings the bell's notes, a Wild Peal that a wave smothers). Tide Swings Its Tongue is Wren's song again and plays only on the title screen and in the Jukebox. The Gemini request (style prompt and words) is in `assets-src/songs/buoy-singer.md`; **pending: the user generates it**.
+- **The last pin** (`FINAL_CARD`, `bossCard`, `lightBloom`, `finalBlow` in `js/ui.js`; sounds `toll`, `lastblow`, `shatter` in `js/sfx.js`). On the last landing the fight opens with a name card ("The last landing", the pin's name, a line under it) and a deep toll, once per fight. When the Bellwether breaks, the bronze cracks under two blows, breaks in a flash of the Heart's light, and the Thing gets its own name card. The killing blow on the last pin slows the field and drains its colour, the bronze glows from inside, then it goes to light. About 2 s at the start, 2.7 s at the rising (was 1.3) and 1.8 s at the end; no turn and no HP is added. The cards' lines are the agent's: "The keepers' great bell, ringing with no hand on its rope", "It grew into the bronze, around the Heart", "Grown back in the broken bronze", "Leading the drowned keepers to ring the bell again".
+
+- **Later in the same session the user added:** "Maybe can choose to keep one keepsake at defeat (but game should not become too easy? Limit max flasks filled in stairs to two or three?"
+  - **Hold on to one** (`E.keepOnFall(meta, run, k)`, `run.keptOnFall`). On a fall, with the Lazaret open, the end screen shows the keepsakes the bell calls back (brought or found) as picks; "Keep the X" puts one into the Lazaret. One a fall. A brought one is chosen to bring again. Nothing is kept if the player leaves the screen without choosing; the box says to choose first. The tutorial, a debug-cheated run and a fall before the Lazaret opens keep nothing. It changes nothing inside an expedition, so the bot's numbers don't move; it makes the brought keepsakes' new risk smaller (a fall used to lose only what was found).
+  - **The stair's flask fills at most 2** (`E.STAIR_FLASKS`). The user said "two or three"; see the measurements for why 2.
+
+**Built (the agent's numbers; each is provisional):**
+
+- **The stair's rest heals 30%** (`E.STAIR_REST` 0.3; 0.5 before). Cold Coves bring it to 20% (a third before). The user named the number.
+- **Barnaby's prices** (`E.SHOP_PRICES`): common 60 to 72 (45 to 55 before), uncommon 95 to 112 (70 to 85), rare 180 to 205 (140 to 160), keepsake 150 to 185 (130 to 165), tonic 50 to 65 (45 to 60). Cards went up most, as the user said; about +30% on cards, +15% on keepsakes, +10% on tonics.
+- **A Roiled aether pays 4 a step** (`E.ROIL_PAY`; 8 before).
+- **The Moon Shard has Roil 12** (8 before). A Swell of 5 at the start of every fight is a near-certain early Crest; at 12 it costs as much as the Tidewatch.
+- **The Spare Flask** gives a fourth tonic slot and two different random tonics, for 22 Salvage (one tonic, three slots, 12 Salvage before).
+- **The Pale Gulper's Retch is a reaction** (`hurt: { at, move }` on the creature, `hurtReact` in the engine). The moment a blow brings it to half its HP or below, it retches up its two Glimmer Leeches and its swallowed cards, out of turn; the leeches act that turn. Only a blow from above half that kills it skips them. Before, the Retch was its next move, and a player who kept hitting killed it first.
+- **It Went Dark on My Watch** is open in the Jukebox and the title loop from the start (it opened after the first descent). Its last verse tells a fall; the agent judged that a first-time player hearing it spoils little, and the user asked.
+- **Card text in a crowded hand**: text that doesn't fit starts at the top (`align-items: safe center`), so the first words show, and in an overlapping hand it fades out at the bottom instead of being cut mid-line. Before, it was centred and cut at both ends.
+- **The Jukebox volume**: a teal pill with a speaker, the word Volume, a wedge that fills to the right and the percentage. The time bar stays a thin line.
+- **Android sound**: on a phone the audio context asks for the larger 'playback' buffer, and when the page is hidden (another app, the screen locked) it pauses the songs and suspends the context; it resumes when the page is back. A computer still plays in a background tab, so the Jukebox works as a music player there. **Not verified on a device**: the user should listen on the Android phone.
+- **The picture after the Hermit** (`img/scenes/sc_hermit1.webp`): redrawn with Codex, with a plain cracked harbour bell. The old one is `assets-src/scenes/sc_hermit1-v1.png` (local only; PNG sources are not in git) and `img/scenes/sc_hermit1.webp` in git before v0.36.0.
+
+**Measured** (the bot that shops, 1500 seeds a row, expedition in the diving dress; pin 2 and pin 3 are shares of the pin before; noise about ±1 on the Heart and ±1.5 on a share). Specs in the session scratchpad (`measure/spec.js`, `new.js`, `split.js`); v0.35.0 was measured from a `git archive` of its commit.
+
+| Row | Heart | Shallows' pin | Dark Water's share | Belfry's share |
+|---|---|---|---|---|
+| v0.35.0, dress | 17.7 | 44.3 | 55.4 | 72.0 |
+| **v0.36.0, dress** | **12.7** | 44.7 | 44.7 | 63.7 |
+| v0.35.0, dress + Spare Flask | 16.9 | 47.3 | 53.9 | 66.5 |
+| v0.36.0, dress + Spare Flask | 15.3 | 54.5 | 42.6 | 66.1 |
+| v0.35.0, bringing Moon Shard + Whale Tooth | 28.0 | 58.3 | 64.2 | 74.9 |
+| v0.36.0, bringing Moon Shard + Whale Tooth | 21.1 | 57.1 | 56.2 | 65.8 |
+| v0.36.0 with the stair's rest at 50% again | 16.2 | 44.7 | 52.3 | 69.2 |
+| v0.36.0 with the old prices again | 12.5 | 44.5 | 44.8 | 62.9 |
+| v0.36.0 with the Gulper calling on its own turn again | 13.5 | 44.7 | 47.7 | 63.4 |
+
+- **The game is harder by about 5 points on the Heart for the bot** (17.7 to 12.7), which is what "a bit too easy" asked for. Most of it is the stair's rest (3.5 points, through Dark Water's and the Belfry's shares). The Gulper's call takes about 1. Barnaby's prices do nothing measurable to the bot: it buys about the same few things either way. They are for a player, who shops more.
+- **The Spare Flask is worth having now:** +2.6 on the Heart over the dress alone, and +10 on the Shallows' pin (it was worth nothing measurable before).
+- **The stair's flask limit could not be measured:** the bot took the stair's flask once in 400 expeditions, so rows with 2, 3 and no limit gave the same numbers. 2 is the agent's call: the flask is one of two picks on the stair, against a rest that now heals 30%, and three or four tonics would outweigh that. 3 would keep the old most for a player without the Spare Flask (`E.STAIR_FLASKS`).
+- **If the user finds it too hard now,** the first lever is the stair's rest (40% is about halfway).
+
+**Fast-forward in the musicbox pieces:** a musicbox cue has no fixed length. It plays an intro, then a loop whose parts are chosen again at random on each pass, forever, so there is no timeline to seek in. What could be built in `../musicbox`: a seek within the current pass of the loop, or a "next part" button. Neither is built; it is the user's call.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.

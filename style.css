@@ -513,6 +513,15 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .c-text {
   position: absolute; top: 7.4em; bottom: .45em; left: .45em; right: .45em; display: flex; align-items: center; justify-content: center; text-align: center;
   font-size: var(--card-text, 1.02em); line-height: 1.22; color: #eef4f2; overflow: hidden;
+  /* text that doesn't fit starts at the top, so its first words show and only the end is cut (v0.36.0: centred, it was
+     cut at both ends, "turn, deal 2 amag", in a phone's crowded hand) */
+  align-items: safe center;
+}
+/* in a hand where cards overlap, the text of a covered card has only the strip that shows: break long words there, and
+   fade what doesn't fit instead of cutting it off mid-line */
+.small-cards .hand .card:not(.selected) .c-text, .hand.crowded .card:not(.selected):not(.lifted) .c-text {
+  hyphens: auto; -webkit-hyphens: auto;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.3em), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 1.3em), transparent);
 }
 .c-text.long { font-size: var(--card-text-long, .92em); }
 .c-text .kw { color: #ffd27a; }
@@ -528,6 +537,13 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .card.static.choice:hover, .card.static.choice:focus-visible { transform: translateY(-6px) scale(1.04); }
 .card.static.chosen .frame { box-shadow: 0 0 0 .16em var(--amber), 0 0 1.4em .3em rgba(255, 184, 77, .7); }
 .card.static.dim { opacity: .4; }
+/* the pick on a reward or a card choice (v0.36.0): marked, not taken until the button below takes it */
+.card.static.picked { transform: translateY(-8px) scale(1.05); z-index: 2; }
+.card.static.picked .frame { box-shadow: 0 0 0 .18em #9ff0d8, 0 0 1.4em .4em rgba(111, 211, 184, .65); }
+.card.static.picked::before { content: 'Your pick'; position: absolute; left: 50%; top: -11px; transform: translateX(-50%); z-index: 3; padding: 1px 10px; border-radius: 10px; font: 700 12px/18px var(--sans, system-ui), sans-serif; letter-spacing: .03em; color: #06221b; background: #9ff0d8; white-space: nowrap; box-shadow: 0 1px 4px rgba(0, 0, 0, .5); }
+.shop-tile.ks-pick.picked { transform: translateY(-4px); border-color: #9ff0d8; box-shadow: 0 0 0 2px #9ff0d8, 0 0 18px rgba(111, 211, 184, .5); }
+.pick-legend { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.kw-hint { margin: 10px 0 0; font-size: 14px; color: var(--muted); text-align: center; }
 
 /* keyword glossary next to a selected card */
 .glossary {
@@ -782,6 +798,62 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 @keyframes echoPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); letter-spacing: 0; } 25% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); letter-spacing: .5em; } }
 .banner.big { font-size: clamp(30px, 6.5vw, 62px); color: #ffd0c4; text-shadow: 0 0 30px rgba(255, 70, 50, .8), 0 3px 10px #000; animation-duration: 1.8s; }
 
+/* the last landing's pin (v0.36.0): its name card, the bronze cracking, the last blow going to light */
+.boss-card {
+  position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%); z-index: 31; pointer-events: none; width: max-content; max-width: 94%;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 48px 18px; text-align: center;
+  background: radial-gradient(ellipse at center, rgba(5, 15, 24, .9) 0%, rgba(5, 15, 24, .72) 55%, transparent 76%);
+  animation: bossCard 2.9s ease forwards;
+}
+.boss-card small { font-size: 13px; font-weight: 800; letter-spacing: .3em; text-transform: uppercase; color: #e9c27a; text-shadow: 0 2px 6px #000; }
+.boss-card b { font-family: var(--serif); font-weight: 700; font-size: clamp(30px, 7vw, 64px); line-height: 1.05; color: #ffe3c8; letter-spacing: .03em; text-shadow: 0 0 28px rgba(255, 110, 60, .75), 0 3px 12px #000; }
+.boss-card i { display: block; width: min(320px, 60vw); height: 2px; margin: 6px 0 2px; background: linear-gradient(90deg, transparent, #e9c27a, transparent); transform-origin: center; animation: bossRule 2.9s ease forwards; }
+.boss-card span { font-family: var(--serif); font-style: italic; font-size: clamp(15px, 2.4vw, 20px); line-height: 1.3; color: #dfe9e6; text-shadow: 0 2px 6px #000; max-width: 26em; }
+@keyframes bossCard { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.08); } 14% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.98); } }
+@keyframes bossRule { 0% { transform: scaleX(0); } 35% { transform: scaleX(1); } }
+.field.toll-in { animation: tollIn 1.4s ease; }
+@keyframes tollIn { 0%, 10% { filter: brightness(.3); transform: scale(1.02); } 100% { filter: none; transform: none; } }
+.field.quake { animation: quake .7s ease; }
+@keyframes quake { 0%, 100% { transform: none; } 15% { transform: translate(-7px, 3px); } 30% { transform: translate(6px, -4px); } 45% { transform: translate(-5px, 4px); } 60% { transform: translate(4px, -2px); } 80% { transform: translate(-2px, 1px); } }
+.unit.cracking .sprite img { animation: cracking 1.1s ease-in forwards; }
+@keyframes cracking {
+  0% { filter: none; } 15% { transform: translateX(-3px); } 30% { transform: translateX(3px); }
+  55% { transform: translateX(-2px); filter: brightness(1.4) drop-shadow(0 0 12px rgba(255, 200, 110, .8)); } 70% { transform: translateX(3px); }
+  100% { transform: scale(1.03); filter: brightness(2.4) drop-shadow(0 0 30px rgba(255, 220, 150, 1)); }
+}
+/* cracks of light across the bronze, drawn in from the top */
+.unit.cracking .sprite::after {
+  content: ''; position: absolute; inset: 8% 14% 10%; pointer-events: none; z-index: 2;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23fff3c8' stroke-width='1.6' stroke-linejoin='bevel'%3E%3Cpath d='M48 0 L44 14 L52 24 L41 38 L50 49 L38 63 L47 74 L35 100'/%3E%3Cpath d='M52 24 L66 31 L71 46 L84 55'/%3E%3Cpath d='M41 38 L27 44 L20 58'/%3E%3Cpath d='M50 49 L61 60 L58 77 L69 92'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 4px #ffd27a) drop-shadow(0 0 10px #ffb84d);
+  animation: cracksIn 1.1s steps(6, end) forwards;
+}
+@keyframes cracksIn { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+.light-bloom {
+  position: fixed; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; pointer-events: none; z-index: 260;
+  background: radial-gradient(circle, #fffdf2 0%, rgba(255, 238, 190, .95) 30%, rgba(255, 200, 110, .6) 55%, rgba(255, 184, 77, 0) 72%);
+  animation: lightBloom 2.4s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+.light-bloom.heart { animation-duration: 1.7s; }
+@keyframes lightBloom { 0% { transform: scale(.2); opacity: 0; } 12% { opacity: 1; } 42% { transform: scale(42); opacity: .96; } 100% { transform: scale(60); opacity: 0; } }
+body.final-blow #field { transform: scale(1.035); filter: saturate(.45) contrast(1.08); transition: transform 1s ease-out, filter .8s; }
+body.final-blow .float { animation-duration: 2.4s; }
+.unit.last-blow .sprite img { animation: lastBlow 1s ease-in forwards; }
+@keyframes lastBlow {
+  0% { filter: none; } 10% { transform: translate(-4px, 0); } 20% { transform: translate(4px, 1px); } 35% { transform: translate(-3px, -1px); }
+  50% { transform: translate(2px, 0); filter: brightness(1.5) drop-shadow(0 0 14px rgba(255, 210, 130, .9)); }
+  100% { transform: scale(1.04); filter: brightness(3) saturate(.3) drop-shadow(0 0 40px #fff3c8); }
+}
+.unit.enemy.to-light { pointer-events: none; }
+.unit.to-light .sprite img { animation: toLight 1s ease-out forwards; }
+.unit.to-light .info { opacity: 0; transition: opacity .4s; }
+@keyframes toLight { 0% { filter: brightness(3) saturate(0); opacity: 1; } 100% { filter: brightness(4) saturate(0) blur(6px); opacity: 0; transform: scale(1.15) translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) {
+  .field.toll-in, .field.quake, .unit.cracking .sprite img, .unit.last-blow .sprite img { animation: none; }
+  .light-bloom { animation-duration: 1s; }
+  body.final-blow #field { transform: none; }
+}
+
 /* impacts, kills */
 .field.impact { animation: impact .3s ease; }
 @keyframes impact { 0% { transform: scale(1); } 30% { transform: scale(1.025) translate(-3px, 2px); } 60% { transform: scale(1.01) translate(3px, -2px); } 100% { transform: none; } }
@@ -959,9 +1031,23 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .jp-main svg { width: 20px; height: 20px; }
 .jp-main:hover, .jp-main:focus-visible { background: #e0bb63; }
 .jp-shuffle[aria-pressed="true"] { color: var(--brass); background: rgba(201, 162, 74, .2); border-color: var(--brass); }
-.jp-vol { flex: 1 1 100%; }
-.jp-vol-ic { display: grid; place-items: center; color: var(--muted); }
+/* the music's volume (v0.36.0): a short wedge that rises to the right, in teal, with a speaker and a label, so it can't
+   be taken for a song's position bar (a long brass line) */
+.jp-vol { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; margin-left: auto; padding: 4px 12px 4px 10px; border-radius: 999px; background: rgba(63, 174, 138, .12); border: 1px solid rgba(63, 174, 138, .45); color: #9fdcd0; }
+.jp-vol-ic { display: grid; place-items: center; color: #9fdcd0; }
 .jp-vol-ic svg { width: 20px; height: 20px; }
+.jp-vol-lbl { font-size: 13px; font-weight: 650; letter-spacing: .04em; }
+.jp-vol output { min-width: 2.8em; text-align: right; font-size: 13px; color: #cfe0dc; font-variant-numeric: tabular-nums; }
+.jp-vol-track { position: relative; display: block; width: 112px; height: 28px; }
+/* the wedge is drawn behind the slider (a clip on the slider's own track would clip its thumb too) */
+.jp-vol-track::before { content: ''; position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; background: linear-gradient(to right, #6fd3b8 var(--v, 80%), rgba(159, 220, 208, .22) var(--v, 80%)); clip-path: polygon(0 100%, 100% 0, 100% 100%); pointer-events: none; }
+.jp-vol-range { -webkit-appearance: none; appearance: none; position: relative; display: block; width: 100%; height: 100%; margin: 0; background: transparent; cursor: pointer; }
+.jp-vol-range:focus-visible { outline: 2px solid rgba(159, 220, 208, .7); outline-offset: 2px; border-radius: 4px; }
+.jp-vol-range::-webkit-slider-runnable-track { height: 28px; background: transparent; }
+.jp-vol-range::-moz-range-track { height: 28px; background: transparent; }
+.jp-vol-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 6px; height: 24px; margin-top: 2px; border-radius: 3px; background: #e9fbf5; border: 1px solid #2f8f73; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+.jp-vol-range::-moz-range-thumb { width: 6px; height: 24px; border-radius: 3px; background: #e9fbf5; border: 1px solid #2f8f73; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+@media (max-width: 420px) { .jp-vol { margin-left: 0; } .jp-vol-track { width: 96px; } }
 /* a song's words (js/lyrics.js), one page a song */
 .lyrics-modal { width: min(520px, 100%); }
 .lyrics section { margin: 0 0 18px; }
@@ -1197,6 +1283,8 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .k-after { font-size: 13px; font-weight: 700; color: #9ff0b5; }
 .k-after.over { color: #ffb3bd; }
 .leave-ks { display: block; margin: 10px auto 0; }
+.ks-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+.ks-actions .leave-ks { margin: 0; }
 .hud .charge { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; height: 30px; padding: 0 8px 0 5px; border-radius: 15px; border: 1px solid rgba(140, 220, 205, .5); background: rgba(10, 40, 44, .8); color: #bff3e6; font: 700 13px/1 var(--sans); white-space: nowrap; cursor: pointer; }
 .hud .charge svg { width: 18px; height: 18px; }
 .hud .charge.over { border-color: rgba(255, 140, 150, .7); background: rgba(60, 14, 20, .8); color: #ffc9cf; }
@@ -1257,6 +1345,22 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .lz-line b, .lz-roil li b { color: #ffe2a8; }
 .lz-line b.calm, .lz-roil li b.calm { color: #9ff0b5; }
 .lz-line b.roiled, .lz-roil li b.roiled { color: #ffb0a0; }
+/* the Lazaret as a stock (v0.36.0): copies kept, and a spare broken down */
+.lz-row { align-items: flex-start; }
+.lz-cell { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.lz-cell .shop-tile { position: relative; }
+.lz-count { position: absolute; top: 6px; right: 8px; padding: 0 7px; border-radius: 9px; font-size: 13px; font-weight: 800; line-height: 20px; color: #2a1504; background: #f2c46b; }
+.lz-break { width: 100%; white-space: normal; line-height: 1.25; }
+/* the lantern in the Workshop (v0.36.0): the Hold, bought in steps */
+.lantern-panel { margin-top: 8px; padding: 2px 14px 14px; border-radius: 12px; background: rgba(6, 20, 30, .6); border: 1px solid rgba(201, 162, 74, .3); text-align: left; }
+.lantern-panel .ws-place b { color: #ffe2a8; }
+.lt-lead { margin: 0 0 10px; font-size: 15px; line-height: 1.45; color: #d6e3e0; }
+.lt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.lt-pips { display: flex; gap: 6px; }
+.lt-pips i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 210, 122, .6); background: transparent; }
+.lt-pips i.on { background: radial-gradient(circle at 40% 35%, #fff4cf, #ffb84d 60%, #a8620b); border-color: #ffd27a; box-shadow: 0 0 8px rgba(255, 184, 77, .7); }
+.lt-buy[aria-disabled="true"] { opacity: .6; }
+.lt-done { margin: 0; font-size: 15px; color: #9ff0b5; }
 .lz-empty { padding: 12px 14px; border-radius: 10px; border: 1px dashed rgba(201, 162, 74, .45); text-align: center; }
 .lz-missing { opacity: .7; }
 .lz-missing b { color: #a9b9b8; }
@@ -1266,6 +1370,11 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .unlock-box, button.unlock-box { font-size: 15px; line-height: 1.45; }
 .unlock-box b { color: #ffe2a8; }
 .lz-box.lost { background: rgba(50, 22, 22, .78); border-color: rgba(255, 160, 140, .5); color: #f6dcd6; }
+/* a fall (v0.36.0): hold on to one keepsake */
+.lz-keep { text-align: left; }
+.lz-keep p { margin: 0 0 12px; line-height: 1.45; }
+.lz-keep .shop-row { margin-top: 4px; }
+.lz-keep .shop-tile { color: var(--text); }
 /* how the score adds up */
 .score-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 12px 16px; width: 100%; }
 .score-row .score-box { align-self: center; }

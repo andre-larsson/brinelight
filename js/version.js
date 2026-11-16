@@ -5,8 +5,28 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.35.0';
+  BL.VERSION = '0.36.0';
   BL.CHANGELOG = [
+    { v: '0.36.0', date: '2026-11-16', items: [
+      'Choosing a card, a keepsake or a tonic no longer takes it at once. Tap one to mark it, tap another to change your mind, and press Take to take it. Under a choice of cards, the words are explained for the card you marked, and only for that card.',
+      'The Lazaret keeps as many of each keepsake as you bring home. A keepsake you bring on an expedition leaves the Lazaret: it goes back if you come home with it, and it is gone if you fall, drop it or give it to the sea. A spare copy can be broken down for Salvage, half its Roil.',
+      'When you fall, you may hold on to one keepsake you carried, brought or found. Choose it on the end screen, and it goes into the Lazaret.',
+      'A new Workshop piece of work: the lantern. Three steps (25, 50 and 90 Salvage), each adds 5 to your Hold, so you can carry more keepsakes before the aether is Roiled.',
+      'The stair\'s rest heals 30% of your Max HP. Before, half. With two picks on the stair it was the best of them too often.',
+      'The stair\'s flasks fill up to two empty tonic slots. Before, every empty slot.',
+      'Barnaby charges more: about 60 to 72 Pearls for a common card, 95 to 112 for an uncommon one, 180 to 205 for a rare one, 150 to 185 for a keepsake and 50 to 65 for a tonic.',
+      'A Roiled aether pays 4 Pearls a step after a fight. Before, 8.',
+      'The Moon Shard has Roil 12. Before, 8.',
+      'The Spare Flask gives you a fourth tonic slot and two random tonics at the start of each run. It costs 22 Salvage. Before, one tonic for 12.',
+      'The Pale Gulper retches up its Glimmer Leeches the moment you hurt it to half its HP, and they act that same turn. Before, it waited for its next move, and it often died first. Only a blow from above half that kills it skips them.',
+      'The fight on the last landing opens with the pin\'s name and the great bell\'s toll. When the Bellwether breaks, the bronze cracks first and the Thing comes out in the Heart\'s light. The last blow slows down, and the bell goes to light. None of this adds a turn.',
+      'The Tolling Buoy has its own music, "The Rocking Toll": a bell on a rocking chain, and the voice in its cage. "Tide Swings Its Tongue" is Wren\'s song, and it plays on the title screen.',
+      '"It Went Dark on My Watch" is in the Jukebox from the start.',
+      'A card with a long text shows its first words in a crowded hand on a phone. Before, the middle of the text showed, cut at both ends.',
+      'The Jukebox volume is a teal wedge that grows to the right, with a speaker, the word Volume and a number, so it no longer looks like the time bar.',
+      'On Android phones the sound uses a larger buffer, which should stop the crackling, and it stops when you switch to another app.',
+      'The first picture after you break the Harbour Hermit has a new bell.',
+    ] },
     { v: '0.35.0', date: '2026-11-15', items: [
       'Give one to the sea: at a Cove, in place of resting or refitting, you can throw a keepsake into the water. It is gone for this expedition, with its Roil. The sea pays for it: 2 HP for each Roil the keepsake had, and one refit. A keepsake you brought from the Lazaret is still in the Lazaret when you get home.',
       'The stair down has the sea as a sixth choice, so it is two of six now.',

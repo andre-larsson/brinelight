@@ -129,14 +129,20 @@ test('kit changes nothing about the map, and the same seed with the same kit giv
 });
 
 /* ---------- What each piece does ---------- */
-test('start-of-run kit: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask a tonic', () => {
+test('start-of-run kit: Cork Vest +5 Max HP, Coin Purse +30 Pearls, Spare Flask a fourth tonic slot and two different tonics', () => {
   const base = E.newRun(7, 2);
   const run = E.newRun(7, 2, ['cork', 'purse', 'flask']);
   assert.equal(run.maxHp, base.maxHp + 5);
   assert.equal(run.hp, base.hp + 5);
   assert.equal(run.pearls, base.pearls + 30);
-  assert.ok(BL.TONICS[run.tonics[0]], 'a tonic in the first slot');
   assert.deepEqual(base.tonics, [null, null, null]);
+  // v0.36.0 (the user: "one more tonic, and one more tonic slot, and increase in cost"): one tonic for 12 Salvage until then
+  assert.deepEqual([BL.KIT.flask.price, BL.KIT.flask.tonics], [22, 2]);
+  assert.equal(run.tonics.length, 4);
+  assert.ok(BL.TONICS[run.tonics[0]] && BL.TONICS[run.tonics[1]], 'a tonic in each of the first two slots');
+  assert.notEqual(run.tonics[0], run.tonics[1], 'two different tonics');
+  assert.deepEqual(run.tonics.slice(2), [null, null]);
+  for (let seed = 1; seed <= 30; seed++) assert.equal(E.newRun(seed, 0, ['flask']).tonics.filter(Boolean).length, 2);
 });
 
 test('bells: Brass draws 1 on every Crest and Strand; Flood 1 card and 1 Light on a Crest only; Ebb 1 card and 3 Ward on a Strand only; Cracked nothing on the first each turn, then 2 cards and 1 Light', () => {

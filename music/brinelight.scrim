@@ -11,6 +11,7 @@ key      A minor
 #   reach   the map, rewards, rests, Barnaby's, Fog events, treasure, a broken pin
 #   fight   an ordinary fight          dread   a Dread (elite)
 #   pin     a pin (boss)               pin2    a pin's second phase
+#   buoy    the Tolling Buoy, Dark Water's pin, for the whole fight
 #   home    the Lantern Heart rises    fallen  the tide takes you
 # Intensity = depth: setIntensity(0) in the Shallows, 1 in Dark Water, 2 in the Belfry.
 # Layer 1 adds the far bell (toll) and the drone bed; layer 2 adds the choir.
@@ -41,6 +42,11 @@ voice timp    timpani   vol=0.6
 voice knell   bell      vol=0.5  pan=-0.15 rev=0.6
 voice gong    gong      vol=0.4  pan=0.2
 voice brass   brass     vol=0.45 pan=0.1   center=F4 gate=0.7
+# the Tolling Buoy: its iron bell near the middle (the far toll is the great bell it answers), the
+# singer in its cage left, away from the horn, and a wave that breaks on the right
+voice iron    bell      vol=0.55 pan=0.1   rev=0.5
+voice singer  choir     vol=0.42 pan=-0.25 att=0.4 rel=1.8 glide=0.25 rev=0.55
+voice breaker surf      vol=0.45 pan=0.35
 
 # eq: a cut at the pitch of each low drum, where it would boom on top of the bass, and a little
 # air on the whole mix
@@ -253,6 +259,82 @@ tom     | X..X.. | % | % | % | % | % | % | XxXxXX |
 gong    | X..... | _ | _ | _ | X..... | _ | _ | _ |
 choir   | [*]:6 | % | % | % | % | % | % | % |
 
+# ============================================================= the Tolling Buoy: Dark Water's pin
+# 6/8 at 52 in A minor, rocking on a swell over a low A. The iron bell strikes on the swing, with the
+# great bell (toll) when the depth brings it in. The singer in the cage sings the bell's own notes
+# (A, C and E) and the sigh from E up to F. Each pass the chain slips (the bass falls by half steps
+# under the bell's A) into the Wild Peal, and a breaking wave smothers it.
+pattern bu_in tempo=52 beats=2 steps=3
+harmony | Am | % | F/A | Esus4 E |
+bass    | A1:6 | = | A1:6 | E2:4 B1:2 |
+pad     | [*]?:6 | % | % | % |
+toll    | A3:6 | _ | _ | _ |
+iron    | _ | A3:6 | _ | _ |
+singer  | _ | .:3 A4?:3 | -:3 ~C5:3 | B4:3 ~G#4:3 |
+
+# the rocking toll: louder on each swing out, and now and then on the swing back
+pattern bu1 tempo=52 beats=2 steps=3
+harmony | Am | F/A | Am | F/A | Dm/A | Am | F/A | Esus4 E |
+bass    | A1:4 E2:2 | A1:4 F2:2 | A1:4 E2:2 | A1:4 F2:2 |
+bass    | A1:4 D2:2 | A1:4 E2:2 | A1:4 F2:2 | E2:4 B1:2 |
+pad     | [*]?:6 | % | % | % | % | % | % | % |
+horn    | E4?:6 | F4?:6 | E4?:6 | F4?:6 | F4:6 | E4:6 | F4:6 | E4?:6 |
+iron    | A3?:6 | .:3 {A3 . .}??:3 | A3:6 | .:3 {A3 .}?:3 |
+iron    | A3!:6 | .:3 {A3 .}?:3 | A3!:6 | {A3 .}?:3 .:3 |
+toll    | A3:6 | _ | _ | _ | A3:6 | _ | _ | _ |
+choir   | [*]?:6 | % | % | % | % | % | % | % |
+
+# the same, and the singer hums the bell's note after it, and her beads glint
+pattern bu1b from bu1
+singer  | .:3 {A4 .}?:3 | _ | .:3 {C5 A4 .}?:3 | _ | .:3 {A4 D5 .}?:3 | _ | .:3 {C5 A4 .}?:3 | _ |
+pluck   | .:2 {A5 C6 E6}:4 | .:6 | .:6 | .:2 {A5 C6 F6}:4 | .:2 {A5 D6 F6}:4 | .:6 | .:2 {A5 C6 F6 .}:4 | .:6 |
+
+# the singer sings what the bell rings
+pattern bu2 tempo=52 beats=2 steps=3
+harmony | Am | F/A | Dm/A | Am | F | Dm | Bm7b5 | Esus4 E |
+bass    | A1:4 E2:2 | A1:4 F2:2 | A1:4 D2:2 | A1:4 E2:2 |
+bass    | F1:4 C2:2 | D2:4 A1:2 | B1:4 F2:2 | E2:4 B1:2 |
+pad     | [*]?:6 | % | % | % | % | % | % | % |
+singer  | .:3 E5:3 | ~F5?:4 E5:2 | D5:3 ~A4:3 | A4:4 C5:2 |
+singer  | C5:3 ~F5?:3 | F5?:2 E5 D5:3 | F5?:3 ~B4:3 | B4:3 ~G#4:3 |
+iron    | A3:6 | _ | A3?:6 | _ | A3:6 | _ | A3?:6 | _ |
+toll    | A3:6 | _ | _ | _ | A3:6 | _ | _ | _ |
+choir   | [*]?:6 | % | % | % | % | % | % | % |
+
+# her other verse, higher, with a note she picks from the bell's, and her beads glint
+pattern bu2b from bu2
+singer  | .:3 A4:3 | C5:3 ~F5?:3 | F5?:4 E5 D5 | E5:6 |
+singer  | {A5 F5}:3 ~C5:3 | D5:4 E5 F5? | D5:3 ~B4:3 | {B4 E5}:3 ~G#4:3 |
+pluck   | .:6 | .:2 {A5 C6 F6}:4 | .:6 | .:2 {A5 C6 E6}:4 | .:6 | .:2 {A5 D6 F6}:4 | .:6 | .:6 |
+
+# the chain slips: the bass falls by half steps and the horn climbs against it, while the singer
+# and the bell hold on to A and the chords slide under them
+pattern bu3 tempo=52 beats=2 steps=3
+harmony | Am | E/G# | Am/G | D/F# | Fmaj7 | Am/E | Bm7b5/D | E7 |
+bass    | A1:4 A2:2 | G#1:4 G#2:2 | G1:4 G2:2 | F#1:4 F#2:2 |
+bass    | F1:4 F2:2 | E1:4 E2:2 | D2:4 A1:2 | E2:3 E1:3 |
+pad     | [*]?:6 | % | % | % | [*]:6 | % | % | % |
+horn    | A3?:6 | B3?:6 | C4:6 | D4:6 | E4:6 | E4!:6 | F4!:6 | G#4!:6 |
+singer  | A4:6 | = | A4:6 | = | A4:6 | C5:6 | D5:3 ~F5?:3 | E5:6 |
+iron    | A3:6 | _ | A3:6 | .:3 A3?:3 | A3!:3 {A3 .}?:3 | A3!:3 A3?:3 | A3!:3 A3:3 | A3!!:3 A3!:3 |
+timp    | A2??:6 | G#2??:6 | G2?:6 | F#2?:6 | F2:6 | E2:6 | D2!:6 | E2!:3 E2 E2! E2!! |
+toll    | A3:6 | _ | _ | _ | A3:6 | _ | _ | _ |
+choir   | [*]?:6 | % | % | % | % | % | % | % |
+
+# the Wild Peal: the bell rings on every swing, the singer cries out, and a breaking wave smothers it
+pattern bu4 tempo=52 beats=2 steps=3
+harmony | Am | F/A | Dm/A | Esus4 E |
+iron    | A3!! A3 A3! {A3 .} A3!! {A3 .}! | A3!! {A3 .} A3! A3 {A3 .}! A3! | A3!! A3 {A3 .}! A3!! {A3 . .} A3! | A3??:6 |
+bass    | A1:4 E2:2 | A1:4 F2:2 | A1:4 D2:2 | E2:6 |
+pad     | [*]:6 | % | % | [*]?:6 |
+horn    | A4!:6 | A4!:6 | A4!:4 F4:2 | E4?:6 |
+singer  | A5:6 | ~F5?:4 E5:2 | D5:3 ~A4:3 | .:6 |
+timp    | A2!:3 E2!:3 | A2!:3 F2!:3 | A2!:3 D2!:3 | _ |
+gong    | X..... | _ | X..... | _ |
+breaker | _ | _ | _ | X..... |
+toll    | A3!:6 | _ | _ | _ |
+choir   | [*]:6 | % | % | % |
+
 # ============================================================= one-bar bridges
 # into any fight: the bell strikes and the drums answer
 pattern strike tempo=80 beats=2 steps=3
@@ -270,6 +352,14 @@ knell   | A3!!:6 |
 gong    | X..... |
 timp    | A2? A2 A2 A2! A2!! A2!! |
 tom     | ...xXX |
+
+# into the Tolling Buoy: its bell, alone, out of the dark
+pattern clang tempo=52 beats=2 steps=3
+harmony | Am |
+iron    | A3!!:6 |
+bass    | A1:6 |
+timp    | A2!:6 |
+gong    | X..... |
 
 # ============================================================= the end of an expedition
 # the Lantern Heart rises: the song in A major, at dawn
@@ -341,6 +431,11 @@ cue pin2
 loop q1 q2
 beds sea=0.3 deep
 
+cue buoy
+play bu_in
+loop {bu1 bu1b} {bu2 bu2b} bu3 bu4
+beds sea=0.6 deep
+
 cue home
 play dawn
 loop morning
@@ -357,5 +452,6 @@ switch *   -> fight  at bar  via strike  fade 0.8
 switch *   -> dread  at bar  via strike  fade 0.8
 switch *   -> pin    at bar  via strike  fade 1
 switch pin -> pin2   at bar  via crack   fade 0.5
+switch *   -> buoy   at bar  via clang   fade 1
 switch *   -> home   at bar  fade 2
 switch *   -> fallen at beat fade 1.5

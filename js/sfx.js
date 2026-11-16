@@ -38,7 +38,7 @@
   // aiming for about -24 dB for a blow, -18 for the big moments, -36 to -46 for clicks and the ambience.
   const LEVEL = {
     draw: -2.5, select: 7.5, page: -4, hurt: -1.5, block: 2, ward: 1.5, buff: -5, debuff: -2, kill: -3, die: -5.5, echo: -4.5, danger: -17,
-    turn: -4, bell: -10.5, phase: -11, chain: -5, fury: -4, shopbell: -5.5,
+    turn: -4, bell: -10.5, phase: -11, chain: -5, fury: -4, shopbell: -5.5, toll: -12.5, lastblow: -6, shatter: -9,
     lightgain: -1, douse: -4.5, tide: -6, crest: -8.5, low: -2.5, submerge: -8.5, bail: 6.5, stir: -6,
     coin: -1, tonic: -5.5, keepsake: -7, treasure: -5, step: -2.5, unlock: -8, victory: -8, defeat: -5,
     gull: -4.5, creak: 12, buoy: -12, groan: -12.5, farbell: -15, bubbles: -1, moan: -10, hum: -20,
@@ -429,6 +429,26 @@
         noise(t + 0.05, { color: 'brown', vol: 0.4, a: 0.3, h: 0.5, dur: 3, wet: 0.3, filter: { type: 'lowpass', f: 140 } });
         tone(t, { f: 70, to: 30, glide: 2, vol: 0.35, a: 0.05, dur: 2.5 });
       },
+      toll(t) { // the last landing's pin comes into the light: the great bell, an octave lower than ever, and the stone hums
+        bell(t, midi(38), { vol: 0.55, dur: 8, wet: 0.6, strike: 0.3, bright: 0.7 });
+        bell(t + 0.004, midi(50), { vol: 0.16, dur: 5, wet: 0.5, strike: 0, bright: 0.5 });
+        tone(t, { f: 58, to: 41, glide: 2.5, vol: 0.4, a: 0.03, dur: 3.2 });
+        noise(t + 0.02, { color: 'brown', vol: 0.32, a: 0.5, h: 0.6, dur: 3.6, wet: 0.35, filter: { type: 'lowpass', f: 160 } });
+      },
+      lastblow(t) { // the last blow on the last pin: a heavy thump, then the water draws a breath in
+        tone(t, { f: 72, to: 34, glide: 0.5, vol: 0.55, a: 0.003, dur: 0.7, drive: 2 });
+        noise(t, { color: 'brown', vol: 0.4, a: 0.002, dur: 0.35, filter: { type: 'lowpass', f: 600 } });
+        noise(t + 0.15, { color: 'pink', vol: 0.22, a: 0.85, dur: 0.95, wet: 0.4, filter: { type: 'bandpass', f: 500, q: 0.8, to: 3200, sweep: 0.85 } });
+        tone(t + 0.15, { f: 147, to: 587, glide: 0.85, vol: 0.06, a: 0.8, dur: 0.9, wet: 0.5, vib: [6, 12] });
+      },
+      shatter(t) { // the bronze gives way and goes to light: a crack, a low bell, and a fall of small bright bells
+        noise(t, { vol: 0.5, a: 0.001, dur: 0.18, filter: { type: 'highpass', f: 1200 } });
+        noise(t, { color: 'brown', vol: 0.45, a: 0.002, dur: 0.6, filter: { type: 'lowpass', f: 400 } });
+        bell(t + 0.01, midi(50), { vol: 0.42, dur: 6, wet: 0.6, strike: 0.6, bright: 0.45 });
+        for (let i = 0; i < 9; i++) tone(t + rnd(0.005, 0.12), { f: rnd(2500, 6500), vol: rnd(0.02, 0.05), a: 0.001, dur: rnd(0.05, 0.2), pan: rnd(-0.7, 0.7), wet: 0.3 });
+        [93, 90, 86, 83, 81, 78, 74, 71, 69].forEach((m, i) => bell(t + 0.18 + i * 0.13 + rnd(0, 0.04), midi(m), { kind: 'hand', vol: 0.09 * (1 - i * 0.06), dur: 2.2, wet: 0.55, pan: (i % 2 ? 0.35 : -0.35) * (1 - i / 10) }));
+        shimmer(t + 0.1, 0.05, 2.6, { wet: 0.6 });
+      },
       chain(t, o) { // a Crest or Strand chain: a hand-bell, higher each link
         const m = [76, 81, 84, 88, 93][clamp(o.n || 2, 1, 5) - 1];
         bell(t, midi(m), { kind: 'hand', vol: 0.13, dur: 1.4, wet: 0.35 });
@@ -686,6 +706,9 @@
       { name: 'turn', label: 'Your Turn', now: 'turn', when: 'Wren rings her hand-bell.' },
       { name: 'bell', label: 'The great bell', now: 'bell', when: 'A descent starts, a pin appears, the opening\'s first picture.' },
       { name: 'phase', label: 'The bell cracks', now: 'phase', when: 'A pin\'s second phase.' },
+      { name: 'toll', label: 'The last pin', when: 'New in v0.36.0: the fight on the last landing opens.' },
+      { name: 'lastblow', label: 'The last blow', when: 'New in v0.36.0: the blow that breaks the last pin, before it goes to light.' },
+      { name: 'shatter', label: 'The bronze breaks', when: 'New in v0.36.0: the Bellwether breaks open, and the last pin goes to light.' },
       { name: 'chain', opts: { n: 2 }, label: 'Chain x2', now: 'chain', when: 'A Crest or Strand chain: higher each link.' },
       { name: 'chain', opts: { n: 4 }, label: 'Chain x4', now: 'chain', when: '' },
       { name: 'fury', label: 'Tidal Fury', now: 'fury', when: 'Bells ring up the scale.' },

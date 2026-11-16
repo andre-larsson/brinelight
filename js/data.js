@@ -422,7 +422,8 @@
   BL.HERMIT_CALL = 1 / 2;
   // a Listener's Pounce: `dmg`, and `per` more for each card played that turn
   BL.LISTEN = { dmg: 5, per: 2 };
-  /* The Pale Gulper, a Dread of Dark Water, retches up two Glimmer Leeches once it is down to this share of its health. */
+  /* The Pale Gulper, a Dread of Dark Water, retches up two Glimmer Leeches the moment it is hurt to this share of its
+     health (at once, out of turn, since v0.36.0; before, it was its next move, and it could die first). */
   BL.DREAD_CALL = 1 / 2;
   /* The Tolling Buoy's Wild Peal: this much damage, less this much for each Crest or Strand you make that turn. */
   BL.PEAL = { dmg: 30, quiet: 15 };
@@ -637,11 +638,12 @@
         bite: { name: 'Bite', dmg: 14 },
         gulp: { name: 'Gulp', dmg: 7, swallow: true },
         whip: { name: 'Tail Whip', dmg: 5, hits: 2, debuff: { soaked: 1 } },
-        // hurt, it brings up what it has swallowed: two Glimmer Leeches, still alive, and your cards with them
+        // hurt, it brings up what it has swallowed: two Glimmer Leeches, still alive, and your cards with them. It is never
+        // an intent: it happens the moment the Gulper is hurt to half (`hurt`, E's hurtReact)
         retch: { name: 'Retch', summon: ['leech', 'leech'], disgorge: true, phase: 'It Retches!' },
       },
+      hurt: { at: BL.DREAD_CALL, move: 'retch' },
       ai: (e) => {
-        if (!e.mem.summoned && e.hp <= e.maxHp * BL.DREAD_CALL) { e.mem.summoned = true; return 'retch'; }
         const seq = ['bite', 'gulp', 'whip'];
         return seq[((e.mem.offset || 0) + e.hist.filter((h) => h !== 'retch').length) % seq.length];
       },
@@ -916,7 +918,7 @@
     whaletooth: { name: 'Whale Tooth', art: 'k_whaletooth', charge: 19, desc: 'Start each fight with 1 Might.' },
     barnacleplate: { name: 'Barnacle Plate', art: 'k_barnacleplate', charge: 14, spines: 1, desc: 'Start each fight with Spines 1: every attack on you takes 1 damage back.' },
     tidewatch: { name: 'Tidewatch', art: 'k_tidewatch', charge: 12, desc: 'Your Crests deal 4 more damage.' },
-    moonshard: { name: 'Moon Shard', art: 'k_moonshard', charge: 8, desc: 'Start each fight at Swell 5.' },
+    moonshard: { name: 'Moon Shard', art: 'k_moonshard', charge: 12, /* 8 until v0.36.0: the user found it too good for its cost */ desc: 'Start each fight at Swell 5.' },
     kelpbracelet: { name: 'Kelp Bracelet', art: 'k_kelpbracelet', charge: 11, desc: 'Whenever you Strand, gain 8 Ward.' },
     gullfeather: { name: 'Gull Feather', art: 'k_gullfeather', charge: 8, desc: 'Draw 2 extra cards on your first turn of each fight.' },
     biscuit: { name: 'Scallop Charm', art: 'k_biscuit', charge: 12, desc: 'While you carry it, your Max HP is 10 higher. Heals 10 when you pick it up.' },
@@ -1152,7 +1154,8 @@
     // 10 until v0.33.0: with no Pearls at the start it more than paid for a keepsake in the Shallows alone (the user: "a bit over-powered")
     pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, pearls: 6, desc: 'Gain 6 extra Pearls after each fight.' },
     marker: { place: 'pocket', name: "Barnaby's Marker", art: 'g_marker', price: 25, unlock: 'travellight', desc: "Your first card removal at Barnaby's shop in each run is free." },
-    flask: { place: 'ditty', name: 'Spare Flask', art: 'g_flask', price: 12, desc: 'Start each run with a random tonic.' },
+    // one tonic and price 12 until v0.36.0 (the user: "could give one more tonic, and one more tonic slot, and increase in cost")
+    flask: { place: 'ditty', name: 'Spare Flask', art: 'g_flask', price: 22, tonics: 2, desc: 'Carry a fourth tonic, and start each run with two random tonics.' },
     scales: { place: 'ditty', name: 'Pearl Scales', art: 'g_scales', price: 15, desc: "Barnaby's prices are 25% lower: he can't argue with honest weights." },
     net: { place: 'ditty', name: 'Gleaning Net', art: 'g_net', price: 10, desc: 'Gain 3 Pearls whenever you Crest.' },
     wick: { place: 'ditty', name: 'Spare Wick', art: 'g_wick', price: 12, desc: 'Resting heals 10 more HP.' },

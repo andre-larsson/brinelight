@@ -173,7 +173,9 @@
       shop: { src: 'music/songs/no-haggling-no-biting.mp3', resume: true, secs: 176, name: 'No Haggling, No Biting', where: "Barnaby's shop" },
       shell: { src: 'music/songs/pop-the-shell.mp3', resume: true, secs: 165, name: 'Pop the Shell', where: "Barnaby's shop" }, // Barnaby raps it (Gemini called it No Hagglin', No Bitin')
       hermit: { src: 'music/songs/the-hermits-heavy-toll.mp3', resume: false, secs: 178, name: "The Hermit's Heavy Toll", where: 'The Harbour Hermit and the title screen' },
-      buoy: { src: 'music/songs/tide-swings-its-tongue.mp3', resume: false, secs: 148, name: 'Tide Swings Its Tongue', where: 'The Tolling Buoy and the title screen' }, // the swell swings its clapper
+      // Wren's own song (her little bell answers the big one). It played against the Tolling Buoy until v0.36.0, when the
+      // user heard that it is about Wren: the Buoy has its own music-box cue now ('buoy')
+      buoy: { src: 'music/songs/tide-swings-its-tongue.mp3', resume: true, secs: 148, name: 'Tide Swings Its Tongue', where: 'The title screen' },
       deep: { src: 'music/songs/ring-for-the-deep.mp3', resume: false, secs: 174, name: 'Ring for the Deep', where: 'The Harbour Hermit, from your second meeting' }, // the two bells rap it; one of the Hermit's two songs (pinSong)
       bell: { src: 'music/songs/the-toll-of-the-sunken-stair.mp3', resume: false, secs: 178, name: 'The Toll of the Sunken Stair', where: 'The Drowned Bellwether' },
       departure: { src: 'music/songs/high-tide-departure.mp3', resume: true, secs: 179, name: 'High Tide Departure', where: 'Only in the Jukebox', jukeOnly: true },
@@ -203,10 +205,18 @@
       musicBus.gain.setTargetAtTime(prefs.music ? gain(prefs.musicVol) : 0, t, 0.05);
       for (const k in songs) if (!songs[k].amp && !songs[k].el.paused) songs[k].el.volume = songVol();
     };
+    /* Phones and tablets (v0.36.0). The user's Android playtest: the sound crackled and distorted, and after switching
+       apps it went on for a while, then crackled and stopped. So on a phone the context asks for the larger buffer meant
+       for steady playback (fewer underruns while the music box and the effects synthesize at once; a few more ms before
+       a sound), and everything stops while the game is out of sight (hide/show below). A computer keeps 'interactive'
+       and plays on in a background tab, as a music player would. */
+    const PHONE = typeof navigator !== 'undefined' && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent || '')));
     function ac() {
+      if (away) return null; // out of sight on a phone: nothing plays until it is back
       if (!ctx) {
         try {
-          ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const AC = window.AudioContext || window.webkitAudioContext;
+          try { ctx = new AC({ latencyHint: PHONE ? 'playback' : 'interactive' }); } catch (e) { ctx = new AC(); }
           sfxBus = ctx.createGain(); sfxBus.connect(ctx.destination);
           musicBus = ctx.createGain(); musicBus.connect(ctx.destination);
           sfxBus.gain.value = 0; musicBus.gain.value = 0;
@@ -299,7 +309,7 @@
     /* Make what plays match what should: with the music on, the Jukebox's pick (or nothing while it's paused), else the
        screen's song unless it has played out this visit or can't play, else the score's cue for the screen. */
     function sync() {
-      if (!ctx) return;
+      if (!ctx || away) return;
       let want = null, cue = null, depth = now.depth;
       if (prefs.music) {
         if (juke) {
@@ -326,6 +336,28 @@
     }
     // what is playing, or chosen, now: a song or a cue of the score
     const current = () => juke || { song: songOn, cue: songOn ? null : playing ? now.cue : null, paused: false, depth: now.depth };
+    /* Out of sight on a phone (another app, the screen locked): the songs pause and the context is suspended, so the music
+       box's queue stops where it is instead of running dry under throttled timers. Back in sight, both go on. */
+    let away = false, awaySongs = [];
+    function hide() {
+      if (away || !PHONE) return;
+      away = true;
+      awaySongs = Object.keys(songs).filter((k) => !songs[k].el.paused);
+      awaySongs.forEach((k) => songs[k].el.pause());
+      // the place's own sounds stop too: each one would wake the context (sfx.js resumes it to play)
+      if (kit && ambOn) { kit.ambience(null); ambOn = ''; }
+      if (ctx && ctx.state === 'running' && ctx.suspend) ctx.suspend().catch(() => {});
+    }
+    function show() {
+      if (!away) return;
+      away = false;
+      if (!ctx) return;
+      if (ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
+      awaySongs.forEach((k) => { const p = songs[k].el.play(); if (p && p.catch) p.catch(() => {}); });
+      awaySongs = [];
+      sync();
+      ambience();
+    }
     // the place's own sounds (gulls, drips, the bell's hum) every few seconds: fewer in a fight, none in a pin
     let ambOn = ''; // what the kit's ambience plays now, 'band/density', or '' for none
     function ambience() {
@@ -356,6 +388,7 @@
         sync();
         ambience();
       },
+      hide, show,
       unlock() {
         if (!prefs.sound && !prefs.music) return;
         if (!ac()) return;
@@ -694,6 +727,42 @@
     if (!seen.length) return '';
     return `<dl class="kw-legend" aria-label="Keywords on these cards">${seen.map((k) => `<div data-kw="${k}"><dt class="kw ${kwClass(k)}">${k}</dt><dd>${BL.KEYWORDS[k]}</dd></div>`).join('')}</dl>`;
   }
+  /* Choosing one of a few (v0.36.0). The user: "pressing card does not lock choice, until continue is pressed. Selecting
+     a card shows explanations of effects for that card only. Same with choosing keepsake/potion." A tap, a click, Enter
+     or a number key marks one card or keepsake as the pick (`data-act="pick"`, a `data-scope` and a `data-key`); another
+     tap moves it, and the screen's Continue or Take (`data-act="pickok"`) takes it. Until then nothing is taken.
+     ui.picks[scope] = { key, of }, one for each offer on the screen (a reward's card and its keepsakes): `of` is what the
+     pick belongs to (the reward, the chest, the choice), so a pick never outlives its screen. The keyword legend under the cards explains the picked card's words, and only those. */
+  const pickOf = (scope, of) => { const p = (ui.picks || {})[scope]; return p && p.of === of ? p.key : null; };
+  const PICK_HINT = '<p class="kw-hint">Choose a card to see what its words mean.</p>';
+  function pickLegend(scope, card) {
+    const kws = card ? keywordsOf(card) : [];
+    const inner = !card ? PICK_HINT : kws.length
+      ? `<dl class="kw-legend" aria-label="Keywords on ${E.cardName(card)}">${kws.map((k) => `<div data-kw="${k}"><dt class="kw ${kwClass(k)}">${k}</dt><dd>${BL.KEYWORDS[k]}</dd></div>`).join('')}</dl>`
+      : `<p class="kw-hint">${E.cardName(card)} has no special words.</p>`;
+    return `<div class="pick-legend" data-scope="${scope}" aria-live="polite">${inner}</div>`;
+  }
+  // the label of the button that takes the pick: before a pick it says what to do, after it what will be taken
+  const PICK_OK = {
+    'rw-card': (key) => (key == null ? 'Choose a card' : `Take ${E.cardName(pseudo(run.rewards.cards[+key].id, run.rewards.cards[+key].up))}`),
+    'rw-ks': (key) => (key == null ? 'Choose a keepsake' : `Take the ${BL.KEEPSAKES[key].name}`),
+    'tr-ks': (key) => (key == null ? 'Choose a keepsake' : `Take the ${BL.KEEPSAKES[key].name}`),
+    'fall-ks': (key) => (key == null ? 'Choose one to keep' : `Keep the ${BL.KEEPSAKES[key].name}`),
+    choice: (key) => (key == null ? 'Choose a card' : `Take ${E.cardName(pseudo(key))}`),
+  };
+  const pickOkBtn = (scope, key, cls) => `<button class="btn primary${cls ? ' ' + cls : ''}" data-act="pickok" data-scope="${scope}"${key == null ? ' disabled' : ''}>${PICK_OK[scope](key)}</button>`;
+  // mark `el` as the pick, without drawing the screen again (the cards' rise would play again)
+  function setPick(el, of) {
+    const scope = el.dataset.scope, key = el.dataset.key;
+    (ui.picks || (ui.picks = {}))[scope] = { key, of };
+    const root = el.closest('.scene-inner, .modal') || document;
+    $$(`[data-act="pick"][data-scope="${scope}"]`, root).forEach((o) => { const on = o === el; o.classList.toggle('picked', on); o.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    const lg = $(`.pick-legend[data-scope="${scope}"]`, root);
+    if (lg && el.classList.contains('card')) lg.outerHTML = pickLegend(scope, scope === 'choice' ? pseudo(key) : pseudo(run.rewards.cards[+key].id, run.rewards.cards[+key].up));
+    const ok = $(`[data-act="pickok"][data-scope="${scope}"]`, root);
+    if (ok) { ok.disabled = false; ok.textContent = PICK_OK[scope](key); }
+    sfx('select');
+  }
   function lightLegend(card) {
     const scope = card && card.closest('.scene-inner, .modal');
     $$('.kw-legend').forEach((lg) => {
@@ -753,6 +822,7 @@
     prefs[r.dataset.vol + 'Vol'] = +r.value / 100;
     const o = r.parentElement.querySelector('output');
     if (o) o.textContent = r.value + '%';
+    if (r.parentElement.classList.contains('jp-vol-track')) r.parentElement.style.setProperty('--v', r.value + '%'); // the Jukebox's volume wedge fills to here
     Sound.changed();
   });
   overlayEl.addEventListener('change', (e) => {
@@ -829,10 +899,12 @@
     openOverlay(modal(names[which], body, `<div class="pile-tabs">${tabs}</div><button class="btn" data-act="close">Close</button>`));
   }
 
+  /* A choice of cards in a window (an event's, the keepers' cache): mark one, then Take it; the other button skips or goes back. */
   function showCardChoice(ids, title, onDone, back) {
-    const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" data-act="choosecard" data-id="${id}" data-i="${i}"`)).join('')}</div>${keywordLegend(ids.map((id) => pseudo(id)))}`;
+    const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" aria-pressed="false" data-act="pick" data-scope="choice" data-key="${id}" data-i="${i}"`)).join('')}</div>${pickLegend('choice', null)}`;
     ui.cardChoiceDone = onDone;
-    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">${back || `Skip (+${E.DECLINE_SCORE.eventCard} score)`}</button>`, ''), { locked: true });
+    if (ui.picks) delete ui.picks.choice;
+    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">${back || `Skip (+${E.DECLINE_SCORE.eventCard} score)`}</button>${pickOkBtn('choice', null)}`, ''), { locked: true });
   }
 
   /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
@@ -856,7 +928,7 @@
         + (levelKnown(2) ? `<h3 class="help-sub">In the Belfry</h3>` + dl(['Breathless', 'Burst', 'Heartfire'].map((k) => [k, BL.KEYWORDS[k]])) : '');
       case 'map': return `<ul class="help-list">
         <li>An <b>expedition</b> goes down through the Reach one level at a time: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map(levelName).join(', then ')}${allLevelsKnown() ? '' : ', then deeper'}. Each level has ${E.LANDINGS} landings. Choose a route down; lit stops are where you can go next.</li>
-        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of six: rest deeply, refit, shed a card, fill your flasks, open the keepers' cache or give a keepsake to the sea. Break the last pin to bring the Lantern Heart home.</li>
+        <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of six: rest deeply, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, open the keepers' cache or give a keepsake to the sea. Break the last pin to bring the Lantern Heart home.</li>
         ${levelKnown(2) ? `<li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
         <li>Once the Heart is home, the Belfry's last landing holds one of several <b>finals</b>. Beat it to quiet the Belfry and come home.</li>` : ''}
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map((i) => `${E.LEVELS[i].landing} in ${levelName(i)}`).join(', ')}${allLevelsKnown() ? '' : ', and more below'}. Coming home adds 5 for each HP you have left. Bringing the Heart home${levelKnown(2) ? ', or quieting the Belfry,' : ''} adds ${E.FINAL_SCORE}.</li>
@@ -870,9 +942,9 @@
       ])}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
-        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.</li>
+        <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''}${workshopOpen() ? ` In the ${MT.shop}, a steadier lantern adds ${E.HOLD_UP.step} to your Hold for each of its ${E.HOLD_UP.prices.length} steps.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you heal ${E.SEA_HEAL} HP for each Roil it had and upgrade a card.</li>
         <li><b>Deeper finds are stronger.</b> Some keepsakes are found only ${levelKnown(2) ? 'in Dark Water and deeper, or only in the Belfry' : levelKnown(1) ? 'in Dark Water and deeper' : 'below the Shallows'}, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
-        <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens the first time you come home. When you come home, every keepsake you carry is kept there, one of each; one it already holds becomes ${MT.currency} instead: half its Roil, rounded up. Before an expedition you may bring any number of them, and each counts toward your Hold. If you fall, you lose the keepsakes you found on that expedition. The ones in the Lazaret are never lost.</li>
+        <li><b>The Lazaret</b> is the locked store room at the lighthouse, on the title screen. It opens the first time you come home. When you come home, every keepsake you carry is kept there, and it can keep many of each. Before an expedition you may bring any number of kinds, one of each, and each counts toward your Hold. A keepsake you bring leaves the Lazaret: it comes back if you come home with it, and if you fall, drop it or give it to the sea, it is gone. When you fall you may hold on to one keepsake you carried, and it goes into the Lazaret. A spare copy (a second of the same kind) can be broken down for ${MT.currency}: half its Roil, rounded up.</li>
         <li><b>Tonics</b> are one-use; they sit in the top bar. A <b>curse</b> is an unplayable card that stays in your deck until you remove it.</li>
         <li>Turning down a reward adds to your final score: <b>+${E.DECLINE_SCORE.card}</b> for skipping a card or choosing an event's Leave, <b>+${E.DECLINE_SCORE.keepsake}</b> for leaving the keepsakes, <b>+${E.DECLINE_SCORE.tonic}</b> for leaving a tonic when you have a free slot.</li>
         <li><b>Currents</b> open once the Heart has come home. Choose any of them on shore: each makes the whole expedition harder and adds &times;${E.CURRENT_SCORE} to your score. ${Object.keys(E.CURRENTS).map((k) => `<b>${E.CURRENTS[k].name}</b>: ${E.CURRENTS[k].desc.replace(/\.$/, '')}`).join('. ')}.</li>
@@ -954,7 +1026,7 @@
     const body = `<div style="display:flex;gap:14px;align-items:center"><div class="medal" style="width:72px;height:72px;flex:0 0 auto"><img src="img/icons/${K.art}.webp" alt=""></div><p style="margin:0;font-size:16px">${K.desc}</p></div>
       ${K.deep ? `<p class="buy-left muted">${foundIn(k)}</p>` : ''}<p class="buy-left">Roil ${K.charge}. You carry ${ch} of your Hold of ${h}${rf.steps ? `: <b>${roilWords(rf)}</b> in every fight, and ${roilPay(rf)} after it` : ''}.${rf.steps ? ` Without it: ${without || 'the aether is Calm'}.` : ''}</p>
       <p class="buy-left muted">At a Cove or on the stair you can give it to the sea: heal ${E.seaHeal(k)} HP and refit a card.</p>
-      <p class="buy-left muted">${E.wasBrought(run, k) ? 'You brought it from the Lazaret. Dropping it leaves it out of this descent, and it is in the Lazaret again when you get home' : 'Dropping it is for good'}${k === 'biscuit' ? `${E.wasBrought(run, k) ? '. Its' : ', and its'} 10 Max HP go with it` : ''}.</p>`;
+      <p class="buy-left muted">${E.wasBrought(run, k) && !run.takenOut ? 'You brought it from the Lazaret. Dropping it leaves it out of this descent, and it is in the Lazaret again when you get home' : E.wasBrought(run, k) ? 'You brought it from the Lazaret, so dropping it takes it out of the Lazaret too: it is gone for good' : 'Dropping it is for good'}${k === 'biscuit' ? `${E.wasBrought(run, k) ? '. Its' : ', and its'} 10 Max HP go with it` : ''}.</p>`;
     openOverlay(modal(K.name, body, `<button class="btn" data-act="ksdrop" data-k="${k}">Drop it</button><button class="btn primary" data-act="close" autofocus>Keep it</button>`, 'narrow'));
   }
 
@@ -1070,10 +1142,10 @@
   let shopSong = null, inShop = false; // Barnaby's songs take turns, one each visit, starting on one at random
   let titleFirst = null; // the title song this page load starts on: the keeper's song until it has been heard once
   function updateSound() {
-    /* Recorded songs at Barnaby's, and against the Harbour Hermit, the Tolling Buoy and the Bellwether. The title screen
-       plays its songs in turn, the ones that are open in the Jukebox (jukeOpen): The Great Light Turning Slow, Harbour
-       Bells at Dawn, the Hermit's song and Tide Swings Its Tongue from the start (what they hint at is foreshadowing),
-       and It Went Dark on My Watch once you have finished a descent. Each time the page loads it starts on one of them
+    /* Recorded songs at Barnaby's, and against the Harbour Hermit and the Bellwether; the Tolling Buoy has a music-box
+       cue of its own. The title screen plays its songs in turn, the ones that are open in the Jukebox (jukeOpen): The
+       Great Light Turning Slow, Harbour Bells at Dawn, the Hermit's song, Tide Swings Its Tongue and It Went Dark on My
+       Watch, all from the start (what they hint at is foreshadowing). Each time the page loads it starts on one of them
        at random (titleFirst) and goes on in order. */
     const open = TITLE_LOOP.filter((k) => jukeOpen('song', k));
     if (!titleFirst) titleFirst = meta.heard.indexOf('song:title') < 0 ? 'title' : open[Math.floor(Math.random() * open.length)];
@@ -1091,7 +1163,7 @@
         // the Hermit has two songs, and one plays for the whole fight (pinSong chooses it when the fight starts)
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'harbour')) song = 'hermit';
         if (song === 'hermit' && c.song === 'deep') song = 'deep';
-        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'buoy')) song = 'buoy';
+        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'buoy')) cue = 'buoy'; // its own music-box piece (v0.36.0; Tide Swings Its Tongue before)
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bell' || e.id === 'bellthing')) song = 'bell'; // its second phase is the Thing in the Bell
       } else {
         cue = 'reach'; density = 1;
@@ -1146,7 +1218,7 @@
         ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (Landing ${saved.floor})</button>` : ''}
         <button class="btn ${saved ? '' : 'primary solo'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
         ${workshopOpen() ? `<button class="btn ghost second ws-btn${lazaretOpen() ? '' : ' span'}" data-act="workshop" aria-label="${MT.shop}: ${meta.salvage} ${MT.currency}">${ICON.salvage}${MT.shop} <small>${meta.salvage}</small></button>` : ''}
-        ${lazaretOpen() ? `<button class="btn ghost second${workshopOpen() ? '' : ' span'}" data-act="lazaret" aria-label="Lazaret: ${meta.lazaret.length} of ${KS_TOTAL} keepsakes">Lazaret <small class="btn-count">${meta.lazaret.length}/${KS_TOTAL}</small></button>` : ''}
+        ${lazaretOpen() ? `<button class="btn ghost second${workshopOpen() ? '' : ' span'}" data-act="lazaret" aria-label="Lazaret: ${E.lazKinds(meta).length} of ${KS_TOTAL} kinds of keepsake">Lazaret <small class="btn-count">${E.lazKinds(meta).length}/${KS_TOTAL}</small></button>` : ''}
         <div class="title-third">
           <button class="btn ghost third" data-act="story">Story so far${storyUnread().length ? ' <span class="new-pill">New</span>' : ''}</button>
           ${logbookOpen() ? '<button class="btn ghost third" data-act="logbook">Logbook</button>' : ''}
@@ -1296,6 +1368,7 @@
     ['cue', 'dread', 'Dread', 'Dreads'],
     ['song', 'hermit'],
     ['song', 'buoy'],
+    ['cue', 'buoy', 'The Rocking Toll', 'The Tolling Buoy'],
     ['song', 'deep'],
     ['song', 'bell'],
     ['cue', 'pin', 'The Bell', 'A pin without a song of its own'],
@@ -1342,7 +1415,7 @@
     'song:hermit': { open: () => true }, // the pins' songs foreshadow them (the user's call)
     'song:buoy': { open: () => true },
     'song:departure': { open: () => E.heartIsHome(meta), how: 'Bring the Heart home to hear it' },
-    'song:watch': { open: () => ((meta.record && meta.record.runs) || 0) >= 1, how: 'Finish a descent to hear it' }, // it tells of a fall
+    'song:watch': { open: () => true }, // it tells of a fall; open from the start since v0.36.0 (the user's call), after a finished descent before
   };
   const jukeOpen = (kind, key) => {
     const k = kind + ':' + key, early = JUKE_EARLY[k];
@@ -1420,7 +1493,8 @@
   }
   function jukeVolume() {
     const v = Math.round(prefs.musicVol * 100);
-    return `<div class="vol-line jp-vol"><span class="jp-vol-ic" aria-hidden="true">${ICON.volume}</span><input type="range" min="0" max="100" step="5" value="${v}" data-vol="music" aria-label="Music volume"><output>${v}%</output></div>`;
+    // not a long bar like a song's position (the user found the two too alike): a short labelled wedge, in teal, on the right
+    return `<div class="jp-vol" role="group" aria-label="Music volume"><span class="jp-vol-ic" aria-hidden="true">${ICON.volume}</span><span class="jp-vol-lbl">Volume</span><span class="jp-vol-track" style="--v:${v}%"><input type="range" class="jp-vol-range" min="0" max="100" step="5" value="${v}" data-vol="music" aria-label="Music volume"></span><output>${v}%</output></div>`;
   }
   // what the list shows as playing: it is redrawn when that changes, and the time moves in between
   const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, meta.heard.length, !!prefs.jukeShuffle].join('/');
@@ -1604,9 +1678,22 @@
     ui.kitFrom = 'workshop';
     meta.kit = E.fitKit(meta.kit, meta.owned);
     const body = `<div class="ws-art" style="background-image:url(img/scenes/workshop.webp)" role="img" aria-label="The keepers' workshop on the shore"></div><p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Wren wears one piece in each place: choose a place to see what fits there.</p>
-      <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${kitDoll('workshop')}`;
+      <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${kitDoll('workshop')}${lanternPanel()}`;
     openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'), { focus });
     requestAnimationFrame(drawDollLines);
+  }
+
+  /* A steadier lantern (v0.36.0): the Hold, bought in steps with Salvage (E.HOLD_UP). It sits under the kit, since it is
+     not worn: it is the lantern itself. */
+  function lanternPanel() {
+    const n = meta.holdUp || 0, max = E.HOLD_UP.prices.length, price = E.holdUpPrice(meta);
+    const pips = E.HOLD_UP.prices.map((p, i) => `<i class="${i < n ? 'on' : ''}" title="${E.HOLD_UP_NAMES[i]}"></i>`).join('');
+    const next = price == null
+      ? '<p class="lt-done">Your lantern burns as steady as it can.</p>'
+      : `<button class="btn${meta.salvage >= price ? ' primary' : ''} lt-buy" data-act="holdup"${meta.salvage >= price ? '' : ` aria-disabled="true"`}>${E.HOLD_UP_NAMES[n]}: +${E.HOLD_UP.step} Hold for ${price} ${MT.currency}</button>`;
+    return `<section class="lantern-panel" aria-label="The lantern"><h3 class="ws-place">The lantern <small>Your Hold: <b>${E.metaHold(meta)} Roil</b></small></h3>
+      <p class="lt-lead">The aether around a brighter lantern stays Calm with more Roil in it. Each step raises your Hold by ${E.HOLD_UP.step} on every expedition, for good.</p>
+      <div class="lt-row"><span class="lt-pips" role="img" aria-label="${n} of ${max} steps">${pips}</span>${next}</div></section>`;
   }
 
   /* ----- The logbook: a short record of how far the player has come ----- */
@@ -1623,12 +1710,12 @@
       ['The Lantern Heart', r.hearts ? 'Brought home' : levelKnown(2) ? 'Still in the Belfry' : 'Still somewhere below'],
     ].concat(levelKnown(2) ? [['Belfry quieted', r.hearts ? `${r.quiets || 0} time${r.quiets === 1 ? '' : 's'}` : 'Bring the Heart home first']] : [], [
       ['Deepest landing reached', r.deep ? `${LevelName(r.deep.level)}, landing ${r.deep.floor} of ${E.LANDINGS}` : 'Not recorded yet'],
-      ['Your Hold', `${E.metaHold(meta)} Roil${E.HOLD_STEP ? ` <small>${(meta.reached || 0) < E.LEVELS.length - 1 ? `${E.holdAt((meta.reached || 0) + 1)} once you reach ${levelName((meta.reached || 0) + 1)}` : 'as deep as it grows'}</small>` : ''}`],
+      ['Your Hold', `${E.metaHold(meta)} Roil${meta.holdUp ? ` <small>${E.holdUpOf(meta)} of it from the lantern</small>` : ''}${E.HOLD_STEP ? ` <small>${(meta.reached || 0) < E.LEVELS.length - 1 ? `${E.holdAt((meta.reached || 0) + 1)} once you reach ${levelName((meta.reached || 0) + 1)}` : 'as deep as it grows'}</small>` : ''}`],
       ['Pins broken', `${cleared.length}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}${cleared.length ? ` <small>${cleared.join(', ')}</small>` : ''}`],
       ['Best score', getNum(BEST_KEY) || 0],
       [MT.currency, `${meta.salvage} <small>${meta.earned} earned in all</small>`],
       [`${MT.item} owned`, `${meta.owned.length} of ${kitTotal}`],
-      ['Keepsakes in the Lazaret', lazaretOpen() ? `${meta.lazaret.length} of ${KS_TOTAL}` : 'Opens when you first come home'],
+      ['Keepsakes in the Lazaret', lazaretOpen() ? `${E.lazKinds(meta).length} of ${KS_TOTAL} kinds, ${meta.lazaret.length} in all` : 'Opens when you first come home'],
       ['Achievements', `${meta.ach.length} of ${Object.keys(BL.ACHIEVEMENTS).length}`],
       ['Story so far', `${open} of ${entries.length} entries open`],
     ]);
@@ -1642,23 +1729,38 @@
   /* Open after the first expedition that comes home. */
   const lazaretOpen = () => E.lazaretOpen(meta);
   const ksNames = (ids) => ids.map((k) => `<b>${BL.KEEPSAKES[k].name}</b>`).join(', ');
+  /* Giving up a descent (Abandon, or New Descent over a saved one) loses the keepsakes brought from the Lazaret, as a fall
+     does: their copies left it when she set out (v0.36.0). */
+  const broughtLoss = (r) => {
+    const ks = r && r.takenOut ? (r.brought || []).filter((k) => (r.keepsakes || []).indexOf(k) >= 0) : [];
+    return ks.length ? ` The keepsake${ks.length > 1 ? 's' : ''} you brought from the Lazaret (${ksNames(ks)}) ${ks.length > 1 ? 'are' : 'is'} lost with it.` : '';
+  };
+  // what is chosen to bring, less any kind with no copy left (one lost, broken down or given away since)
+  const bringable = () => (meta.bring = meta.bring.filter((k) => E.inLazaret(meta, k)));
   /* What the chosen keepsakes do to the aether. */
   const roilAt = () => {
     const rf = E.roilFor(E.bringCharge(meta), E.metaHold(meta));
     return rf.steps ? `<b class="roiled">Roiled</b>: ${roilWords(rf)} in every fight, and ${roilPay(rf)} after it` : '<b class="calm">Calm</b>';
   };
+  /* A kind kept in the Lazaret: how many copies (since v0.36.0 it keeps many of each), whether one is brought, and in the
+     Lazaret itself a button to break down a spare copy for Salvage. */
   function ksTile(k, packing) {
     const K = BL.KEEPSAKES[k];
-    const on = meta.bring.indexOf(k) >= 0;
-    return `<div class="shop-tile gear-tile kit-tile${on ? ' chosen' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="ksbring" data-k="${k}"${packing ? ' data-pack="1"' : ''}><span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small><span class="g-state">${on ? 'Bringing' : 'Staying home'}</span></div>`;
+    const on = meta.bring.indexOf(k) >= 0, n = E.lazCount(meta, k);
+    const count = n > 1 ? `<span class="lz-count" aria-label="${n} kept">&times;${n}</span>` : '';
+    const tile = `<div class="shop-tile gear-tile kit-tile${on ? ' chosen' : ''}" tabindex="0" role="button" aria-pressed="${on}" aria-label="${K.name}, Roil ${K.charge}, ${n} kept: ${on ? 'bringing one' : 'staying home'}" data-act="ksbring" data-k="${k}"${packing ? ' data-pack="1"' : ''}>${count}<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small><span class="g-state">${on ? 'Bringing one' : 'Staying home'}</span></div>`;
+    if (packing) return tile;
+    const spare = n > 1 ? `<button class="btn small lz-break" data-act="ksbreak" data-k="${k}" aria-label="Break down a spare ${K.name} for ${E.duplicateSalvage(k)} ${MT.currency}">Break down a spare: +${E.duplicateSalvage(k)} ${MT.currency}</button>` : '';
+    return `<div class="lz-cell">${tile}${spare}</div>`;
   }
   function showLazaret() {
-    const kept = meta.lazaret;
+    bringable();
+    const kept = E.lazKinds(meta);
     const missing = Object.keys(BL.KEEPSAKES).filter((k) => kept.indexOf(k) < 0);
-    const lead = `<div class="ws-art" style="background-image:url(img/scenes/lazaret.webp)" role="img" aria-label="The Lazaret, a locked store room at the foot of the lighthouse"></div><p class="ws-lead">The locked store room at the lighthouse. When you come home, every keepsake you carry is kept here. Bring any of them on an expedition: each one still counts toward your Hold. If you fall, you lose only the keepsakes you found on that expedition.</p>`;
+    const lead = `<div class="ws-art" style="background-image:url(img/scenes/lazaret.webp)" role="img" aria-label="The Lazaret, a locked store room at the foot of the lighthouse"></div><p class="ws-lead">The locked store room at the lighthouse. When you come home, every keepsake you carry is kept here, as many of each as you bring home. Bring one of any kind on an expedition: it counts toward your Hold, and it leaves the Lazaret. If you come home with it, it comes back. If you fall, drop it or give it to the sea, it is gone, but when you fall you may hold on to one of the keepsakes you carried. You have <b>${meta.salvage} ${MT.currency}</b>.</p>`;
     const body = kept.length
       ? `${lead}<div class="lz-roil"><span class="chip">You bring <b>${meta.bring.length}</b> of ${kept.length}: <b>Roil ${E.bringCharge(meta)}</b></span><ul><li>Hold ${E.metaHold(meta)}: ${roilAt()}</li></ul></div>
-        <h3 class="ws-place">Kept here <small>${kept.length} of ${KS_TOTAL}. Choose what to bring.</small></h3><div class="shop-row">${kept.map((k) => ksTile(k)).join('')}</div>`
+        <h3 class="ws-place">Kept here <small>${kept.length} of ${KS_TOTAL} kinds, ${meta.lazaret.length} in all. Choose what to bring.</small></h3><div class="shop-row lz-row">${kept.map((k) => ksTile(k)).join('')}</div>`
       : `${lead}<p class="ws-lead lz-empty">It is empty. Come home while you carry a keepsake, and the keepsake is kept here.</p>`;
     const rest = missing.length ? `<h3 class="ws-place">Not brought home yet <small>${missing.length}. Deeper down the keepsakes are stronger.</small></h3><div class="shop-row">${missing.map((k) => `<div class="shop-tile gear-tile locked lz-missing"><span class="medal"><img src="img/icons/${BL.KEEPSAKES[k].art}.webp" alt=""></span><b>${BL.KEEPSAKES[k].name}</b>${E.keepsakeDepth(k) ? `<small>${foundIn(k)}</small>` : ''}</div>`).join('')}</div>` : '';
     openOverlay(modal('The Lazaret', body + rest, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
@@ -1673,10 +1775,11 @@
   function showKit(focus) {
     ui.kitFrom = 'pack';
     meta.kit = E.fitKit(meta.kit, meta.owned);
+    bringable();
     const ch = E.bringCharge(meta);
-    const keeps = meta.lazaret.length ? `<h3 class="ws-place ws-head">Keepsakes <small>from the Lazaret. Bring any number.</small></h3>
+    const keeps = meta.lazaret.length ? `<h3 class="ws-place ws-head">Keepsakes <small>from the Lazaret. Bring any number, one of each. What you bring leaves the Lazaret, and a fall loses it, but for one you hold on to.</small></h3>
       <p class="lz-line">You bring <b>Roil ${ch}</b>. The aether holds <b>${E.metaHold(meta)}</b>: ${roilAt()}.</p>
-      <div class="shop-row">${meta.lazaret.map((k) => ksTile(k, true)).join('')}</div>` : '';
+      <div class="shop-row">${E.lazKinds(meta).map((k) => ksTile(k, true)).join('')}</div>` : '';
     const curs = E.currentsOpen(meta) ? `<h3 class="ws-place ws-head">Currents <small>Each makes the expedition harder and adds &times;${E.CURRENT_SCORE} to the score. Now: score &times;${E.scoreMult({ currents: meta.currents })}.</small></h3>
       <div class="shop-row">${Object.keys(E.CURRENTS).map((k) => {
         const C = E.CURRENTS[k], on = meta.currents.indexOf(k) >= 0;
@@ -1695,7 +1798,7 @@
      end screen as the expedition ends, or over the title screen if that was missed (a closed tab, the debug panel). */
   const NEWS = {
     workshop: () => [gearArt({ art: 'g_salvage' }), `The ${MT.shop} is open`, `Every finished expedition turns its score into <b>${MT.currency}</b>. Spend it on <b>${MT.item.toLowerCase()}</b>: gear that is yours for good. You wear one piece in each of five places.`, `Title screen &rarr; ${MT.shop}`],
-    lazaret: () => ['<span class="medal"><img src="img/icons/k_whaletooth.webp" alt=""></span>', 'The Lazaret is open', 'The locked store room at the lighthouse. Every keepsake you carry home is kept there for good. Before an expedition you choose which to bring, and each one counts toward your Hold.', 'Title screen &rarr; Lazaret'],
+    lazaret: () => ['<span class="medal"><img src="img/icons/k_whaletooth.webp" alt=""></span>', 'The Lazaret is open', 'The locked store room at the lighthouse. Every keepsake you carry home is kept there, as many of each as you bring. Before an expedition you choose which to bring: each one counts toward your Hold, and a fall loses it, but for one you hold on to.', 'Title screen &rarr; Lazaret'],
     suit: () => [gearArt(BL.KIT.suit), `The ${BL.KIT.suit.name} is mended`, `You carried it home and mended it. Wear it in your <b>${placeOf(BL.KIT.suit.place).name}</b> place when you pack, and the stair below Dark Water is open.`, 'New Descent &rarr; Pack for the expedition'],
     currents: () => [`<span class="medal">${ICON.wave}</span>`, 'Currents are open', `The sea is wide awake now, and it has moods. Switch on any <b>currents</b> when you pack: each makes the whole expedition harder and adds &times;${E.CURRENT_SCORE} to your score.`, 'New Descent &rarr; Pack for the expedition'],
   };
@@ -1724,7 +1827,9 @@
   function startNewRun(kit) {
     clearSave();
     const m = /[?&]seed=(\d+)/.exec(location.search);
-    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? meta.bring : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta), meta.reached);
+    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? bringable() : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta), meta.reached, E.holdUpOf(meta));
+    // the keepsakes she brings leave the Lazaret now (v0.36.0): they come back with her, or not at all
+    if (E.takeBrought(meta, run).length) saveMeta();
     save();
     render();
     sfx('bell');
@@ -1851,9 +1956,14 @@
     }
     if (names) {
       c.fx.length = 0;
-      banner(names, 'enemy');
+      // (v0.36.0) the last landing's pin opens with its name card and the great toll, once (the screen is drawn again after the menu)
+      const boss = c.kind === 'boss' && finalFight() && c.enemies.find((e) => BL.ENEMIES[e.id].boss);
+      const card = boss && FINAL_CARD[boss.id];
+      const first = ui.entered !== c;
+      ui.entered = c;
+      if (card && first) { bossCard(card[0], card[1], 'The last landing'); anim($('#field'), 'toll-in', 1400); } else if (!card) banner(names, 'enemy');
       if (c.seep || c.thrash || c.roilMinnows) roilToast({ seep: c.seep, thrash: c.thrash, minnows: c.roilMinnows });
-      if (c.kind === 'boss') sfx('bell');
+      if (c.kind === 'boss' && first) sfx(card ? 'toll' : 'bell');
     } else processFx();
   }
 
@@ -2579,6 +2689,49 @@
     f.appendChild(b);
     setTimeout(() => b.remove(), 1200);
   }
+  /* The last landing's pin (v0.36.0). The user: "Can we make last boss feel even more epic, without making it longer?"
+     It adds no turn and no HP, only a few seconds of show: a name card and the great toll as the fight opens, a bigger
+     beat when the Bellwether's bronze breaks and the Thing comes out, and a slow last blow where the bell goes to light. */
+  const FINAL_CARD = {
+    bell: ['The Drowned Bellwether', 'The keepers\' great bell, ringing with no hand on its rope'],
+    bellthing: ['The Thing in the Bell', 'It grew into the bronze, around the Heart'],
+    thing: ['The Thing in the Bell', 'Grown back in the broken bronze'],
+    cantor: ['The Drowned Cantor', 'Leading the drowned keepers to ring the bell again'],
+  };
+  const finalFight = () => !!(run && !run.tutorial && run.combat && run.combat.kind === 'boss' && E.lastLevel(run));
+  function bossCard(title, sub, kicker) {
+    const f = $('#field');
+    if (!f) return;
+    $$('.banner, .boss-card', f).forEach((b) => b.remove());
+    const d = document.createElement('div');
+    d.className = 'boss-card';
+    d.innerHTML = `${kicker ? `<small>${kicker}</small>` : ''}<b>${title}</b><i></i>${sub ? `<span>${sub}</span>` : ''}`;
+    f.appendChild(d);
+    setTimeout(() => d.remove(), 3000);
+  }
+  // a light that swells out of `el` until it fills the screen, then fades: the Heart's light, a bell going to light
+  function lightBloom(el, cls) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const d = document.createElement('div');
+    d.className = 'light-bloom' + (cls ? ' ' + cls : '');
+    d.style.left = r.left + r.width / 2 + 'px'; d.style.top = r.top + r.height * 0.45 + 'px';
+    fxLayer.appendChild(d);
+    setTimeout(() => d.remove(), 2600);
+  }
+  // the blow that breaks the last pin: the field slows and drains of colour, the bronze glows from inside, then it goes to light
+  async function finalBlow(el, unit) {
+    document.body.classList.add('final-blow');
+    if (unit) unit.classList.add('last-blow');
+    sfx('lastblow');
+    await wait(1000);
+    sfx('shatter');
+    lightBloom(el);
+    if (el) { burstAt(el); setTimeout(() => burstAt(el), 160); }
+    if (unit) { unit.classList.remove('last-blow'); unit.classList.add('to-light'); }
+    await wait(800);
+    document.body.classList.remove('final-blow');
+  }
   function flyTo(el, toEl, scale, fade) {
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -2627,6 +2780,8 @@
     if (img) { img.src = `img/units/${d.art}.webp`; img.alt = e.name; }
     const nm = $('.uname', el);
     if (nm) nm.textContent = e.name;
+    const hb = $('.hpbar', el); // the new form's full HP, not the old form's last point
+    if (hb) hb.innerHTML = hpBarHTML(e.hp, e.maxHp, e.ward);
   }
   async function processFx() {
     const c = run.combat;
@@ -2745,6 +2900,8 @@
         case 'die': {
           const el = unitEl(f.who);
           const unit = el && el.closest('.unit');
+          const who = c.enemies.find((x) => x.uid === f.who);
+          if (c.won && who && BL.ENEMIES[who.id].boss && ui.finalBlow !== c && finalFight()) { ui.finalBlow = c; await finalBlow(el, unit); break; }
           if (el) burstAt(el);
           if (unit) unit.classList.add('dead');
           { const pan = panOf(el); sfx('kill', { pan }); sfx('die', { pan }); }
@@ -2783,16 +2940,28 @@
           const el = unitEl(f.who);
           const unit = el && el.closest('.unit');
           const field = $('#field');
+          // on the last landing the bronze cracks under two blows first, and breaks open in the Heart's light (v0.36.0)
+          const big = f.from === 'bell' && finalFight();
+          if (big) {
+            if (unit) unit.classList.add('cracking');
+            sfx('phase');
+            anim(field, 'impact', 600);
+            await wait(650);
+            anim(field, 'quake', 700);
+            await wait(450);
+            sfx('shatter');
+            lightBloom(el, 'heart');
+            if (unit) unit.classList.remove('cracking');
+          } else sfx('die');
           if (el) burstAt(el);
-          sfx('die');
           await wait(300);
           if (unit) { setUnitForm(unit, run.combat.enemies.find((x) => x.uid === f.who)); anim(unit, 'reborn', 1000); }
           if (field) { field.classList.add('phase2'); anim(field, 'impact', 600); }
           c.phase2 = true;
-          banner(f.text, 'enemy big');
-          sfx('phase');
+          if (big) bossCard(FINAL_CARD.bellthing[0], FINAL_CARD.bellthing[1], f.text);
+          else { banner(f.text, 'enemy big'); sfx('phase'); }
           updateSound();
-          await wait(1000);
+          await wait(big ? 1700 : 1000);
           break;
         }
         case 'burst': {
@@ -2961,12 +3130,15 @@
     const ch = E.charge(run, id), h = E.hold(run), r0 = E.roil(run), r1 = E.roil(run, id);
     return `<span class="k-after${r1.steps > r0.steps ? ' over' : ''}">Then ${ch}/${h}${r1.steps ? `: ${roilWords(r1, true)}` : ''}</span>`;
   }
-  function ksTiles(ids, taken, act, left) {
+  // a keepsake offer: open tiles are picks (`scope` rw-ks, tr-ks or fall-ks; `picked` is the one marked), taken and left
+  // ones are lit or dim. A fall's tiles say nothing of the Roil after: the expedition is over.
+  function ksTiles(ids, taken, scope, left, picked) {
     return ids.map((id) => {
       const K = BL.KEEPSAKES[id];
       const art = `<span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>${K.deep ? `<span class="k-deep">From ${E.LEVELS[K.deep].the}</span>` : ''}`;
       if (taken || left) return `<div class="shop-tile ${id === taken ? 'chosen' : 'dim'}"${id === taken ? ' aria-label="Taken: ' + K.name + '"' : ''}>${art}</div>`;
-      return `<div class="shop-tile ks-pick" tabindex="0" role="button" data-act="${act}" data-k="${id}" aria-label="${K.name}, Roil ${K.charge}">${art}${chargeAfter(id)}</div>`;
+      const on = picked === id;
+      return `<div class="shop-tile ks-pick${on ? ' picked' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="pick" data-scope="${scope}" data-key="${id}" aria-label="${K.name}, Roil ${K.charge}">${art}${scope === 'fall-ks' ? '' : chargeAfter(id)}</div>`;
     }).join('');
   }
   const leaveKsBtn = () => `<button class="btn ghost small leave-ks" data-act="leaveks">Leave them (+${E.DECLINE_SCORE.keepsake} score)</button>`;
@@ -2991,13 +3163,17 @@
     }
     // the panel stays after the pick (chosen tile lit, the other dimmed) so nothing below it jumps up under the pointer
     const ksOpen = ksChoices && !rw.keepsake && !rw.keepsakeLeft;
-    const ksPanel = ksChoices ? `<div class="panel"><h3>${rw.keepsake ? 'Keepsake taken' : rw.keepsakeLeft ? 'Keepsakes left behind' : 'Take a keepsake?'}</h3><div class="shop-row">${ksTiles(ksChoices, rw.keepsake, 'rewardks', rw.keepsakeLeft)}</div>${ksOpen ? leaveKsBtn() : ''}</div>` : '';
-    const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : ''}`,
-      (rw.cardTaken ? '' : `tabindex="0" role="button" data-act="rewardcard" data-i="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
+    const ksPick = ksOpen ? pickOf('rw-ks', rw) : null;
+    const ksPanel = ksChoices ? `<div class="panel"><h3>${rw.keepsake ? 'Keepsake taken' : rw.keepsakeLeft ? 'Keepsakes left behind' : 'Take a keepsake?'}</h3><div class="shop-row">${ksTiles(ksChoices, rw.keepsake, 'rw-ks', rw.keepsakeLeft, ksPick)}</div>${ksOpen ? `<div class="ks-actions">${leaveKsBtn()}${pickOkBtn('rw-ks', ksPick, 'small')}</div>` : ''}</div>` : '';
+    // a card is marked first (a tap, or 1 to 3) and taken with the button below it (v0.36.0)
+    const cPick = rw.cardTaken ? null : pickOf('rw-card', rw);
+    const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : String(i) === cPick ? ' picked' : ''}`,
+      (rw.cardTaken ? '' : `tabindex="0" role="button" aria-pressed="${String(i) === cPick}" data-act="pick" data-scope="rw-card" data-key="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
     const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
-    // a keepsake on offer is taken or left before moving on
+    const legend = rw.cardTaken ? '' : pickLegend('rw-card', cPick == null ? null : pseudo(rw.cards[+cPick].id, rw.cards[+cPick].up));
+    // a keepsake on offer is taken or left before moving on; taking the card goes on to the map when nothing else waits
     const buttons = !rw.cardTaken
-      ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card (+${E.DECLINE_SCORE[E.skipCardKind(rw)]} score)</button>`
+      ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card (+${E.DECLINE_SCORE[E.skipCardKind(rw)]} score)</button>${pickOkBtn('rw-card', cPick, 'wide')}`
       : ksOpen
         ? '<button class="btn primary wide" disabled>Take a keepsake or leave them</button>'
         : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
@@ -3005,11 +3181,11 @@
       <h1>Victory</h1>
       ${summary}
       ${ksPanel}
-      ${rw.cards.length ? `<section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${keywordLegend(rw.cards.map((rc) => pseudo(rc.id, rc.up)))}</section>` : ''}
+      ${rw.cards.length ? `<section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>` : ''}
       ${extras.length ? `<div class="reward-list">${extras.join('')}</div>` : ''}
       <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
-    const f = $('[autofocus]', screenEl) || (rw.cardTaken && $('.ks-pick', screenEl)) || $('.card.choice', screenEl);
+    const f = $('[autofocus]', screenEl) || $('.picked', screenEl) || (rw.cardTaken && $('.ks-pick', screenEl)) || $('.card.choice', screenEl);
     if (f && ui.lastPointer !== 'touch') f.focus({ preventScroll: true });
   }
 
@@ -3053,13 +3229,14 @@
   const STAIR_TEXT = {
     rest: (done) => {
       const h = done ? 0 : Math.min(E.stairRestAmount(run), run.maxHp - run.hp);
-      return ['Rest deeply', `${h ? `Heal ${h} HP: ${run.hp} &rarr; ${run.hp + h} of ${run.maxHp}. ` : ''}Half your Max HP; a Cove heals 30%.`, h ? hpGainBar(run.hp, h, run.maxHp) : ''];
+      return ['Rest', `${h ? `Heal ${h} HP: ${run.hp} &rarr; ${run.hp + h} of ${run.maxHp}. ` : ''}${Math.round(E.STAIR_REST * 100)}% of your Max HP, as at a Cove.`, h ? hpGainBar(run.hp, h, run.maxHp) : ''];
     },
     refit: () => ['Refit your gear', 'Upgrade a card in your deck.'],
     shed: () => ['Shed a card', 'Leave a card on the stair, for good. Free: Barnaby charges Pearls for it.'],
     flask: (done) => {
-      const n = done ? 0 : run.tonics.filter((t) => !t).length;
-      return ['Fill your flasks', `Brinelight drips from the rock here. Fill every empty flask${n ? `: <b>${n} random tonic${n > 1 ? 's' : ''}</b>, no two alike` : ' with a random tonic'}.`];
+      // up to E.STAIR_FLASKS of the empty slots (v0.36.0; every empty one before)
+      const n = done ? 0 : Math.min(E.STAIR_FLASKS, run.tonics.filter((t) => !t).length);
+      return ['Fill your flasks', `Brinelight drips from the rock here. Fill up to ${E.STAIR_FLASKS} empty flasks${n ? `: <b>${n} random tonic${n > 1 ? 's' : ''}</b>, no two alike` : ' with random tonics'}.`];
     },
     cache: () => ["The keepers' cache", 'The keepers before you left cards in the wall. Choose 1 of 3, uncommon or rare.'],
     sea: () => ['Give one to the sea', `Throw a keepsake into the water. It is gone, with its Roil, and the sea pays for it: heal ${E.SEA_HEAL} HP for each Roil it had, and refit a card.`],
@@ -3129,7 +3306,7 @@
         <span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>
         <span class="k-after sea-pay">Heal ${E.seaHeal(k)}${heal < E.seaHeal(k) ? ` (${heal} now)` : ''} HP, refit a card</span>
         <span class="k-after">Then ${ch - K.charge}/${h}${after.steps ? `: ${roilWords(after, true)}` : now.steps ? ': Calm' : ''}</span>
-        ${E.wasBrought(run, k) ? '<span class="k-deep">Stays in the Lazaret</span>' : ''}</div>`;
+        ${E.wasBrought(run, k) ? `<span class="k-deep">${run.takenOut ? 'From the Lazaret: gone from there too' : 'Stays in the Lazaret'}</span>` : ''}</div>`;
     }).join('');
     const body = `<p class="buy-left">Choose a keepsake to throw into the water. It is gone for this expedition, and what it did for you goes with it. The sea pays: <b>${E.SEA_HEAL} HP for each Roil</b> it had, and you <b>refit a card</b>.${now.steps ? ` You carry ${ch} of your Hold of ${h}.` : ''}</p>
       <div class="shop-row sea-row">${tiles}</div>`;
@@ -3284,12 +3461,13 @@
       const hasChoices = t.choices && t.choices.length;
       // like the Dread reward: the chest stays open where it was after the pick
       const picking = hasChoices && !k && !t.keepsakeLeft;
+      const tPick = picking ? pickOf('tr-ks', t) : null;
       const choices = hasChoices
-        ? `<div class="panel"><h3>${k ? 'You take the ' + k.name + '.' : t.keepsakeLeft ? 'You leave the keepsakes in the chest.' : 'Three keepsakes glint in the chest. Take one?'}</h3><div class="shop-row">${ksTiles(t.choices, t.keepsake, 'treasureks', t.keepsakeLeft)}</div>${picking ? leaveKsBtn() : ''}</div>` : '';
+        ? `<div class="panel"><h3>${k ? 'You take the ' + k.name + '.' : t.keepsakeLeft ? 'You leave the keepsakes in the chest.' : 'Three keepsakes glint in the chest. Take one?'}</h3><div class="shop-row">${ksTiles(t.choices, t.keepsake, 'tr-ks', t.keepsakeLeft, tPick)}</div>${picking ? leaveKsBtn() : ''}</div>` : '';
       body = `<div class="reward-list">
         <div class="reward-item done"><span class="medal" style="display:grid;place-items:center">${ICON.pearl}</span><div class="grow"><b>${t.pearls} Pearls</b></div></div>
         ${k && !hasChoices ? `<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>` : ''}
-      </div>${choices}${picking ? '<button class="btn" disabled>Take a keepsake or leave them</button>' : '<button class="btn primary" data-act="tomap" autofocus>Continue</button>'}`;
+      </div>${choices}${picking ? pickOkBtn('tr-ks', tPick) : '<button class="btn primary" data-act="tomap" autofocus>Continue</button>'}`;
     }
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="chest" style="background-image:url(img/scenes/treasure.webp)"></div>
@@ -3318,14 +3496,25 @@
     const z = fin.laz;
     if (z) {
       const parts = [];
-      if (z.opened) parts.push('<b>The Lazaret is open.</b> It is the locked store room at the lighthouse, on the title screen. Keepsakes kept there are yours for good, and you choose which to bring on each descent.');
-      if (z.kept.length) parts.push(`Kept in the Lazaret: ${ksNames(z.kept)}.`);
-      if (z.dupes.length) parts.push(`The Lazaret already holds ${ksNames(z.dupes)}, so ${z.dupes.length > 1 ? 'they become' : 'it becomes'} <b>+${z.salvage} ${MT.currency}</b>.`);
+      if (z.opened) parts.push('<b>The Lazaret is open.</b> It is the locked store room at the lighthouse, on the title screen. Keepsakes kept there are yours until you take them down again, and you choose which to bring on each descent.');
+      if ((z.added || []).length) parts.push(`Into the Lazaret: ${ksNames(z.added)}.${z.kept.length && z.kept.length < z.added.length ? ` New there: ${ksNames(z.kept)}.` : ''}`);
       // kit found on the expedition (the diving dress) is mended at home and joins the Workshop
       const kit = (z.found || []).map((id) => `<div class="unlock-box found-kit">${gearArt(BL.KIT[id])}<span><b>You carried home the ${BL.KIT[id].name}.</b> You mend it at the lighthouse. Wear it in your ${BL.KIT_PLACES.find((pl) => pl.id === BL.KIT[id].place).name} place, and the stair below Dark Water is open.</span></div>`).join('');
       return kit + (parts.length ? `<button class="unlock-box lz-box" data-act="lazaret">${parts.join(' ')}</button>` : '');
     }
-    if (fin.lost && fin.lost.length) return `<div class="unlock-box lz-box lost">The bell calls back what you found on this descent: ${ksNames(fin.lost)}.${(run.brought || []).length ? ' The keepsakes you brought are safe in the Lazaret.' : ''}</div>`;
+    if (fin.lost && fin.lost.length) {
+      /* v0.36.0, the user: "Maybe can choose to keep one keepsake at defeat". Wren holds on to one of them (E.keepOnFall),
+         chosen here before she leaves this screen; the rest the bell calls back. */
+      const kept = run.keptOnFall, gone = fin.lost.filter((k) => k !== kept);
+      const brought = run.takenOut && (run.brought || []).some((k) => gone.indexOf(k) >= 0) ? ` ${kept ? 'The others' : 'The ones'} you brought from the Lazaret are gone from there too.` : '';
+      if (!kept && !run.cheated && lazaretOpen()) {
+        const pick = pickOf('fall-ks', run);
+        return `<div class="unlock-box lz-box lost lz-keep"><p><b>The bell calls back every keepsake you carried.</b> Hold on to one, and it goes into the Lazaret. Choose before you leave this screen.${brought} What you left in the Lazaret is safe.</p>
+          <div class="shop-row">${ksTiles(fin.lost, null, 'fall-ks', false, pick)}</div><div class="ks-actions">${pickOkBtn('fall-ks', pick, 'small')}</div></div>`;
+      }
+      const held = kept ? `You held on to the <b>${BL.KEEPSAKES[kept].name}</b>: it is in the Lazaret. ` : '';
+      return `<div class="unlock-box lz-box lost">${held}${gone.length ? `The bell calls back ${kept ? 'the rest' : 'every keepsake you carried'}: ${ksNames(gone)}.${brought}` : ''} What you left in the Lazaret is safe.</div>`;
+    }
     return '';
   }
   function renderEnd(win) {
@@ -3341,13 +3530,13 @@
       if (!run.tutorial) {
         checkUnlocks(true);
         fin.salvage = E.earnSalvage(meta, score);
-        // the Lazaret: a win keeps what Wren carries, a fall loses what she found (a debug-cheated run keeps nothing)
+        // the Lazaret: coming home keeps what Wren carries, a fall loses it (a debug-cheated run keeps nothing)
         const curOpen = E.currentsOpen(meta);
         if (!run.cheated) E.recordRun(meta, run, win); // the logbook
         fin.currents = !curOpen && E.currentsOpen(meta);
         const wasOpen = lazaretOpen();
         if (win && !run.cheated) fin.laz = E.carryHome(meta, run);
-        else if (!win && wasOpen) fin.lost = E.foundKeepsakes(run);
+        else if (!win && wasOpen) { fin.lost = E.lostKeepsakes(run); E.storeKeepsakes(meta, run); } // the fall: what was chosen and is gone is no longer chosen
         if (fin.laz) fin.laz.opened = !wasOpen;
         saveMeta();
       }
@@ -3421,9 +3610,9 @@
       case 'hintok': Teach.closeHint(); Teach.checkHints(); break;
       case 'newrun':
         if (run && loadSave() && run.screen !== 'victory' && run.screen !== 'defeat') {
-          openOverlay(modal('Start a new descent?', '<p>Your current run will be lost.</p>', '<button class="btn" data-act="close">Keep playing</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
+          openOverlay(modal('Start a new descent?', `<p>Your current run will be lost.${broughtLoss(run)}</p>`, '<button class="btn" data-act="close">Keep playing</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
         } else if (!run && loadSave()) {
-          openOverlay(modal('Start a new descent?', '<p>You have a run in progress. Starting over will erase it.</p>', '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
+          openOverlay(modal('Start a new descent?', `<p>You have a run in progress. Starting over will erase it.${broughtLoss(loadSave())}</p>`, '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
         } else beginNewRun();
         break;
       case 'confirmnew': closeOverlay(true); beginNewRun(); break;
@@ -3436,6 +3625,23 @@
         openOverlay(modal(`Buy ${g.name} for ${g.price} ${MT.currency}?`,
           `<div class="buy-item">${gearArt(g)}<div><b>${g.name}</b><p>${g.desc}</p></div></div><p class="buy-left">You have ${meta.salvage} ${MT.currency}; ${meta.salvage - g.price} left after this.</p>`,
           `<button class="btn" data-act="kitback" data-g="${id}">Back</button><button class="btn primary" data-act="kitbuyconfirm" data-g="${id}" autofocus>Buy</button>`, 'narrow'));
+        break;
+      }
+      case 'holdup': {
+        const p = E.holdUpPrice(meta), n = meta.holdUp || 0;
+        if (p == null) break;
+        if (meta.salvage < p) { toast(`Not enough ${MT.currency}: ${E.HOLD_UP_NAMES[n]} costs ${p}`); break; }
+        { const sc = $('.modal-body', overlayEl); ui.kitScroll = sc ? sc.scrollTop : 0; }
+        openOverlay(modal(`${E.HOLD_UP_NAMES[n]} for ${p} ${MT.currency}?`,
+          `<p>Your Hold goes from <b>${E.metaHold(meta)}</b> to <b>${E.metaHold(meta) + E.HOLD_UP.step} Roil</b> on every expedition, for good.</p><p class="buy-left">You have ${meta.salvage} ${MT.currency}; ${meta.salvage - p} left after this.</p>`,
+          `<button class="btn" data-act="holdback">Back</button><button class="btn primary" data-act="holdupconfirm" autofocus>Buy</button>`, 'narrow'));
+        break;
+      }
+      case 'holdupconfirm':
+      case 'holdback': {
+        if (act === 'holdupconfirm' && E.buyHoldUp(meta)) { saveMeta(); sfx('coin'); toast(`Your lantern burns steadier: Hold ${E.metaHold(meta)}.`); if (!run) render(); }
+        showWorkshop('[data-act="holdup"]');
+        { const sc = $('.modal-body', overlayEl); if (sc) { sc.scrollTop = ui.kitScroll || 0; updateScrollCue(sc); } }
         break;
       }
       case 'kitbuyconfirm':
@@ -3489,6 +3695,18 @@
         if (run.holdRose) toast(`You stand in deeper aether, and it steadies around you: your Hold grows from ${run.holdRose.from} to ${run.holdRose.to}, for good.`, 5200);
       } break;
       case 'lazaret': showLazaret(); break;
+      case 'ksbreak': {
+        const k = t.dataset.k, n = E.breakDown(meta, k);
+        if (!n) break;
+        saveMeta();
+        sfx('coin');
+        toast(`You break down a spare ${BL.KEEPSAKES[k].name} for its brass and bone: +${n} ${MT.currency}.`);
+        const sc = $('.modal-body', overlayEl), top = sc ? sc.scrollTop : 0;
+        showLazaret();
+        const sc2 = $('.modal-body', overlayEl); if (sc2) sc2.scrollTop = top;
+        const b = $(`[data-act="ksbreak"][data-k="${k}"]`, overlayEl) || $(`[data-act="ksbring"][data-k="${k}"]`, overlayEl); if (b) b.focus({ preventScroll: true });
+        break;
+      }
       case 'logbook': showLogbook(); break;
       case 'ksbring': {
         const k = t.dataset.k, packing = t.dataset.pack;
@@ -3560,7 +3778,7 @@
       case 'togglemusic': prefs.music = !prefs.music; savePrefs(); Sound.changed(); showMenu(); break;
       case 'totitle': save(); closeOverlay(true); run = null; render(); break;
       case 'abandon':
-        openOverlay(modal('Abandon this run?', '<p>Your progress will be lost.</p>', '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmabandon">Abandon</button>', 'narrow'));
+        openOverlay(modal('Abandon this run?', `<p>Your progress will be lost.${broughtLoss(run)}</p>`, '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmabandon">Abandon</button>', 'narrow'));
         break;
       case 'confirmabandon': clearSave(); closeOverlay(true); run = null; render(); break;
       case 'progress':
@@ -3624,6 +3842,40 @@
       }
       case 'tonicuse': closeOverlay(true); useTonic(+t.dataset.slot); break;
       case 'tonicdiscard': E.discardTonic(run, +t.dataset.slot); closeOverlay(true); save(); updateHud(); break;
+      case 'pick': {
+        const sc = t.dataset.scope;
+        const of = sc === 'rw-card' || sc === 'rw-ks' ? run && run.rewards : sc === 'tr-ks' ? run && run.treasure : sc === 'fall-ks' ? run : ui.cardChoiceDone;
+        if (of) setPick(t, of);
+        break;
+      }
+      case 'pickok': {
+        const sc = t.dataset.scope;
+        const of = sc === 'rw-card' || sc === 'rw-ks' ? run && run.rewards : sc === 'tr-ks' ? run && run.treasure : sc === 'fall-ks' ? run : ui.cardChoiceDone;
+        const key = pickOf(sc, of);
+        if (key == null) break;
+        delete ui.picks[sc];
+        // a fall: the one keepsake held on to goes into the Lazaret; the end screen stays where it was scrolled
+        if (sc === 'fall-ks') {
+          if (E.keepOnFall(meta, run, key)) { saveMeta(); sfx('keepsake'); }
+          const sc0 = $('.scene', screenEl), top = sc0 ? sc0.scrollTop : 0;
+          render();
+          const sc1 = $('.scene', screenEl); if (sc1) sc1.scrollTop = top;
+          const box = $('.lz-box.lost', screenEl); if (box && ui.lastPointer !== 'touch') { box.setAttribute('tabindex', '-1'); box.focus({ preventScroll: true }); }
+          break;
+        }
+        if (sc === 'choice') { const cb = ui.cardChoiceDone; ui.cardChoiceDone = null; closeOverlay(true); if (cb) cb(key); render(); break; }
+        if (sc === 'rw-card') { E.takeRewardCard(run, +key); sfx('select'); }
+        if (sc === 'rw-ks') { E.takeRewardKeepsake(run, key); sfx('keepsake'); }
+        if (sc === 'tr-ks') { E.takeTreasureKeepsake(run, key); sfx('keepsake'); }
+        // on to the map, unless the reward's card or keepsakes still wait to be decided, or a tonic could still be taken
+        const rw = run.rewards;
+        const waits = sc !== 'tr-ks' && rw && ((rw.cards.length && !rw.cardTaken) || (rw.keepsakeChoices && rw.keepsakeChoices.length && !rw.keepsake && !rw.keepsakeLeft)
+          || (rw.tonic && !rw.tonicTaken && run.tonics.indexOf(null) >= 0));
+        if (!waits) E.backToMap(run);
+        save();
+        render();
+        break;
+      }
       case 'choosecard': {
         const id = t.dataset.id;
         const cb = ui.cardChoiceDone;
@@ -3644,20 +3896,6 @@
         const rc = i == null ? null : run.rewards.cards[i];
         E.takeRewardCard(run, i);
         if (rc) sfx('select'); // the heading changes to "Added to your deck" and the card lights up, so no toast
-        save();
-        render();
-        break;
-      }
-      case 'rewardks': {
-        E.takeRewardKeepsake(run, t.dataset.k);
-        sfx('keepsake'); // the panel says "Keepsake taken" with the pick lit, so no toast
-        save();
-        render();
-        break;
-      }
-      case 'treasureks': {
-        E.takeTreasureKeepsake(run, t.dataset.k);
-        sfx('keepsake');
         save();
         render();
         break;
@@ -3794,9 +4032,9 @@
       if (k === 'Escape') { e.preventDefault(); closeOverlay(); return; }
       // number keys pick cards in a card choice
       if (/^[1-9]$/.test(k)) {
-        const opts = $$('[data-act="choosecard"][data-i], [data-act="deckpick"]', overlayEl);
+        const opts = $$('[data-act="pick"], [data-act="deckpick"]', overlayEl);
         const o = opts[+k - 1];
-        if (o) { e.preventDefault(); o.click(); }
+        if (o) { e.preventDefault(); o.click(); const ok = $('[data-act="pickok"]:not([disabled])', overlayEl); if (ok) ok.focus({ preventScroll: true }); }
       }
       if ((k === 'Enter' || k === ' ') && document.activeElement && document.activeElement.matches('[role="button"][data-act]')) {
         e.preventDefault(); document.activeElement.click();
@@ -3811,8 +4049,8 @@
     if (run.screen === 'combat') return combatKey(e, onButton);
     if (run.screen === 'map') return mapKey(e);
     if (run.screen === 'reward' && /^[1-3]$/.test(k)) {
-      const el = $$('[data-act="rewardcard"][data-i]', screenEl)[+k - 1];
-      if (el) { e.preventDefault(); el.click(); }
+      const el = $$('[data-act="pick"][data-scope="rw-card"]', screenEl)[+k - 1];
+      if (el) { e.preventDefault(); el.click(); const ok = $('[data-act="pickok"]:not([disabled])', screenEl); if (ok) ok.focus({ preventScroll: true }); }
     }
   });
 
@@ -3839,8 +4077,8 @@
     }
     if (k === 'e' || k === 'E') { e.preventDefault(); endTurn(); return; }
     if (k === 'b' || k === 'B' || k === 's' || k === 'S') { e.preventDefault(); swellAct(k.toLowerCase() === 'b' ? 'bail' : 'stir'); return; }
-    if (k === 'z' || k === 'x' || k === 'c' || k === 'Z' || k === 'X' || k === 'C') {
-      const slot = { z: 0, x: 1, c: 2 }[k.toLowerCase()];
+    if ('zxcvZXCV'.indexOf(k) >= 0 && k.length === 1) { // V: the fourth slot, with the Spare Flask
+      const slot = { z: 0, x: 1, c: 2, v: 3 }[k.toLowerCase()];
       if (run.tonics[slot]) { e.preventDefault(); showTonic(slot); }
       return;
     }
@@ -3896,7 +4134,9 @@
     drawDollLines();
   });
   window.addEventListener('beforeunload', () => save());
-  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); Sound.hide(); } else Sound.show(); });
+  window.addEventListener('pagehide', () => Sound.hide());
+  window.addEventListener('pageshow', () => { if (!document.hidden) Sound.show(); });
 
   Teach = BL.Teach({
     E, $, ui, save, loadSave, render, openOverlay, modal,

@@ -118,8 +118,9 @@
   E.SEEP_STEP = 12; // Roil over the Hold for each step: about one keepsake's worth, so each keepsake past the Hold adds about one step (5 until v0.18.0)
   E.MAX_ROIL_MINNOWS = 2;
   /* A Roiled aether pays (v0.35.0; until then Roil was only a cost, so the right play was always to stay under the
-     Hold): every fight that pays Pearls pays ROIL_PAY more for each step the aether was over the Hold when it began. */
-  E.ROIL_PAY = 8;
+     Hold): every fight that pays Pearls pays ROIL_PAY more for each step the aether was over the Hold when it began.
+     8 until v0.36.0 (the user: "Pearl income from roil should be reduced"). */
+  E.ROIL_PAY = 4;
   E.ROIL_MINNOW_HP = 0.5; // a Minnow that follows the Roil has this share of a Bell Minnow's HP, rounded up
   /* The Hold for someone whose deepest level reached is `deepest` (0 = only the Shallows). */
   E.holdAt = (deepest) => E.HOLD + E.HOLD_STEP * Math.max(0, Math.min(E.LEVELS.length - 1, deepest || 0));
@@ -159,7 +160,7 @@
   E.CURRENTS = {
     fed: { name: 'Fat Year', hp: 1.1, desc: 'Every creature has 10% more HP.' },
     teeth: { name: 'Hungry Deep', dmg: 1.15, desc: 'Every creature hits 15% harder.' },
-    cold: { name: 'Cold Coves', rest: 0.2, desc: 'Coves heal 20% of your Max HP, not 30%, and the stair\'s deep rest a third, not half.' },
+    cold: { name: 'Cold Coves', rest: 0.2, desc: 'Coves and the stair\'s rest heal 20% of your Max HP, not 30%.' },
     backwash: { name: 'Backwash', backwash: 1, desc: 'At the start of each of your turns after the first, the Swell slips 1 back toward 3.' },
   };
   E.currents = (run) => ((run && run.currents) || []).filter((k) => E.CURRENTS[k]);
@@ -178,8 +179,8 @@
   /* A new expedition. It always starts in the Shallows; `level` starts it deeper, for tests and the bot only.
      `heartHome`: the Heart came home on an earlier expedition, so the Bellwether is silent and the Belfry's last
      landing is one of its finals (BL.BANDS.belfry.enc.finals). `deepest`: the deepest level reached on any earlier
-     expedition (meta.reached), which sets the Hold. */
-  E.newRun = function (seed, level, kit, bring, currents, heartHome, deepest) {
+     expedition (meta.reached), which sets the Hold. `holdUp`: the Hold bought at the Workshop (E.holdUpOf(meta)). */
+  E.newRun = function (seed, level, kit, bring, currents, heartHome, deepest, holdUp) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
       version: E.RUN_VERSION,
@@ -187,7 +188,7 @@
       heartHome: !!heartHome,
       currents: (currents || []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i),
       cleared: [], // the levels whose pin is broken on this expedition
-      hold: E.holdAt(Math.max(deepest || 0, level || 0)),
+      hold: E.holdAt(Math.max(deepest || 0, level || 0)) + (holdUp || 0),
       seed: seed >>> 0,
       rng: seed >>> 0,
       hp: 70, maxHp: 70, pearls: 0, // none gathered yet (75 until v0.30.0; the Coin Purse still adds 30)
@@ -517,15 +518,18 @@
   /* ---------------- The stair down (v0.31.0) ----------------
      Between levels the Cove on the stair is bigger than a Cove (the user: "more alternatives than in-level rest, and
      *feel* stronger"; the user chose "pick 2 of 5"). Wren does two of five things there, each once:
-       rest   heal 50% of Max HP (a Cove heals 30%; a current that lowers Coves lowers this in step, and the Spare Wick adds its 10)
+       rest   heal 30% of Max HP, as a Cove does (50% from v0.31.0 to v0.35.0; the user, v0.36.0: "Nerf rest to 30% in stairs.
+              Still strong since you have two actions"); a current that lowers Coves lowers this in step, and the Spare Wick adds its 10
        refit  upgrade a card
        shed   remove a card, free (Barnaby charges 75 and more)
-       flask  a random tonic into every empty slot, no two alike (one tonic until v0.33.0: the user found it weak)
+       flask  a random tonic into up to STAIR_FLASKS empty slots, no two alike (one tonic until v0.33.0: the user found it
+              weak; every empty slot from v0.33.0 until v0.36.0, when the Spare Flask's fourth slot made that four)
        cache  the keepers' cache: 1 of 3 cards, uncommon or rare (seen before choosing; looking costs nothing)
        sea    give a keepsake to the sea (v0.35.0, E.seaGive): heal by its Roil and refit a card
      She may go on down with picks unused. */
   E.STAIR_PICKS = 2;
-  E.STAIR_REST = 0.5;
+  E.STAIR_REST = 0.3; // 0.5 until v0.36.0
+  E.STAIR_FLASKS = 2; // the most tonics the stair's flask fills (v0.36.0, the user: "Limit max flasks filled in stairs to two or three")
   E.STAIR_OPTIONS = ['rest', 'refit', 'shed', 'flask', 'cache', 'sea']; // 'sea' since v0.35.0: two of six
   E.stairRestAmount = (run) => Math.floor(run.maxHp * E.STAIR_REST * (E.mods(run).rest / E.COVE_REST)) + (E.hasKit(run, 'wick') ? 10 : 0);
   E.stairOpen = (run) => !!run && run.screen === 'rest' && !!run.passage;
@@ -568,7 +572,7 @@
     } else if (id === 'flask') {
       const pool = makeR(run).shuffle(Object.keys(BL.TONICS));
       out.tonics = [];
-      while (run.tonics.indexOf(null) >= 0 && pool.length) { const t = pool.shift(); E.gainTonic(run, t); out.tonics.push(t); }
+      while (run.tonics.indexOf(null) >= 0 && pool.length && out.tonics.length < E.STAIR_FLASKS) { const t = pool.shift(); E.gainTonic(run, t); out.tonics.push(t); }
     }
     else if (id === 'cache') {
       const cid = E.stairCache(run)[arg];
@@ -585,20 +589,24 @@
     return out;
   };
 
+  /* Barnaby's prices, lowest and highest (one card is always on sale at half). v0.36.0 raised them, the user: "Barnaby
+     shop too cheap, especially cards". Until then: common 45-55, uncommon 70-85, rare 140-160, keepsake 130-165,
+     tonic 45-60. */
+  E.SHOP_PRICES = { common: [60, 72], uncommon: [95, 112], rare: [180, 205], keepsake: [150, 185], tonic: [50, 65] };
   E.price = (run, base) => (E.hasKit(run, 'scales') ? Math.round(base * 0.75) : base);
 
   function genShop(run) {
     const R = makeR(run);
     const pickN = (arr, n) => R.shuffle(arr.slice()).slice(0, n);
     const cards = []
-      .concat(pickN(BL.REWARD_POOL.common, 2).map((id) => ({ id, base: R.int(45, 55) })))
-      .concat(pickN(BL.REWARD_POOL.uncommon, 2).map((id) => ({ id, base: R.int(70, 85) })))
-      .concat(pickN(BL.REWARD_POOL.rare, 1).map((id) => ({ id, base: R.int(140, 160) })));
+      .concat(pickN(BL.REWARD_POOL.common, 2).map((id) => ({ id, base: R.int(E.SHOP_PRICES.common[0], E.SHOP_PRICES.common[1]) })))
+      .concat(pickN(BL.REWARD_POOL.uncommon, 2).map((id) => ({ id, base: R.int(E.SHOP_PRICES.uncommon[0], E.SHOP_PRICES.uncommon[1]) })))
+      .concat(pickN(BL.REWARD_POOL.rare, 1).map((id) => ({ id, base: R.int(E.SHOP_PRICES.rare[0], E.SHOP_PRICES.rare[1]) })));
     const sale = R.int(0, cards.length - 1);
     cards[sale].base = Math.round(cards[sale].base / 2);
     cards[sale].sale = true;
-    const ks = E.keepsakeChoices(run, 2).map((id) => ({ id, base: R.int(130, 165) }));
-    const ts = pickN(Object.keys(BL.TONICS), 2).map((id) => ({ id, base: R.int(45, 60) }));
+    const ks = E.keepsakeChoices(run, 2).map((id) => ({ id, base: R.int(E.SHOP_PRICES.keepsake[0], E.SHOP_PRICES.keepsake[1]) }));
+    const ts = pickN(Object.keys(BL.TONICS), 2).map((id) => ({ id, base: R.int(E.SHOP_PRICES.tonic[0], E.SHOP_PRICES.tonic[1]) }));
     run.shop = { cards, keepsakes: ks, tonics: ts, removed: false };
   }
   E.genShop = genShop;
@@ -815,6 +823,7 @@
       return loss;
     }
     if (!isPlayer && tgt.hp <= 0) killEnemy(run, c, tgt);
+    else if (!isPlayer && loss > 0) hurtReact(run, c, tgt);
     // Spines strike back at attackers
     if (isAttack && src && (tgt.st.spines || 0) > 0 && !src.dead && !c.lost) {
       dealDamage(run, c, src, tgt.st.spines, null, false);
@@ -849,6 +858,23 @@
     fx(c, { t: 'disgorge', who: e.uid, names: back.map(E.cardName) });
     e.mem.swallowed = [];
     delete e.st.swallowed;
+  }
+
+  /* A creature with `hurt: { at, move }` does that move at once, out of turn, the first time it is hurt to `at` of its
+     health or below and lives: the Pale Gulper's Retch (v0.36.0). Until then the Retch was its next intent, so a Gulper
+     brought below half could be killed the turn after, before it ever retched (the user: "Pale gulper dies before
+     calling for help"). Its intent for the turn stays, and what it calls up acts this turn. */
+  function hurtReact(run, c, e) {
+    const d = BL.ENEMIES[e.id], h = d.hurt;
+    if (!h || e.dead || e.mem.reacted || e.mem.summoned || e.hp > e.maxHp * h.at || c.won || c.lost) return; // summoned: a save from before v0.36.0
+    e.mem.reacted = true;
+    const m = d.moves[h.move];
+    fx(c, { t: 'act', who: e.uid, name: m.name, attack: false, react: true });
+    if (m.phase) fx(c, { t: 'phase', who: e.uid, text: m.phase });
+    if (m.disgorge) disgorge(c, e);
+    (m.summon || []).forEach((id) => {
+      if (E.alive(c).length < 5) fx(c, { t: 'summon', who: spawnEnemy(run, c, id, 0).uid });
+    });
   }
 
   function killEnemy(run, c, e) {
@@ -941,6 +967,7 @@
       run.stats.dmgDealt += n;
       fx(c, { t: 'dmg', who: tgt.uid, n, blocked: 0, brine: true });
       if (tgt.hp <= 0) killEnemy(run, c, tgt);
+      else hurtReact(run, c, tgt);
     }
   }
 
@@ -1772,7 +1799,7 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [] });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [] });
   /* What opens at the lighthouse as the player gets on, in the order it opens: the Workshop (the first Salvage), the
      Lazaret (the first time home), the Diving Dress (carried home) and currents (the Heart home). `meta.told` lists the
      ones the player has been shown: the UI tells each once, in a window that has to be acknowledged (v0.33.0, the user:
@@ -1801,7 +1828,23 @@
     return true;
   };
   /* The Hold the next expedition starts with. */
-  E.metaHold = (meta) => E.holdAt(meta.reached || 0);
+  E.metaHold = (meta) => E.holdAt(meta.reached || 0) + E.holdUpOf(meta);
+  /* A steadier lantern (v0.36.0, the user: "Add option to improve roil resistance or similar, increasing max hold"; of
+     four ways the user chose a lasting Workshop upgrade). Bought with Salvage, step by step: each step adds HOLD_UP.step
+     to the Hold of every later expedition, for good. The fiction is WORLD.md's: the aether around a brighter lantern
+     stays Calm with more Roil in it. `meta.holdUp` counts the steps bought. */
+  E.HOLD_UP = { step: 5, prices: [25, 50, 90] };
+  E.HOLD_UP_NAMES = ['Scour the glass', 'Trim a finer wick', 'Grind a lens'];
+  E.holdUpOf = (meta) => (meta && meta.holdUp ? meta.holdUp : 0) * E.HOLD_UP.step;
+  /* The next step's price, or null when all are bought. */
+  E.holdUpPrice = (meta) => { const n = (meta && meta.holdUp) || 0; return n < E.HOLD_UP.prices.length ? E.HOLD_UP.prices[n] : null; };
+  E.buyHoldUp = function (meta) {
+    const p = E.holdUpPrice(meta);
+    if (p == null || meta.salvage < p) return false;
+    meta.salvage -= p;
+    meta.holdUp = (meta.holdUp || 0) + 1;
+    return true;
+  };
   /* The logbook: finished expeditions, counted since v0.13.0. `wins` counts the ones that came home, `hearts` the ones
      that brought the Heart home, and `deep` is the deepest landing reached: { level, floor }. */
   E.newRecord = () => ({ runs: 0, wins: 0, hearts: 0, quiets: 0, deep: null });
@@ -1851,7 +1894,11 @@
     run.kit = E.fitKit(kit);
     if (E.hasKit(run, 'cork')) { run.maxHp += 5; run.hp += 5; }
     if (E.hasKit(run, 'purse')) run.pearls += 30;
-    if (E.hasKit(run, 'flask')) run.tonics[0] = E.randomTonic(run);
+    if (E.hasKit(run, 'flask')) { // a fourth slot, and two tonics in it, no two alike
+      run.tonics.push(null);
+      const pool = makeR(run).shuffle(Object.keys(BL.TONICS));
+      for (let i = 0; i < BL.KIT.flask.tonics && pool.length; i++) run.tonics[i] = pool.shift();
+    }
     return run.kit;
   };
   /* Lasting state from before v0.10.0: gear becomes kit (the charts, Storm Lens and Whetstone become
@@ -1869,10 +1916,11 @@
     }
     m.kit = E.fitKit(m.kit, owned);
     delete m.packed;
-    // the Lazaret (v0.13.0): only real keepsakes, one of each, and you can only bring what is kept there
+    // the Lazaret (v0.13.0): only real keepsakes, and you can only bring what is kept there; copies stack since v0.36.0
     const uniq = (list) => (Array.isArray(list) ? list : []).filter((k, i, a) => BL.KEEPSAKES[k] && a.indexOf(k) === i);
     const uniq2 = (list) => (Array.isArray(list) ? list : []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i);
-    m.lazaret = uniq(m.lazaret);
+    m.lazaret = (Array.isArray(m.lazaret) ? m.lazaret : []).filter((k) => BL.KEEPSAKES[k]);
+    m.holdUp = Math.max(0, Math.min(E.HOLD_UP.prices.length, Math.floor(+m.holdUp || 0)));
     m.bring = uniq(m.bring).filter((k) => m.lazaret.indexOf(k) >= 0);
     m.lazOpen = !!m.lazOpen || m.lazaret.length > 0;
     // the logbook (v0.13.0)
@@ -1918,12 +1966,19 @@
   };
 
   /* ---------------- The Lazaret: keepsakes kept between runs ----------------
-     The Lazaret is the locked store room at the lighthouse. It opens on the first win. A win puts every
-     keepsake Wren carries into it, one of each; a keepsake it already holds becomes Salvage instead.
-     Before a descent she chooses any of them to bring, and each one counts toward the Hold as usual.
-     When she falls, the keepsakes she found on that descent are lost. The ones in the Lazaret never are. */
+     The Lazaret is the locked store room at the lighthouse. It opens on the first time home. Since v0.36.0 it is a
+     stock (the user: "taking things from Lazaret should remove them from there. But could keep many items of each"):
+     `meta.lazaret` lists every copy kept, so a keepsake can be there several times. Coming home puts every keepsake Wren
+     carries into it, one copy each. Before a descent she chooses any of the kinds kept to bring, one of each, and each
+     counts toward the Hold as usual. Bringing one takes that copy out of the Lazaret as she sets off (E.takeBrought):
+     if she comes home it goes back with the rest, and if she falls, drops it or gives it to the sea, it is gone. A spare
+     copy (two or more of a kind) can be broken down for Salvage, half its Roil (E.breakDown).
+     Until v0.36.0 it held one of each, a brought keepsake was never lost, and a second one became Salvage at once. */
   E.lazaretOpen = (meta) => !!meta.lazOpen;
   E.inLazaret = (meta, k) => meta.lazaret.indexOf(k) >= 0;
+  E.lazCount = (meta, k) => meta.lazaret.reduce((n, x) => n + (x === k ? 1 : 0), 0);
+  /* The kinds kept, in the order they first came home. */
+  E.lazKinds = (meta) => meta.lazaret.filter((k, i, a) => a.indexOf(k) === i);
   /* Choose a kept keepsake for the next descent, or leave it at home again. */
   E.toggleBring = function (meta, k) {
     if (!E.inLazaret(meta, k)) return false;
@@ -1938,24 +1993,68 @@
     (bring || []).forEach((k) => { if (BL.KEEPSAKES[k] && !E.has(run, k)) { E.gainKeepsake(run, k); run.brought.push(k); } });
     return run.brought;
   };
+  /* As the descent starts, the brought keepsakes leave the Lazaret: one copy of each. The run is marked, so coming home
+     puts them back (a run from before v0.36.0, whose keepsakes never left, doesn't add them twice). Returns the ids. */
+  E.takeBrought = function (meta, run) {
+    if (!run || run.tutorial || run.takenOut) return [];
+    const out = [];
+    (run.brought || []).forEach((k) => {
+      const i = meta.lazaret.indexOf(k);
+      if (i >= 0) { meta.lazaret.splice(i, 1); out.push(k); }
+    });
+    run.takenOut = true;
+    // what is chosen for the next descent stays chosen while a copy is left
+    meta.bring = meta.bring.filter((k) => E.inLazaret(meta, k) || out.indexOf(k) >= 0);
+    return out;
+  };
   E.wasBrought = (run, k) => (run.brought || []).indexOf(k) >= 0;
-  /* Keepsakes found on this descent and still carried: what a fall loses. */
+  /* Keepsakes found on this descent and still carried. */
   E.foundKeepsakes = (run) => run.keepsakes.filter((k) => !E.wasBrought(run, k));
-  E.duplicateSalvage = (k) => Math.ceil(E.chargeOf(k) / 2); // a keepsake the Lazaret already holds is worth half its Roil in Salvage, rounded up
-  /* A won run comes home. Returns { opened, kept: [new in the Lazaret], dupes: [turned into Salvage], salvage }. */
+  /* What a fall loses: every keepsake she carries, brought ones too since v0.36.0 (their copies left the Lazaret). A run
+     from before v0.36.0 loses only what it found, as it did then. */
+  E.lostKeepsakes = (run) => (run.takenOut ? run.keepsakes.slice() : E.foundKeepsakes(run));
+  E.duplicateSalvage = (k) => Math.ceil(E.chargeOf(k) / 2); // a spare copy breaks down for half its Roil in Salvage, rounded up
+  /* Break down a spare copy (the kind stays kept). Returns the Salvage, or 0. */
+  E.breakDown = function (meta, k) {
+    if (E.lazCount(meta, k) < 2) return 0;
+    meta.lazaret.splice(meta.lazaret.lastIndexOf(k), 1);
+    const n = E.duplicateSalvage(k);
+    meta.salvage += n;
+    meta.earned += n;
+    // the chosen ones still have a copy to bring
+    return n;
+  };
+  /* A run comes home. Returns { opened, kept: [kinds new to the Lazaret], added: [every copy put in], home }.
+     (`dupes` and `salvage` are always empty since v0.36.0: copies stack.) */
   E.storeKeepsakes = function (meta, run) {
-    const res = { opened: false, kept: [], dupes: [], salvage: 0, home: false };
-    if (!run || run.tutorial || run.screen !== 'victory') return res;
+    const res = { opened: false, kept: [], added: [], dupes: [], salvage: 0, home: false };
+    const chosen = () => { meta.bring = meta.bring.filter((k) => E.inLazaret(meta, k)); }; // a kind with no copy left can't be chosen
+    if (!run || run.tutorial) return res;
+    if (run.screen !== 'victory') { chosen(); return res; }
     res.home = true;
     if (!meta.lazOpen) { meta.lazOpen = true; res.opened = true; }
     run.keepsakes.forEach((k) => {
       if (!BL.KEEPSAKES[k]) return;
-      if (!E.inLazaret(meta, k)) { meta.lazaret.push(k); res.kept.push(k); }
-      else if (!E.wasBrought(run, k)) { res.dupes.push(k); res.salvage += E.duplicateSalvage(k); }
+      if (E.wasBrought(run, k) && !run.takenOut) return; // a run from before v0.36.0: it never left
+      if (!E.inLazaret(meta, k)) res.kept.push(k);
+      meta.lazaret.push(k);
+      res.added.push(k);
     });
-    meta.salvage += res.salvage;
-    meta.earned += res.salvage;
+    chosen();
     return res;
+  };
+
+  /* A fall (v0.36.0, the user: "Maybe can choose to keep one keepsake at defeat (but game should not become too easy?").
+     Of what the bell calls back (E.lostKeepsakes), Wren holds on to one, and it goes into the Lazaret. One a fall, and
+     only once the Lazaret is open; the tutorial and a debug-cheated run keep nothing. One she brought and had chosen is
+     chosen again. */
+  E.keepOnFall = function (meta, run, k) {
+    if (!run || run.tutorial || run.cheated || run.screen !== 'defeat' || !meta.lazOpen || run.keptOnFall) return false;
+    if (!BL.KEEPSAKES[k] || E.lostKeepsakes(run).indexOf(k) < 0) return false;
+    run.keptOnFall = k;
+    meta.lazaret.push(k);
+    if (E.wasBrought(run, k) && meta.bring.indexOf(k) < 0) meta.bring.push(k);
+    return true;
   };
 
   /* Coming home: the keepsakes go to the Lazaret (E.storeKeepsakes), and a diving dress found above the Belfry's stair
