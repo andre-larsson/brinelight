@@ -9,6 +9,7 @@
   BL.CHANGELOG = [
     { v: '0.37.1', date: '2026-11-16', items: [
       'The lighthouse stands on its own rock off Saltmere\'s harbour, as on the title screen. The opening\'s first picture is redrawn to show it, and its words say so.',
+      'A new title picture: the lighthouse on its rock, the stair down the rock under the sea, and the great bell on the seabed with its broken chains. Once the Heart is home, the lighthouse throws two beams.',
       'On a phone the title screen shows the lighthouse and the keeper. Before, it showed only the middle of the sea.',
     ] },
     { v: '0.37.0', date: '2026-11-16', items: [
@@ -314,9 +315,9 @@
     ] },
     { head: 'Made with', lines: [
       'Claude Code (Anthropic): the code, the rules, the story text, the music score, the sound effects, and the words and prompts for the songs.',
-      'Google Gemini: the songs, generated from those words and prompts.',
+      'Google Gemini: the songs, generated from those words and prompts, and the title picture.',
       'Grok (xAI, in the Cursor agent CLI), and Terra and Sol (OpenAI, in Codex): discussions of the world and its lore.',
-      'Codex (OpenAI): the pictures, which were then cropped, cleaned and recoloured.',
+      'Codex (OpenAI): the other pictures, which were then cropped, cleaned and recoloured, and the lit title picture, an edit of Gemini\'s.',
     ] },
     { head: 'Music', lines: [
       'The score is played by [musicbox](https://a403.space/musicbox/), a fork of [Scrimshaw Jukebox](https://tools.simonwillison.net/scrimshaw-jukebox) by Simon Willison. Its synthesizer comes from Scrimshaw, and the score is plain text in Scrimshaw\'s format. Apache License 2.0.',
