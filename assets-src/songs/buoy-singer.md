@@ -244,7 +244,7 @@ down where the little lights go.
 (bell harmonics fading into the sea)
 ```
 
-## E: no words (if the others are refused)
+## E: no words (if A is refused again)
 
 She sings what the bell rings, so a wordless voice fits her too, and the music-box piece's voice has no words either.
 
