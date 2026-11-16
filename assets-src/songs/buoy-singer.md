@@ -66,7 +66,7 @@ and the bell says: she is nearly there.
 
 ## Three versions to compare (copy-paste prompts)
 
-Version A is the one above. B and C are the same song, the singer in the cage, in another style and with other words.
+Version A is the one above. B, C and D are the same song, the singer in the cage, in another style and with other words.
 All three are in A minor and 6/8, so any of them sits beside the music-box piece. Each keeps the same lore: hints, no
 names, nothing about what is below Dark Water.
 
@@ -234,6 +234,70 @@ and let go when you get there.
 
 [Outro]
 (one last kulning call, far away; the bell; the sea)
+```
+
+### Version D: djent (atmospheric progressive metal)
+
+The guitars are the storm and the chain; she stays clean and calm over them and never screams (the Hollow Siren is the
+one who screams). The breakdown is the Wild Peal. The hint: the lights hold her shape "like a hand that held on to me
+last". The bridge says she lets go when the lantern reaches the bottom, as in version C.
+
+```
+An atmospheric djent and progressive metal song in A minor, on a slow half-time 6/8 pulse at about 52 BPM. Down-tuned 8-string guitars play tight, palm-muted, syncopated chugs in odd groupings that cycle against the 6/8 pulse and land together at the end of each phrase, locked to punchy kick drums and a deep, growling bass. Above them, wide ambient layers: clean guitar harmonics that ring like small bells, shimmering delay, an old bell-buoy's iron bell that strikes on each swing, the sea in the background. One female voice, clean, ethereal and calm, singing long smooth lines over the rhythm; in the chorus she soars. No harsh vocals, no screaming, no male vocals. The breakdown is the heaviest part: polyrhythmic chugs hammering against the iron bell ringing on every beat, crashing cymbals, her voice high and wordless over it. Then a huge wave crashes, and everything drops away to one clean guitar and her voice alone, before the last heavy chorus. Crisp, heavy, cavernous and cinematic. About 3 minutes.
+
+Lyrics:
+
+[Intro]
+(clean guitar harmonics like bells, the sea, her wordless voice)
+
+[Verse 1]
+Down on the chain I swing and I swing,
+the rocks are close and I ring and I ring,
+a hundred years under the black,
+and nothing I warned of ever comes back.
+
+[Pre-Chorus]
+Hold on, hold on, the iron is cold,
+hold on the way the drowning hold.
+
+[Chorus]
+Ring for the lost, ring for the late,
+ring for the ones who could not wait,
+I sing what the bell sings, deep and slow,
+down where the little lights go.
+
+[Verse 2]
+The lights came in through the bars like rain,
+they learned to kneel, they learned the chain,
+they found a shape and they held it fast,
+like a hand that held on to me last.
+
+[Pre-Chorus]
+Hold on, hold on, the iron is cold,
+hold on the way the drowning hold.
+
+[Chorus]
+Ring for the lost, ring for the late,
+ring for the ones who could not wait,
+I sing what the bell sings, deep and slow,
+down where the little lights go.
+
+[Breakdown]
+(wordless, high, over the heaviest riff and the bell on every beat)
+
+[Bridge]
+(after the wave: one clean guitar and her voice alone)
+Let the lantern come down the stair,
+I will let go when it gets there.
+
+[Final Chorus]
+Ring for the lost, ring for the late,
+ring for the ones who could not wait,
+I sing what the bell sings, deep and slow,
+down where the little lights go.
+
+[Outro]
+(bell harmonics fading into the sea)
 ```
 
 ## When the file comes
