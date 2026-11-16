@@ -21,7 +21,9 @@
      roil      a fixed penalty for every fight, in place of the run's own Roil: a number of ladder
                steps, or { seep, thrash, minnows }
      bot       options for the bot (tools/bot.js), e.g. { noShop: true } or { noTonics: true };
-               { noShop: true, noTonics: true, lateSwellOnly: true } plays like the bot before 2026-11-14
+               { noShop: true, noTonics: true, lateSwellOnly: true } plays like the bot before 2026-11-14;
+               { classic: true } like the bot before 2026-11-16 (first reward card, leftmost landing, a rest at every
+               Cove, no uncommon cards; blindCards, firstNode, alwaysRest and rareOnly turn back one each)
      setup     (E, BL) => {...}, run once before the row is played: change a constant, patch a rule.
    Rows are built again in every process, so a row must not depend on anything outside the spec file.
 

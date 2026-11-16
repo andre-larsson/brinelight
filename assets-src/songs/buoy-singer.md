@@ -68,7 +68,9 @@ and the bell says: she is nearly there.
 
 - Level it as the other songs (GAME_NOTES.md, "Songs and the Jukebox": trim, two-pass loudnorm to about -16.4 LUFS,
   128 kbit/s MP3) into `music/songs/`.
-- Add it to `SONGS` in `js/ui.js`, play it in the Buoy's fight in place of the `buoy` cue (as the Hermit's songs play
-  in his), open it in the Jukebox when the Buoy is first met, and put its words in `js/lyrics.js` as Gemini sang them
-  (transcribe with whisper.cpp, model large-v3-turbo, `-mc 0`).
+- Add it to `SONGS` in `js/ui.js`, open it in the Jukebox when the Buoy is first met, and put its words in
+  `js/lyrics.js` as Gemini sang them (transcribe with whisper.cpp, model large-v3-turbo, `-mc 0`).
+- **Keep the music-box piece** (the user: "we should include it somewhere even if we replace boss music"). The Buoy's
+  fights take turns, as the Hermit's two songs do (`pinSong`): the song at the first meeting, "The Rocking Toll" at
+  the second, then one of the two at random, each for the whole fight. Both stay in the Jukebox.
 - Check the words against WORLD.md. "She is nearly there" is Wren coming down the stair; it says nothing new.

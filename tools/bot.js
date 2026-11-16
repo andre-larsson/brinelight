@@ -219,15 +219,18 @@ function chooseMapTonic(run) {
 
 /* ---------------- Barnaby's shop ----------------
    Spend Pearls in this order, each step once: take out a curse or status card; the best keepsake on offer, if
-   pickKeepsake would take it; take out a starter Brace; a rare card; a tonic for an empty slot. Card removal costs 75
+   pickKeepsake would take it; take out a starter Brace; a rare card; a tonic for an empty slot; an uncommon card (since
+   v0.36.0). Card removal costs 75
    and then 25 more each time (less with the Pearl Scales, free once with Barnaby's Marker). Measured 2026-11-14:
    taking out a Brace broke the Shallows' pin 3.5 points more often than a Jab; the order made no clear difference. */
-const SHOP_ORDER = ['curse', 'keepsake', 'remove', 'rare', 'tonic'];
+const SHOP_ORDER = ['curse', 'keepsake', 'remove', 'rare', 'tonic', 'uncommon'];
+// before v0.36.0 the bot bought no uncommon card, so Barnaby's card prices hardly touched it (opts.rareOnly, opts.classic)
+const SHOP_ORDER_RARE = ['curse', 'keepsake', 'remove', 'rare', 'tonic'];
 function shop(run, opts) {
   const { BL, E } = load();
   const s = run.shop;
   const bought = [];
-  const order = opts.shopOrder || SHOP_ORDER;
+  const order = opts.shopOrder || (opts.rareOnly || opts.classic ? SHOP_ORDER_RARE : SHOP_ORDER);
   const removal = (pred) => {
     if (s.removed || run.pearls < E.removePrice(run)) return false;
     const card = run.deck.find(pred);
@@ -243,8 +246,8 @@ function shop(run, opts) {
       const offered = s.keepsakes.map((k, i) => ({ k, i })).filter(({ i }) => afford('keepsakes', i));
       const k = offered.length ? pickKeepsake(run, offered.map((o) => o.k.id)) : null;
       if (k && E.buy(run, 'keepsakes', offered.find((o) => o.k.id === k).i)) bought.push('keepsake');
-    } else if (what === 'rare' || what === 'card') {
-      const i = s.cards.findIndex((card, j) => afford('cards', j) && (what === 'card' || BL.CARDS[card.id].rarity === 'rare'));
+    } else if (what === 'rare' || what === 'uncommon' || what === 'card') {
+      const i = s.cards.findIndex((card, j) => afford('cards', j) && (what === 'card' || BL.CARDS[card.id].rarity === what));
       if (i >= 0 && E.buy(run, 'cards', i)) bought.push('card');
     } else if (what === 'tonic') {
       if (run.tonics.indexOf(null) < 0) return;
@@ -267,6 +270,42 @@ function pickKeepsake(run, choices) {
     if (v > bestV) { best = k; bestV = v; }
   });
   return best;
+}
+
+/* ---------------- Choices the bot made blind until v0.36.0 ----------------
+   The user asked for a bot that tests the game better. Until v0.36.0 it took the first reward card, the leftmost
+   landing, a rest at every Cove and no uncommon card at Barnaby's. `classic: true` plays all four as before (the bot
+   behind numbers measured before 2026-11-16); blindCards, firstNode, alwaysRest and rareOnly turn back one each. */
+const RANK = { common: 1, uncommon: 2, rare: 3 };
+/* A reward card: the rarest, and of those an upgraded one, else the first. Null skips (opts.skipCards). */
+function pickRewardCard(run, cards) {
+  const { BL } = load();
+  let best = 0, bestV = -1;
+  cards.forEach((rc, i) => { const v = RANK[BL.CARDS[rc.id].rarity] * 2 + (rc.up ? 1 : 0); if (v > bestV) { best = i; bestV = v; } });
+  return best;
+}
+/* The next landing: a Cove when hurt, Barnaby's with Pearls to spend, a Wreck, a Dread only when healthy, else a fight
+   before a Fog. Ties go to the leftmost. It looks one landing ahead only. */
+function chooseNode(run, av) {
+  const f = run.hp / run.maxHp;
+  const score = (n) => ({
+    rest: f < 0.5 ? 50 : f < 0.75 ? 20 : 1,
+    shop: run.pearls >= 100 ? 30 : 0,
+    treasure: 25,
+    elite: f >= 0.8 ? 15 : f >= 0.6 ? 5 : -30,
+    fight: 10,
+    event: 8,
+  })[n.type] || 0;
+  let best = av[0], bs = score(av[0]);
+  av.forEach((n) => { const v = score(n); if (v > bs) { best = n; bs = v; } });
+  return best;
+}
+/* At a Cove: refit when a rest would heal less than half of what it can (so most of it would be wasted), else rest. */
+function coveRefit(run) {
+  const { BL, E } = load();
+  if (run.maxHp - run.hp >= E.restAmount(run) / 2) return null;
+  const ups = E.upgradeable(run);
+  return ups.find((c) => !BL.STARTER_DECK.includes(c.id)) || ups[0] || null;
 }
 
 /* Give one to the sea (v0.35.0): when the aether is Roiled, the keepsake with the least Roil whose loss takes off a
@@ -292,7 +331,7 @@ function step(run, opts = {}) {
     if (!av.length) return null;
     const tea = opts.noTonics ? -1 : chooseMapTonic(run);
     if (tea >= 0) E.useTonic(run, tea);
-    const pick = opts.route ? opts.route(run, av) : av[0];
+    const pick = opts.route ? opts.route(run, av) : opts.firstNode || opts.classic ? av[0] : chooseNode(run, av);
     E.enterNode(run, pick);
     return 'node:' + pick.type;
   }
@@ -320,7 +359,7 @@ function step(run, opts = {}) {
       if (k) E.takeRewardKeepsake(run, k); else E.leaveKeepsakes(run);
     }
     if (rw.tonic && !rw.tonicTaken) E.takeRewardTonic(run);
-    if (!rw.cardTaken) E.takeRewardCard(run, opts.skipCards ? null : 0);
+    if (!rw.cardTaken) E.takeRewardCard(run, opts.skipCards ? null : opts.blindCards || opts.classic ? 0 : pickRewardCard(run, rw.cards));
     E.backToMap(run);
     return 'reward';
   }
@@ -328,6 +367,8 @@ function step(run, opts = {}) {
     if (E.stairOpen && E.stairOpen(run) && !opts.noStair) { stair(run, opts); E.backToMap(run); return 'stair'; }
     const sea = opts.noSea ? null : seaChoice(run);
     if (sea && E.giveToSea(run, sea.k, sea.uid)) { E.backToMap(run); return 'sea'; }
+    const up = opts.alwaysRest || opts.classic ? null : coveRefit(run);
+    if (up) { E.upgradeCard(run, up.uid); run.restDone = true; E.backToMap(run); return 'refit'; }
     E.rest(run); E.backToMap(run); return 'rest';
   }
   // after a pin: go on down, unless told to go home after this level (opts.home) or the next level needs kit it lacks
@@ -376,4 +417,4 @@ function playRun(run, maxSteps = 5000, opts) {
   return labels;
 }
 
-module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake };
+module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake, pickRewardCard, chooseNode, coveRefit };

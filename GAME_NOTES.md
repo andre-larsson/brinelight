@@ -1501,6 +1501,30 @@ The agent recommends **c**. It answers the complaint directly: one Bail or Stir 
 - **The stair's flask limit could not be measured:** the bot took the stair's flask once in 400 expeditions, so rows with 2, 3 and no limit gave the same numbers. 2 is the agent's call: the flask is one of two picks on the stair, against a rest that now heals 30%, and three or four tonics would outweigh that. 3 would keep the old most for a player without the Spare Flask (`E.STAIR_FLASKS`).
 - **If the user finds it too hard now,** the first lever is the stair's rest (40% is about halfway).
 
+**The bot chooses (2026-11-16).** The user asked whether the bot could test the game better "if there are easy changes". Four choices it made blind are now made (`pickRewardCard`, `chooseNode`, `coveRefit` and an `uncommon` step in `SHOP_ORDER`, in `tools/bot.js`):
+- The **reward card**: the rarest, and of those an upgraded one. Before, always the first.
+- The **landing**: a Cove when below 50% HP (or 75%, less strongly), Barnaby's with 100 Pearls or more, a Wreck, a Dread only at 80% HP or more (60% at a push), else a fight before a Fog. It looks one landing ahead. Before, always the leftmost.
+- At a **Cove**: a refit when a rest would heal less than half of what it can, else a rest. Before, always a rest.
+- At **Barnaby's**: an uncommon card after everything else, if the Pearls are left. Before, rare cards only.
+- `bot: { classic: true }` plays all four as before, and `blindCards`, `firstNode`, `alwaysRest` and `rareOnly` turn back one each.
+
+| v0.36.0, 1500 seeds, dress | Heart | Shallows' pin | Dark Water's share | Belfry's share |
+|---|---|---|---|---|
+| **the bot that chooses** | **27.8** | 58.7 | 62.5 | 75.7 |
+| classic bot | 12.7 | 44.7 | 44.7 | 63.7 |
+| the first reward card again | 16.7 | 50.5 | 48.3 | 68.3 |
+| the leftmost landing again | 26.9 | 57.6 | 57.8 | 81.0 |
+| always rest at a Cove again | 25.8 | 55.7 | 61.0 | 75.9 |
+| no uncommon cards again | 27.8 | 58.7 | 61.7 | 76.7 |
+| v0.35.0, the bot that chooses | 33.7 | 58.2 | 70.1 | 82.7 |
+| v0.35.0, classic bot | 17.7 | 44.3 | 55.4 | 72.0 |
+
+- **The card choice is most of it** (11 of the 15 points). Rarity is a rough guide to a card's worth, and it was enough. The Cove's refit adds 2, the routing about 1 (it gets through Dark Water more often and the Belfry less: it takes more Dreads, so it is stronger and more hurt).
+- **Uncommon cards changed nothing:** after a removal, a keepsake or a rare and a tonic, the bot almost never has 95 Pearls left. So Barnaby's new prices still barely touch the bot. A player who skips the removal and buys cards feels them.
+- **v0.36.0 is still about 6 points harder than v0.35.0** for the bot that chooses, close to the 5 the classic bot showed.
+- **For "a bit too easy":** a bot that picks cards by rarity alone brings the Heart home on 28% of its expeditions in the diving dress. A person who reads the cards should do better, so the user's sense that the game is easy fits. The next harder steps, if wanted: the stair's rest to 25%, or more HP on the pins.
+- **What the bot still doesn't do:** read a card's text (it ranks by rarity only), skip a card to keep the deck thin, plan a route more than one landing ahead, choose event options (it takes the first one it can), or shop for anything but the list above.
+
 **Fast-forward in the musicbox pieces:** a musicbox cue has no fixed length. It plays an intro, then a loop whose parts are chosen again at random on each pass, forever, so there is no timeline to seek in. What could be built in `../musicbox`: a seek within the current pass of the loop, or a "next part" button. Neither is built; it is the user's call.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
@@ -1959,6 +1983,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.36.0, with the bot that chooses** (2026-11-16; 1500 seeds, first expedition in the dress): the Shallows' pin 58.7%, Dark Water's after it 62.5%, the Belfry's after that 75.7%, the Heart 27.8%. The same bot on v0.35.0: 58.2%, 70.1%, 82.7%, the Heart 33.7%. With `bot: { classic: true }` (the bot before 2026-11-16): v0.36.0 the Heart 12.7%, v0.35.0 17.7%. See "The bot chooses" below. Numbers from here down are from the classic bot or older ones.
 - **Bot run outcomes, v0.35.0** (the bot that shops and gives keepsakes to the sea, 3000 seeds, first expedition in the dress): the Shallows' pin 43.7%, Dark Water's after it 54.7%, the Belfry's after that 70.8%, the Heart 16.9%. Of the rise from v0.34.0's 10.9%, about 5 points are the sea and 1 the Wild Peal (see "Give one to the sea, and a Roiled aether pays").
 - **Bot run outcomes, v0.34.0** (the bot that shops, 3000 seeds, first expedition in the dress): the Shallows' pin 39.5%, Dark Water's after it 40.0%, the Belfry's after that 69.2%, the Heart 10.9%; after the Heart, the finals 73.8%. v0.33.0: 39.5%, 40.0%, 67.9%, 10.7%. The Shallows' pin rose from 29.2% with v0.33.0's later Hermit call, Nibble 4 and shop rows (see "Playtest notes on v0.32.0").
 - **Bot run outcomes, v0.31.0** (the bot that shops, 1000 seeds, first expedition in the dress): the Shallows' pin 28.9%, Dark Water's after it 41.9%, the Belfry's after that 71.9%, the Heart 8.7% (see "The stair down, and a Hold that doesn't grow").

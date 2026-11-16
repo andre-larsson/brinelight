@@ -65,6 +65,58 @@ test('without a curse the bot takes out a starter Brace; with too few Pearls it 
   assert.ok(!off.keepsakes.length && !off.tonics.some(Boolean));
 });
 
+/* v0.36.0: four choices the bot made blind before (the first reward card, the leftmost landing, a rest at every Cove,
+   no uncommon card at Barnaby's). `classic` plays them as before. */
+test('the bot takes the rarest reward card, an upgraded one among equals; classic takes the first', () => {
+  const cards = [{ id: 'breaker', up: 0 }, { id: 'roguewave', up: 0 }, { id: 'ebbflow', up: 1 }];
+  assert.equal(bot.pickRewardCard(E.newRun(1), cards), 2);
+  assert.equal(bot.pickRewardCard(E.newRun(1), [{ id: 'breaker', up: 0 }, { id: 'beam', up: 0 }, { id: 'roguewave', up: 1 }]), 1);
+  const won = () => {
+    const { run, c } = fight(['crab']);
+    E.alive(c).forEach((e) => { e.dead = true; e.hp = 0; });
+    c.won = true;
+    E.finishCombat(run);
+    run.rewards.cards = [{ id: 'breaker', up: 0 }, { id: 'beam', up: 0 }, { id: 'roguewave', up: 0 }];
+    return run;
+  };
+  const a = won(); step(a);
+  assert.ok(a.deck.some((c) => c.id === 'beam'));
+  const b = won(); step(b, { classic: true });
+  assert.ok(b.deck.some((c) => c.id === 'breaker') && !b.deck.some((c) => c.id === 'beam'));
+});
+
+test('the bot routes: a Cove when hurt, Barnaby\'s with Pearls, a Dread only when healthy; firstNode takes the leftmost', () => {
+  const run = E.newRun(3);
+  const av = [{ type: 'fight' }, { type: 'elite' }, { type: 'rest' }, { type: 'shop' }];
+  run.hp = run.maxHp; run.pearls = 0;
+  assert.equal(bot.chooseNode(run, av).type, 'elite');
+  run.hp = Math.floor(run.maxHp * 0.4);
+  assert.equal(bot.chooseNode(run, av).type, 'rest');
+  run.hp = Math.floor(run.maxHp * 0.7); run.pearls = 150;
+  assert.equal(bot.chooseNode(run, av).type, 'shop');
+  run.pearls = 0;
+  assert.equal(bot.chooseNode(run, [{ type: 'event' }, { type: 'elite' }, { type: 'fight' }]).type, 'fight', 'no Dread at 70% HP');
+});
+
+test('at a Cove the bot refits when a rest would mostly be wasted, and rests when hurt; alwaysRest always rests', () => {
+  const cove = (hp) => { const r = E.newRun(1, 0); E.addCard(r, 'roguewave'); r.hp = hp; r.screen = 'rest'; r.restDone = false; return r; };
+  const near = cove(65);
+  assert.equal(step(near), 'refit');
+  assert.ok(near.deck.find((c) => c.id === 'roguewave').up, 'a card that isn\'t a starter first');
+  assert.equal(near.hp, 65);
+  const hurt = cove(40);
+  assert.equal(step(hurt), 'rest');
+  assert.ok(hurt.hp > 40);
+  const old = cove(65);
+  assert.equal(step(old, { alwaysRest: true }), 'rest');
+});
+
+test('with Pearls left after the rest, the bot buys an uncommon card; rareOnly does not', () => {
+  const pick = (o) => { const run = atShop(1000); run.shop.cards.forEach((c) => { if (BL.CARDS[c.id].rarity !== 'uncommon') c.sold = true; }); step(run, o); return run.deck.length; };
+  assert.equal(pick({}), BL.STARTER_DECK.length - 1 + 1, 'a Brace out, an uncommon in');
+  assert.equal(pick({ rareOnly: true }), BL.STARTER_DECK.length - 1);
+});
+
 test('the bot drinks a Shell Tonic before ending a turn that would knock Wren down, and not otherwise', () => {
   const { run, c } = fight(['crab'], { hp: 3, tonics: ['shell'] });
   attack(c);
