@@ -1187,8 +1187,8 @@
   BL.STORY = {
     title: 'An enchanted bell, sunk under the cliffs, has stolen the fire from your lighthouse, and it is pulling the sea up toward the town. You are the last keeper. Go down and take the fire back.',
     opening: [
-      { art: 'scenes/op_lighthouse', pos: '36% center', wide: 'center top', zoom: 1.08,
-        text: 'You are Wren, the lighthouse keeper of Saltmere, a harbour town on a rocky coast. The lighthouse burns a magic fire called the Lantern Heart. While it burns, ships find their way past the rocks.' },
+      { art: 'scenes/op_lighthouse', pos: '68% center', wide: 'center top', zoom: 1.08,
+        text: 'You are Wren, the lighthouse keeper of Saltmere, a harbour town on a rocky coast. The lighthouse stands on a rock off the harbour, and it burns a magic fire called the Lantern Heart. While it burns, ships find their way past the rocks.' },
       { art: 'scenes/op_bell', pos: 'center', wide: 'center top', zoom: 1.08,
         text: 'In the sea-caves under the cliffs hangs an enchanted bell, the Bellwether. Keepers sank it there long ago to hold the sea back. Nobody has tended it for a hundred years.' },
       { art: 'scenes/op_fire', pos: '28% center', wide: '30% center', zoom: 1.08, sfx: 'bell',
@@ -1225,7 +1225,7 @@
           text: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. Something lets go of it: a thing with one eye and many arms, which grew into the bell in the hundred years nobody came down. It sinks away into the dark under the floor. You do not know if you killed it.' },
         { art: 'scenes/sc_heart2', pos: '68% center', wide: 'center 25%', zoom: 1.04,
           text: 'You carry the Heart up three levels of stairs. The water runs away in front of it.' },
-        { art: 'scenes/op_lighthouse', pos: '36% center', wide: 'center top', zoom: 1.08,
+        { art: 'scenes/op_lighthouse', pos: '68% center', wide: 'center top', zoom: 1.08,
           text: 'By dawn the great light of Saltmere is turning again, and the sea has stopped rising. The boats go out past the rocks.' },
         { art: 'scenes/ev_heartglow', pos: 'center', wide: 'center 60%', zoom: 1.04,
           text: 'The Bellwether is silent. But in the Belfry a faint light stayed behind where the Heart lay, and things still grow toward it. Saltmere will need a keeper who goes down.' },
@@ -1234,7 +1234,7 @@
       watch: { at: 'quiet', beats: [
         { art: 'scenes/sc_watch1', pos: 'center', wide: 'center 30%', zoom: 1.04, sfx: 'bell',
           text: 'Under the broken bell, the keeper in your coat lowers your harpoon. For a moment its lantern is lit, from yours, and you see its face. Then it goes out like a pinched wick, and there is only water where it stood.' },
-        { art: 'scenes/op_lighthouse', pos: '36% center', wide: 'center top', zoom: 1.08,
+        { art: 'scenes/op_lighthouse', pos: '68% center', wide: 'center top', zoom: 1.08,
           text: 'You climb home. The great light is turning, as it has every night since the Heart came home. In the keeper\'s room you turn the watch glass over, and for the first time since that night you sleep through to morning.' },
       ] },
     },
@@ -1283,8 +1283,8 @@
     ],
     world: [
       { group: 'Places', items: [
-        ['Saltmere', 'A harbour town on a rocky headland. Its lighthouse warns ships off the rocks.'],
-        ['The lighthouse', 'It stands above the town, and you keep it. Its lamp burns the Lantern Heart.'],
+        ['Saltmere', 'A harbour town on a rocky headland. Its lighthouse stands on a rock off the end of the headland and warns ships off the rocks.'],
+        ['The lighthouse', 'It stands on its own rock off the harbour, and you keep it. At low tide you can walk across to the town. Its lamp burns the Lantern Heart.'],
         ['The Drowned Reach', 'The sea-caves, stairs and rock terraces under the cliffs, below the lighthouse. The Bellwether keeps them flooded.'],
         ['Expeditions', 'Every expedition starts on the shore and goes down through the Reach a level at a time: the Shallows, then Dark Water, then the Belfry. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.',
           { level: 2, before: 'Every expedition starts on the shore and goes down through the Reach a level at a time, from the Shallows. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.' }],

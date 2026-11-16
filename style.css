@@ -111,6 +111,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   background: #06121c url(img/bg/bg_title.webp) center/cover no-repeat; text-align: center; padding: 24px 24px 12px;
 }
 .title-screen.lit { background-image: url(img/bg/bg_title_lit.webp); }
+/* on a tall screen the picture is cropped to a strip; show the lighthouse and the keeper, not the middle of the sea */
+@media (max-aspect-ratio: 1/1) { .title-screen { background-position: 22% center; } }
 .title-screen .logo { margin-top: auto; }
 .title-screen::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(5, 15, 24, .15), rgba(5, 15, 24, .85) 75%); }
 .title-screen > * { position: relative; }

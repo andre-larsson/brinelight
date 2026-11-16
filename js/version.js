@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.37.0';
+  BL.VERSION = '0.37.1';
   BL.CHANGELOG = [
+    { v: '0.37.1', date: '2026-11-16', items: [
+      'The lighthouse stands on its own rock off Saltmere\'s harbour, as on the title screen. The opening\'s first picture is redrawn to show it, and its words say so.',
+      'On a phone the title screen shows the lighthouse and the keeper. Before, it showed only the middle of the sea.',
+    ] },
     { v: '0.37.0', date: '2026-11-16', items: [
       'The Belfry is a short dive. No branches, no shops, no Coves: the Drowned Ringer with a Bell Jelly, then the Crowned Oarfish with a Bellspawn, then the Bellwether, 5 landings in all. Each landing there scores 128, so the whole Belfry pays what its 8 landings did.',
       'After each Dread in the Belfry you come up under a lesser bell, where air is caught. Choose one of six: rest, refit, shed a card, fill your flasks, give a keepsake to the sea, or swim out into the dark to one of the Belfry\'s Fog events.',

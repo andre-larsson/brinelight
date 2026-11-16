@@ -2281,3 +2281,10 @@ The user asked how more characters could be added, and wanted to judge the look 
 - Low Water rework: is an Ebb deck now worth building? Do you miss Low Water's Ward? Does the strip read clearly when it happens?
 - Do you notice Tidal Fury and Deep Ebb when you earn them?
 - On reward screens, does the keyword legend help, or is it clutter?
+
+### The lighthouse on its islet, and the title on a phone (v0.37.1, 2026-11-16)
+
+- The user asked whether the lonely lighthouse on the title (on a rock in the sea) clashed with the opening (on the headland in the town). They chose to move it: the opening's first picture is a Codex edit of the old one with the tower out on its own islet (`assets-src/scenes/op_lighthouse.png`; the old one is `op_lighthouse_headland.png`). The lore is in WORLD.md: a tidal islet, joined to the foreshore at low tide. The Shallows' fight picture still shows it at the end of the headland from far off; WORLD.md says that is how it looks from along the shore. Redraw it only if it bothers anyone.
+- On tall screens the title picture is cropped to a strip. It was centred, so a phone saw the sea and the bell's side and no lighthouse. Now `background-position: 22% center` there (the lighthouse and Wren; on the lit title the start of the beam). The opening's lighthouse moved right, so its tall-screen `pos` is 68% (was 36%).
+- Title picture candidates from the same day are in `assets-src/bg/` (`bg_title_alt_*`, `bg_title_gemini*`). The user was not fully happy with any and may edit one by hand; the game still uses the original title and its lit version.
+
