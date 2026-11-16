@@ -693,13 +693,14 @@
   };
   E.freeRemoval = (run) => E.hasKit(run, 'marker') && !run.markerUsed;
   E.removePrice = (run) => (E.freeRemoval(run) ? 0 : E.price(run, run.removeCost));
-  E.REMOVE_STEP = 25; // each removal at Barnaby's costs this much more than the last
+  E.REMOVE_STEP = 25; // each removal at Barnaby's costs this much more than the last,
+  E.REMOVE_MAX = 100; // up to this (v0.39.0, the user: "maybe cap card removal price"; no cap before)
   E.buyRemoval = function (run, uid) {
     const p = E.removePrice(run);
     if (run.shop.removed || run.pearls < p) return false;
     run.pearls -= p;
     if (E.freeRemoval(run)) run.markerUsed = true;
-    else run.removeCost += E.REMOVE_STEP;
+    else run.removeCost = Math.min(E.REMOVE_MAX, run.removeCost + E.REMOVE_STEP);
     run.shop.removed = true;
     E.removeCard(run, uid);
     return true;
@@ -847,7 +848,7 @@
     if (E.has(run, 'whaletooth')) c.player.st.might = (c.player.st.might || 0) + 1;
     if (E.has(run, 'barnacleplate')) c.player.st.spines = (c.player.st.spines || 0) + BL.KEEPSAKES.barnacleplate.spines;
     if (E.has(run, 'moonshard')) c.tide = 5;
-    if (E.has(run, 'sirenscale')) c.enemies.forEach((e) => { e.st.soaked = (e.st.soaked || 0) + 2; });
+    if (E.has(run, 'sirenscale')) c.enemies.forEach((e) => { e.st.soaked = (e.st.soaked || 0) + BL.KEEPSAKES.sirenscale.soaked; });
     if (E.has(run, 'echoconch')) c.echo = 1;
     c.roilSteps = roil.steps; // what the aether was when the fight began: it pays by this (E.ROIL_PAY)
     if (roil.steps) fx(c, { t: 'roil', seep, thrash: roil.thrash, minnows: roil.minnows });

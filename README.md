@@ -71,9 +71,10 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Brine:** loses HP each turn, decreasing by 1.
 
 **What lives in Dark Water.** Dark Water's creatures bring rules of their own. Each one's intent says what it is about to do.
-- **Glimmer Leech:** its Latch heals it by the HP it takes from you. Ward stops both.
-- **Murk Ray:** when it Sinks it is **Submerged** until it next acts. You can't target it, your attacks (on one enemy, on ALL or on a random one) can't reach it, and tonics can't be aimed at it. Crests and other waves still hit it, and a Strand brings it up. If nothing else is in reach, cards that need a target can't be played.
-- **Lamp Hermit:** its **Shell** keeps its Ward from turn to turn. A Strand still strips it.
+- **Glimmer Leech:** its Latch heals it by the HP it takes from you. Ward stops both. Leeches **swarm**: a Latch hits 2 harder for each other Glimmer Leech in the fight, so the order you kill them in matters.
+- **Pistol Shrimp:** Cock the Claw hits for 4 and braces it behind 6 Ward; Flash Snap follows for 14.
+- **Murk Ray:** when it Sinks it is **Submerged** until it next acts. You can't target it, your attacks (on one enemy, on ALL or on a random one) can't reach it, and tonics can't be aimed at it. Crests and other waves still hit it, and a Strand brings it up. If nothing else is in reach, cards that need a target can't be played. When it comes up it Rises for 18.
+- **Lamp Hermit:** its **Shell** keeps its Ward from turn to turn, and Withdraw adds 10 each time. A Strand still strips it.
 - **Glimmer Chain** (a Dread): Drink the Light **Douses** your lantern: you start your next turn with 1 less Light. On the turn Doused takes your Light, or Breathless takes a card from your draw, a dashed mark stays on Wren until the turn ends; hover or tap it to read what it took.
 - **Pale Gulper** (a Dread): Gulp swallows the last card you played that turn, as long as it went to your discard pile (a Rite stays in play). You get the card back in your discard pile when the Gulper dies. It shows **Full Belly** until then: the moment a blow brings it to half its health, it Retches, out of turn: two Glimmer Leeches come up, and so does every card it swallowed. The Leeches act that turn.
 - **Garden Strider** (a Dread): Tend the Garden calls Glimmer Leeches until two are alive, and gives it 8 Ward. Its Graze heals it by the HP it takes from you, like a Leech's Latch.
@@ -97,7 +98,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 - **Skirmishes:** normal fights. Their creatures have 15% more HP than the same creatures elsewhere.
 - **Dreads:** elites. They're harder. They pay Pearls, and you may take 1 of 2 keepsakes. A Dread offers no card and no tonic.
 - **Fog:** events with choices, some of them gambles.
-- **Barnaby's shop:** buy cards (60 to 72 Pearls for a common, 95 to 112 for an uncommon, 180 to 205 for a rare, and one of the five at half price), keepsakes (150 to 185) and tonics (50 to 65), or pay to remove a card (75, then 25 more each time). You set out with no Pearls, so the Shallows have no shop on their first two landings.
+- **Barnaby's shop:** buy cards (60 to 72 Pearls for a common, 95 to 112 for an uncommon, 180 to 205 for a rare, and one of the five at half price), keepsakes (150 to 185) and tonics (50 to 65), or pay to remove a card (75, then 25 more each time, up to 100). You set out with no Pearls, so the Shallows have no shop on their first two landings.
 - **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card, or **give a keepsake to the sea**. The keepsake is gone for the rest of the expedition, with its Roil. The sea pays for it: you heal 3 HP for each fight you won while carrying it, never more than a Cove's rest (21 HP at 70 Max HP), and you upgrade a card. A keepsake taken and thrown straight back pays only the upgrade. One you brought from the Lazaret is gone from there too.
 - **Wrecks:** a chest of pearls where you may take 1 of 3 keepsakes.
 

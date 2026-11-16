@@ -145,12 +145,12 @@ test('Murk Ray: with nothing in reach, aimed cards and tonics are not playable, 
   const order = BL.ENEMIES.ray.ai;
   assert.equal(order({ hist: ['sting', 'sink'], mem: { offset: 0 } }), 'rise');
   ray.intent = 'rise';
-  assert.match(E.intentInfo(run, ray).parts.join(' '), /Attack for 15/);
+  assert.match(E.intentInfo(run, ray).parts.join(' '), /Attack for 18/); // 15 until v0.39.0
   const hp = run.hp;
   c.player.ward = 0;
   E.endTurn(run);
   assert.ok(!ray.st.submerged);
-  assert.equal(run.hp, hp - 15);
+  assert.equal(run.hp, hp - 18);
   assert.ok(E.playable(run, c.hand.find((x) => BL.CARDS[x.id].target === 'enemy') || give(run, 'jab')).ok);
 });
 
@@ -161,13 +161,13 @@ test('Lamp Hermit: Shell keeps its Ward from turn to turn, and a Strand strips i
   assert.equal(h.st.shell, 1);
   h.intent = 'withdraw';
   E.endTurn(run);
-  assert.equal(h.ward, 8);
+  assert.equal(h.ward, 10); // Withdraw 8 until v0.39.0
   h.intent = 'clamp';
   E.endTurn(run);
-  assert.equal(h.ward, 8, 'still there after its next turn');
+  assert.equal(h.ward, 10, 'still there after its next turn');
   h.intent = 'withdraw';
   E.endTurn(run);
-  assert.equal(h.ward, 16);
+  assert.equal(h.ward, 20);
   give(run, 'slack');
   c.tide = 1;
   play(run, 'slack');

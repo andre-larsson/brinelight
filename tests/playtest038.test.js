@@ -104,3 +104,38 @@ test('v0.38.1: an intent counts your Soaked; a call for help says who comes; rem
   assert.match(E.intentInfo(h, h.combat.enemies[0]).parts.join('. '), /Call for help: 2 Barnacle Mites \(\d+ to \d+ HP each\)/);
   assert.equal(E.REMOVE_STEP, 25);
 });
+
+test('v0.39.0: Glimmer Leeches swarm (Latch 2 harder for each other Leech); the Pistol Shrimp braces; Siren\'s Echo+ costs 1 and draws; the Conch soaks 1; removal stops at 100', () => {
+  const { run, c } = fight(['leech', 'leech', 'leech']);
+  const [a] = c.enemies;
+  a.intent = 'latch';
+  assert.equal(E.intentInfo(run, a).dmg, 5 + 2 * 2);
+  assert.match(E.intentInfo(run, a).parts.join('. '), /Swarm/);
+  c.enemies[1].dead = true; c.enemies[1].hp = 0;
+  assert.equal(E.intentInfo(run, a).dmg, 5 + 2, 'one fewer Leech, 2 less');
+  const s = fight(['shrimp']);
+  s.c.enemies[0].intent = 'cock';
+  assert.deepEqual([E.intentInfo(s.run, s.c.enemies[0]).dmg, E.intentInfo(s.run, s.c.enemies[0]).ward], [4, 6]);
+  // Siren's Echo
+  assert.equal(BL.CARDS.sirensecho.cost, 1);
+  assert.equal(E.cost({ uid: 0, id: 'sirensecho', up: 1 }), 1, 'the upgrade costs 1 too');
+  const e = fight(['kelp']);
+  e.c.light = 3;
+  const echo = { uid: e.run.nextUid++, id: 'sirensecho', up: 1 };
+  e.c.hand = [echo];
+  e.c.draw.push({ uid: e.run.nextUid++, id: 'jab', up: 0 });
+  assert.ok(E.playCard(e.run, echo.uid, null));
+  assert.equal(e.c.hand.length, 1, 'it drew a card');
+  assert.equal(e.c.echo, 1);
+  // the Conch
+  const k = E.newRun(5, 0);
+  E.gainKeepsake(k, 'sirenscale');
+  E.startCombat(k, 'easy', ['kelp']);
+  assert.equal(k.combat.enemies[0].st.soaked, 1);
+  // removal: 75, 100, 100
+  const shop = E.newRun(6, 0);
+  shop.pearls = 999;
+  const costs = [];
+  for (let i = 0; i < 3; i++) { E.genShop(shop); costs.push(E.removePrice(shop)); E.buyRemoval(shop, shop.deck[0].uid); }
+  assert.deepEqual(costs, [75, 100, 100]);
+});

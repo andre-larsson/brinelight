@@ -177,9 +177,10 @@
   });
   card('sirensecho', {
     name: "Siren's Echo", type: 'skill', rarity: 'uncommon', cost: 1, target: 'none', givesEcho: true,
-    v: {}, up: { cost: 0 }, art: 'c_sirensecho',
-    text: () => `Your next card is played twice.`,
-    play: (A) => A.echo(1),
+    // upgraded: draw a card first (cost 0 until v0.39.0: a 0-cost doubler was in all three winning decks of the playtests)
+    v: { draw: 0 }, up: { draw: 1 }, art: 'c_sirensecho',
+    text: (v) => (v.draw ? `Draw ${v.draw} card. Your next card is played twice.` : `Your next card is played twice.`),
+    play: (A, v) => { if (v.draw) A.draw(v.draw); A.echo(1); },
   });
   card('brinebloom', {
     name: 'Brine Bloom', type: 'skill', rarity: 'uncommon', cost: 1, target: 'enemy',
@@ -428,6 +429,7 @@
   /* The Pale Gulper, a Dread of Dark Water, retches up two Glimmer Leeches the moment it is hurt to this share of its
      health (at once, out of turn, since v0.36.0; before, it was its next move, and it could die first). */
   BL.DREAD_CALL = 1 / 2;
+  BL.SWARM = 2; // a Glimmer Leech's Latch: this much harder for each other Leech in the fight (v0.39.0)
   /* The Tolling Buoy's Wild Peal: this much damage, less this much for each Crest or Strand you make that turn. */
   BL.PEAL = { dmg: 30, quiet: 15 };
   /* A Glimmer Bladder's burst when it dies: this much damage to the keeper and to every other creature. */
@@ -590,7 +592,9 @@
     leech: {
       name: 'Glimmer Leech', plural: 'Glimmer Leeches', hp: [12, 14], art: 'leech', scale: 0.62,
       moves: {
-        latch: { name: 'Latch', dmg: 5, drain: true },
+        // v0.39.0 (the user: Dark Water's Skirmishes stronger by their abilities, not only HP): a swarm. Each other
+        // Leech in the fight makes its Latch 2 harder, so which one dies first matters
+        latch: { name: 'Latch', dmg: (e, c) => 5 + BL.SWARM * (c ? c.enemies.filter((o) => o !== e && !o.dead && o.id === 'leech').length : 0), drain: true, tip: `Swarm: ${BL.SWARM} harder for each other Glimmer Leech here` },
         gorge: { name: 'Gorge', buff: { might: 1 } },
       },
       ai: weighted([['latch', 65], ['gorge', 35]], 2),
@@ -599,7 +603,7 @@
       name: 'Pistol Shrimp', hp: [20, 23], art: 'shrimp', scale: 0.8,
       init: (e, R) => { e.mem.offset = R.int(0, 1); },
       moves: {
-        cock: { name: 'Cock the Claw', dmg: 4 },
+        cock: { name: 'Cock the Claw', dmg: 4, ward: 6 }, // braces behind its claw (v0.39.0; a 4 hit with no Ward until then)
         snap: { name: 'Flash Snap', dmg: 14 },
       },
       ai: cycleFrom(['cock', 'snap']),
@@ -610,7 +614,7 @@
       moves: {
         sting: { name: 'Sting', dmg: 8 },
         sink: { name: 'Sink', submerge: true },
-        rise: { name: 'Rise', dmg: 15 },
+        rise: { name: 'Rise', dmg: 18 }, // 15 until v0.39.0
       },
       ai: cycleFrom(['sting', 'sink', 'rise']),
     },
@@ -618,7 +622,7 @@
       name: 'Lamp Hermit', hp: [26, 29], art: 'hermit', scale: 0.9,
       init: (e, R) => { e.mem.offset = R.int(0, 3); e.st.shell = 1; },
       moves: {
-        withdraw: { name: 'Withdraw', ward: 8 },
+        withdraw: { name: 'Withdraw', ward: 10 }, // 8 until v0.39.0
         pinch: { name: 'Pinch', dmg: 5, hits: 2 },
         clamp: { name: 'Clamp', dmg: 10 },
       },
@@ -937,7 +941,7 @@
     gullfeather: { name: 'Gull Feather', art: 'k_gullfeather', charge: 8, desc: 'Draw 2 extra cards on your first turn of each fight.' },
     biscuit: { name: 'Scallop Charm', art: 'k_biscuit', charge: 12, desc: 'While you carry it, your Max HP is 10 higher. Heals 10 when you pick it up.' },
     stormbottle: { name: 'Storm Bottle', art: 'k_stormbottle', charge: 18, desc: 'Every 3rd turn of a fight, gain 1 extra Light.' },
-    sirenscale: { name: 'Whispering Conch', art: 'k_sirenscale', charge: 17, desc: 'Enemies start each fight with 2 Soaked.' },
+    sirenscale: { name: 'Whispering Conch', art: 'k_sirenscale', charge: 17, soaked: 1, desc: 'Enemies start each fight with 1 Soaked.' }, // 2 until v0.39.0 (three playtests: it set up a turn-1 burst)
     coralcrown: { name: 'Coral Branch', art: 'k_coralcrown', charge: 6, desc: 'Whenever you play a Rite, gain 5 Ward.' },
     inksac: { name: "Angler's Lure", art: 'k_inksac', charge: 10, desc: 'The first time you lose HP in a fight, apply 2 Chilled to ALL enemies.' },
     saltedhook: { name: 'Salted Hook', art: 'k_saltedhook', charge: 7, desc: 'Whenever you apply Brine, apply 1 more.' },

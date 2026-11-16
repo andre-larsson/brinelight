@@ -3388,7 +3388,7 @@
     const ts = s.tonics.map((it, i) => tile('tonics', it, i, BL.TONICS[it.id])).join('');
     const rp = E.removePrice(run);
     const remove = `<div class="shop-tile${s.removed ? ' sold' : ''}" tabindex="0" role="button" data-act="shopremove" aria-label="Remove a card">
-        <span class="medal" style="display:grid;place-items:center;color:#f1e6cf">${ICON.sunk}</span><b>Scrub a card</b><small>Remove a card from your deck. Once per visit. The price rises by ${E.REMOVE_STEP} each time.</small>${s.removed ? '<span class="muted">Done</span>' : `<span class="price${run.pearls < rp ? ' cant' : ''}">${ICON.pearl}${rp}</span>`}</div>`;
+        <span class="medal" style="display:grid;place-items:center;color:#f1e6cf">${ICON.sunk}</span><b>Scrub a card</b><small>Remove a card from your deck. Once per visit. The price rises by ${E.REMOVE_STEP} each time, to at most ${E.REMOVE_MAX}.</small>${s.removed ? '<span class="muted">Done</span>' : `<span class="price${run.pearls < rp ? ' cant' : ''}">${ICON.pearl}${rp}</span>`}</div>`;
     const lines = ['"Pearls for wares, keeper. Fair trades only, no haggling, no biting."', '"Mind the shell. The shop is also my house."', '"Everything here came down with a wreck. Everything still works. Mostly."'];
     const line = lines[(run.floor + run.seed) % lines.length];
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner">

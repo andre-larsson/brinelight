@@ -1666,6 +1666,32 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
   3. **Dark Water's Skirmishes** a bit tougher than the Shallows' (a per-level `E.SKIRMISH_HP`, e.g. 1.15 in the Shallows and 1.3 in Dark Water), since a built deck meets them there.
   4. Starter Jab/Brace turns felt tedious to two of three (the long Hermit fight); no proposal yet.
 
+### Dark Water's creatures, Siren's Echo+, the Conch and a removal cap (v0.39.0, 2026-11-16)
+
+- **The user's calls** on the three playtests' proposals: "Siren's Echo+ costs 1 like the base card, with a different upgrade. Echo for two next cards likely two strong. Whispering Conch: Soaked 1 instead of 2. Dark Water's Skirmishes get more HP than the Shallows' ones: yes if possible without making games much longer. alternative is to have them to more damage, or shield themselves more (giving them stronger abilities might be more fun than just upping their hp number)", then "maybe cap card removal price as well".
+- **Built** (the numbers are the agent's):
+  - **Abilities, not HP**, on Dark Water's own four (the Lantern Eel, Gloom Jelly, Drowned Deckhand and Fog Wisp are the Shallows' too, so they are unchanged): Glimmer Leeches **swarm** (`BL.SWARM` 2: Latch 5, +2 for each other Leech in the fight; the intent says so); the Pistol Shrimp's Cock the Claw adds 6 Ward; the Lamp Hermit's Withdraw 10 (8), on its Shell; the Murk Ray's Rise 18 (15). The Ward ones blunt a turn-1 burst unless the player Strands first. Leeches swarm in Dread fights too (the Strider and the Gulper call them).
+  - **Siren's Echo+**: cost 1 (0 before); the upgrade draws a card first, then Echo.
+  - **Whispering Conch**: Soaked 1 (2 before; `BL.KEEPSAKES.sirenscale.soaked`), Roil still 17. If it now looks poor for its Roil, 12 would match the Moon Shard.
+  - **Removal** costs 75, then 100 from then on (`E.REMOVE_MAX`; it rose by 25 without end).
+- **Measured** (the bot that chooses, dress; 1000 seeds for the expedition, 600 for the fight table; `.play/specs/v039.js`, `fights.js`):
+
+  | Row | Heart | Shallows' pin | Dark Water's share | Belfry's share |
+  |---|---|---|---|---|
+  | v0.38.1 | 9.5 | 47.6 | 43.1 | 46.3 |
+  | **v0.39.0** | **8.0** | 46.7 | 38.1 | 44.9 |
+  | v0.39 with the old Dark Water creatures | 8.8 | 46.7 | 40.7 | 46.3 |
+  | v0.39 with the old Echo+ and Conch | 8.8 | 47.6 | 40.8 | 45.4 |
+
+  | Dark Water fights, per fight | v0.38.1 turns | v0.39.0 turns | v0.38.1 HP lost | v0.39.0 HP lost |
+  |---|---|---|---|---|
+  | Skirmish | 3.43 | 3.59 | 7.8 | 8.9 |
+  | Dread | 4.95 | 4.94 | 10.7 | 12.4 |
+  | Tolling Buoy | 8.76 | 8.83 | 35.5 | 35.2 |
+
+  - Dark Water's Skirmishes are about 5% longer (0.16 turns) and cost 14% more HP; Dreads cost 1.7 HP more (the swarm) in the same turns. The Shallows and the Belfry don't move.
+  - The bot rarely builds Echo+ with the Conch, so their change costs it under a point; in the playtests all three winning decks had Echo+. The removal cap changes nothing for the bot (it buys one removal a shop at most).
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -2123,6 +2149,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.39.0, with the bot that chooses** (2026-11-16; 1000 seeds, dress): the Shallows' pin 46.7%, Dark Water's after it 38.1%, the Belfry after that 44.9%, the Heart 8.0%.
 - **Bot run outcomes, v0.38.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 47.6%, Dark Water's after it 43.1%, the Belfry after that 46.3%, the Heart 9.5%. See "An agent's blind playtest, and a harder game".
 - **Bot run outcomes, v0.37.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 58.2%, Dark Water's after it 62.5%, the Belfry (a dive now) after that 63.7%, the Heart 23.2%. After the Heart, the Belfry 79.9%. See "The Belfry dive and the Dark Watch".
 - **Bot run outcomes, v0.36.0, with the bot that chooses** (2026-11-16; 1500 seeds, first expedition in the dress): the Shallows' pin 58.7%, Dark Water's after it 62.5%, the Belfry's after that 75.7%, the Heart 27.8%. The same bot on v0.35.0: 58.2%, 70.1%, 82.7%, the Heart 33.7%. With `bot: { classic: true }` (the bot before 2026-11-16): v0.36.0 the Heart 12.7%, v0.35.0 17.7%. See "The bot chooses" below. Numbers from here down are from the classic bot or older ones.

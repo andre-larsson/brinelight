@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.38.1';
+  BL.VERSION = '0.39.0';
   BL.CHANGELOG = [
+    { v: '0.39.0', date: '2026-11-16', items: [
+      'Dark Water\'s own creatures are stronger in what they do. Glimmer Leeches swarm: a Latch hits 2 harder for each other Leech in the fight. The Pistol Shrimp braces behind 6 Ward as it cocks its claw. The Lamp Hermit\'s Withdraw gives 10 Ward (8 before), and the Murk Ray Rises for 18 (15).',
+      'Siren\'s Echo+ costs 1, like Siren\'s Echo, and draws a card before your next card is played twice. It used to cost 0.',
+      'The Whispering Conch starts enemies with 1 Soaked, not 2.',
+      'Removing a card at Barnaby\'s costs at most 100 Pearls: 75, then 100 from then on.',
+    ] },
     { v: '0.38.1', date: '2026-11-16', items: [
       'How to Play says that an enemy\'s Ward lasts until it acts again, and that an intent\'s number already counts statuses such as its Might and your Soaked.',
       'A creature that calls for help says who comes and how many, with their HP: "Call for help: 2 Barnacle Mites (10 to 13 HP each)".',
