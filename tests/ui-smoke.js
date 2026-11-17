@@ -500,13 +500,35 @@ async function debugScenario(page, base) {
   await clickIf(page, '#overlay [data-dbg="count"]');
   await clickIf(page, '#overlay [data-dbg="salvage"]');
   await clickIf(page, '#overlay [data-dbg="allkit"]');
-  await clickIf(page, '#overlay [data-dbg="hearts"]');
   const reached0 = await page.eval('window.Brinelight.meta.reached');
+  const progress0 = await page.eval('JSON.stringify({ record: window.Brinelight.meta.record, story: window.Brinelight.story })');
   await clickIf(page, '#overlay [data-dbg="allmusic"]');
   const m = await page.eval(`JSON.parse(localStorage.getItem('brinelight.meta.v1'))`);
   if (m.salvage !== 100 || m.owned.length !== Object.keys(await page.eval('window.BL.KIT')).length - 1) failures.push(`debug: Salvage and kit cheats stored ${JSON.stringify(m)}`);
   // Hear all music opens every track and every depth of the score, without reaching a level (that would raise the Hold)
   if (!m.heard.includes('song:watch') || !m.heard.includes('depth:2') || m.reached !== reached0) failures.push(`debug: Hear all music stored heard ${JSON.stringify(m.heard)}, reached ${m.reached}`);
+  await clickIf(page, '#overlay [data-act="close"]');
+  // The music grant must include the Heart-gated song, without marking the Heart as home. The old check
+  // granted the Heart first, masking a locked song and a lingering "Bring the Heart home" hint.
+  const checkAllMusic = async (label) => {
+    await page.click('.title-third [data-act="jukebox"]');
+    for (const filter of ['all', 'song', 'cue']) {
+      await clickIf(page, `#overlay [data-act="jukefilter"][data-filter="${filter}"]`);
+      const state = await page.eval(`(() => { const B = window.Brinelight, rows = [...document.querySelectorAll('.juke-item')]; return { count: rows.length, expected: B.juke.filter(([kind]) => '${filter}' === 'all' || kind === '${filter}').length, hint: !!document.querySelector('.juke-more'), dawn: !!document.querySelector('[data-act="jukeplay"][data-key="bells"]') }; })()`);
+      if (state.count !== state.expected || state.hint || (filter !== 'cue' && !state.dawn)) failures.push(`debug: ${label} ${filter}: every track should be open with no unlock hint (${JSON.stringify(state)})`);
+    }
+    await clickIf(page, '#overlay [data-act="close"]');
+    const progress = await page.eval('JSON.stringify({ record: window.Brinelight.meta.record, story: window.Brinelight.story })');
+    if (progress !== progress0) failures.push(`debug: ${label} changed story or Logbook progress`);
+  };
+  await checkAllMusic('Hear all music');
+  await page.goto(base + '?seed=5555&debug=0');
+  await inject(page);
+  await checkAllMusic('saved music grant with debug off');
+  await page.goto(base + '?seed=5555&debug');
+  await inject(page);
+  await page.click('.dbg-tab');
+  await clickIf(page, '#overlay [data-dbg="hearts"]');
   await clickIf(page, '#overlay [data-act="close"]');
   // a run: god mode holds HP through an enemy turn, the Swell can be set, and Win the fight leads to the rewards
   await page.click('[data-act="newrun"]');

@@ -118,7 +118,7 @@
       case 'alllaz': Object.keys(BL.KEEPSAKES).forEach((k) => { if (meta.lazaret.indexOf(k) < 0) meta.lazaret.push(k); }); meta.lazOpen = true; b.saveMeta(); return reopen();
       case 'resetmeta': Object.assign(meta, b.E.newMeta()); b.saveMeta(); return reopen();
       // every song and piece of the score counts as heard, at every depth of the score (meta.reached, and so the
-      // Hold, stays as it is)
+      // Hold, stays as it is). The depth:0 marker also identifies this explicit grant for story-gated songs.
       case 'allmusic': meta.heard = b.juke.map(([kind, key]) => kind + ':' + key).concat(b.jukeDepths.map((d, i) => 'depth:' + i)); b.saveMeta(); b.toast('Every piece of music counts as heard'); return reopen();
       case 'resetall':
         if (!window.confirm('Erase all Brinelight progress in this browser (save, best score, Workshop, Lazaret, Logbook, story, tutorial, hints)? Debug mode stays on.')) return;

@@ -1469,9 +1469,11 @@
     'cue:pin2': { open: () => meta.heard.indexOf('song:nobody') >= 0 },
   };
   const jukeOpen = (kind, key) => {
-    const k = kind + ':' + key, early = JUKE_EARLY[k];
-    if (early && early.gate) return !!early.open();
-    return meta.heard.indexOf(k) >= 0 || !!(early && early.open());
+    const k = kind + ':' + key, early = JUKE_EARLY[k], granted = meta.heard.indexOf(k) >= 0;
+    // Only Hear all music writes depth:0; ordinary depth access uses meta.reached. Honor that deliberate debug
+    // grant for story-gated songs too, including existing saves, without granting any story progress.
+    if (early && early.gate) return !!early.open() || (granted && meta.heard.indexOf('depth:0') >= 0);
+    return granted || !!(early && early.open());
   };
   const jukeDepthOpen = (d) => d <= (meta.reached || 0) || meta.heard.indexOf('depth:' + d) >= 0;
   // State the actual unlock trigger. Track titles stay hidden; encounter names make the condition unambiguous.

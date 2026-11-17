@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.50.1';
+  BL.VERSION = '0.50.2';
   BL.CHANGELOG = [
+    { v: '0.50.2', date: '2026-11-17', items: [
+      'Hear all music in the debug menu also unlocks Harbour Bells at Dawn, clearing the last Next unlock hint without needing to bring the Heart home.',
+    ] },
     { v: '0.50.1', date: '2026-11-17', items: [
       'The Continue button names the saved run\'s level, such as The Shallows, instead of its landing number.',
     ] },

@@ -1743,6 +1743,11 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Debug music unlock includes the dawn song (v0.50.2, 2026-11-17)
+
+- The user still saw "Bring the Heart home" after Hear all music. Harbour Bells at Dawn's extra story gate ignored the debug grant. The Jukebox now honors that grant using its existing debug-only `depth:0` marker, so previously saved music unlocks work too. Ordinary legacy listening history still waits for the Heart; story, Logbook records, reached level and Hold are unchanged.
+- Checks: 247 rule tests and build pass, plus the debug and desktop/phone audio UI scenarios. The debug test now unlocks music before granting the Heart, checks every track and no hint in all three filters, and repeats after reload with debug off while verifying story and records stay unchanged. The old test granted the Heart first, masking this bug.
+
 ### Continue names the saved level (v0.50.1, 2026-11-17)
 
 - The user's request: replace "Continue (Landing 0)" with the actual level name. The title button uses the existing level-name helper: The Shallows, Dark Water or The Belfry. Saves without a level retain the Shallows default.
