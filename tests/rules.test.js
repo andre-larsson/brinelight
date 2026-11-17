@@ -256,7 +256,7 @@ test('extra Ebb carries over too: Ebb 2 from Swell 1 Strands and keeps falling f
   assert.equal(c.tide, 2);
 });
 
-test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12); every Strand gives 1 Light', () => {
+test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12); only the first Strand of a turn gives 1 Light', () => {
   const { run, c } = fight(['kelp'], { hand: ['stormsurge', 'tidereading'], keepsakes: [] });
   tough(c);
   const e = c.enemies[0];
@@ -266,14 +266,25 @@ test('chains: each extra Crest in a turn hits 3 harder (6, 9, 12); every Strand 
   play(run, 'tidereading');
   assert.equal(500 - e.hp, 6 + 9 + 12);
   assert.equal(c.maxChain, 3);
-  const r2 = fight(['kelp'], { hand: ['bilgepump', 'bilgepump'], tide: 2, keepsakes: [] });
+  const r2 = fight(['kelp'], { hand: ['bilgepump', 'bilgepump', 'bilgepump'], tide: 2, keepsakes: [] });
   play(r2.run, 'bilgepump');
-  assert.equal(r2.c.light, 3 - 1 + 1);
+  assert.equal(r2.c.light, 3 - 1 + 1, 'the first Strand gives 1 Light');
   r2.c.tide = 2;
+  r2.c.enemies[0].ward = 7;
   play(r2.run, 'bilgepump');
-  assert.equal(r2.c.light, 3 - 2 + 2);
-  assert.equal(r2.c.maxLowChain, 2);
+  assert.equal(r2.c.light, 3 - 2 + 1, 'the second gives none (until v0.40.0 it gave 1)');
+  assert.equal(r2.c.enemies[0].ward, 0, 'but it still strips Ward');
+  assert.equal(r2.c.maxLowChain, 2, 'and it counts for High and Dry');
   assert.equal(r2.c.player.ward, 0);
+  assert.deepEqual(r2.c.fx.filter((f) => f.t === 'low').map((f) => f.light), [1, 0]);
+  // a new turn starts over: its first Strand gives Light again
+  pacify(r2.c);
+  E.endTurn(r2.run);
+  r2.c.hand.push({ uid: r2.run.nextUid++, id: 'bilgepump', up: 0 });
+  r2.c.tide = 2;
+  const l0 = r2.c.light;
+  play(r2.run, 'bilgepump');
+  assert.equal(r2.c.light, l0 - 1 + 1);
 });
 
 test('chains start over each turn', () => {
@@ -517,7 +528,8 @@ test('the Bellwether calls a shoal of Bell Minnows at two thirds of its health, 
   assert.equal(bell.id, 'bellthing');
 });
 
-test('a Dread pays Pearls and a pick of 1 of 2 keepsakes, and offers no card and no tonic', () => {
+test('a Dread pays Pearls and one pick: a card from three or its one keepsake, and no tonic; taking one leaves the other', () => {
+  const rarities = { common: 0, uncommon: 0, rare: 0 };
   for (let seed = 1; seed <= 40; seed++) {
     const f = fight(['hulk'], { kind: 'elite', seed });
     f.c.enemies[0].dead = true;
@@ -525,15 +537,57 @@ test('a Dread pays Pearls and a pick of 1 of 2 keepsakes, and offers no card and
     E.finishCombat(f.run);
     const rw = f.run.rewards;
     assert.ok(rw.pearls >= 30);
-    assert.equal(rw.keepsakeChoices.length, 2);
-    assert.deepEqual(rw.cards, []);
-    assert.equal(rw.cardTaken, true, 'nothing to pick, and leaving is not a decline');
+    assert.equal(rw.keepsakeChoices.length, E.DREAD_KEEPSAKES);
+    assert.equal(E.DREAD_KEEPSAKES, 1);
+    assert.equal(rw.cards.length, 3);
+    rw.cards.forEach((rc) => { rarities[BL.CARDS[rc.id].rarity]++; });
+    assert.equal(rw.oneOf, true);
+    assert.equal(rw.cardTaken, false);
     assert.equal(rw.tonic, null);
-    const d0 = f.run.stats.declined;
-    E.takeRewardKeepsake(f.run, rw.keepsakeChoices[0]);
+    const d0 = f.run.stats.declined, deck0 = f.run.deck.length;
+    if (seed % 2) {
+      E.takeRewardKeepsake(f.run, rw.keepsakeChoices[0]);
+      assert.ok(E.has(f.run, rw.keepsakeChoices[0]));
+      E.takeRewardCard(f.run, 0);
+      assert.equal(f.run.deck.length, deck0, 'the keepsake was the pick: no card as well');
+    } else {
+      E.takeRewardCard(f.run, 1);
+      assert.equal(f.run.deck.length, deck0 + 1);
+      E.takeRewardKeepsake(f.run, rw.keepsakeChoices[0]);
+      assert.equal(f.run.keepsakes.length, 0, 'the card was the pick: no keepsake as well');
+    }
     E.backToMap(f.run);
-    assert.equal(f.run.stats.declined, d0);
+    assert.equal(f.run.stats.declined, d0, 'taking either is not a decline');
   }
+  // rolled as a Dread's cards: more uncommon and rare than a skirmish's (45/40/15 against 60/34/6)
+  assert.ok(rarities.rare / 120 > 0.1, JSON.stringify(rarities)); // a skirmish's are rare 6% of the time
+  // skipping both is one reward turned down, scored as a Dread's card
+  const f = fight(['hulk'], { kind: 'elite', seed: 3 });
+  f.c.enemies[0].dead = true;
+  f.c.won = true;
+  E.finishCombat(f.run);
+  const s0 = E.score(f.run, false), d0 = f.run.stats.declined;
+  assert.equal(E.leaveKeepsakes(f.run), true, 'Skip both');
+  assert.equal(f.run.rewards.cardTaken, true);
+  E.takeRewardCard(f.run, 0);
+  E.takeRewardKeepsake(f.run, f.run.rewards.keepsakeChoices[0]);
+  assert.equal(f.run.keepsakes.length, 0);
+  assert.equal(f.run.stats.declined, d0 + 1);
+  assert.equal(E.score(f.run, false), s0 + E.DECLINE_SCORE.eliteCard);
+});
+
+test('a Dread reward saved before v0.40.0 (two keepsakes, no card) still plays as it did', () => {
+  const f = fight(['hulk'], { kind: 'elite', seed: 5 });
+  f.c.enemies[0].dead = true;
+  f.c.won = true;
+  E.finishCombat(f.run);
+  const old = Object.assign({}, f.run.rewards, { cards: [], cardTaken: true, keepsakeChoices: E.keepsakeChoices(f.run, 2) });
+  delete old.oneOf;
+  f.run.rewards = old;
+  const run = JSON.parse(JSON.stringify(f.run));
+  E.takeRewardKeepsake(run, run.rewards.keepsakeChoices[1]);
+  assert.ok(E.has(run, run.rewards.keepsakeChoices[1]));
+  assert.equal(run.stats.declined, f.run.stats.declined);
 });
 
 test('Bail and Stir: once a turn, without a card, 1 Light to Ebb 1 or Surge 1; a Bail that Strands gets its Light back', () => {
@@ -705,7 +759,7 @@ test('bonus Pearls: Flawless, Swift (3 turns, 4 for elites) and Tidal Fury', () 
   slow.c.won = true;
   E.finishCombat(slow.run);
   assert.deepEqual(slow.run.rewards.bonuses.map((b) => b.name), ['Swift'], 'turn 4 is still Swift for an elite');
-  assert.equal(slow.run.rewards.keepsakeChoices.length, 2, 'elites offer 1 of 2 keepsakes');
+  assert.equal(slow.run.rewards.keepsakeChoices.length, 1, 'elites offer one keepsake, or a card');
 });
 
 test('a Roiled aether pays: 4 more Pearls after a fight for each step over the Hold when it began; a Calm one pays nothing; it is not a scored bonus', () => {
@@ -822,13 +876,13 @@ test("Barnaby's prices (v0.36.0, the user found the shop too cheap, cards most o
   }
 });
 
-test('Wrecks: a chest of Pearls and a choice of 1 of 3 keepsakes', () => {
+test('Wrecks: a chest of Pearls and a choice of 1 of 2 keepsakes', () => {
   const run = E.newRun(4);
   E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
   const pearls = run.pearls;
   E.openTreasure(run);
   assert.ok(run.pearls > pearls);
-  assert.equal(run.treasure.choices.length, 3);
+  assert.equal(run.treasure.choices.length, 2); // 3 until v0.40.0
   E.takeTreasureKeepsake(run, run.treasure.choices[1]);
   assert.ok(E.has(run, run.treasure.choices[1]));
   E.takeTreasureKeepsake(run, run.treasure.choices[0]);
@@ -840,8 +894,8 @@ test('a keepsake pick is optional: take one, or leave them for +80 score; a pick
   let run = E.newRun(4);
   E.enterNode(run, { row: 5, col: 0, type: 'treasure' });
   E.openTreasure(run);
-  E.takeTreasureKeepsake(run, run.treasure.choices[2]);
-  assert.ok(E.has(run, run.treasure.choices[2]));
+  E.takeTreasureKeepsake(run, run.treasure.choices[1]);
+  assert.ok(E.has(run, run.treasure.choices[1]));
   assert.equal(E.leaveKeepsakes(run), false, 'already taken');
   const n = run.keepsakes.length;
   E.backToMap(run);
@@ -864,12 +918,50 @@ test('a keepsake pick is optional: take one, or leave them for +80 score; a pick
   f.c.enemies[0].dead = true;
   f.c.won = true;
   E.finishCombat(f.run);
-  assert.equal(f.run.rewards.keepsakeChoices.length, 2);
+  assert.equal(f.run.rewards.keepsakeChoices.length, 1);
   f.run.rewards.tonic = null; // (a tonic left behind would count on its own)
   const d0 = f.run.stats.declined;
   E.backToMap(f.run);
   assert.equal(f.run.keepsakes.length, 0);
   assert.equal(f.run.stats.declined, d0);
+});
+
+test('Brine Bloom doubles the target\'s Brine and Sinks (since v0.40.0); with the Salted Hook every Brine applied, the doubling too, gets 1 more', () => {
+  let f = fight(['kelp'], { hand: ['brinebloom'], keepsakes: [] });
+  tough(f.c);
+  const e = f.c.enemies[0];
+  e.st.brine = 5;
+  play(f.run, 'brinebloom', e);
+  assert.equal(e.st.brine, 10);
+  assert.equal(BL.CARDS.brinebloom.sink, true);
+  assert.deepEqual(f.c.sunk.map((x) => x.id), ['brinebloom'], 'gone for the rest of the fight');
+  assert.equal(f.c.discard.filter((x) => x.id === 'brinebloom').length, 0);
+  // upgraded, with the Salted Hook: 3 + 1 applied, then doubled (4, +1): 9; a second Bloom+: 9 + 4 = 13, doubled +1: 27
+  f = fight(['kelp'], { hand: ['brinebloom', 'brinebloom'], keepsakes: ['saltedhook'] });
+  tough(f.c);
+  f.c.hand.forEach((x) => { x.up = 1; });
+  f.c.light = 5;
+  const t = f.c.enemies[0];
+  play(f.run, 'brinebloom', t);
+  assert.equal(t.st.brine, 9);
+  play(f.run, 'brinebloom', t);
+  assert.equal(t.st.brine, 27);
+  assert.equal(f.c.sunk.length, 2);
+});
+
+test('Abyssal Pull: whenever you Strand, deal 5 damage to ALL enemies (8 upgraded); more copies don\'t add to it, the strongest counts', () => {
+  const f = fight(['kelp', 'kelp'], { hand: ['abyssalpull', 'abyssalpull', 'abyssalpull', 'slack'], tide: 2, keepsakes: [] });
+  tough(f.c);
+  f.c.hand[1].up = 1;
+  f.c.light = 5;
+  play(f.run, 'abyssalpull');
+  assert.equal(f.c.player.st.r_abyss, 5);
+  play(f.run, 'abyssalpull'); // the upgraded one raises it to 8
+  assert.equal(f.c.player.st.r_abyss, 8);
+  play(f.run, 'abyssalpull'); // a third, plain, adds nothing (until v0.40.0 copies stacked: 5 + 8 + 5)
+  assert.equal(f.c.player.st.r_abyss, 8);
+  play(f.run, 'slack');
+  f.c.enemies.forEach((e) => assert.equal(500 - e.hp, 8));
 });
 
 test('Kelp Bracelet: a Strand gives 8 Ward. Tidal Memory: each Crest gives 1 Light. Spring Tide: Strand, then Crest', () => {

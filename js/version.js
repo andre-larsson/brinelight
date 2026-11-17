@@ -5,8 +5,26 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.39.0';
+  BL.VERSION = '0.40.0';
   BL.CHANGELOG = [
+    { v: '0.40.0', date: '2026-11-17', items: [
+      'A Dread pays Pearls and one pick: a card from three, more often uncommon or rare, or its keepsake. Taking one leaves the other. Before, it offered two keepsakes and no card.',
+      'A Wreck offers 1 of 2 keepsakes. Before, 1 of 3. With the Dreads, about 40% fewer keepsakes are on offer in an expedition.',
+      'Only your first Strand each turn gives 1 Light. Later Strands still strip Ward, ring your bell and count for High and Dry. The Glimmer Bulb now makes every Strand give 1 Light (before, a Strand gave 2 with it).',
+      'Brine Bloom Sinks: once played, it is gone for the rest of the fight.',
+      'Abyssal Pull: more copies don\'t add to it. The strongest you play counts, so an upgraded one still raises a plain one to 8. Before, two Abyssal Pull+ dealt 16 on every Strand.',
+      'Opening the keepers\' cache on the stair uses that pick. You can take one of its three cards or none, but you can\'t back out and choose something else.',
+      'The first time you go down into the Belfry, its story plays in three pictures: the last dry step, and why the Belfry is full of bells. Story so far has a new chapter for it, Into the Belfry.',
+      'Why are there so many bells? Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. The Hermit\'s story, the Belfry\'s and a new entry in The world say so.',
+      'Each level\'s map has its own picture behind it, dimmed so the stops stay clear. The line of text under the level\'s name is gone.',
+      'Story pictures have a Back button, and the arrow keys page back and on.',
+      'The Swell bar is sea-green, so it no longer looks like Ward.',
+      'When the Bellwether cries \"The Bell Cracks!\", its bronze cracks open in front of you, lit from inside, and stays cracked.',
+      'A creature that dies leaves the row once it has faded. Before, it kept its place: the Thing in the Bell shrank each time its arms grew back, and the new arms came in further and further away.',
+      'The pins\' songs are compressed a little. The Bellwether\'s song opened very quietly, so most of a fight with it sounded too low. The Tolling Buoy\'s music is 3 dB louder: it was quieter than an ordinary fight.',
+      '\"Harbour Bells at Dawn\" plays when you bring the Heart home, and opens in the Jukebox and on the title screen only then.',
+      'The glossary\'s Hold and Roiled say the right numbers: a Roiled step pays 4 Pearls, and the lantern in the Workshop is what raises your Hold.',
+    ] },
     { v: '0.39.0', date: '2026-11-16', items: [
       'Dark Water\'s own creatures are stronger in what they do. Glimmer Leeches swarm: a Latch hits 2 harder for each other Leech in the fight. The Pistol Shrimp braces behind 6 Ward as it cocks its claw. The Lamp Hermit\'s Withdraw gives 10 Ward (8 before), and the Murk Ray Rises for 18 (15).',
       'Siren\'s Echo+ costs 1, like Siren\'s Echo, and draws a card before your next card is played twice. It used to cost 0.',

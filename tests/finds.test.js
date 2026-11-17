@@ -135,12 +135,22 @@ test('Hollow Whelk: your Ward no longer washes away at the start of your turn', 
   assert.equal(plain.c.player.ward, 0);
 });
 
-test('Glimmer Bulb: a Strand gives 2 Light, not 1', () => {
-  const { run, c } = fight(['kelp'], { keepsakes: ['bulb'], tide: 2, hand: ['slack'] });
+test('Glimmer Bulb: every Strand gives 1 Light, not only the first of the turn', () => {
+  const { run, c } = fight(['kelp'], { keepsakes: ['bulb'], tide: 2, hand: ['slack', 'slack', 'slack'] });
   const light = c.light;
   play(run, 'slack'); // costs 1, Ebb 2: a Strand
   assert.equal(c.turnLows, 1);
-  assert.equal(c.light, light - 1 + 2);
+  assert.equal(c.light, light - 1 + 1, 'the first: 1, as without it');
+  c.tide = 2;
+  play(run, 'slack');
+  assert.equal(c.turnLows, 2);
+  assert.equal(c.light, light - 2 + 2, 'the second: 1 more, where without the Bulb it gives none');
+  const plain = fight(['kelp'], { tide: 2, hand: ['slack', 'slack'] });
+  const l0 = plain.c.light;
+  play(plain.run, 'slack');
+  plain.c.tide = 2;
+  play(plain.run, 'slack');
+  assert.equal(plain.c.light, l0 - 2 + 1);
 });
 
 test('Leech Jar: whenever a creature dies, your Max HP rises by 2 and you heal 4; dropping it takes that Max HP back', () => {

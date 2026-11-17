@@ -460,6 +460,7 @@
     const src = run.screen === 'reward' ? run.rewards : run.screen === 'treasure' ? run.treasure : null;
     const list = src && (src.keepsakeChoices || src.choices);
     if (!src || src.keepsake || src.keepsakeLeft || !list || !list.length) return false;
+    if (src.oneOf) { E.takeRewardCard(run, null); return true; } // a Dread's one pick: leaving it leaves the cards too
     src.keepsakeLeft = true;
     E.decline(run, 'keepsake');
     return true;
@@ -573,7 +574,9 @@
        shed   remove a card, free (Barnaby charges 75 and more)
        flask  a random tonic into up to STAIR_FLASKS empty slots, no two alike (one tonic until v0.33.0: the user found it
               weak; every empty slot from v0.33.0 until v0.36.0, when the Spare Flask's fourth slot made that four)
-       cache  the keepers' cache: 1 of 3 cards, uncommon or rare (seen before choosing; looking costs nothing)
+       cache  the keepers' cache: 1 of 3 cards, uncommon or rare. Opening it uses the pick (since v0.40.0, the user: "Should
+              not be able to go back/redo choice if choosing keepers cache in stairs, after seeing cards"; until then
+              looking cost nothing): then take one, or none
        sea    give a keepsake to the sea (v0.35.0, E.seaGive): heal by its Roil and refit a card
      She may go on down with picks unused. */
   E.STAIR_PICKS = 2;
@@ -592,6 +595,7 @@
   /* Why an option can't be taken now: '' when it can, 'done' when it was, 'full' when both picks are used, else a reason. */
   E.stairWhy = function (run, id) {
     const s = E.stairState(run);
+    if (id === 'cache' && E.stairCacheOpen(run)) return '';
     if (s.picks.indexOf(id) >= 0) return 'done';
     if (s.picks.length >= E.stairPicks(run)) return 'full';
     if (id === 'rest' && run.hp >= run.maxHp) return 'You are at full health.';
@@ -614,7 +618,11 @@
     }
     return s.cache;
   };
-  /* Do one of the five: `arg` is a card uid (refit, shed) or the cache's index. Returns what happened, or null. */
+  /* The cache was opened and nothing is taken from it yet: its choice waits, also after a reload. */
+  E.stairCacheOpen = (run) => { const s = run && run.stair; return !!(s && s.cacheOpen && s.picks.indexOf('cache') >= 0); };
+  /* Do one of the six: `arg` is a card uid (refit, shed) or the cache's index. Returns what happened, or null.
+     The cache in two steps: with no `arg` it opens (the pick is used, `out.open`, `out.cards`); then an index takes that
+     card, and -1 takes none. An index while it is shut opens it and takes at once. */
   E.stairDo = function (run, id, arg) {
     if (!E.stairOpen(run) || E.stairOptions(run).indexOf(id) < 0 || E.stairWhy(run, id)) return null;
     const out = { id };
@@ -623,6 +631,19 @@
       run.restDone = true;
       E.startEvent(run); // the event's own screen; leaving it goes back to the map
       out.event = run.event.id;
+      return out;
+    }
+    if (id === 'cache') {
+      const s = E.stairState(run), cards = E.stairCache(run);
+      if (!E.stairCacheOpen(run)) {
+        s.picks.push('cache');
+        s.cacheOpen = true;
+        if (s.picks.length >= E.stairPicks(run)) run.restDone = true;
+        if (arg == null) return Object.assign(out, { open: true, cards: cards.slice() });
+      }
+      if (arg == null || (arg !== -1 && !cards[arg])) return null;
+      s.cacheOpen = false;
+      out.card = arg === -1 ? null : E.addCard(run, cards[arg]);
       return out;
     }
     if (id === 'rest') out.healed = E.heal(run, E.stairRestAmount(run));
@@ -636,11 +657,7 @@
       out.tonics = [];
       while (run.tonics.indexOf(null) >= 0 && pool.length && out.tonics.length < E.STAIR_FLASKS) { const t = pool.shift(); E.gainTonic(run, t); out.tonics.push(t); }
     }
-    else if (id === 'cache') {
-      const cid = E.stairCache(run)[arg];
-      if (!cid) return null;
-      out.card = E.addCard(run, cid);
-    } else if (id === 'sea') {
+    else if (id === 'sea') {
       const g = seaGive(run, arg && arg.k, arg && arg.uid);
       if (!g) return null;
       Object.assign(out, g);
@@ -706,6 +723,11 @@
     return true;
   };
 
+  /* Keepsakes on offer (v0.40.0, the user: "Keepsakes too common", "Main annoyance is getting spammed with keepsakes that
+     you cant do much with"): a Wreck shows 2 (3 until v0.40.0), and a Dread 1, as the other side of a choice with a card
+     (2 and no card until v0.40.0). */
+  E.WRECK_KEEPSAKES = 2;
+  E.DREAD_KEEPSAKES = 1;
   function genTreasure(run) {
     const R = makeR(run);
     run.treasure = { opened: false, pearls: R.int(E.PEARLS.wreck[0], E.PEARLS.wreck[1]), keepsake: null, choices: [] };
@@ -725,7 +747,7 @@
     if (t.opened) return;
     t.opened = true;
     run.pearls += t.pearls;
-    t.choices = E.keepsakeChoices(run, 3);
+    t.choices = E.keepsakeChoices(run, E.WRECK_KEEPSAKES);
   };
   E.takeTreasureKeepsake = function (run, k) {
     const t = run.treasure;
@@ -1156,7 +1178,12 @@
     c.tide = TIDE_MID;
     onTideTurn(run, c, 'crest');
   }
-  /* Strand: the water pulls back and strands the enemies. They lose all their Ward, and you gain 1 Light. */
+  /* Strand: the water pulls back and strands the enemies. They lose all their Ward, and the first Strand of a turn gives
+     1 Light. Until v0.40.0 every Strand gave 1 Light, so cheap Ebb cards paid for themselves and a turn could chain Strands
+     on and on (the user: "Possible to chain long strand/crest combos. Especially strand since it gives one light back").
+     Later Strands still strip Ward, bring up the Submerged, ring the bell and count for High and Dry. The Glimmer Bulb
+     gives the Light back on every Strand. */
+  E.strandLight = (run, chain) => (chain <= 1 || E.has(run, 'bulb') ? 1 : 0);
   function lowWater(run, c) {
     if (c.won || c.lost) return;
     c.turnLows++;
@@ -1170,10 +1197,10 @@
     // stranded, nothing can stay sunk out of reach
     const surfaced = [];
     E.alive(c).forEach((e) => { if (e.st.submerged) { delete e.st.submerged; surfaced.push(e.uid); } });
-    const light = 1 + (E.has(run, 'bulb') ? BL.KEEPSAKES.bulb.light : 0); // the Glimmer Bulb adds to a Strand's Light
+    const light = E.strandLight(run, c.turnLows); // the first of a turn, or every one with the Glimmer Bulb
     c.light += light;
     fx(c, { t: 'low', chain: c.turnLows, stripped, surfaced, light, ebb });
-    if (light > 1) fx(c, { t: 'ks', k: 'bulb' });
+    if (light && c.turnLows > 1) fx(c, { t: 'ks', k: 'bulb' });
     if (E.has(run, 'kelpbracelet')) { fx(c, { t: 'ks', k: 'kelpbracelet' }); gainWard(c, c.player, 8); }
     const abyss = (c.player.st.r_abyss || 0) + (E.has(run, 'anchor') ? 4 : 0);
     if (E.has(run, 'anchor')) fx(c, { t: 'ks', k: 'anchor' });
@@ -1292,6 +1319,7 @@
       applyAll: (key, n) => E.alive(c).forEach((e) => applyStatus(run, c, e, key, n, true)),
       buff: (key, n) => applyStatus(run, c, P, key, n, false),
       rite: (key, n) => applyStatus(run, c, P, key, n, false),
+      riteMax: (key, n) => { const have = P.st[key] || 0; if (n > have) applyStatus(run, c, P, key, n - have, false); }, // a Rite whose copies don't stack
       draw: (n) => drawCards(run, c, n),
       light: (n) => { c.light += n; fx(c, { t: 'light', n }); },
       heal: (n) => { const h = E.heal(run, n); fx(c, { t: 'heal', who: 'p', n: h }); },
@@ -1767,12 +1795,14 @@
     const roilPay = (c.roilSteps || 0) * E.ROIL_PAY;
     pearls += roilPay;
     run.pearls += pearls;
-    // a Dread pays in Pearls and a pick of keepsakes only (until v0.16.0 it also offered a card and often a tonic)
+    /* A Dread pays Pearls and one pick (`oneOf`): a card from three, rolled as a Dread's (more uncommon and rare than a
+       skirmish's), or its one keepsake. Taking either closes the other. Until v0.40.0 it offered 2 keepsakes and no card;
+       until v0.16.0 a card, the keepsakes and often a tonic. A save from before v0.40.0 has no `oneOf` and plays as then. */
     const upChance = 0.15 + 0.02 * run.floor;
-    const cards = elite ? [] : E.rewardCards(run, 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
-    const rw = { pearls, bonuses, roilPay, roilSteps: c.roilSteps || 0, cards, elite, cardTaken: elite, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
+    const cards = E.rewardCards(run, elite ? 'elite' : 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
+    const rw = { pearls, bonuses, roilPay, roilSteps: c.roilSteps || 0, cards, elite, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
     if (!elite && R.chance(0.4)) rw.tonic = E.randomTonic(run);
-    if (elite) rw.keepsakeChoices = E.keepsakeChoices(run, 2);
+    if (elite) { rw.oneOf = true; rw.keepsakeChoices = E.keepsakeChoices(run, E.DREAD_KEEPSAKES); }
     run.rewards = rw;
     run.combat = null;
     run.screen = 'reward';
@@ -1828,11 +1858,14 @@
     return l;
   };
 
+  /* Take the reward's card `i`, or skip it (null). On a Dread's one pick, skipping the card skips the keepsake too: one
+     reward turned down. */
   E.takeRewardCard = function (run, i) {
     const rw = run.rewards;
-    if (!rw || rw.cardTaken) return;
+    if (!rw || rw.cardTaken || (rw.oneOf && rw.keepsake)) return;
     rw.cardTaken = true;
     rw.cardTakenIdx = i == null ? -1 : i;
+    if (rw.oneOf) rw.keepsakeLeft = true;
     const pick = i == null ? null : rw.cards[i];
     if (pick) E.addCard(run, pick.id, pick.up);
     else E.decline(run, E.skipCardKind(rw));
@@ -1856,8 +1889,9 @@
   E.skipCardKind = (rw) => ((rw && (rw.elite != null ? rw.elite : rw.keepsakeChoices && rw.keepsakeChoices.length > 0)) ? 'eliteCard' : 'card');
   E.takeRewardKeepsake = function (run, k) {
     const rw = run.rewards;
-    if (!rw || rw.keepsake || rw.keepsakeLeft || rw.keepsakeChoices.indexOf(k) < 0) return;
+    if (!rw || rw.keepsake || rw.keepsakeLeft || rw.keepsakeChoices.indexOf(k) < 0 || (rw.oneOf && rw.cardTaken)) return;
     rw.keepsake = k;
+    if (rw.oneOf) { rw.cardTaken = true; rw.cardTakenIdx = -1; } // the keepsake was the pick: the cards go
     E.gainKeepsake(run, k);
   };
 
@@ -2180,6 +2214,7 @@
     if (run.screen === 'treasure') m.push('wreck');
     if (run.screen === 'defeat') m.push('fell');
     (run.cleared || []).forEach((lv) => m.push('won:' + lv));
+    if (run.level) m.push('in:' + run.level); // down in a level below the Shallows (v0.40.0: 'in:2' opens Into the Belfry)
     if (run.screen === 'victory') m.push('home');
     if (run.screen === 'victory' && run.heart) m.push('heart');
     if (run.screen === 'victory' && run.quieted) m.push('quiet');
@@ -2194,6 +2229,14 @@
   E.storyOpen = (entry, marks) => !entry.when || marks.indexOf(entry.when) >= 0;
   /* every entry that can be locked: chapters, then notes */
   E.storyEntries = () => BL.STORY.chapters.concat(BL.STORY.notes);
+
+  /* The glossary's Hold and Roiled say the engine's own numbers, so a change to them can't leave the words behind (until
+     v0.40.0 they still said the Hold grew at each new level, and that a step paid 8 Pearls). */
+  Object.defineProperty(BL.KEYWORDS, 'Hold', { enumerable: true, configurable: true, get: () => 'How much Roil the aether around you holds while it stays Calm: '
+    + `${E.HOLD} to start with.${E.HOLD_STEP ? ` It grows by ${E.HOLD_STEP} for good the first time you reach each deeper level.` : ''} The lantern in the Workshop raises it for good, ${E.HOLD_UP.step} a step.` });
+  Object.defineProperty(BL.KEYWORDS, 'Roiled', { enumerable: true, configurable: true, get: () => `You carry more Roil than your Hold. Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step, `
+    + `and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. `
+    + `It also pays: ${E.ROIL_PAY} more Pearls after each fight for each step.` });
 
   BL.E = E;
 })();

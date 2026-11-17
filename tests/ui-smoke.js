@@ -210,6 +210,30 @@ async function decideKeepsake(page, label, scope) {
   if ((await page.eval('window.Brinelight.run.keepsakes.length')) !== ks0 + 1) failures.push(`${label}: Take didn't take the marked keepsake`);
 }
 
+/* A Dread's reward (v0.40.0): one pick, a card from three or its keepsake, marked with one scope (rw-one). Marking takes
+   nothing, a second mark moves it from a card to the keepsake, and Take takes the marked one and closes the other.
+   Alternates between taking the keepsake and a card (page.dreadTurn). */
+async function decideDread(page, label) {
+  const sel = '[data-act="pick"][data-scope="rw-one"]';
+  if (!(await page.eval(`!!document.querySelector('${sel}')`))) return;
+  if (await page.eval(`!!document.querySelector('[data-act="tomap"]')`)) failures.push(`${label}: Continue was offered before the Dread's pick was decided`);
+  const st0 = await page.eval('(() => { const r = window.Brinelight.run; return { ks: r.keepsakes.length, deck: r.deck.length, cards: document.querySelectorAll(".card[data-scope=\'rw-one\']").length, tiles: document.querySelectorAll(".ks-pick[data-scope=\'rw-one\']").length }; })()');
+  if (st0.cards !== 3 || st0.tiles !== 1) failures.push(`${label}: a Dread should offer 3 cards and 1 keepsake (${st0.cards}, ${st0.tiles})`);
+  const takeKs = (page.dreadTurn = (page.dreadTurn || 0) + 1) % 2 === 1;
+  await clickIf(page, `.card${sel}[data-key="0"]`);
+  await clickIf(page, `.ks-pick${sel}`);
+  if (!takeKs) await clickIf(page, `.card${sel}[data-key="1"]`);
+  const st = await page.eval(`(() => { const r = window.Brinelight.run; return { ks: r.keepsakes.length, deck: r.deck.length, picked: [...document.querySelectorAll('${sel}.picked')].length,
+    ok: !!document.querySelector('[data-act="pickok"][data-scope="rw-one"]:not([disabled])') }; })()`);
+  if (st.ks !== st0.ks || st.deck !== st0.deck) failures.push(`${label}: marking in a Dread's pick took something before Take was pressed`);
+  if (st.picked !== 1) failures.push(`${label}: a Dread's pick should have exactly one mark across cards and keepsake (${st.picked})`);
+  if (!st.ok) failures.push(`${label}: the Dread's Take button isn't ready after a mark`);
+  await clickIf(page, '[data-act="pickok"][data-scope="rw-one"]:not([disabled])');
+  const st1 = await page.eval('(() => { const r = window.Brinelight.run; return { ks: r.keepsakes.length, deck: r.deck.length }; })()');
+  if (takeKs && (st1.ks !== st0.ks + 1 || st1.deck !== st0.deck)) failures.push(`${label}: Take should take the Dread's keepsake and no card`);
+  if (!takeKs && (st1.deck !== st0.deck + 1 || st1.ks !== st0.ks)) failures.push(`${label}: Take should take the marked card and not the keepsake`);
+}
+
 /* A reward card is marked first and taken with the button below it (v0.36.0, the user: "pressing card does not lock
    choice, until continue is pressed. Selecting a card shows explanations of effects for that card only"). Marking takes
    nothing, a second mark moves it, the legend explains only words on the marked card, and Take adds it to the deck. */
@@ -244,6 +268,7 @@ async function afterStop(page, label) {
     if (s === 'combat') { await fight(page, label + ' event fight', {}); continue; }
     if (s === 'reward') {
       await clickIf(page, '[data-act="taketonic"]:not([disabled])');
+      await decideDread(page, label);
       await pickRewardCard(page, label);
       await decideKeepsake(page, label, 'rw-ks');
       await clickIf(page, '[data-act="tomap"]');
@@ -918,12 +943,22 @@ async function darkwaterScenario(page, base, name, size, opts) {
   if ((await page.eval(`document.querySelectorAll('[data-act="stairdo"]:not([disabled])').length`)) !== 5) failures.push(`${name}: the stair should offer five`);
   if ((await page.eval(`document.querySelectorAll('.stair-track li').length`)) !== 3) failures.push(`${name}: the stair's track should show three levels`);
   await checkPage(page, name + ' stair');
-  // the keepers' cache shows three cards, and Back uses nothing
+  // the keepers' cache (v0.40.0): opening it uses the pick, the choice has no Back, and it comes back after a reload.
+  // Here it is tried, and then the stair is set back to no picks for the rest and the shed below.
   await tapIn('[data-act="stairdo"][data-id="cache"]');
   await page.waitFor(`document.querySelectorAll('.modal [data-act="pick"][data-scope="choice"]').length === 3`, 3000, "the keepers' cache");
+  if ((await page.eval('window.Brinelight.run.stair.picks.length')) !== 1) failures.push(`${name}: opening the keepers' cache should use a pick`);
+  if (!/Take none/.test(await page.eval(`document.querySelector('.modal [data-act="choosecard"][data-id=""]').textContent`))) failures.push(`${name}: the keepers' cache should offer Take none, not Back`);
+  const cache0 = await page.eval('JSON.stringify(window.Brinelight.run.stair.cache)');
+  await page.eval(`(() => { const o = document.getElementById('overlay'); o.hidden = true; o.innerHTML = ''; window.Brinelight.render(); })()`); // as after a reload
+  await sleep(200);
+  if ((await page.eval(`document.querySelectorAll('.modal [data-act="pick"][data-scope="choice"]').length`)) !== 3) failures.push(`${name}: the open keepers' cache should show its choice again after a reload`);
+  if ((await page.eval('JSON.stringify(window.Brinelight.run.stair.cache)')) !== cache0) failures.push(`${name}: the keepers' cache changed its cards after a reload`);
   await page.click('.modal [data-act="choosecard"][data-id=""]');
   await sleep(200);
-  if ((await page.eval('window.Brinelight.run.stair.picks.length')) !== 0) failures.push(`${name}: backing out of the keepers' cache used a pick`);
+  if ((await page.eval('window.Brinelight.run.stair.picks.length')) !== 1 || (await page.eval('window.Brinelight.E.stairCacheOpen(window.Brinelight.run)'))) failures.push(`${name}: Take none should close the keepers' cache with its pick used`);
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.stair = { picks: [], cache: null }; r.restDone = false; B.render(); })()`);
+  await sleep(200);
   // rest deeply: 30% of Max HP (half until v0.36.0)
   await tapIn('[data-act="stairdo"][data-id="rest"]');
   await sleep(200);
@@ -947,6 +982,17 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await dismissHints(page);
   if ((await page.eval('window.Brinelight.run.level')) !== 1) failures.push(`${name}: the run is not in Dark Water`);
   if (!/Dark Water/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name Dark Water`);
+  // a Dread's one pick (v0.40.0): three cards or its keepsake, once each way (the walk above skips Dreads); then the
+  // run is put back as it was, so the fights below meet no Roil
+  const kept = await page.eval('JSON.stringify({ k: window.Brinelight.run.keepsakes, d: window.Brinelight.run.deck })');
+  for (let i = 0; i < 2; i++) {
+    await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.combat = null; r.screen = 'map'; E.startCombat(r, 'elite', ['chain']); const c = r.combat; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); c.won = true; E.finishCombat(r); B.render(); })()`);
+    await sleep(700);
+    await dismissHints(page);
+    await decideDread(page, `${name} Dread pick ${i + 1}`);
+    await page.waitFor('window.Brinelight.run.screen === "map"', 3000, 'the map after the Dread pick');
+  }
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run, o = JSON.parse(${JSON.stringify(kept)}); r.keepsakes = o.k; r.deck = o.d; B.render(); })()`);
   const setFight = async (enc, kind, setup) => {
     await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; r.combat = null; r.screen = 'map'; E.startCombat(r, ${JSON.stringify(kind)}, ${JSON.stringify(enc)}); const c = r.combat; c.enemies.forEach((e) => { e.hp = e.maxHp = 400; }); ${setup || ''}; B.render(); })()`);
     await waitIdle(page);
@@ -1132,6 +1178,20 @@ async function belfryScenario(page, base, name, size, opts) {
   await toMap('the Belfry map');
   if ((await page.eval('window.Brinelight.run.level')) !== 2) failures.push(`${name}: the run is not in the Belfry`);
   if (!/Belfry/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name the Belfry`);
+  // the first time down into the Belfry, its scene plays over the map: three pictures, and Back goes to the one before (v0.40.0)
+  let bs = await beat();
+  if (!bs || !/last dry step/.test(bs.text) || bs.dots !== 3) failures.push(`${name}: going down into the Belfry should play its three-picture scene (${JSON.stringify(bs)})`);
+  await tap('#overlay [data-act="opnext"]');
+  await sleep(300);
+  bs = await beat();
+  if (!bs || !/full of bells/.test(bs.text)) failures.push(`${name}: the Belfry's second picture should say why it is full of bells (${JSON.stringify(bs)})`);
+  await tap('#overlay [data-act="opback"]');
+  await sleep(300);
+  bs = await beat();
+  if (!bs || !/last dry step/.test(bs.text)) failures.push(`${name}: Back in a story scene should go to the picture before (${JSON.stringify(bs)})`);
+  for (let i = 0; i < 4 && await beat(); i++) { await tap('#overlay [data-act="opnext"]'); await sleep(300); }
+  if (await beat()) failures.push(`${name}: the Belfry's scene didn't close`);
+  if (!/below/.test(await page.eval(`JSON.parse(localStorage.getItem('brinelight.story.v1')).scenes.join(',')`))) failures.push(`${name}: the Belfry's scene isn't stored as seen`);
   // v0.37.0: the Belfry is a dive: one stop a row, 5 landings, and under a lesser bell one of six
   const dive = await page.eval(`(() => { const r = window.Brinelight.run; return { rows: r.map.rows, nodes: document.querySelectorAll('.map .node').length, hud: document.querySelector('.stat.floor').textContent, legend: document.querySelector('.map-legend').textContent }; })()`);
   if (dive.rows !== 4 || dive.nodes !== 5 || !/0\/5/.test(dive.hud) || !/lesser bell/i.test(dive.legend)) failures.push(`${name}: the Belfry should be a dive of 4 stops and the pin, 5 landings (${JSON.stringify(dive)})`);
@@ -1446,7 +1506,7 @@ async function audioScenario(page, base, name, size) {
   await expect('before any click', { ctx: null, playing: false, song: null });
   // the first click starts the music: the title screen's song, in place of the score's title cue
   await page.click('.title-corner [data-act="menu"]');
-  await expect('the title, after a click', { ctx: 'running', playing: false, song: 'title', ambience: '', loop: 'title,bells,hermit,buoy,watch' }); // It Went Dark on My Watch is open from the start since v0.36.0
+  await expect('the title, after a click', { ctx: 'running', playing: false, song: 'title', ambience: '', loop: 'title,hermit,buoy,watch' }); // It Went Dark on My Watch is open from the start since v0.36.0; Harbour Bells at Dawn waits for the Heart since v0.40.0
   // a song is heard: its time moves on
   const plays = async (label) => {
     const t0 = (await audio()).songAt;
@@ -1487,9 +1547,10 @@ async function audioScenario(page, base, name, size) {
   if (items !== 19) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 10 songs and 9 pieces of the score`);
   if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 10 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 9) failures.push(`${name}: the Jukebox doesn't mark the 10 Gemini songs and the 9 music box pieces`);
   if (!(await jb(`!!o.querySelector('.juke-item.cur [data-key="title"][aria-pressed="true"]')`))) failures.push(`${name}: the Jukebox doesn't show the title song playing`);
-  // open from the start: the five title songs (It Went Dark on My Watch too, since v0.36.0) and the score's title tune
+  // open from the start: four title songs (It Went Dark on My Watch too, since v0.36.0; Harbour Bells at Dawn waits for
+  // the Heart since v0.40.0) and the score's title tune
   const locked = await jb(`[...o.querySelectorAll('.juke-item.locked .juke-row')].filter((b) => b.disabled).length`);
-  if (locked !== 13) failures.push(`${name}: ${locked} tracks are locked, expected all but the five title songs and the Keeper's Song`);
+  if (locked !== 14) failures.push(`${name}: ${locked} tracks are locked, expected all but four title songs and the Keeper's Song`);
   if (!(await jb(`[...o.querySelectorAll('.juke-item:not(.locked) .juke-row')].some((b) => /It Went Dark/.test(b.getAttribute('aria-label')))`))) failures.push(`${name}: It Went Dark on My Watch should be open from the start`);
   if (!(await jb(`o.querySelector('[data-act="jukedepth"][data-depth="0"]') && !o.querySelector('[data-act="jukedepth"][data-depth="1"]')`))) failures.push(`${name}: the Jukebox's depths beyond the Shallows aren't locked`);
   // the song playing has a Words button: its words on a page of their own, and Back returns to the Jukebox, the song still playing
@@ -1665,8 +1726,8 @@ async function audioScenario(page, base, name, size) {
   await expect('the loss screen', { target: 'fallen', ambience: '' });
   await set('B.run = null');
   // back on the title, the descent just finished opens its last song: each in turn, from the top
-  await expect('back on the title', { playing: false, song: 'title', depth: 0, ambience: '', loop: 'title,bells,hermit,buoy,watch' });
-  for (const next of ['bells', 'hermit', 'buoy', 'watch', 'title']) {
+  await expect('back on the title', { playing: false, song: 'title', depth: 0, ambience: '', loop: 'title,hermit,buoy,watch' });
+  for (const next of ['hermit', 'buoy', 'watch', 'title']) {
     await page.eval('window.Brinelight.songToEnd()');
     await page.waitFor(`window.Brinelight.audio().song === '${next}'`, 6000, `the title screen going on to ${next}`);
     await plays(`the title screen's ${next} song`);
@@ -1676,12 +1737,12 @@ async function audioScenario(page, base, name, size) {
   await inject(page);
   await page.click('.title-corner [data-act="menu"]');
   await sleep(300);
-  const again = await audio(), order = 'title,bells,hermit,buoy,watch', rot = (l) => l.split(',').map((k, i, a) => a.slice(i).concat(a.slice(0, i)).join(','));
+  const again = await audio(), order = 'title,hermit,buoy,watch', rot = (l) => l.split(',').map((k, i, a) => a.slice(i).concat(a.slice(0, i)).join(','));
   if (!rot(order).includes(again.loop) || again.song !== (again.loop || '').split(',')[0]) failures.push(`${name}: after a reload the title screen should start the loop on one of its songs and keep its order (${JSON.stringify(again)})`);
   // what was heard is kept across the reload (v0.29.0 forgot it, so the keeper's song always came first)
   const kept = await page.eval(`window.Brinelight.meta.heard`);
   if (!kept.includes('song:title') || !kept.includes('song:watch')) failures.push(`${name}: after a reload the Jukebox forgot what was heard (${JSON.stringify(kept)})`);
-  // and the keeper's song, heard, is no longer always first: one of up to 8 reloads starts elsewhere (all 8 on it by chance: 1 in 390,625)
+  // and the keeper's song, heard, is no longer always first: one of up to 8 reloads starts elsewhere (all 8 on it by chance: 1 in 65,536)
   let firsts = [again.song];
   while (firsts.length < 8 && firsts.every((k) => k === 'title')) {
     await page.goto(base + '?seed=7171');

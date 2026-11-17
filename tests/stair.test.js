@@ -109,6 +109,45 @@ test('the stair survives a save: picks made and the cache shown stay', () => {
   assert.ok(back.restDone);
 });
 
+test('the keepers\' cache: opening it uses the pick; then take one of the three or none, and a reload shows the same choice', () => {
+  const run = onStair(27, 30);
+  const open = E.stairDo(run, 'cache');
+  assert.equal(open.open, true);
+  assert.deepEqual(open.cards, E.stairCache(run));
+  assert.deepEqual(run.stair.picks, ['cache'], 'looking costs the pick (until v0.40.0 you could back out for free)');
+  assert.ok(E.stairCacheOpen(run));
+  assert.equal(E.stairWhy(run, 'cache'), '', 'still open: the choice waits');
+  assert.equal(E.stairDo(run, 'cache'), null, 'opening again does nothing more');
+  // a reload: the same three, still open, and the pick still used
+  const back = JSON.parse(JSON.stringify(run));
+  assert.ok(E.stairCacheOpen(back));
+  assert.deepEqual(E.stairCache(back), open.cards);
+  assert.deepEqual(back.stair.picks, ['cache']);
+  const n = back.deck.length;
+  assert.equal(E.stairDo(back, 'cache', 1).card.id, open.cards[1]);
+  assert.equal(back.deck.length, n + 1);
+  assert.ok(!E.stairCacheOpen(back));
+  assert.equal(E.stairWhy(back, 'cache'), 'done');
+  assert.equal(E.stairDo(back, 'cache', 0), null, 'one card only');
+  // take none: nothing added, the pick stays used, and it is not a decline
+  const none = onStair(28, 30);
+  E.stairDo(none, 'cache');
+  const d0 = none.stats.declined || 0, deck0 = none.deck.length;
+  const o = E.stairDo(none, 'cache', -1);
+  assert.equal(o.card, null);
+  assert.equal(none.deck.length, deck0);
+  assert.equal(none.stats.declined || 0, d0);
+  assert.equal(E.stairWhy(none, 'cache'), 'done');
+  assert.ok(E.stairDo(none, 'rest'));
+  assert.ok(none.restDone, 'the cache and one more: both picks used');
+  // as the second pick it ends the stair's picks, and its card can still be taken
+  const last = onStair(29, 30);
+  E.stairDo(last, 'rest');
+  E.stairDo(last, 'cache');
+  assert.ok(last.restDone);
+  assert.ok(E.stairDo(last, 'cache', 0).card);
+});
+
 /* ---------- Give one to the sea (v0.35.0) ---------- */
 function atCove(seed, hp, keeps) {
   const run = E.newRun(seed, 0);

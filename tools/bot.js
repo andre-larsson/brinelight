@@ -272,6 +272,15 @@ function pickKeepsake(run, choices) {
   return best;
 }
 
+/* A Dread's one pick (v0.40.0): its keepsake if it keeps the aether Calm, or if it is one of a deeper level's own (they
+   do more), and if pickKeepsake would take it at all; else null, and the bot takes a card. */
+function dreadKeepsake(run, choices) {
+  const { E } = load();
+  const k = choices[0];
+  if (!k || !pickKeepsake(run, [k])) return null;
+  return E.roil(run, k).steps === 0 || E.keepsakeDepth(k) > 0 ? k : null;
+}
+
 /* ---------------- Choices the bot made blind until v0.36.0 ----------------
    The user asked for a bot that tests the game better. Until v0.36.0 it took the first reward card, the leftmost
    landing, a rest at every Cove and no uncommon card at Barnaby's. `classic: true` plays all four as before (the bot
@@ -358,6 +367,12 @@ function step(run, opts = {}) {
   }
   if (s === 'reward') {
     const rw = run.rewards;
+    // a Dread's one pick (v0.40.0): its keepsake when it keeps the aether Calm or is one of a deeper level's, else a card
+    if (rw.oneOf && !rw.cardTaken && !rw.keepsake) {
+      const k = opts.keepsake ? opts.keepsake(run, rw.keepsakeChoices) : dreadKeepsake(run, rw.keepsakeChoices);
+      if (k) E.takeRewardKeepsake(run, k);
+      else E.takeRewardCard(run, opts.skipCards ? null : opts.blindCards || opts.classic ? 0 : pickRewardCard(run, rw.cards));
+    }
     if (rw.keepsakeChoices.length && !rw.keepsake && !rw.keepsakeLeft) {
       const k = opts.keepsake ? opts.keepsake(run, rw.keepsakeChoices) : pickKeepsake(run, rw.keepsakeChoices);
       if (k) E.takeRewardKeepsake(run, k); else E.leaveKeepsakes(run);
@@ -423,4 +438,4 @@ function playRun(run, maxSteps = 5000, opts) {
   return labels;
 }
 
-module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake, pickRewardCard, chooseNode, coveRefit };
+module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake, dreadKeepsake, pickRewardCard, chooseNode, coveRefit };

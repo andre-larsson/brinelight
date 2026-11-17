@@ -161,7 +161,7 @@
       playStep('crest', 'shellup', null,
         () => 'At 6 the wave <b>Crests</b>: 6 damage to <b>every</b> enemy. Play <b>Shell Up</b> (Surge 1).'),
       playStep('ebb', 'slack', null,
-        () => '<b>Crest!</b> The Swell resets to 3. Now play <b>Slack Water</b> (Ebb 2). At 0 you <b>Strand</b> the enemies: they lose their Ward, and you gain 1 Light.'),
+        () => '<b>Crest!</b> The Swell resets to 3. Now play <b>Slack Water</b> (Ebb 2). At 0 you <b>Strand</b> the enemies: they lose their Ward, and your first Strand each turn gives you 1 Light.'),
       { id: 'end2', endTurn: true, anchor: '#btn-end',
         html: () => `Swell 1. It stays put between turns. ${tap()} <b>End Turn</b>.${kbd('Or press E')}` },
       { id: 'reshuffle', info: true, anchor: '#pile-draw',
@@ -262,7 +262,7 @@
         <ul>
           <li><b>Attack</b> to bring enemy HP to 0, and <b>Ward</b> up against their intents.</li>
           <li>Each turn: <b>3 Light</b>, <b>5 cards</b>. The discard pile comes back when you run out.</li>
-          <li><b>Surge</b> to 6 to <b>Crest</b> (hits every enemy). <b>Ebb</b> to 0 to <b>Strand</b> them (enemies lose their Ward, +1 Light). Save Surge for one big turn: chained Crests hit harder.</li>
+          <li><b>Surge</b> to 6 to <b>Crest</b> (hits every enemy). <b>Ebb</b> to 0 to <b>Strand</b> them (enemies lose their Ward; the first Strand each turn gives +1 Light). Save Surge for one big turn: chained Crests hit harder.</li>
           <li>Once a turn, <b>Bail</b> (Ebb 1) or <b>Stir</b> (Surge 1) for 1 Light, without a card.</li>
         </ul>
         <p class="muted">The full rules are in How to Play, in the menu.</p></div>`;
@@ -285,7 +285,7 @@
         html: () => 'Choose your route. <b>Lit stops</b> are where you can go next, and the legend names every icon. The boss waits at the bottom, deepest down.' },
       { id: 'elite', when: (r) => (r.screen === 'map' && !!document.querySelector('.node.avail.t-elite')) || (r.screen === 'combat' && r.combat.kind === 'elite'),
         anchor: () => document.querySelector('.node.avail.t-elite') || document.querySelector('.unit.enemy .sprite'),
-        html: () => 'A <b>Dread</b> is an elite: tougher than a skirmish. Beat it, and you may take 1 of 2 <b>keepsakes</b>.' },
+        html: () => 'A <b>Dread</b> is an elite: tougher than a skirmish. Beat it, and choose one: a card, or a <b>keepsake</b>.' },
       { id: 'charge', when: (r) => r.screen === 'map' && r.keepsakes.length > 0, anchor: '.hud .charge',
         html: () => `Every keepsake stirs the aether: its <b>Roil</b>. The aether around you holds ${E.hold(api.getRun())}: your <b>Hold</b>. Past that it is Roiled, and every fight gets worse: first a <b>Seep</b> (an unplayable card), then <b>Thrash</b> (damage each turn unless you kept Ward), then a Bell Minnow. ${tap()} a keepsake between fights to drop it.` },
       // above the cards, so the keyword legend under them stays readable
@@ -323,7 +323,7 @@
       return ok;
     },
       anchor: () => `#tidebar .tb-act.${actEnd}`, side: 'above',
-      html: () => `One step from ${actEnd === 'bail' ? 'a Strand' : 'a Crest'}. Once a turn, without a card, you can spend 1 Light to <b>Bail</b> (Ebb 1) or <b>Stir</b> (Surge 1). A Bail that makes a Strand gets its Light back.` });
+      html: () => `One step from ${actEnd === 'bail' ? 'a Strand' : 'a Crest'}. Once a turn, without a card, you can spend 1 Light to <b>Bail</b> (Ebb 1) or <b>Stir</b> (Surge 1). A Bail that makes your first Strand of the turn gets its Light back.` });
     // the Tolling Buoy's Wild Peal, the first time one is coming
     let pealUid = null;
     HINTS.push({ id: 'peal', when: (r) => {

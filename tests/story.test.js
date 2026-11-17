@@ -34,9 +34,9 @@ test('the opening is four pictures, each with its text and art that exists', () 
   assert.match(S.opening[1].text, /an enchanted bell, the Bellwether/);
 });
 
-test('story scenes: one for each pin above the last, one for the dress, one for the Heart and one for the first quiet (the Dark Watch), each with pictures that exist and a chapter that replays it', () => {
+test('story scenes: one for each pin above the last, one for the dress, one for going down into the Belfry, one for the Heart and one for the first quiet (the Dark Watch), each with pictures that exist and a chapter that replays it', () => {
   const at = Object.values(S.scenes).map((sc) => sc.at);
-  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'heart', 'quiet']).sort());
+  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'in:' + (E.LEVELS.length - 1), 'heart', 'quiet']).sort());
   Object.keys(S.scenes).forEach((id) => {
     const sc = S.scenes[id];
     assert.ok(sc.beats.length >= 1 && sc.beats.length <= 4, `${id}: a scene is one to four pictures`);
@@ -49,12 +49,19 @@ test('story scenes: one for each pin above the last, one for the dress, one for 
     assert.equal(S.chapters.filter((c) => c.scene === id).length, 1, `${id}: one chapter replays it`);
   });
   // the scene opens with the chapter that replays it: the same mark
-  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', heart: 'heart', quiet: 'quiet' };
+  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', 'in:2': 'in:2', heart: 'heart', quiet: 'quiet' };
   S.chapters.filter((c) => c.scene).forEach((c) => assert.equal(c.when, mark[S.scenes[c.scene].at], c.id));
   // the Belfry is named for the first time when Dark Water's pin breaks, and the dress is found there
   assert.match(S.scenes.buoy.beats[1].text, /The keepers called it the Belfry/);
   assert.equal(S.scenes.buoy.beats[2].found, 'suit');
   assert.doesNotMatch(S.scenes.hermit.beats.map((b) => b.text).join(' '), /Belfry|Dark Water/);
+  // why there are so many bells (v0.40.0, the user asked for it to be clear): said when the Hermit breaks, on the way
+  // into the Belfry, and in The world
+  assert.match(S.scenes.hermit.beats[1].text, /Every bell on this coast answers the Bellwether/);
+  assert.match(S.scenes.below.beats[1].text, /Every bell on this coast was cast to answer the Bellwether/);
+  assert.match(S.scenes.below.beats[2].text, /young wear broken bronze for shells/);
+  const bells = S.world.flatMap((g) => g.items).find((it) => it[0] === 'Why so many bells');
+  assert.ok(bells && /harbour bell/.test(bells[1]) && /bell-buoy/.test(bells[1]) && !/bell-buoy|Belfry/.test(bells[2].before));
 });
 
 test('chapter 1 is the opening and is always open; every other entry is locked behind a mark it names', () => {
@@ -78,6 +85,7 @@ test('every mark can be earned in the game as it is', () => {
     if (kind === 'ev') assert.ok(BL.EVENTS.some((ev) => ev.id === id), en.when);
     else if (kind === 'en') assert.ok(BL.ENEMIES[id] && !BL.ENEMIES[id].tutorial, en.when);
     else if (kind === 'won') assert.ok(+id >= 0 && +id < E.LEVELS.length, en.when);
+    else if (kind === 'in') assert.ok(+id >= 1 && +id < E.LEVELS.length, en.when);
     else assert.ok(plain.indexOf(en.when) >= 0, en.when);
   });
   // one chapter for each pin broken on the way down, and the Heart's chapters for the last
@@ -85,8 +93,8 @@ test('every mark can be earned in the game as it is', () => {
   assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
-test('there are nine chapters and 38 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
-  assert.equal(S.chapters.length, 9);
+test('there are ten chapters and 38 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
+  assert.equal(S.chapters.length, 10);
   assert.equal(S.notes.length, 38);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));
@@ -131,7 +139,10 @@ test('a fall, each pin broken, coming home, the Heart, a keepsake and a Roiled a
   heart.cleared = [0, 1];
   heart.heart = true;
   heart.screen = 'victory';
-  assert.deepEqual(E.storyMarks(heart), ['won:0', 'won:1', 'home', 'heart']);
+  assert.deepEqual(E.storyMarks(heart), ['won:0', 'won:1', 'in:1', 'home', 'heart']);
+  // being down in a level below the Shallows is a mark: 'in:2' opens Into the Belfry and plays its scene
+  const below = E.newRun(7, 2);
+  assert.ok(E.storyMarks(below).includes('in:2') && !E.storyMarks(E.newRun(7)).some((m) => /^in:/.test(m)));
   const r = E.newRun(7);
   E.gainKeepsake(r, 'coralcrown');
   assert.deepEqual(E.storyMarks(r), ['keepsake']);

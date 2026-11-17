@@ -195,9 +195,14 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
     repeating-linear-gradient(90deg, rgba(212, 236, 232, .035) 0 1px, transparent 1px 48px),
     linear-gradient(180deg, #0a2232, #071722 70%, #06121c);
 }
+/* the level's picture behind the map (v0.40.0): fixed while the map scrolls, dimmed so the paths and stops stay first */
+.map-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.map-bg::after { content: ""; position: absolute; inset: 0; background:
+  radial-gradient(ellipse 70% 60% at 50% 45%, rgba(4, 16, 24, .58), rgba(4, 14, 22, .74)),
+  linear-gradient(180deg, rgba(4, 14, 22, .25), rgba(4, 14, 22, 0) 30%, rgba(4, 14, 22, 0) 80%, rgba(4, 14, 22, .3)); }
 .map-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; }
 /* sticky over the scrolling map: solid behind the text, fading out only below it, so nodes never show through the words */
-.map-header { position: sticky; top: 0; z-index: 3; text-align: center; padding: 10px 12px 22px; background: linear-gradient(180deg, #08202e, #071c29 calc(100% - 20px), rgba(7, 28, 41, 0)); pointer-events: none; }.map-header h2 { font-size: 20px; color: #f1dfb6; }
+.map-header { position: sticky; top: 0; z-index: 3; text-align: center; padding: 10px 12px 22px; background: linear-gradient(180deg, rgba(8, 32, 46, .94), rgba(7, 28, 41, .88) calc(100% - 20px), rgba(7, 28, 41, 0)); pointer-events: none; }.map-header h2 { font-size: 20px; color: #f1dfb6; }
 .map-header p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
 .map { position: relative; margin: 0 auto; width: min(560px, 100%); }
 .map svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -352,7 +357,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 /* .unit.enemy so it beats .unit.summoned's rise animation: a summoned enemy (the boss's minnows) has to fade out too */
 .unit.enemy.dead { animation: die .7s ease forwards; pointer-events: none; }
 @keyframes die { 0% { opacity: 1; filter: none; } 30% { filter: brightness(2) saturate(0); } 100% { opacity: 0; transform: translateY(16px) scale(.92); visibility: hidden; } }
-.enemy.gone { visibility: hidden; }
+.enemy.gone { visibility: hidden; display: none; }
 .unit.hit .sprite { animation: shake .35s ease; }
 .unit.lunge-left .sprite { animation: lungeL .4s ease; }
 .unit.lunge-right .sprite { animation: lungeR .35s ease; }
@@ -410,14 +415,15 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
   position: relative; z-index: 6; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 5px 12px;
   background: linear-gradient(180deg, #0b2535, #081b27); border-top: 1px solid rgba(120, 210, 230, .25); border-bottom: 1px solid rgba(0, 0, 0, .5);
 }
-.tb-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #8fb4e8; white-space: nowrap; cursor: help; }
-.tb-label.crest { color: #b9f0ff; }
+.tb-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #8fd9bd; white-space: nowrap; cursor: help; }
+.tb-label.crest { color: #c8fbe6; }
 .tb-track { position: relative; flex: 1; max-width: 560px; height: 20px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.tb-seg { border-radius: 5px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(160, 220, 235, .18); position: relative; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: rgba(255, 255, 255, .3); transition: background .3s, box-shadow .3s; }
-.tb-seg.end-low { border-color: rgba(120, 160, 255, .55); }
-.tb-seg.end-crest { border-color: rgba(150, 240, 255, .7); }
-.tb-seg.filled { background: linear-gradient(180deg, #5cc6dc, #1f6f8a); color: #fff; border-color: rgba(190, 245, 255, .6); }
-.tb-seg.now { box-shadow: 0 0 0 2px #e8fbff, 0 0 12px #5fd3ee; }
+.tb-seg { border-radius: 5px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(150, 230, 200, .18); position: relative; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: rgba(255, 255, 255, .3); transition: background .3s, box-shadow .3s; }
+.tb-seg.end-low { border-color: rgba(120, 220, 180, .55); }
+.tb-seg.end-crest { border-color: rgba(190, 255, 225, .7); }
+/* the Swell is sea-green, so it can't be read as Ward (blue, var(--ward)); v0.40.0, the user: "can be confused" */
+.tb-seg.filled { background: linear-gradient(180deg, #4fd4a4, #156b52); color: #fff; border-color: rgba(190, 255, 225, .6); }
+.tb-seg.now { box-shadow: 0 0 0 2px #eafff6, 0 0 12px #4fe0aa; }
 .tb-seg.preview { outline: 2px dashed #ffe0a0; outline-offset: 1px; }
 .tb-value { font-family: var(--serif); font-size: 15px; color: #e6f7fa; white-space: nowrap; min-width: 4.6em; text-align: center; }
 .tb-hint { position: absolute; left: 50%; top: -28px; transform: translateX(-50%); font-size: 14px; font-weight: 800; color: #ffe0a0; background: rgba(5, 15, 24, .85); padding: 1px 8px; border-radius: 8px; white-space: nowrap; pointer-events: none; }
@@ -820,6 +826,9 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .field.quake { animation: quake .7s ease; }
 @keyframes quake { 0%, 100% { transform: none; } 15% { transform: translate(-7px, 3px); } 30% { transform: translate(6px, -4px); } 45% { transform: translate(-5px, 4px); } 60% { transform: translate(4px, -2px); } 80% { transform: translate(-2px, 1px); } }
 .unit.cracking .sprite img { animation: cracking 1.1s ease-in forwards; }
+/* "The Bell Cracks!" at two thirds of its health: the picture changes to the cracked bell with a flash of the Heart's light (v0.40.0) */
+.unit.crack-flash .sprite img { animation: crackFlash .9s ease-out; }
+@keyframes crackFlash { 0% { filter: brightness(2.6) drop-shadow(0 0 26px rgba(255, 200, 110, 1)); transform: translateX(-4px); } 20% { transform: translateX(4px); } 40% { transform: translateX(-2px); } 100% { filter: none; transform: none; } }
 @keyframes cracking {
   0% { filter: none; } 15% { transform: translateX(-3px); } 30% { transform: translateX(3px); }
   55% { transform: translateX(-2px); filter: brightness(1.4) drop-shadow(0 0 12px rgba(255, 200, 110, .8)); } 70% { transform: translateX(3px); }
@@ -853,7 +862,7 @@ body.final-blow .float { animation-duration: 2.4s; }
 .unit.to-light .info { opacity: 0; transition: opacity .4s; }
 @keyframes toLight { 0% { filter: brightness(3) saturate(0); opacity: 1; } 100% { filter: brightness(4) saturate(0) blur(6px); opacity: 0; transform: scale(1.15) translateY(-10px); } }
 @media (prefers-reduced-motion: reduce) {
-  .field.toll-in, .field.quake, .unit.cracking .sprite img, .unit.last-blow .sprite img { animation: none; }
+  .field.toll-in, .field.quake, .unit.cracking .sprite img, .unit.last-blow .sprite img, .unit.crack-flash .sprite img { animation: none; }
   .light-bloom { animation-duration: 1s; }
   body.final-blow #field { transform: none; }
 }
@@ -1327,6 +1336,7 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .op-text { margin: 0; max-width: 34em; font-family: var(--serif); font-size: clamp(17px, 2.3vw, 22px); line-height: 1.55; color: #eef6f3; text-align: center; text-shadow: 0 2px 8px #000; animation: opIn .7s ease both; }
 .op-foot { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; width: min(34em, 100%); }
 .op-foot .btn { min-height: 48px; min-width: 110px; font-size: 17px; }
+.op-foot .btn.ghost { min-width: 0; padding-left: 14px; padding-right: 14px; }
 .op-dots { display: flex; gap: 7px; margin-right: auto; }
 .op-dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(212, 236, 232, .3); }
 .op-dots i.on { background: #f2c46b; }
@@ -1428,8 +1438,8 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .tb-act i { font-style: normal; font-weight: 900; font-size: 12px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; color: #2a1503;
   background: radial-gradient(circle at 40% 35%, #fff0c8, #f3a432 55%, #8a4d0a); }
 .tb-act .tb-arrow { font-size: 12px; opacity: .85; }
-.tb-act.bail { border-color: rgba(140, 170, 255, .7); }
-.tb-act.stir { border-color: rgba(150, 240, 255, .75); }
+.tb-act.bail { border-color: rgba(120, 220, 180, .7); }
+.tb-act.stir { border-color: rgba(190, 255, 225, .75); }
 .tb-act:hover:not([aria-disabled]), .tb-act:focus-visible { background: rgba(24, 74, 100, .98); box-shadow: 0 0 10px rgba(95, 211, 238, .5); }
 .tb-act[aria-disabled] { opacity: .45; cursor: default; }
 .tb-act.used { opacity: .3; }
@@ -1569,7 +1579,7 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .intent .i-swell { display: inline-flex; margin-left: 3px; color: #8fe3f5; }
 .intent .i-swell svg { width: 16px; height: 16px; }
 .tb-seg.calm { border-color: #ffc46e; box-shadow: inset 0 0 0 1px rgba(255, 196, 110, .7); color: #ffe0a0; }
-.tb-seg.calm.now { box-shadow: 0 0 0 2px #e8fbff, 0 0 12px #5fd3ee, inset 0 0 0 1px rgba(255, 196, 110, .7); }
+.tb-seg.calm.now { box-shadow: 0 0 0 2px #eafff6, 0 0 12px #4fe0aa, inset 0 0 0 1px rgba(255, 196, 110, .7); }
 .tb-hint.note { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 650; color: #ffe6c0; border: 1px solid rgba(255, 196, 110, .5); }
 .tb-hint.note svg { width: 14px; height: 14px; color: #ffc46e; }
 .tb-hint.note b { color: #fff; }
@@ -1586,3 +1596,13 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .sea-pick .sea-pay { color: #9be7c4; font-weight: 700; }
 .chip.bonus.roil { display: inline-flex; align-items: center; gap: 4px; border-color: rgba(190, 150, 255, .6); color: #e3d2ff; }
 .chip.bonus.roil svg { width: 13px; height: 13px; }
+/* a Dread's one pick (v0.40.0): three cards or its keepsake. Side by side on a wide screen, stacked on a phone */
+.dread-pick { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.dread-or h3 { text-align: center; color: #ffe6b0; }
+.dread-or .shop-row { justify-content: center; }
+@media (min-width: 900px) {
+  .dread-pick { flex-direction: row; align-items: stretch; }
+  .dread-pick .reward-main { flex: 3 1 0; }
+  .dread-pick .dread-or { flex: 1 1 0; width: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-color: rgba(255, 184, 77, .45); }
+  .dread-pick .dread-or h3 { font-size: 22px; font-family: inherit; }
+}

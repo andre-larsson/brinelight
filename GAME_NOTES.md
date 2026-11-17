@@ -1691,6 +1691,57 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
   - Dark Water's Skirmishes are about 5% longer (0.16 turns) and cost 14% more HP; Dreads cost 1.7 HP more (the swarm) in the same turns. The Shallows and the Belfry don't move.
   - The bot rarely builds Echo+ with the Conch, so their change costs it under a point; in the playtests all three winning decks had Echo+. The removal cap changes nothing for the bot (it buys one removal a shop at most).
+### Playtest on v0.39.0: fewer keepsakes, one Light a turn from Strands, the Belfry's story and the bells (v0.40.0, 2026-11-17)
+
+- **How this was built (and a lesson):** the work was first built on a local `main` 15 commits behind `origin/main` (v0.36.0, while origin had v0.37.0 to v0.39.0 from another session), and the user's list was about v0.39.0. It was ported on the branch `playtest-v0.39` (cherry-pick, conflicts resolved keeping both sides), renumbered v0.40.0, and re-measured on v0.39.0. The first build is kept on the local branch `backup/v0.37.0-local-playtest`. AGENTS.md now says to fetch and check `main` against `origin/main` before starting.
+
+- **The user's playtest list:** several Abyssal Pull with Brine Bloom+ and Salted Hook "maybe too powerful"; keepsakes too common, "main annoyance is getting spammed with keepsakes that you cant do much with"; no going back in story slides; "Game still too easy. Possible to chain long strand/crest combos. Especially strand since it gives one light back"; the keepers' cache could be backed out of after seeing its cards; the Swell bar and Ward look alike; background art for the maps "if it does not become too busy"; the text under the Belfry's name on the map not needed; story slides on first going down into the Belfry; boss music too low?; "Bell cracks" doesn't break the bell visually; the Thing shrinks as its arms come and the arms come in further away; Harbour Bells at Dawn should open with the Heart; the final boss is challenging enough (some combos feel strong, fine if they need planning and luck); a page of AI bloopers (asked for a sketch only); why so many bells, and why the second pin also wears one.
+- **The user's four answers** (all four of the agent's recommendations): a Dread offers a card or its keepsake, and a Wreck shows 2; only the first Strand each turn gives Light; map pictures for all three levels; say the bell rule early in play.
+
+**Built (the user's calls):**
+
+- **Dread reward** (`rw.oneOf`, `takeRewardCard`/`takeRewardKeepsake`, `renderDreadReward` in `js/ui.js`, pick scope `rw-one`): Pearls, plus one pick between 1 of 3 cards (the Dread rarity weights, common 45 / uncommon 40 / rare 15) and one keepsake (`E.keepsakeChoices(run, 1)`, so the level's own comes first deeper down). Skipping both is one decline, scored `eliteCard`. A save from before keeps its two keepsakes and no card.
+- **Wrecks show 2 keepsakes** (`E.WRECK_KEEPSAKES`; 3 before).
+- **Only the first Strand each turn gives Light** (`E.strandLight`). Later Strands still strip Ward, surface, ring the bell, count for High and Dry, and set off the Anchor, Abyssal Pull, Kelp Bracelet and Clapper. A Bail that makes the turn's first Strand still pays for itself. The Glimmer Bulb now means every Strand gives 1 Light (it gave +1 on every Strand before, so 2).
+- **Map pictures** (`mapBg` on each band, `.map-bg` in `style.css`): `img/bg/map_shallows`, `map_dark`, `map_belfry`, fixed behind the scrolling map under a dark overlay (about 60-75%). Two Codex variants each (`assets-src/maps/`, git-ignored); used Shallows A, Dark Water B, Belfry B, the calmest middles. Shallows A had a lit lighthouse, which WORLD.md forbids before the Heart; its lamp was painted out (`map_shallows-a-dark.png`).
+- **The bell rule, said in play** (WORLD.md, "why there are so many bells"): every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. In the Hermit's second picture, the new Belfry scene and The world's "Why so many bells" (with a shorter text before the Belfry is known).
+- **Into the Belfry** (scene `below`, at `in:2`; chapter `below`): three pictures the first time the Belfry's map shows (`renderMap` calls `playScene('in:' + run.level)`). New pictures `sc_belfry1` (Wren in the dress wading off the last dry step, the open lantern left on it; variant B) and `sc_belfry2` (the drowned tower full of lost bells; variant A); the third is `bg_belfry_boss`. `E.storyMarks` adds `in:<level>` below the Shallows.
+
+**Built (the agent's calls; each is provisional):**
+
+- **No backing out of the keepers' cache** (the user's request; the shape is the agent's): opening it uses the pick (`E.stairCacheOpen`); the choice has three cards and "Take none", no Back, and comes back after a reload. Taking none is not a scored decline, so the cache can't farm score.
+- **Brine Bloom Sinks**, as Slay the Spire's Catalyst exhausts. Salted Hook still adds 1 to its doubling (the Hook's own words); with Sink, two Bloom+ in one fight reach 27 Brine against 24 without the Hook's 1. **Abyssal Pull copies still stack**, as every Rite does; not stacking would cost the combo deck 6 more points (see below).
+- **Story pictures go back:** a Back button from the second picture on, and the left and right arrow keys.
+- **The Swell bar is sea-green** (`#4fd4a4` to `#156b52`; it was cyan-blue `#5cc6dc` to `#1f6f8a`, next to Ward's `#5fb6ea`).
+- **The map's line under the level name is gone** on every level, not only the Belfry's (there it explained the dive: "A dive: two Dreads, air under a lesser bell after each...").
+- **"The Bell Cracks!"** swaps the Bellwether's picture for `img/units/bell_cracked.webp` (its own picture with glowing cracks drawn on in Pillow, kept to the bronze above the lip) with a flash; `cracked` on the creature, `unitArt` in `js/ui.js`, kept by `c.phase2` across a reload. The first draw ran the cracks over the lip into the mouth; the user saw it, and the cracks now stop at the lip.
+- **Dead creatures leave the row** (`.enemy.gone { display: none }` 0.8 s after `dead`, not in a won fight). Before, a dead creature kept a hidden slot: each Reach put new arms after the dead ones (and after the Bellwether's dead minnows), so the row grew, the Thing shrank, and its arms moved out.
+- **The pins' songs are compressed** (ffmpeg `acompressor`, then gain and a limiter at -1 dBTP back to -16.4 LUFS, 128 kbps). The user asked whether quiet sections were the problem: they were. The Toll of the Sunken Stair had a loudness range of 10.7 LU, the widest of all the songs, and its first 45 s ran 5-13 dB under its loud part, which is most of a short fight since a pin's song starts from the top. Now 6.1 LU (threshold -22 dB, ratio 3); the Hermit's Heavy Toll 7.5 to 6.6 and Ring for the Deep 7.7 to 6.5 (threshold -14 dB, ratio 1.6; the first try squashed them to 3-4). The originals are in git before v0.40.0 (origin never changed them).
+- **Harbour Bells at Dawn waits for the Heart** (`gate` in `JUKE_EARLY`): it plays on the screen where the Heart comes home and opens then; a player who heard it on the title before is locked out too, as the user asked.
+- **The glossary's Hold and Roiled** read the engine's constants (they said the Hold grows at each level, and 8 Pearls a step).
+
+**Measured on v0.39.0** (the bot that chooses, with a Dread policy `dreadKeepsake` in `tools/bot.js`: the keepsake if it keeps the aether Calm or is a deep one, else the rarest card; 1500 seeds a row, first expedition in the dress; noise about ±0.7 at 8%). Specs in the session scratchpad (`measure/spec040*.js`); origin from a `git archive` of `origin/main`.
+
+| Row | Heart | Shallows' pin | Dark Water's share | Belfry's share |
+|---|---|---|---|---|
+| v0.39.0 (origin) | 7.7 | 46.4 | 38.4 | 43.1 |
+| v0.40.0 with the old rules patched back | 8.3 | 46.3 | 36.7 | 49.0 |
+| only the Dread choice and a Wreck of 2 | 10.6 | 50.1 | 40.7 | 52.0 |
+| only first-Strand Light | 6.7 | 44.7 | 34.1 | 43.7 |
+| only Brine Bloom Sink | 8.5 | 46.5 | 36.6 | 50.2 |
+| **v0.40.0** | **8.5** | 49.4 | 35.4 | 48.9 |
+| v0.40.0, Dread cards rolled as a Skirmish's, or 2 cards, or both | 8.1 each | | | |
+| combo deck (2 Abyssal Pull+, 2 Brine Bloom+, Ebb cards, Salted Hook), v0.39.0 rules | 66.1 | | | |
+| combo deck, v0.40.0 with Abyssal Pull copies stacking | 52.5 | | | |
+| **combo deck, v0.40.0** | **46.2** | | | |
+
+- **Keepsakes per expedition** (500 seeds): shown 9.30 to 5.77 (-38%), taken 2.35 to 2.06. At a Dread the bot takes the keepsake 0.59 times and a card 0.54 times an expedition.
+- **For the bot the package is even** (7.7 to 8.5, at the edge of the noise): the first-Strand rule takes about 1.6, and fewer keepsakes give about 2 back, mostly because the bot carries less Roil. The Dread's card offer is not the cause (a softer offer moved it under a point). The combo the user named loses 20 points (66 to 46): 12 from the Strand rule, 6 from Abyssal Pull not stacking.
+- **Not changed (the agent's call, provisional):** no global retune. v0.38.0 already took the bot from 23% to 9%, and the three blind playtests of v0.38 found the early game right and the late game easy because of built decks, so this pass hits the combos. **If it still feels easy, next levers:** Tidal Memory gives Light on the first Crest of a turn only (the Crest side of the same loop), the Tide-Bell pays once a turn (-2 on v0.36), the stair's rest at 25% (-2.7 on v0.36).
+- **Abyssal Pull copies don't stack** (`A.riteMax`; the strongest played counts, so a Pull+ still lifts a plain one to 8). The user named "multiple Abyssal pull".
+- **The Tolling Buoy's music-box cue is 3 dB louder** (`CUE_GAIN` in `js/ui.js`). Rendered offline in headless Chrome and measured (mono, 30 s, LUFS): fight -35.0, Dread -34.1, pin -33.6 (the Dark Watch and old finals), pin2 -32.3, the Buoy -36.5, reach -36.7. The songs play at about the pin cue's level. The other music-box bosses were fine; the Buoy was quieter than an ordinary fight.
+
+**The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
@@ -2149,6 +2200,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.40.0, with the bot that chooses** (2026-11-17; 1500 seeds, dress): the Shallows' pin 49.4%, Dark Water's after it 35.4%, the Belfry after that 48.9%, the Heart 8.5% (v0.39.0 on the same seeds: 46.4, 38.4, 43.1, 7.7). See "Playtest on v0.39.0".
 - **Bot run outcomes, v0.39.0, with the bot that chooses** (2026-11-16; 1000 seeds, dress): the Shallows' pin 46.7%, Dark Water's after it 38.1%, the Belfry after that 44.9%, the Heart 8.0%.
 - **Bot run outcomes, v0.38.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 47.6%, Dark Water's after it 43.1%, the Belfry after that 46.3%, the Heart 9.5%. See "An agent's blind playtest, and a harder game".
 - **Bot run outcomes, v0.37.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 58.2%, Dark Water's after it 62.5%, the Belfry (a dive now) after that 63.7%, the Heart 23.2%. After the Heart, the Belfry 79.9%. See "The Belfry dive and the Dark Watch".
@@ -2346,8 +2398,23 @@ The user asked how more characters could be added, and wanted to judge the look 
     - Z-Image Turbo, FLUX.2 Klein 4B, and the older and larger Qwen-Image 2512 and Qwen-Image-Edit 2511 are Apache 2.0. Those two Qwen models are not downloaded.
   - **Originals:** in `assets-src/units/samples/local/` (git-ignored). The edit prompts are in `assets-src/wanted-images.tsv`.
 
+## Next feature (2026-11-16; discussed, not agreed)
+
+The user asked which is more fun next, a new keeper or a new intermediary level, and whether the Belfry should become a short boss run.
+
+**Recommendation, waiting on the user:** reshape the Belfry into a short fixed descent, and leave a new keeper until that shape is one worth replaying. A fourth full band of 8 landings works against "a run should feel like a small investment" (2026-11-13) and against "the last boss even more epic, without making it longer" (the v0.36 playtest list). On v0.36.0 the choosing bot, first expedition in the dress, breaks the Belfry's pin on 75.7% of arrivals.
+
+**Proposed shape, if they want it:** after the existing stair, a fixed sequence of one hard fight, one Dread and the pin, fights drawn from the Belfry tables so the Listener, the Hollow Diver and the Yearling still appear. One keepsake offer on the way (Bell Clapper, Powder Horn, Heart Cinder). No second rest: the stair already rests. No new global rule: Echo, Breathless and Burst stay on the creatures, and the dress still only costs the Rig slot. Retune the few fights for a built deck, or the Heart becomes a formality. A new place, if one is still wanted, is a short dry band between Dark Water and the sea, where the dress is found, with the Belfry as this descent. That is smaller than another 8-landing band.
+
+**Size:** the short descent is about the stair-down update plus a measured balance pass. The creatures, pictures, boss and finals stay. One keeper who plays differently is larger, and it starts with the open choice of who they are and what is theirs under the bell (postponed 2026-11-14). A portrait and a stat change is small and low impact. A new full band is the size of the original Belfry.
+
 ## Open questions for the next playtest
 
+- v0.40.0: With Light from the first Strand only and Abyssal Pull not stacking, can you still chain Strands, and does it feel too tight? Is the game still too easy (for the bot it is even with v0.39.0; the combo deck lost 20 points)?
+- v0.40.0: Do Dreads feel worth it now that you choose between a card and a keepsake? Are keepsakes still too many?
+- v0.40.0: Do the map pictures help, or is any of them too busy or too dark?
+- v0.40.0: Does the Belfry's story say clearly why there are so many bells?
+- v0.40.0: Are the pins' songs loud enough now? The Bellwether's and the Hermit's songs are compressed, and the Buoy's music-box piece is 3 dB louder.
 - v0.35.0: Did you give a keepsake to the sea? When, and did 2 HP a Roil and a refit feel like a fair price, a gift, or not enough? (The bot wins the Heart 5 points more often with it.)
 - v0.35.0: Did the "Roiled +8" Pearls ever make you take a keepsake you would have left? Did you go over the Hold on purpose?
 - v0.35.0: The stair is two of six with the sea on it (you chose two of five in v0.31.0). Keep it there, or only at Coves?

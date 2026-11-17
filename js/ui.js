@@ -157,6 +157,11 @@
     // -16 LUFS, and buries the sound effects; 0.12 puts a fight at about -32 LUFS, under an ordinary blow,
     // as the old music sat. GAME_NOTES.md has the measurements.
     const MUSIC_LEVEL = 0.12;
+    /* A cue that plays quieter than the rest is lifted (v0.40.0, the user: "Music volume for bosses too low?"). Rendered
+       offline and measured: the Tolling Buoy's own piece was about 3 dB under the other pins' cue and 1.5 dB under an
+       ordinary fight, so it gets +3 dB. */
+    const CUE_GAIN = { buoy: 1.41 };
+    const cueLevel = (cue) => MUSIC_LEVEL * (CUE_GAIN[cue] || 1);
     const now = { cue: 'title', depth: 0, band: null, density: 0, song: null, loop: null };
     // a slider position to a level: 80% (the default) is the balance above, 100% is +4 dB, 50% is -8 dB, 0 is silent
     const gain = (v) => { v = Math.max(0, Math.min(1, +v || 0)) / 0.8; return v * v; };
@@ -171,7 +176,7 @@
        `secs` is the length, for the Jukebox's list before a file has loaded. */
     const SONGS = {
       title: { src: 'music/songs/the-great-light-turning-slow.mp3', resume: true, secs: 177, name: 'The Great Light Turning Slow', where: 'The title screen' },
-      bells: { src: 'music/songs/harbour-bells-at-dawn.mp3', resume: true, secs: 138, name: 'Harbour Bells at Dawn', where: 'The title screen' }, // wordless
+      bells: { src: 'music/songs/harbour-bells-at-dawn.mp3', resume: true, secs: 138, name: 'Harbour Bells at Dawn', where: 'The Heart comes home, and the title screen' }, // wordless
       shop: { src: 'music/songs/no-haggling-no-biting.mp3', resume: true, secs: 176, name: 'No Haggling, No Biting', where: "Barnaby's shop" },
       shell: { src: 'music/songs/pop-the-shell.mp3', resume: true, secs: 165, name: 'Pop the Shell', where: "Barnaby's shop" }, // Barnaby raps it (Gemini called it No Hagglin', No Bitin')
       hermit: { src: 'music/songs/the-hermits-heavy-toll.mp3', resume: false, secs: 178, name: "The Hermit's Heavy Toll", where: 'The Harbour Hermit and the title screen' },
@@ -329,6 +334,7 @@
             music = new window.Musicbox.MusicPlayer({ context: ctx, destination: musicBus, volume: MUSIC_LEVEL, intensity: depth });
             music.load(BL.MUSIC_SCORE);
           }
+          if (music.opts.volume !== cueLevel(cue)) music.setVolume(cueLevel(cue));
           if (playing) { music.setIntensity(depth); music.goto(cue); } else { music.play(cue, { intensity: depth }); playing = true; }
           heard('cue:' + cue);
         } catch (e) { musicBroken = true; music = null; playing = false; } // no Web Audio, or a broken score: play on without music
@@ -748,6 +754,8 @@
   const PICK_OK = {
     'rw-card': (key) => (key == null ? 'Choose a card' : `Take ${E.cardName(pseudo(run.rewards.cards[+key].id, run.rewards.cards[+key].up))}`),
     'rw-ks': (key) => (key == null ? 'Choose a keepsake' : `Take the ${BL.KEEPSAKES[key].name}`),
+    // a Dread's one pick (v0.40.0): a card's index or the keepsake's id
+    'rw-one': (key) => (key == null ? 'Choose a card or the keepsake' : /^\d+$/.test(key) ? PICK_OK['rw-card'](key) : PICK_OK['rw-ks'](key)),
     'tr-ks': (key) => (key == null ? 'Choose a keepsake' : `Take the ${BL.KEEPSAKES[key].name}`),
     'fall-ks': (key) => (key == null ? 'Choose one to keep' : `Keep the ${BL.KEEPSAKES[key].name}`),
     choice: (key) => (key == null ? 'Choose a card' : `Take ${E.cardName(pseudo(key))}`),
@@ -761,6 +769,7 @@
     $$(`[data-act="pick"][data-scope="${scope}"]`, root).forEach((o) => { const on = o === el; o.classList.toggle('picked', on); o.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     const lg = $(`.pick-legend[data-scope="${scope}"]`, root);
     if (lg && el.classList.contains('card')) lg.outerHTML = pickLegend(scope, scope === 'choice' ? pseudo(key) : pseudo(run.rewards.cards[+key].id, run.rewards.cards[+key].up));
+    else if (lg) lg.outerHTML = pickLegend(scope, null); // a keepsake marked in a Dread's one pick: its words are on its tile
     const ok = $(`[data-act="pickok"][data-scope="${scope}"]`, root);
     if (ok) { ok.disabled = false; ok.textContent = PICK_OK[scope](key); }
     sfx('select');
@@ -834,9 +843,10 @@
     if (r.dataset.vol === 'sound') sfx('select');
   });
 
-  function modal(title, body, foot, cls) {
+  // `noClose`: no close button in the corner, for a locked window whose own buttons are the only way on
+  function modal(title, body, foot, cls, noClose) {
     return `<div class="modal ${cls || ''}" role="dialog" aria-modal="true" aria-label="${title}">` +
-      `<div class="modal-head"><h2>${title}</h2>${foot === false ? '' : `<button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button>`}</div>` +
+      `<div class="modal-head"><h2>${title}</h2>${foot === false || noClose ? '' : `<button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button>`}</div>` +
       `<div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ''}</div>`;
   }
 
@@ -906,7 +916,7 @@
     const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" aria-pressed="false" data-act="pick" data-scope="choice" data-key="${id}" data-i="${i}"`)).join('')}</div>${pickLegend('choice', null)}`;
     ui.cardChoiceDone = onDone;
     if (ui.picks) delete ui.picks.choice;
-    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">${back || `Skip (+${E.DECLINE_SCORE.eventCard} score)`}</button>${pickOkBtn('choice', null)}`, ''), { locked: true });
+    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">${back || `Skip (+${E.DECLINE_SCORE.eventCard} score)`}</button>${pickOkBtn('choice', null)}`, '', true), { locked: true });
   }
 
   /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
@@ -918,10 +928,10 @@
       case 'tide': return `<ul class="help-list">
         <li>The <b>Swell</b> is the water around the enemies: a gauge from <b>0 to 6</b>. It starts every fight at 3 and stays put between turns.</li>
         <li><b>Surge</b> raises it. <b>Ebb</b> lowers it.</li>
-        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. Ward blocks it, as it blocks any hit. <b>Strand</b> at 0: every enemy loses its Ward, and you gain 1 Light. Either way the Swell resets to 3. So a Strand first, then a Crest, hits hardest.</li>
+        <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. Ward blocks it, as it blocks any hit. <b>Strand</b> at 0: every enemy loses its Ward, and your first Strand each turn gives you 1 Light. Either way the Swell resets to 3. So a Strand first, then a Crest, hits hardest.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
-        <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Every Strand gives 1 Light. Save Surge for one big turn.</li>
-        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes a Strand is free: the Strand's 1 Light pays it back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
+        <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Only the first Strand of a turn gives Light; later ones still strip Ward. Save Surge for one big turn.</li>
+        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes your first Strand of the turn is free: that Strand's 1 Light pays it back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
         <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn, or Ward instead of a card.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST&times;2</span> means that card makes two Crests.</li>
       </ul>`;
@@ -938,12 +948,12 @@
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map((i) => `${E.LEVELS[i].landing} in ${levelName(i)}`).join(', ')}${allLevelsKnown() ? '' : ', and more below'}. Coming home adds 5 for each HP you have left. Bringing the Heart home${levelKnown(2) ? ', or quieting the Belfry,' : ''} adds ${E.FINAL_SCORE}.</li>
       </ul>${dl([
         [`${NODE_ICON.fight} Skirmish`, 'A normal fight.'],
-        [`${NODE_ICON.elite} Dread`, 'An elite: harder. It pays Pearls, and you may take 1 of 2 keepsakes. No card or tonic.'],
+        [`${NODE_ICON.elite} Dread`, 'An elite: harder. It pays Pearls, and you choose one: a card from three (more often uncommon or rare), or its keepsake. No tonic.'],
         [`${NODE_ICON.event} Fog`, 'An event with choices. Some are gambles.'],
         [`${NODE_ICON.shop} Shop`, 'Barnaby sells cards, keepsakes and tonics, and removes a card for Pearls.'],
         [`${NODE_ICON.rest} Cove`, `Rest to heal 30% of your max HP, or upgrade a card, or give a keepsake to the sea: it is gone, and you ${SEA_PAYS} and upgrade a card.`],
       ].concat(levelKnown(2) ? [[`${NODE_ICON.pocket} Lesser bell`, 'In the Belfry: air under a hanging bell. Choose one of six.']] : [], [
-        [`${NODE_ICON.treasure} Wreck`, 'Pearls, and you may take 1 of 3 keepsakes.'],
+        [`${NODE_ICON.treasure} Wreck`, `Pearls, and you may take 1 of ${E.WRECK_KEEPSAKES} keepsakes.`],
       ]))}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
@@ -1150,8 +1160,8 @@
   function updateSound() {
     /* Recorded songs at Barnaby's, and against the Harbour Hermit and the Bellwether; the Tolling Buoy has a music-box
        cue of its own. The title screen plays its songs in turn, the ones that are open in the Jukebox (jukeOpen): The
-       Great Light Turning Slow, Harbour Bells at Dawn, the Hermit's song, Tide Swings Its Tongue and It Went Dark on My
-       Watch, all from the start (what they hint at is foreshadowing). Each time the page loads it starts on one of them
+       Great Light Turning Slow, the Hermit's song, Tide Swings Its Tongue and It Went Dark on My Watch, all from the
+       start (what they hint at is foreshadowing), and Harbour Bells at Dawn once the Heart is home (it plays then). Each time the page loads it starts on one of them
        at random (titleFirst) and goes on in order. */
     const open = TITLE_LOOP.filter((k) => jukeOpen('song', k));
     if (!titleFirst) titleFirst = meta.heard.indexOf('song:title') < 0 ? 'title' : open[Math.floor(Math.random() * open.length)];
@@ -1162,7 +1172,7 @@
       band = E.bandId(run);
       depth = Math.max(0, ['shallows', 'dark', 'belfry'].indexOf(band));
       const c = run.screen === 'combat' && run.combat;
-      if (run.screen === 'victory') cue = 'home';
+      if (run.screen === 'victory') { cue = 'home'; if (run.heart) song = 'bells'; } // the Heart home: Harbour Bells at Dawn
       else if (run.screen === 'defeat') cue = 'fallen';
       else if (c) {
         cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
@@ -1293,8 +1303,8 @@
 
   /* The opening: four pictures with a few lines each. It plays once, before the first descent; Story so far replays it.
      A story scene (BL.STORY.scenes) is shown the same way: `scene` is its id, and its last button says `go`. */
-  function showOpening(i, done, replay, scene, go) {
-    if (i === 0) {
+  function showOpening(i, done, replay, scene, go, paging) {
+    if (i === 0 && !paging) { // paging: Back to the first picture keeps the scene that is playing
       const all = scene ? BL.STORY.scenes[scene].beats.filter((x) => !x.found || replay || (run && run.found === x.found)) : BL.STORY.opening;
       ui.opening = { done: done || null, replay: !!replay, scene: scene || null, beats: all, go: go || (scene ? 'Go on' : 'Go down') };
       all.forEach((x) => { new Image().src = `img/${x.art}.webp`; });
@@ -1305,6 +1315,7 @@
       ${b.fig ? `<img class="op-fig" src="img/${b.fig}.webp" alt="">` : ''}
       <div class="op-inner"><p class="op-text">${b.text}</p>
         <div class="op-foot"><span class="op-dots" aria-hidden="true">${beats.map((x, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</span>
+          ${i > 0 ? `<button class="btn ghost" data-act="opback" data-i="${i}">Back</button>` : ''}
           ${last ? '' : '<button class="btn ghost" data-act="opskip">Skip</button>'}
           <button class="btn primary" data-act="opnext" data-i="${i}" autofocus>${!last ? 'Next' : ui.opening.replay ? 'Back to the story' : ui.opening.go}</button></div>
       </div></div>`, { locked: true });
@@ -1417,7 +1428,9 @@
   });
   const JUKE_EARLY = { // open: when it opens without being heard; how: what a locked one says
     'song:title': { open: () => true },
-    'song:bells': { open: () => true },
+    // the dawn song: it plays when the Heart first comes home, and only then opens (v0.40.0, the user's call; open from
+    // the start before). `gate`: having heard it is not enough, so a player who heard it on the title keeps it locked too
+    'song:bells': { open: () => E.heartIsHome(meta), gate: true, how: 'Bring the Heart home to hear it' },
     'cue:title': { open: () => true }, // the title screen plays its songs instead now, so it is heard only here
     'song:hermit': { open: () => true }, // the pins' songs foreshadow them (the user's call)
     'song:buoy': { open: () => true },
@@ -1426,6 +1439,7 @@
   };
   const jukeOpen = (kind, key) => {
     const k = kind + ':' + key, early = JUKE_EARLY[k];
+    if (early && early.gate) return !!early.open();
     return meta.heard.indexOf(k) >= 0 || !!(early && early.open());
   };
   const jukeDepthOpen = (d) => d <= (meta.reached || 0) || meta.heard.indexOf('depth:' + d) >= 0;
@@ -1897,13 +1911,16 @@
     nodes += nodeHTML(m.boss);
     nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${bossY + 50}px">${bossName()}</div>`;
     const legend = (m.dive ? ['elite', 'pocket'] : ['fight', 'elite', 'event', 'rest', 'shop', 'treasure']).map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
-    const sub = m.dive ? (!run.pos ? `Level ${run.level + 1}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}. A dive: two Dreads, air under a lesser bell after each, then ${bossName()}.` : avail.length ? 'Swim on down.' : '')
-      : !run.pos ? (run.level ? `Level ${run.level + 1}${allLevelsKnown() ? ` of ${E.LEVELS.length}` : ''}. Choose where to begin.` : 'Choose where to begin your descent.') : avail.length ? 'Choose your next stop.' : '';
+    // each level's own picture behind the map, dimmed (v0.40.0, the user: "cool background art? If it does not become too
+    // busy"). The line under the level's name is gone too (the user: "not needed"; it explained the Belfry's dive)
+    const mapBg = E.band(run).mapBg;
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
-      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2><p>${sub}</p></div>
+      ${mapBg ? `<div class="map-bg" style="background-image:url(img/bg/${mapBg}.webp)" aria-hidden="true"></div>` : ''}
+      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2></div>
       <div class="map" style="height:${H}px"><svg class="lines" viewBox="0 0 100 ${H}" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>
       <div class="map-legend">${legend}</div></div></div>`;
     ui.mapFocus = Math.min(ui.mapFocus, Math.max(0, avail.length - 1));
+    if (!run.pos) playScene('in:' + run.level); // the first time down into the Belfry, its story scene (v0.40.0)
     const sc = $('#mapscroll');
     const focusRow = avail.length ? avail[0] : run.pos ? E.nodeAt(run, run.pos) : null;
     if (sc && focusRow) {
@@ -2058,7 +2075,7 @@
         el.style.setProperty('--scale', d.scale);
         el.style.setProperty('--delay', (-i * 0.7) + 's');
         el.setAttribute('aria-label', e.name);
-        el.innerHTML = `<div class="intent-wrap"></div><div class="sprite"><img src="img/units/${d.art}.webp" alt="${e.name}">
+        el.innerHTML = `<div class="intent-wrap"></div><div class="sprite"><img src="img/units/${unitArt(e)}.webp" alt="${e.name}">
           <svg class="target-reticle" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="#ffb84d" stroke-width="3" stroke-dasharray="10 8"/></svg></div>
           <div class="info"><div class="uname">${e.name}</div><div class="hpbar"></div><div class="statuses"></div></div>`;
         if (e.dead) el.classList.add('gone');
@@ -2066,7 +2083,13 @@
         ez.appendChild(el);
       } else if (el.dataset.id !== e.id) setUnitForm(el, e);
       if (e.dead) {
-        if (!el.classList.contains('dead') && !el.classList.contains('gone')) el.classList.add('dead');
+        if (!el.classList.contains('dead') && !el.classList.contains('gone')) {
+          el.classList.add('dead');
+          // once it has faded, it leaves the row, so the living close up round the middle. Until v0.40.0 a dead
+          // creature kept its place: each new Grasping Arm came in after the dead ones, the row grew, and the Thing
+          // shrank while its arms moved further off (the user saw both). A won fight keeps the row as it is.
+          if (!c.won) setTimeout(() => { if (el.classList.contains('dead')) el.classList.add('gone'); }, 800);
+        }
         $('.intent-wrap', el).innerHTML = '';
       } else {
         $('.intent-wrap', el).innerHTML = c.phase === 'enemy' && e.acted ? '' : intentHTML(e);
@@ -2778,13 +2801,16 @@
     if (stripped.length) sfx('crack', { pan: panOf(unitEl(stripped[0].who)) });
   }
   /* A unit element shows the creature it is now: a boss with a second form keeps its uid but changes its id. */
+  /* A creature's picture. The Bellwether shows its cracks, lit from inside, once "The Bell Cracks!" has happened
+     (v0.40.0, the user: the bell cracks "does not break the bell visually"); c.phase2 is saved with the fight. */
+  const unitArt = (e) => { const d = BL.ENEMIES[e.id]; return d.cracked && run.combat && run.combat.phase2 ? d.cracked : d.art; };
   function setUnitForm(el, e) {
     const d = BL.ENEMIES[e.id];
     el.dataset.id = e.id;
     el.style.setProperty('--scale', d.scale);
     el.setAttribute('aria-label', e.name);
     const img = $('.sprite img', el);
-    if (img) { img.src = `img/units/${d.art}.webp`; img.alt = e.name; }
+    if (img) { img.src = `img/units/${unitArt(e)}.webp`; img.alt = e.name; }
     const nm = $('.uname', el);
     if (nm) nm.textContent = e.name;
     const hb = $('.hpbar', el); // the new form's full HP, not the old form's last point
@@ -2936,6 +2962,14 @@
           const field = $('#field');
           if (field) { field.classList.add('phase2'); anim(field, 'impact', 600); }
           c.phase2 = true;
+          // a creature with a cracked picture (the Bellwether) cracks in front of you, and stays cracked
+          const pe = c.enemies.find((x) => x.uid === f.who), pu = unitEl(f.who), punit = pu && pu.closest('.unit');
+          if (pe && BL.ENEMIES[pe.id].cracked && punit) {
+            const img = $('.sprite img', punit);
+            if (img) img.src = `img/units/${unitArt(pe)}.webp`;
+            anim(punit, 'crack-flash', 900);
+            sfx('crack', { pan: panOf(punit) });
+          }
           banner(f.text || 'The deep stirs', 'enemy big');
           sfx('phase');
           updateSound();
@@ -3168,6 +3202,7 @@
       extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}${!rw.tonicTaken && !full ? ` <span class="muted">Leave it for +${E.DECLINE_SCORE.tonic} score.</span>` : ''}</small></div>
         ${rw.tonicTaken ? '<span class="muted">Taken</span>' : `<button class="btn small" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : ''}>${full ? 'Slots full' : 'Take'}</button>`}</div>`);
     }
+    if (rw.oneOf) return renderDreadReward(rw, summary);
     // the panel stays after the pick (chosen tile lit, the other dimmed) so nothing below it jumps up under the pointer
     const ksOpen = ksChoices && !rw.keepsake && !rw.keepsakeLeft;
     const ksPick = ksOpen ? pickOf('rw-ks', rw) : null;
@@ -3193,6 +3228,33 @@
       <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl) || $('.picked', screenEl) || (rw.cardTaken && $('.ks-pick', screenEl)) || $('.card.choice', screenEl);
+    if (f && ui.lastPointer !== 'touch') f.focus({ preventScroll: true });
+  }
+
+  /* A Dread's reward (v0.40.0): one pick, a card from three or the keepsake. Both are marked with the same scope
+     (`rw-one`: a card's index or the keepsake's id), and one Take takes it; the rest stays lit or dimmed after. */
+  function renderDreadReward(rw, summary) {
+    const open = !rw.cardTaken && !rw.keepsake;
+    const pick = open ? pickOf('rw-one', rw) : null;
+    const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${!open ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : String(i) === pick ? ' picked' : ''}`,
+      (open ? `tabindex="0" role="button" aria-pressed="${String(i) === pick}" data-act="pick" data-scope="rw-one" data-key="${i}"` : '') + ` style="animation-delay:${i * 0.12}s"`)).join('');
+    const pc = pick != null && /^\d+$/.test(pick) ? rw.cards[+pick] : null;
+    const legend = open ? pickLegend('rw-one', pc ? pseudo(pc.id, pc.up) : null) : '';
+    const tookCard = rw.cardTaken && rw.cardTakenIdx >= 0;
+    const cardTitle = open ? (rw.keepsakeChoices.length ? 'Choose one: a card for your deck' : 'Choose a card for your deck') : tookCard ? 'Added to your deck' : rw.keepsake ? 'Cards left behind' : 'Card skipped';
+    const ksTitle = open ? 'or the keepsake' : rw.keepsake ? 'Keepsake taken' : 'Keepsake left behind';
+    const ks = rw.keepsakeChoices.length ? `<div class="panel dread-or"><h3>${ksTitle}</h3><div class="shop-row">${ksTiles(rw.keepsakeChoices, rw.keepsake, 'rw-one', !open && !rw.keepsake, pick)}</div></div>` : '';
+    const buttons = open
+      ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip ${rw.keepsakeChoices.length ? 'both' : 'the card'} (+${E.DECLINE_SCORE.eliteCard} score)</button>${pickOkBtn('rw-one', pick, 'wide')}`
+      : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner reward-screen">
+      <h1>Victory</h1>
+      ${summary}
+      <div class="dread-pick"><section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>
+      ${ks}</div>
+      <div class="row-buttons">${buttons}</div>
+    </div></div></div></div>`;
+    const f = $('[autofocus]', screenEl) || $('.picked', screenEl) || $('.card.choice', screenEl);
     if (f && ui.lastPointer !== 'touch') f.focus({ preventScroll: true });
   }
 
@@ -3246,7 +3308,7 @@
       const n = done ? 0 : Math.min(E.STAIR_FLASKS, run.tonics.filter((t) => !t).length);
       return ['Fill your flasks', `${run.pocket ? 'Brinelight gathers in the bell\'s crown' : 'Brinelight drips from the rock here'}. Fill up to ${E.STAIR_FLASKS} empty flasks${n ? `: <b>${n} random tonic${n > 1 ? 's' : ''}</b>, no two alike` : ' with random tonics'}.`];
     },
-    cache: () => ["The keepers' cache", 'The keepers before you left cards in the wall. Choose 1 of 3, uncommon or rare.'],
+    cache: () => ["The keepers' cache", E.stairCacheOpen(run) ? 'Open: choose your card.' : 'The keepers before you left cards in the wall. Open it and take 1 of 3, uncommon or rare. Opening it uses this pick.'],
     fog: () => ['Swim out into the dark', 'Leave the air and see what the Belfry hides: one of its Fog events.'],
     sea: () => ['Give one to the sea', `Throw a keepsake into the water. It is gone, with its Roil, and the sea pays for it: ${SEA_PAYS}, and refit a card.`],
   };
@@ -3288,8 +3350,22 @@
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+    // the keepers' cache was opened and nothing taken (a reload in between): its choice comes back, with no way out
+    if (E.stairCacheOpen(run) && overlayEl.hidden) showCache();
   }
-  // one of the stair's five: some pick a card first (Back from the picker costs nothing)
+  /* The keepers' cache's choice: three cards, or none. It is opened already, so there is no Back (v0.40.0). */
+  function showCache() {
+    const ids = E.stairCache(run).slice(), s = E.stairState(run);
+    showCardChoice(ids, "The keepers' cache", (cid) => {
+      const o = E.stairDo(run, 'cache', cid ? ids.indexOf(cid) : -1);
+      if (!o) return;
+      (s.log = s.log || []).push(o.card ? `From the keepers' cache you take ${E.cardName(o.card)}.` : "You leave the keepers' cards in the wall.");
+      sfx(o.card ? 'treasure' : 'select');
+      save();
+      render();
+    }, 'Take none');
+  }
+  // one of the stair's six: refit and shed pick a card first (Back from that picker costs nothing; the cache has none)
   function stairDo(id) {
     const s = E.stairState(run);
     const done = (o, line, sound) => { if (!o) return; (s.log = s.log || []).push(line(o)); sfx(sound); save(); render(); };
@@ -3303,9 +3379,10 @@
       ui.allowCancelPick = true;
       showDeck('remove', (uid) => done(E.stairDo(run, 'shed', uid), (o) => `You leave ${E.cardName(o.card)} ${run.pocket ? 'under the bell' : 'on the stair'}.`, 'douse'));
     } else if (id === 'cache') {
-      const ids = E.stairCache(run);
-      save(); // the three stay the same after a reload
-      showCardChoice(ids, "The keepers' cache", (cid) => { if (cid) done(E.stairDo(run, 'cache', ids.indexOf(cid)), (o) => `From the keepers' cache you take ${E.cardName(o.card)}.`, 'treasure'); }, 'Back');
+      // opening it uses the pick; the three are saved with it, so a reload shows the same choice again
+      if (!E.stairCacheOpen(run) && !E.stairDo(run, 'cache')) return;
+      save();
+      render(); // the stair shows the pick used, and then the choice opens over it
     } else if (id === 'sea') {
       showSea((k, uid) => done(E.stairDo(run, 'sea', { k, uid }), seaLine, 'douse'));
     }
@@ -3789,6 +3866,7 @@
       case 'opnext': if (ui.opening && +t.dataset.i + 1 < ui.opening.beats.length) { sfx('page'); showOpening(+t.dataset.i + 1); } else endOpening(); break;
       case 'scene': closeOverlay(true); showOpening(0, () => showStory('story'), true, t.dataset.id); break;
       case 'opskip': endOpening(); break;
+      case 'opback': if (ui.opening && +t.dataset.i > 0) { sfx('page'); showOpening(+t.dataset.i - 1, null, false, null, null, true); } break;
       case 'helptab': ui.helpTab = t.dataset.tab; $('.help', overlayEl).outerHTML = helpHTML(ui.helpTab); { const b = $(`.tab[data-tab="${ui.helpTab}"]`, overlayEl); if (b) b.focus({ preventScroll: true }); } break;
       case 'menu': showMenu(); break;
       case 'togglesound': prefs.sound = !prefs.sound; savePrefs(); Sound.changed(); showMenu(); break;
@@ -3862,13 +3940,13 @@
       case 'tonicdiscard': E.discardTonic(run, +t.dataset.slot); closeOverlay(true); save(); updateHud(); break;
       case 'pick': {
         const sc = t.dataset.scope;
-        const of = sc === 'rw-card' || sc === 'rw-ks' ? run && run.rewards : sc === 'tr-ks' ? run && run.treasure : sc === 'fall-ks' ? run : ui.cardChoiceDone;
+        const of = sc === 'rw-card' || sc === 'rw-ks' || sc === 'rw-one' ? run && run.rewards : sc === 'tr-ks' ? run && run.treasure : sc === 'fall-ks' ? run : ui.cardChoiceDone;
         if (of) setPick(t, of);
         break;
       }
       case 'pickok': {
         const sc = t.dataset.scope;
-        const of = sc === 'rw-card' || sc === 'rw-ks' ? run && run.rewards : sc === 'tr-ks' ? run && run.treasure : sc === 'fall-ks' ? run : ui.cardChoiceDone;
+        const of = sc === 'rw-card' || sc === 'rw-ks' || sc === 'rw-one' ? run && run.rewards : sc === 'tr-ks' ? run && run.treasure : sc === 'fall-ks' ? run : ui.cardChoiceDone;
         const key = pickOf(sc, of);
         if (key == null) break;
         delete ui.picks[sc];
@@ -3884,6 +3962,7 @@
         if (sc === 'choice') { const cb = ui.cardChoiceDone; ui.cardChoiceDone = null; closeOverlay(true); if (cb) cb(key); render(); break; }
         if (sc === 'rw-card') { E.takeRewardCard(run, +key); sfx('select'); }
         if (sc === 'rw-ks') { E.takeRewardKeepsake(run, key); sfx('keepsake'); }
+        if (sc === 'rw-one' && /^\d+$/.test(key)) { E.takeRewardCard(run, +key); sfx('select'); } else if (sc === 'rw-one') { E.takeRewardKeepsake(run, key); sfx('keepsake'); }
         if (sc === 'tr-ks') { E.takeTreasureKeepsake(run, key); sfx('keepsake'); }
         // on to the map, unless the reward's card or keepsakes still wait to be decided, or a tonic could still be taken
         const rw = run.rewards;
@@ -3923,6 +4002,7 @@
         // a keepsake on offer is taken or left first (the button is disabled until then)
         const ksWait = (src, list) => src && !src.keepsake && !src.keepsakeLeft && list && list.length;
         if (ksWait(run.rewards, run.rewards && run.rewards.keepsakeChoices) || ksWait(run.treasure, run.treasure && run.treasure.choices)) break;
+        if (E.stairCacheOpen(run)) { showCache(); break; } // the keepers' cache is open: choose from it first
         E.backToMap(run);
         save();
         render();
@@ -4048,6 +4128,12 @@
     const k = e.key;
     if (!overlayEl.hidden) {
       if (k === 'Escape') { e.preventDefault(); closeOverlay(); return; }
+      // the story's pictures: the arrow keys page back and on (v0.40.0, the user: "Cannot go back in story slides")
+      if (ui.opening && (k === 'ArrowLeft' || k === 'ArrowRight')) {
+        const b = $(`[data-act="${k === 'ArrowLeft' ? 'opback' : 'opnext'}"]`, overlayEl);
+        if (b) { e.preventDefault(); b.click(); }
+        return;
+      }
       // number keys pick cards in a card choice
       if (/^[1-9]$/.test(k)) {
         const opts = $$('[data-act="pick"], [data-act="deckpick"]', overlayEl);
@@ -4067,7 +4153,7 @@
     if (run.screen === 'combat') return combatKey(e, onButton);
     if (run.screen === 'map') return mapKey(e);
     if (run.screen === 'reward' && /^[1-3]$/.test(k)) {
-      const el = $$('[data-act="pick"][data-scope="rw-card"]', screenEl)[+k - 1];
+      const el = $$('.card[data-act="pick"][data-scope="rw-card"], .card[data-act="pick"][data-scope="rw-one"]', screenEl)[+k - 1];
       if (el) { e.preventDefault(); el.click(); const ok = $('[data-act="pickok"]:not([disabled])', screenEl); if (ok) ok.focus({ preventScroll: true }); }
     }
   });

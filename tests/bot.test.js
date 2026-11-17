@@ -85,6 +85,30 @@ test('the bot takes the rarest reward card, an upgraded one among equals; classi
   assert.ok(b.deck.some((c) => c.id === 'breaker') && !b.deck.some((c) => c.id === 'beam'));
 });
 
+test('at a Dread\'s one pick the bot takes the keepsake when it keeps the aether Calm, else the rarest card, never both', () => {
+  const won = (keeps) => {
+    const f = fight(['kelp'], { kind: 'elite' });
+    keeps.forEach((k) => E.gainKeepsake(f.run, k));
+    E.alive(f.c).forEach((e) => { e.dead = true; e.hp = 0; });
+    f.c.won = true;
+    E.finishCombat(f.run);
+    return f.run;
+  };
+  const calm = won([]);
+  const k = calm.rewards.keepsakeChoices[0], deck0 = calm.deck.length;
+  step(calm);
+  assert.ok(E.has(calm, k), 'Calm with it: the keepsake');
+  assert.equal(calm.deck.length, deck0);
+  assert.equal(calm.screen, 'map');
+  // already at the Hold: one more keepsake would Roil the aether, so a card
+  const full = won(['whaletooth', 'moonshard']);
+  const kf = full.rewards.keepsakeChoices[0], n0 = full.deck.length, ks0 = full.keepsakes.length;
+  assert.ok(E.roil(full, kf).steps > 0);
+  step(full);
+  assert.equal(full.keepsakes.length, ks0);
+  assert.equal(full.deck.length, n0 + 1);
+});
+
 test('the bot routes: a Cove when hurt, Barnaby\'s with Pearls, a Dread only when healthy; firstNode takes the leftmost', () => {
   const run = E.newRun(3);
   const av = [{ type: 'fight' }, { type: 'elite' }, { type: 'rest' }, { type: 'shop' }];

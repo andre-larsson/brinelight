@@ -182,17 +182,20 @@
     text: (v) => (v.draw ? `Draw ${v.draw} card. Your next card is played twice.` : `Your next card is played twice.`),
     play: (A, v) => { if (v.draw) A.draw(v.draw); A.echo(1); },
   });
+  // Sink since v0.40.0: played again and again, the doubling grew without end (the user, of two Blooms with a Salted Hook)
   card('brinebloom', {
-    name: 'Brine Bloom', type: 'skill', rarity: 'uncommon', cost: 1, target: 'enemy',
+    name: 'Brine Bloom', type: 'skill', rarity: 'uncommon', cost: 1, target: 'enemy', sink: true,
     v: { add: 0 }, up: { add: 3 }, art: 'c_brinebloom',
-    text: (v) => (v.add ? `Apply ${v.add} Brine, then double the target's Brine.` : `Double the target's Brine.`),
+    text: (v) => (v.add ? `Apply ${v.add} Brine, then double the target's Brine. Sink.` : `Double the target's Brine. Sink.`),
     play: (A, v, t) => { if (v.add) A.apply(t, 'brine', v.add); if (t && t.st.brine) A.apply(t, 'brine', t.st.brine); },
   });
   card('abyssalpull', {
     name: 'Abyssal Pull', type: 'rite', rarity: 'uncommon', cost: 1, target: 'none',
     v: { n: 5 }, up: { n: 8 }, art: 'c_abyssalpull',
-    text: (v) => `Whenever you Strand, deal ${v.n} damage to ALL enemies.`,
-    play: (A, v) => A.rite('r_abyss', v.n),
+    // copies don't add up since v0.40.0 (the user: "Multiple Abyssal pull ... combo maybe too powerful"): the strongest
+    // played counts, so an upgraded one still raises a plain one to 8. Before, two Pull+ dealt 16 on every Strand.
+    text: (v) => `Whenever you Strand, deal ${v.n} damage to ALL enemies. More copies don't add to it.`,
+    play: (A, v) => A.riteMax('r_abyss', v.n),
   });
   card('depthcharge', {
     name: 'Depth Charge', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy',
@@ -333,12 +336,12 @@
     Ebb: 'Lower the Swell. At 0 you Strand the enemies; any extra keeps falling from 3.',
     Swell: 'The water around the enemies, from 0 to 6. It starts each fight at 3.',
     Crest: 'The wave breaks: deal 6 damage to ALL enemies, +3 for every earlier Crest this turn. Ward blocks it, as it blocks any hit. Then the Swell resets to 3.',
-    Strand: 'The water pulls back and strands the enemies: they lose all their Ward, and you gain 1 Light. Then the Swell resets to 3.',
+    Strand: 'The water pulls back and strands the enemies: they lose all their Ward. The first Strand of a turn also gives you 1 Light. Then the Swell resets to 3.',
     Sink: 'After you play it, this card is gone for the rest of the fight.',
     Float: 'Stays in your hand at the end of your turn.',
     Rite: 'Rites stay in effect for the rest of the fight once played.',
     Echo: 'Your next card is played twice. On a creature: its next move happens twice.',
-    Bail: 'Once a turn, without a card: spend 1 Light to Ebb 1. A Bail that makes a Strand is free: the Strand\'s 1 Light pays it back. Bail or Stir, not both.',
+    Bail: 'Once a turn, without a card: spend 1 Light to Ebb 1. A Bail that makes your first Strand of the turn is free: that Strand\'s 1 Light pays it back. Bail or Stir, not both.',
     Stir: 'Once a turn, without a card: spend 1 Light to Surge 1. Bail or Stir, not both.',
     Might: 'Each hit of an attack deals that much more damage.',
     Spines: 'Whenever you are attacked, deal that much damage back.',
@@ -346,7 +349,8 @@
     Chilled: 'Deals 25% less attack damage. Wears off by 1 each turn.',
     Brine: 'Loses that much HP at the start of its turn, then Brine drops by 1.',
     Roil: 'How much a keepsake stirs the aether around it. Every keepsake you carry counts.',
-    Hold: 'How much Roil the aether around you holds while it stays Calm. It grows for good the first time you reach each deeper level.',
+    // Hold and Roiled read the engine's numbers: js/engine.js defines them again as getters once its constants exist
+    Hold: 'How much Roil the aether around you holds while it stays Calm. The lantern in the Workshop raises it for good.',
     Seep: 'Seawater shed by a Roiled aether: an unplayable card shuffled into your draw pile at the start of each fight. It is gone after the fight.',
     Thrash: 'A Roiled aether thrashes, and it strikes you through a fight. Thrash 1: at the start of each of your turns, take 1 damage. Ward you still have from the turn before stops it.',
     Doused: 'Something drank from your lantern: you start your next turn with that much less Light.',
@@ -355,7 +359,7 @@
     Breathless: 'Something squeezed the air out of your suit: you draw that many fewer cards at the start of your next turn.',
     Burst: 'When it dies, it bursts, and the burst hurts you and every other creature. Your Ward stops it.',
     Heartfire: 'The Lantern Heart is free beside you: you gain more Light at the start of each turn, for the rest of the fight.',
-    Roiled: 'You carry more Roil than your Hold. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows. It also pays: 8 more Pearls after each fight for each step.',
+    Roiled: 'You carry more Roil than your Hold. Every 12 Roil over (or part of 12) is one step, and each step adds one thing to every fight: a Seep, then 1 Thrash, then a Bell Minnow at half health, then round again. Never more than 2 Bell Minnows. It also pays: 4 more Pearls after each fight for each step.',
   };
 
   /* ------------------------------------------------------------------ *
@@ -565,7 +569,7 @@
        comes out (E's rise), with its own HP. Its shoal scatters, and the Heart's light heals the keeper and burns
        in her lantern for the rest of the fight (BL.HEART_RISE). */
     bell: {
-      name: 'The Drowned Bellwether', hp: [160, 160], art: 'bell', scale: 1.55, boss: true, next: 'bellthing', rise: 'The Bell Breaks!',
+      name: 'The Drowned Bellwether', hp: [160, 160], art: 'bell', cracked: 'bell_cracked', scale: 1.55, boss: true, next: 'bellthing', rise: 'The Bell Breaks!',
       moves: {
         ring: { name: 'Ring the Deep', ward: 14, addCards: { id: 'seaweed', n: 2, pile: 'draw' } },
         clapper: { name: 'Clapper Swing', dmg: 7, hits: 2 },
@@ -883,13 +887,13 @@
      home the Belfry's last landing is one of `enc.finals` (the Bellwether stays silent). */
   BL.BANDS = {
     shallows: {
-      name: 'the Shallows', boss: 'The Harbour Hermit', bg: 'bg_battle', bossBg: 'bg_shallows_boss',
+      name: 'the Shallows', boss: 'The Harbour Hermit', bg: 'bg_battle', bossBg: 'bg_shallows_boss', mapBg: 'map_shallows',
       pin: 'The harbour bell cracks, and the crab inside it lets go of the water. It runs away down a stair that has been under the sea for a hundred years. The Lantern Heart is not here. Far below, something is still ringing, and the glow of the fire goes on down the stair toward it.',
       enc: BL.ENCOUNTERS,
       events: ['shrine', 'wreck', 'witch', 'pool', 'ghost', 'bottle', 'ambush'],
     },
     dark: {
-      name: 'Dark Water', boss: 'The Tolling Buoy', bg: 'bg_dark', bossBg: 'bg_dark_boss', stairArt: 'stair_dark',
+      name: 'Dark Water', boss: 'The Tolling Buoy', bg: 'bg_dark', bossBg: 'bg_dark_boss', mapBg: 'map_dark', stairArt: 'stair_dark',
       pin: 'The Tolling Buoy rocks one last time and goes silent, and the water it held runs away down the last stair. At the bottom the water does not drain: below Dark Water is the Belfry, and its floor is under the sea.',
       enc: {
         easy: [['leech', 'leech', 'leech'], ['shrimp', 'leech'], ['hermit'], ['ray'], ['jelly', 'leech'], ['eel', 'leech']],
@@ -903,7 +907,7 @@
       events: ['shrine', 'pool', 'ghost', 'tideboard', 'garden', 'divingbell'],
     },
     belfry: {
-      name: 'the Belfry', boss: 'The Drowned Bellwether', bg: 'bg_belfry', bossBg: 'bg_belfry_boss', stairArt: 'stair_belfry',
+      name: 'the Belfry', boss: 'The Drowned Bellwether', bg: 'bg_belfry', bossBg: 'bg_belfry_boss', mapBg: 'map_belfry', stairArt: 'stair_belfry',
       finalBoss: 'Something in the Belfry',
       pocketArt: 'pocket', // under a lesser bell (v0.37.0)
       pocket: 'A lesser bell hangs here from a beam of the old tower, and air is caught under it. You come up into the dark inside the bronze, open your helmet and breathe.',
@@ -951,7 +955,7 @@
        held water has more of the Heart's light in it, so these are stronger, and they stir the aether more. In those
        levels the first keepsake of every offer is one of the level's own while any are left (E.keepsakeChoices). */
     whelk: { name: 'Hollow Whelk', art: 'k_whelk', charge: 27, deep: 1, keep: 1, desc: 'Your Ward no longer washes away at the start of your turn.' },
-    bulb: { name: 'Glimmer Bulb', art: 'k_bulb', charge: 30, deep: 1, light: 1, desc: 'Whenever you Strand, gain 1 more Light.' },
+    bulb: { name: 'Glimmer Bulb', art: 'k_bulb', charge: 30, deep: 1, desc: 'Every Strand gives 1 Light, not only the first each turn.' }, // until v0.40.0: a Strand gave 2 Light
     leechjar: { name: 'Leech Jar', art: 'k_leechjar', charge: 21, deep: 1, heal: 4, maxHp: 2, desc: 'Whenever a creature dies, your Max HP rises by 2 and you heal 4 HP.' },
     clapper: { name: 'Bell Clapper', art: 'k_clapper', charge: 41, deep: 2, desc: 'The first time you Crest or Strand each turn, your next card is played twice.' },
     powderhorn: { name: 'Powder Horn', art: 'k_powderhorn', charge: 26, deep: 2, burst: 12, desc: 'Whenever a creature dies, it bursts: 12 damage to every other creature.' },
@@ -1211,7 +1215,7 @@
         { art: 'scenes/sc_hermit1', pos: '30% center', wide: 'center 30%', zoom: 1.04, sfx: 'bell',
           text: 'The harbour bell cracks from rim to crown. The crab that wore it lets go of the water it was holding, and runs. Where the sea stood a moment ago, a stair comes up out of it: the keepers\' stair, a hundred years under water.' },
         { art: 'scenes/sc_hermit2', pos: '62% center', wide: 'center 35%', zoom: 1.04,
-          text: 'The Lantern Heart is not here. The harbour bell only answered a bigger one. Far below, something is still ringing, and the glow of the fire goes on down the stair toward it. You can go home with what you carry, or follow it down.' },
+          text: 'The Lantern Heart is not here. Every bell on this coast answers the Bellwether, and the harbour bell was only answering it. Far below, the great bell is still ringing, and the glow of the fire goes on down the stair toward it. You can go home with what you carry, or follow it down.' },
       ] },
       buoy: { at: 'pin:1', beats: [
         { art: 'scenes/sc_buoy1', pos: '32% center', wide: 'center 35%', zoom: 1.04, sfx: 'bell',
@@ -1224,6 +1228,16 @@
       dress: { at: 'dress', beats: [
         { art: 'scenes/sc_mend', pos: '45% center', wide: 'center 30%', zoom: 1.04,
           text: 'At home, in the boathouse on the harbour, you sew up the seams with waxed thread and proof them with lamp oil. You fill the sealed lamp and try it with the glass shut. It burns. Wear the dress in your Rig place on your next expedition, and the last stair is open.' },
+      ] },
+      // the first time Wren goes down into the Belfry, in the dress (v0.40.0, the user's request); the second picture says
+      // why there are so many bells, which the user asked to have made clear
+      below: { at: 'in:2', beats: [
+        { art: 'scenes/sc_belfry1', pos: '62% center', wide: 'center 25%', zoom: 1.04, sfx: 'bell',
+          text: 'On the last dry step you seal the helmet and light its lamp from your lantern. The open lantern stays on the step. Then you walk down the keepers\' stair, into the sea.' },
+        { art: 'scenes/sc_belfry2', pos: '40% center', wide: 'center 30%', zoom: 1.04,
+          text: 'The Belfry is full of bells. Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. The harbour bell and the old bell-buoy held the water because they rang with the great bell. Down here, a hundred lost bells still do.' },
+        { art: 'bg/bg_belfry_boss', pos: '55% center', wide: 'center 40%', zoom: 1.04,
+          text: 'Whatever lives down here has learned it too. Its young wear broken bronze for shells, and look for bigger bells as they grow. Far below, the Bellwether rings with no hand on its rope, and the Lantern Heart burns under it.' },
       ] },
       heart: { at: 'heart', beats: [
         { art: 'scenes/sc_heart1', pos: 'center', wide: 'center 35%', zoom: 1.04, sfx: 'bell',
@@ -1264,6 +1278,11 @@
         'Below Dark Water there is one more chamber, and its floor is under the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
         'The Belfry is full of water and it does not drain, and an open lantern cannot go there. But on the wall above its stair hung an old keeper\'s diving dress, with a sealed lamp on its helmet. Its seams had rotted and its lamp was dry, so you carried it home and mended it.',
         'Pack the dress in your Rig place, and the last stair is open. It does nothing in a fight, and it takes the place of anything else you would wear.',
+      ] },
+      { id: 'below', title: 'Into the Belfry', when: 'in:2', lock: 'Go down into the Belfry.', scene: 'below', text: [
+        'On the last dry step you sealed the helmet, lit its lamp from your lantern, and walked down the keepers\' stair into the sea.',
+        'The Belfry is full of bells. Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. The harbour bell and the old bell-buoy held the water because they rang with the great bell, and down here a hundred lost bells still do.',
+        'Whatever lives in the Belfry has learned it too. Its young wear broken bronze for shells, and look for bigger bells as they grow.',
       ] },
       { id: 'heart', title: 'The Heart comes home', when: 'heart', lock: 'Bring the Heart home.', scene: 'heart', text: [
         'The Bellwether hung in the Belfry over the Lantern Heart, and it rang with no hand on its rope. When its bronze broke, the Heart\'s light poured out through the water, and something came out of the bell with it: a thing with one eye and many arms, which had grown into the bronze in the hundred years nobody came down.',
@@ -1314,6 +1333,8 @@
         ['The Bellwether', 'An enchanted bronze bell. Its ringing holds seawater in place. Keepers sank it under the cliffs long ago to hold the sea back, and now it rings by itself.'],
         ['Pins', 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The harbour bell in the Shallows and the Tolling Buoy in Dark Water are pins.',
           { level: 1, before: 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The harbour bell in the Shallows is a pin.' }],
+        ['Why so many bells', 'Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. Saltmere\'s old harbour bell and its bell-buoy were lost in storms. Under the water they rang whenever the great bell rang, and held its water for it. Things that grow in the Heart\'s light take to bells as well: a hermit crab wore the harbour bell for a shell, and in the Belfry young things wear broken bronze and look for bigger bells.',
+          { level: 2, before: 'Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. Saltmere\'s old harbour bell was lost in a storm. Under the water it rang whenever the great bell rang, and held its water for it, and a hermit crab wore it for a shell.' }],
         ['Tide-bell', 'Your hand-bell. Ring it and the water near you moves. Keepers call it a tide-bell because it is tuned to the Bellwether, the bell that holds the tide.'],
         ['The Swell', 'The water around the enemies in a fight. You stand on stone and they stand in the wash. Surge raises the water until a wave breaks on them: a Crest. Ebb pulls it away until they are left on bare rock: a Strand.'],
       ] },
