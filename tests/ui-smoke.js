@@ -1527,6 +1527,56 @@ async function progressScenario(page, base, name, size) {
    on the title screen, at Barnaby's and in the Harbour Hermit's and the Bellwether's fights, really play, and hand
    back to the score when you leave. The Jukebox plays a song, pauses it, plays a piece of the score at a depth, and
    keeps playing after it closes until a descent starts. */
+async function jukeHintChecks(page, name) {
+  const errors = await page.eval(`(() => {
+    const B = window.Brinelight, errors = [], all = B.juke.map(([kind, key]) => kind + ':' + key);
+    const saved = { heard: B.meta.heard.slice(), reached: B.meta.reached, owned: B.meta.owned.slice(), hearts: B.meta.record.hearts, marks: B.story.marks.slice(), filter: B.ui.jukeFilter };
+    const show = () => { B.closeOverlay(); document.querySelector('.title-third [data-act="jukebox"]').click(); };
+    const check = (label, options, match, avoid) => {
+      B.meta.heard = options.heard || all.filter((id) => !(options.missing || []).includes(id));
+      B.meta.reached = options.reached || 0;
+      B.meta.owned = options.suit ? ['suit'] : [];
+      B.meta.record.hearts = options.heart === false ? 0 : 1;
+      B.story.marks = options.marks || [];
+      B.ui.jukeFilter = options.filter || 'all';
+      show();
+      const h = document.querySelector('.juke-more'), text = h ? h.textContent : '';
+      if (match ? !match.test(text) : !!h) errors.push(label + ': unexpected hint ' + JSON.stringify(text));
+      if (avoid && avoid.test(text)) errors.push(label + ': spoiler in hint ' + JSON.stringify(text));
+    };
+    try {
+      check('first map', { heard: ['song:title'], heart: false }, /Start a descent.*map/, /Heart|Dark Water|Belfry|Bellwether/);
+      check('after map', { heard: ['song:title', 'cue:reach'], heart: false }, /ordinary fight/);
+      check('after ordinary fight', { heard: ['song:title', 'cue:reach', 'cue:fight'], heart: false }, /Dread in the Shallows/);
+      check('songs filter', { heard: ['song:title'], heart: false, filter: 'song' }, /Shallows' pin.*another encounter/, /map|Dark Water|Belfry/);
+      check('repeat first pin', { heard: ['song:title'], heart: false, filter: 'song', marks: ['en:harbour'] }, /Shallows' pin again/);
+      check('unseen depth', { missing: ['song:gardener', 'song:putback'] }, /Shallows' pin.*farther down/, /Dark Water|Garden|Strider/);
+      check('known depth, unseen Dread', { missing: ['song:gardener', 'song:putback'], reached: 1 }, /unfamiliar Dread in Dark Water/, /Garden|Strider/);
+      check('alternate Dread song', { missing: ['song:putback'], reached: 1 }, /Garden Strider again/, /Put It Back/);
+      check('first Buoy song', { missing: ['song:hush', 'song:chain', 'cue:buoy'], reached: 1 }, /pin in Dark Water/, /Tolling Buoy|What the Bell|Down on the Chain/);
+      check('second Buoy song', { missing: ['song:chain', 'cue:buoy'], reached: 1 }, /Tolling Buoy again/, /Down on the Chain/);
+      check('Buoy score', { missing: ['cue:buoy'], reached: 1, filter: 'cue' }, /Tolling Buoy again/, /Rocking Toll/);
+      check('unknown Belfry', { missing: ['song:herring'] }, /next pin.*farther down/, /Belfry|Oarfish|Herrings/);
+      check('dress must be carried home', { missing: ['song:herring'], reached: 2 }, /diving dress home.*pack/);
+      check('known Belfry', { missing: ['song:herring'], reached: 2, suit: true }, /unfamiliar Dread in The Belfry/, /Oarfish|Herrings/);
+      check('known Yearling', { missing: ['song:eye'], reached: 2, suit: true, marks: ['en:yearling'] }, /Bell Yearling again/, /Remember the Eye/);
+      check('unknown final', { missing: ['song:nobody', 'cue:pin2'], reached: 2, suit: true }, /last pin.*hear its call/, /Dark Watch|Nobody|Dress/);
+      check('known final', { missing: ['song:nobody', 'cue:pin2'], reached: 2, suit: true, marks: ['en:darkwatch'] }, /Dark Watch.*hear its call/, /Nobody in the Dress/);
+      check('fall music', { missing: ['cue:fallen'] }, /ends in a fall/, /Ember/);
+      check('legacy dawn gate', { heart: false }, /Bring the Heart home/, /Harbour Bells/);
+      check('retired encounter stays collectible', { missing: ['song:bell'] }, null);
+      for (const filter of ['all', 'song', 'cue']) check('complete ' + filter, { filter }, null);
+      check('songs complete, score incomplete', { heard: all.filter((id) => id.startsWith('song:')), filter: 'song' }, null);
+      check('same collection, score filter', { heard: all.filter((id) => id.startsWith('song:')), filter: 'cue' }, /Start a descent.*map/);
+    } finally {
+      B.meta.heard = saved.heard; B.meta.reached = saved.reached; B.meta.owned = saved.owned; B.meta.record.hearts = saved.hearts;
+      B.story.marks = saved.marks; B.ui.jukeFilter = saved.filter; show();
+    }
+    return errors;
+  })()`);
+  failures.push(...errors.map((e) => name + ' unlock hints: ' + e));
+}
+
 async function audioScenario(page, base, name, size) {
   log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
   await page.viewport(size.w, size.h, size);
@@ -1582,6 +1632,7 @@ async function audioScenario(page, base, name, size) {
   if (!(await heardList()).includes('song:title')) failures.push(`${name}: hearing the title song didn't count it as heard`);
   await page.click('.title-now [data-act="jukebox"]'); // the song's name opens the Jukebox
   const jb = (js) => page.eval(`(() => { const o = document.querySelector('#overlay'); return ${js}; })()`);
+  await jukeHintChecks(page, name);
   const items = await jb(`o.querySelectorAll('.juke-item').length`);
   if (items !== 8) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 8 playable tracks`);
   if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 7 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 1) failures.push(`${name}: the Jukebox doesn't mark the 7 open songs and the Keeper's Song`);
@@ -1627,7 +1678,7 @@ async function audioScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="close"]');
   await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 1; B.meta.record.hearts = 1; B.meta.reached = 2; B.meta.heard.push('cue:dread'); })()`);
   await page.click('.title-third [data-act="jukebox"]');
-  if ((await jb(`o.querySelectorAll('.juke-item').length`)) !== 10 || !(await jb(`!!o.querySelector('[data-key="bells"]')`))) failures.push(`${name}: hearing a Dread and bringing the Heart home didn't reveal 2 more tracks`);
+  if ((await jb(`o.querySelectorAll('.juke-item').length`)) !== 11 || !(await jb(`!!o.querySelector('[data-key="bells"]') && !!o.querySelector('[data-key="bell"]')`))) failures.push(`${name}: hearing a Dread and bringing the Heart home didn't reveal its music, including the retired encounter's song`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: High Tide Departure', { playing: false, song: 'departure' });
   await plays('High Tide Departure');

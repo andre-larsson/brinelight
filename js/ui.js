@@ -1452,6 +1452,8 @@
     // the dawn song: it plays when the Heart first comes home, and only then opens (v0.40.0, the user's call; open from
     // the start before). `gate`: having heard it is not enough, so a player who heard it on the title keeps it locked too
     'song:bells': { open: () => E.heartIsHome(meta), gate: true },
+    // This encounter is replaced once the Heart is home. Its song must remain collectible if music was off then.
+    'song:bell': { open: () => E.heartIsHome(meta) },
     'cue:title': { open: () => true }, // the title screen plays its songs instead now, so it is heard only here
     'song:hermit': { open: () => true }, // the pins' songs foreshadow them (the user's call)
     'song:buoy': { open: () => true },
@@ -1468,6 +1470,55 @@
     return meta.heard.indexOf(k) >= 0 || !!(early && early.open());
   };
   const jukeDepthOpen = (d) => d <= (meta.reached || 0) || meta.heard.indexOf('depth:' + d) >= 0;
+  // Hints follow the route rather than catalog order (whose second track is the Heart's homecoming). Name only
+  // places and creatures already known, and keep alternate songs in the order fightSong actually plays them.
+  function jukeEncounterHint(enemy, level) {
+    if (!levelKnown(level)) return level === 1
+      ? "Break the Shallows' pin, then explore farther down with music on."
+      : 'Continue past the next pin to discover music farther down.';
+    if (level === 2 && !E.ownsKit(meta, 'suit')) return 'Carry the diving dress home, then pack it for a deeper descent with music on.';
+    const met = story.marks.indexOf('en:' + enemy) >= 0 || (FIGHT_SONGS[enemy] || []).some((k) => meta.heard.indexOf(k === 'box' ? 'cue:' + enemy : 'song:' + k) >= 0);
+    if (met) return `Meet ${BL.ENEMIES[enemy].name.replace(/^The /, 'the ')} again with music on to hear another piece.`;
+    const place = JUKE_DEPTHS[level];
+    return enemy === 'buoy' || enemy === 'bell'
+      ? `Reach the pin in ${place} with music on.`
+      : `Seek an unfamiliar Dread in ${place} with music on.`;
+  }
+  const jukeLaterHint = (enemy, call) => !E.heartIsHome(meta)
+    ? 'Bring the Heart home, then return for another descent with music on.'
+    : enemy === 'darkwatch'
+      ? `Reach ${story.marks.indexOf('en:darkwatch') >= 0 ? 'the Dark Watch' : 'the last pin'} again with music on${call ? ' and hear its call' : ''}.`
+      : jukeEncounterHint(enemy, 2);
+  const JUKE_UNLOCK_HINTS = [
+    ['cue:reach', () => 'Start a descent with music on and listen on the map.'],
+    ['cue:fight', () => 'Enter an ordinary fight with music on.'],
+    ['cue:dread', () => 'Meet a Dread in the Shallows with music on.'],
+    ['cue:home', () => 'Win a pin fight, then choose Go home with music on.'],
+    ['song:deep', () => story.marks.indexOf('en:harbour') >= 0
+      ? "Meet the Shallows' pin again with music on."
+      : "Meet the Shallows' pin, then return for another encounter with music on."],
+    ['song:gardener', () => jukeEncounterHint('strider', 1)],
+    ['song:putback', () => jukeEncounterHint('strider', 1)],
+    ['song:hush', () => jukeEncounterHint('buoy', 1)],
+    ['song:chain', () => jukeEncounterHint('buoy', 1)],
+    ['cue:buoy', () => jukeEncounterHint('buoy', 1)],
+    ['song:herring', () => jukeEncounterHint('oarfish', 2)],
+    ['song:bell', () => jukeEncounterHint('bell', 2)],
+    ['song:bells', () => 'Bring the Heart home to unlock music for the homecoming.'],
+    ['song:eye', () => jukeLaterHint('yearling')],
+    ['song:cantor', () => jukeLaterHint('cantor')],
+    ['cue:pin', () => jukeLaterHint('darkwatch')],
+    ['song:nobody', () => jukeLaterHint('darkwatch', true)],
+    ['cue:pin2', () => jukeLaterHint('darkwatch', true)],
+    ['cue:fallen', () => 'This music is heard when a descent ends in a fall. Keep music on to discover it.'],
+  ];
+  function jukeNextHint() {
+    const next = JUKE_UNLOCK_HINTS.find(([id]) => {
+      const [kind, key] = id.split(':');
+      return (!ui.jukeFilter || ui.jukeFilter === 'all' || ui.jukeFilter === kind) && !jukeOpen(kind, key);
+    });
+    return next ? next[1]() : '';
+  }
   /* Previous and next go through the open tracks in the list's order, songs and music box pieces alike. A song that
      ends goes on to the next open song, since a music box piece loops and would never hand on. With shuffle on
      (prefs.jukeShuffle, kept), next and a song's end go through the open songs in a shuffled order (ui.jukeOrder), each
@@ -1569,7 +1620,7 @@
     return `<div class="jp-vol" role="group" aria-label="Music volume"><span class="jp-vol-ic" aria-hidden="true">${ICON.volume}</span><span class="jp-vol-lbl">Volume</span><span class="jp-vol-track" style="--v:${v}%"><input type="range" class="jp-vol-range" min="0" max="100" step="5" value="${v}" data-vol="music" aria-label="Music volume"></span><output>${v}%</output></div>`;
   }
   // what the list shows as playing: it is redrawn when that changes, and the time moves in between
-  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, ui.jukeFilter || 'all', jukeTracks().join(','), JUKE_DEPTHS.map((_, i) => jukeDepthOpen(i)), !!prefs.jukeShuffle].join('/');
+  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, ui.jukeFilter || 'all', jukeTracks().join(','), jukeNextHint(), JUKE_DEPTHS.map((_, i) => jukeDepthOpen(i)), !!prefs.jukeShuffle].join('/');
   function jukeFilters() {
     return ['all', 'song', 'cue'].map((kind, i) => `<button class="btn small" data-act="jukefilter" data-filter="${kind}" aria-pressed="${(ui.jukeFilter || 'all') === kind}">${['All', 'Songs', 'Music box'][i]}</button>`).join('');
   }
@@ -1584,7 +1635,8 @@
       return `<div class="juke-item${cur ? ' cur' : ''}"><button class="juke-row" data-act="jukeplay" data-kind="${kind}" data-key="${key}" aria-pressed="${on}" aria-label="${on ? 'Pause' : 'Play'}: ${name}">
         <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${tag}${time ? `<span class="juke-t">${time}</span>` : ''}</span></button></div>`;
     }).join('');
-    return rows + (JUKE.some(([kind, key]) => !jukeOpen(kind, key)) ? '<p class="juke-more">More music to discover.</p>' : '');
+    const hint = jukeNextHint();
+    return rows + (hint ? `<p class="juke-more"><b>Next unlock</b><span>${hint}</span></p>` : '');
   }
   function drawJuke() {
     const list = $('.juke-list', overlayEl);

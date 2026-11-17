@@ -1743,6 +1743,14 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Next-unlock hints in the Jukebox (v0.49.0, 2026-11-17)
+
+- **The user:** when more songs can be unlocked, add a hint for how to unlock the next one.
+- **One hint below the list:** Next unlock replaces the generic "More music to discover" message. It follows the current All / Songs / Music box filter and disappears when that collection is complete. Priority follows the expedition's route, including the actual order of alternate songs, so a new player's first hint is the map rather than the homecoming song near the top of the catalog.
+- **Spoilers:** locked titles stay hidden. Unreached depths get a direction to continue; an unseen creature is an unfamiliar Dread or a pin. Known creatures can be named for repeat encounters. The hint accounts for carrying the diving dress home, post-Heart encounters, repeated pin fights and music being on. Hearing a new piece advances the hint; changing filters or progress updates it too.
+- **Unreachable old unlock fixed:** after the Heart comes home, the Bellwether encounter is replaced. Its song now also opens at that milestone, so someone who had music off then is not left with an impossible hint or an uncollectible track.
+- **Verification:** 241 rule tests, build and desktop/phone audio UI scenarios pass. Hint coverage includes fresh/progressed collections, filters, alternate encounters, known/unknown names, the suit, later encounters, the legacy dawn gate, completion and the retired encounter fallback. Screenshots at 1280×800, 390×844 and 360×640 show both filters' hints readable at 14px without overflow, and a direct check verifies the hint advances after hearing the map: `/tmp/brinelight-jukebox-hints-sAb9ix/`.
+
 ### Clearer Jukebox actions and debug runs counting by default (v0.48.0, 2026-11-17)
 
 - **The user's calls:** make the score link more prominent; rename the Gemini songs' Words button to Lyrics; default Cheats count as real runs to On when debug is enabled.

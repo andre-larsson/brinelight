@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.48.0';
+  BL.VERSION = '0.49.0';
   BL.CHANGELOG = [
+    { v: '0.49.0', date: '2026-11-17', items: [
+      'The Jukebox shows one Next unlock hint for the selected filter. It advances as you discover music, without naming locked tracks or unfamiliar creatures and places.',
+      'Bringing the Heart home opens the Bellwether\'s song even if music was off in that encounter, so it remains collectible afterward.',
+    ] },
     { v: '0.48.0', date: '2026-11-17', items: [
       'The Jukebox has a prominent Open score in Musicbox button beside the volume control. The songs\' Words button is now Lyrics.',
       'In debug mode, Cheats count as real runs is on by default. Your saved choice still applies.',

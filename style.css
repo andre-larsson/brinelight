@@ -994,7 +994,9 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .juke-filters { display: flex; gap: 6px; margin: 0 0 12px; }
 .juke-filters .btn { flex: 1; min-height: 40px; padding-inline: .5em; white-space: nowrap; }
 .juke-filters .btn[aria-pressed="true"] { color: var(--ink); background: var(--brass); border-color: var(--brass); }
-.juke-more { margin: 14px 0 4px; color: var(--muted); font-size: 13px; text-align: center; }
+.juke-more { margin: 14px 0 4px; color: var(--muted); font-size: 14px; line-height: 1.5; text-align: center; }
+.juke-more b, .juke-more span { display: block; }
+.juke-more b { margin-bottom: 3px; color: var(--foam); }
 .juke-depth { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .juke-depth > span { margin-right: 4px; font-size: 14px; color: var(--muted); }
 .juke-depth select { min-height: 36px; max-width: 100%; padding: 4px 8px; font: inherit; font-size: 14px; color: var(--text); background: #153448; border: 1px solid rgba(201, 162, 74, .55); border-radius: 8px; cursor: pointer; }
