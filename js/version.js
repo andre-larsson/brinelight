@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.51.0';
+  BL.VERSION = '0.51.1';
   BL.CHANGELOG = [
+    { v: '0.51.1', date: '2026-11-17', items: [
+      'Song lyrics: every line now starts with a capital letter.',
+      'Pop the Shell\'s lyrics now include the Hook it sings straight after the Intro.',
+    ] },
     { v: '0.51.0', date: '2026-11-17', items: [
       'Five new music box pieces: "Held Water" in Dark Water\'s ordinary fights, "Above the Tide Line" at Sheltered Coves, stairs and lesser bells, "What Waits in the Fog" in the Fog, wrecks and toll bells, "Home with Your Haul" when you retreat early, and "Her Own Bell" in the Dark Watch\'s first phase.',
       'The five-picture opening plays the music box\'s "The Keeper\'s Song".',
