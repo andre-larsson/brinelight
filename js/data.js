@@ -518,7 +518,7 @@
     },
     // ---------- Elites ----------
     hulk: {
-      name: 'Reefback Hulk', hp: [68, 72], art: 'hulk', scale: 1.3, elite: true,
+      name: 'Reefback Hulk', hp: [56, 60], art: 'hulk', scale: 1.3, elite: true, // 68-72 until v0.46.0: 7.9 turns a fight for the bot, the other Shallows Dreads 6.8
       init: (e) => { e.st.spines = 2; }, // Spines 3 and Rouse Might 2 until v0.21.0: by far the deadliest Dread in the game
       moves: {
         crush: { name: 'Crush', dmg: 11 },
@@ -1259,8 +1259,8 @@
       ] },
       // the first fall (v0.44.0, the user's request): Bosun brings her out of the surf; every later fall's end screen shows it
       fall: { at: 'fell', beats: [
-        { art: 'scenes/sc_fall', pos: '45% center', wide: 'center 35%', zoom: 1.04,
-          text: 'The cold water closed over your lantern, and the sea gave you back. Bosun went in after you and dragged you out of the surf by your scarf, barking until Hester came down the rock with a lantern and a blanket. In your lantern an ember was still alight.' },
+        { art: 'scenes/sc_fall', pos: '58% center', wide: 'center 35%', zoom: 1.04, // v0.46.0's picture: Bosun on the shore side
+          text: 'The cold water closed over your lantern, and the sea gave you back. Bosun went in after you and hauled you up out of the surf by your collar, barking until Hester came down the rock with a lantern and a blanket. In your lantern an ember was still alight.' },
       ] },
       heart: { at: 'heart', beats: [
         { art: 'scenes/sc_heart1', pos: 'center', wide: 'center 35%', zoom: 1.04, sfx: 'bell',

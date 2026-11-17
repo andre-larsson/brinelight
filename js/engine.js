@@ -768,7 +768,7 @@
      route: a lost bell hung across the way, still answering the Bellwether, that lets nobody pass for free. Wren
      chooses how to pay: in HP (never her last), in Pearls, or with a Barnacle Growth in her deck. Dark Water asks
      more. It takes the place of a row of stops, so a level has one stop fewer: harder, and a little shorter. */
-  E.TOLL = [{ hp: 8, pearls: 30 }, { hp: 10, pearls: 40 }];
+  E.TOLL = [{ hp: 5, pearls: 20 }, { hp: 7, pearls: 30 }]; // 8/30 and 10/40 until v0.46.0 (the user: "could lessen tolls")
   E.TOLL_WAYS = ['hp', 'pearls', 'barnacle'];
   E.tollOf = (run) => E.TOLL[Math.min(E.TOLL.length - 1, run.level || 0)];
   /* Can she pay this way? True, or the reason she can't. */

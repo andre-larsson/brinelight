@@ -3631,7 +3631,7 @@
   }
 
   /* ----- The Toll (v0.41.0) ----- */
-  /* What a toll asks on a level: "8 HP, 30 Pearls or a Barnacle Growth" (`short`: no Barnacle). */
+  /* What a toll asks on a level: "5 HP, 20 Pearls or a Barnacle Growth" (`short`: no Barnacle). */
   function tollText(lv, short) {
     const t = E.TOLL[Math.min(E.TOLL.length - 1, lv)];
     return short ? `${t.hp} HP or ${t.pearls} Pearls` : `${t.hp} HP, ${t.pearls} Pearls or a Barnacle Growth in your deck`;
@@ -3736,12 +3736,12 @@
     const title = win ? (run.heart ? 'The Lantern Heart rises' : run.quieted ? 'The Belfry is quiet' : 'Home with your haul') : 'The tide takes you';
     const text = win
       ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : `You climb back up the drained stairs with everything you carry, and Bosun runs ahead to tell Hester. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
-      : `The cold water closes over your lantern, and you go under. Past the bell's reach the sea gives you back, and Bosun drags you out of the surf by your scarf. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
+      : `The cold water closes over your lantern, and you go under. Past the bell's reach the sea gives you back, and Bosun hauls you up out of the surf by your collar. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
     /* v0.44.0: Hester and Bosun on the end screens. Bringing the Heart home shows her on the gallery as the light turns;
        coming home shows her in the doorway with Bosun running ahead, the lamp lit once the Heart is home; a fall shows
        Bosun bringing Wren out of the surf (the first fall's story scene). */
     const endArt = win ? (run.heart ? 'scenes/sc_heart3' : run.heartHome ? 'scenes/end_home_lit' : 'scenes/end_home') : 'scenes/sc_fall';
-    const endPos = { 'scenes/sc_heart3': '45% center', 'scenes/sc_fall': '45% center' }[endArt] || '55% center'; // where the people are, on a phone
+    const endPos = { 'scenes/sc_heart3': '45% center', 'scenes/sc_fall': '58% center' }[endArt] || '55% center'; // where the people are, on a phone
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
     screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/${endArt}.webp);background-position:${endPos}"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>

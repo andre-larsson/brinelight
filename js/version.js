@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.45.1';
+  BL.VERSION = '0.46.0';
   BL.CHANGELOG = [
+    { v: '0.46.0', date: '2026-11-17', items: [
+      'Toll bells ask less: 5 HP or 20 Pearls in the Shallows (8 or 30 before), and 7 HP or 30 Pearls in Dark Water (10 or 40 before). A Barnacle Growth still pays either.',
+      'The Reefback Hulk has 56 to 60 HP (68 to 72 before), so its fight is about as long as the other Dreads\' of the Shallows. Its Spines and Rouse are as before.',
+      'A new picture for the first fall and every fall\'s end screen: Bosun stands on the shingle and hauls Wren up out of the surf by her collar, toward the lighthouse. Before, he stood in the surf, and it looked as if he was pulling her in.',
+    ] },
     { v: '0.45.1', date: '2026-11-17', items: [
       'A Dread\'s reward: "or the keepsake" has the same lettering as "Choose one: a card for your deck" and sits on the same line, the keepsake is level with the cards, and its name is lettered like theirs.',
     ] },

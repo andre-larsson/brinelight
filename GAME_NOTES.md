@@ -1743,6 +1743,26 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### The user's playtest: cheaper tolls, a shorter Hulk, and the fall picture (v0.46.0, 2026-11-17)
+
+- **The user's playtest notes (on the live v0.44.0):** "Game much harder now, did not defeat first boss. But got enough salvage to buy cork vest. Reefback Hulk felt a bit too long of a fight. Could lessen tolls in Toll Bell. Like the shorter game length. Difficulty might be okay even if harder." And on the first-fall picture: "it almost looks like Wren is dragged into the water, away from lighthouse?"
+- **The user's calls:** tolls 5 HP / 20 Pearls in the Shallows and 7 HP / 30 Pearls in Dark Water (the agent's proposal; a Barnacle Growth still pays either); the Hulk measured first, then 56-60 HP; the fall picture repainted with Bosun pulling toward the shore, variant A of two.
+- **No global difficulty change**, since the user finds harder possibly fine and likes the length.
+- **Measured** (`tools/measure-detail.js`, 2000 seeds; the "forced" rows make every Shallows Dread the Hulk, so the Shallows' Dread turns are the Hulk's):
+
+  | Row | pin1 % | pin2 % | Shallows Dread turns a fight |
+  |---|---|---|---|
+  | old tolls, Hulk 68-72 (v0.45.1) | 24.4 | 15.3 | 7.18 |
+  | new tolls, Hulk 68-72 | 24.9 | 17.7 | 7.15 |
+  | new tolls, Hulk 60-64 | 25.6 | 18.1 | 6.89 |
+  | **new tolls, Hulk 56-60 (v0.46.0)** | 25.9 | 18.4 | 6.76 |
+  | forced Hulk 68-72 | 22.3 | 14.6 | 7.87 |
+  | forced Hulk 60-64 | 23.5 | 14.7 | 7.00 |
+  | forced Hulk 56-60 | 23.9 | 15.7 | 6.57 |
+
+  The other Shallows Dreads (Siren, Twins) take about 6.8 turns (500 seeds). Lowering Rouse's Ward from 10 to 6, the agent's first guess, saved only 0.2 turns (500 seeds: 7.75 to 7.56), so it was dropped. The cheaper tolls help most in Dark Water (pin2 +2.4 points); pin1 moves within noise (about ±1 at 2000 seeds). The bot breaks the Shallows' pin in about a quarter of its runs, so the user losing to the Hermit fits.
+- **The fall picture** (`img/scenes/sc_fall`): in v0.44.0's picture Bosun stood in the surf on the sea side pulling Wren's scarf, so he seemed to drag her in. The new one is a Codex edit with the old picture attached (built-in image tool, two variants; prompt in `assets-src/wanted-images.tsv`): the sea on the left, Wren on her back with her boots in the surf and her head toward the lighthouse, Bosun on dry shingle backing up toward Hester with the shoulder of her oilskin in his teeth, Hester on the rock above with her lantern. B (closer, Hester with the blanket) had her stick seeming to grow from Wren's head. The phone crop moved from 45% to 58% (the story scene's `pos` and `endPos`), checked on the end screen at 390x844. The texts now say Bosun hauls her up out of the surf "by your collar"; he still swims her in by her scarf (the Story so far, WORLD.md: his mouth is full of it, so the keepsakes wash up later).
+
 ### A Dread's reward, lettered alike (v0.45.1, 2026-11-17)
 
 - **The user:** a screenshot of a Dread's reward, "fonts/layout look a bit inconsistent". On a wide screen "or the keepsake" was in the sans (`font-family: inherit`, from v0.40.0) while "Choose one: a card for your deck" is in the serif, and the keepsake's panel centred its contents, so its heading sat lower than the cards' heading.

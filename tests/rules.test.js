@@ -936,7 +936,7 @@ test('Wrecks: a chest of Pearls and a choice of 1 of 2 keepsakes', () => {
   assert.ok(!E.has(run, run.treasure.choices[0]), 'only one');
 });
 
-test('a toll bell: pay 8 HP (never the last), 30 Pearls or a Barnacle Growth to pass; Dark Water asks 10 HP or 40 Pearls; not in the Belfry', () => {
+test('a toll bell: pay 5 HP (never the last), 20 Pearls or a Barnacle Growth to pass; Dark Water asks 7 HP or 30 Pearls; not in the Belfry', () => {
   const at = (level) => { const run = E.newRun(4, level, ['suit']); E.enterNode(run, { row: E.TOLL_ROW, col: 0, type: 'toll' }); return run; };
   assert.equal(E.TOLL_ROW, 4);
   // in HP
@@ -946,7 +946,7 @@ test('a toll bell: pay 8 HP (never the last), 30 Pearls or a Barnacle Growth to 
   assert.equal(E.tollCan(run, 'pearls'), 'Not enough Pearls');
   assert.equal(E.payToll(run, 'pearls'), false);
   assert.equal(E.payToll(run, 'hp'), true);
-  assert.equal(run.hp, 70 - 8);
+  assert.equal(run.hp, 70 - 5);
   assert.equal(E.payToll(run, 'barnacle'), false, 'once');
   assert.equal(run.toll.paid, 'hp');
   E.backToMap(run);
@@ -955,11 +955,11 @@ test('a toll bell: pay 8 HP (never the last), 30 Pearls or a Barnacle Growth to 
   run = at(0);
   run.pearls = 45;
   assert.equal(E.payToll(run, 'pearls'), true);
-  assert.equal(run.pearls, 15);
+  assert.equal(run.pearls, 25);
   assert.equal(run.hp, 70);
   // with barnacles; and HP can't pay with her last
   run = at(0);
-  run.hp = 8;
+  run.hp = 5;
   assert.equal(E.tollCan(run, 'hp'), 'Too weak');
   assert.equal(E.payToll(run, 'hp'), false);
   const deck = run.deck.length;
@@ -972,11 +972,11 @@ test('a toll bell: pay 8 HP (never the last), 30 Pearls or a Barnacle Growth to 
   assert.equal(E.payToll(run, 'hp'), false);
   // Dark Water asks more
   run = at(1);
-  run.pearls = 39;
+  run.pearls = 29;
   assert.equal(E.tollCan(run, 'pearls'), 'Not enough Pearls');
   E.payToll(run, 'hp');
-  assert.equal(run.hp, 70 - 10);
-  assert.deepEqual(E.TOLL, [{ hp: 8, pearls: 30 }, { hp: 10, pearls: 40 }]);
+  assert.equal(run.hp, 70 - 7);
+  assert.deepEqual(E.TOLL, [{ hp: 5, pearls: 20 }, { hp: 7, pearls: 30 }]);
   // every walkable level has its toll row; the Belfry's dive has none
   assert.ok(E.newRun(9, 1).map.grid[4].filter(Boolean).every((n) => n.type === 'toll'));
   assert.ok(E.newRun(9, 2, ['suit']).map.grid.flat().filter(Boolean).every((n) => n.type !== 'toll'));
