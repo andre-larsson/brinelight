@@ -1770,6 +1770,20 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
   | v0.42.0 with Harden 9 | 1.2 | 23.5 | 20.3 | 24.5 | 59.7 | 179 |
 
   For the bot the Shallows' pin falls 4 points (the Bell and Spines), Dark Water's share 1.6 (lasting Douse 2.8 harder, the Peal 1.4 harder, the free Bail some back), and fights are a little shorter. The Crab change is noise for the bot; it is for people.
+- **Grok replayed seed 5150 on v0.42.0** (blind, as before; the map is the same as its v0.41.0 run's). It came home after Dark Water's pin, score 1568.
+
+  | | v0.40.0 rules | v0.41.0 | v0.42.0 |
+  |---|---|---|---|
+  | Lowest HP | 38/80 | 17/70 | **1/70**, at the end of the Hermit |
+  | After the Hermit / the Buoy | 38/80, 43/80 | 17/70, 39/70 | 1/70, 47/70 |
+  | Its difficulty: Shallows, Dark Water, the run | 3, 4, 3 | 3, 4, 4 | 4, 3, 4 |
+  | Hermit / Hulk / Buoy, in turns and HP lost | 6, 36 / - / 6, 37 | 9, 41 / 6, 27 / 6, 27 | 9, 56 / 5, 23 / 5, 12 |
+
+  - The Shallows' pin is now the hardest fight of the run. The Buoy was easier than before: the Peal showed 41 and hit for 0, because one Strand and one Crest, which its deck made anyway, take 40 off. "The best turn of the run."
+  - The Hulk: "Spines on the first elite taxes the thing the deck is built to do ... I could play around it, and I did."
+  - Confusing: "In its Bell 1" in the text tool read as a counter that Crests should change (fixed: on/off statuses show no number, as on the page); the free Bail's Light pays for the Bail, not for an earlier card; Chilled's number is turns, not strength (said again).
+  - Removal at 75 was out of reach twice (67 and 69 Pearls after paying the toll in Pearls), so four Braces stayed in.
+  - **Its proposals (not built):** the Peal 8 less per Crest or Strand, not 20 (one of each still silences it now); a Strand strips 8 of the Hermit's Bell Ward or a Shell, not all of it; Maelstrom doubles only the Crest's base 6, not the +3 a chained Crest adds (its second Crest hit for 18).
 - **The tutorial's Bail in `npm run test:ui`:** under full load (4 Chromes) the first click on Bail after the blocked Jab is lost, although nothing covers Bail, the UI is idle and the game would take it (diagnosed this time: `busy` false, `Teach.allows` true, `canSwellAct` ok). A second click works. The test now clicks again and logs it. Open: whether a person can lose that click too (raise a card, Escape, click Bail).
 
 ### Harder without longer: toll bells and fewer upgraded rewards (v0.41.0, 2026-11-17)

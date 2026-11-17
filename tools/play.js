@@ -55,10 +55,12 @@ function cardLine(run, card, inCombat) {
   return `${E.cardName(card)} [${cost == null ? '-' : cost}] ${TYPE_LABEL[d.type]}: ${strip(d.text(v, fmt))}`;
 }
 const pseudo = (id) => ({ uid: 0, id, up: 0 });
+// statuses that are on or off, as the page shows them with no number (a Grok run read "In its Bell 1" as a counter)
+const NO_COUNT = ['submerged', 'shell', 'belled', 'echo', 'fullbelly'];
 function statusLine(o) {
   return Object.keys(o.st).filter((k) => o.st[k]).map((k) => {
     const s = BL.STATUSES[k];
-    return s ? `${s.name} ${o.st[k]} (${strip(s.desc(o.st[k]))})` : `${k} ${o.st[k]}`;
+    return s ? `${s.name}${NO_COUNT.indexOf(k) >= 0 ? '' : ' ' + o.st[k]} (${strip(s.desc(o.st[k]))})` : `${k} ${o.st[k]}`;
   }).join('; ');
 }
 const bossName = (run) => { const B = E.band(run); return run.heartHome && E.lastLevel(run) && B.finalBoss ? B.finalBoss : B.boss; };
