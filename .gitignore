@@ -15,3 +15,6 @@ assets-src/**/*.png
 assets-src/**/*.jpg
 assets-src/**/*.jpeg
 .play/
+
+# lyrics check: voice tracks, phrase clips, transcripts and review decisions (tools/lyrics-check.py, tools/lyrics-review.js)
+.lyrics/

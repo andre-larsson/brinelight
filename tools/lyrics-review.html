@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lyrics Review</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%227%22 fill=%22%2345b8aa%22/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #0e151d; --panel: #15202b; --panel2: #1b2834; --line: #263645; --text: #e4ecf2; --muted: #8a9cad; --faint: #5f7184;
+  --teal: #45b8aa; --green: #62c07d; --amber: #e3a640; --red: #e2705e; --purple: #a98fe0; --blue: #6aa8e8;
+  --focus: #2b4256;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; display: flex; }
+button { font: inherit; color: inherit; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+button:hover { border-color: var(--faint); }
+button.primary { background: #1f4a45; border-color: var(--teal); }
+button.on { background: var(--focus); border-color: var(--blue); }
+button:disabled { opacity: .45; cursor: default; }
+kbd { font: 12px ui-monospace, monospace; background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--text); }
+.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+/* sidebar */
+#side { width: 270px; flex: none; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; height: 100vh; }
+#side h1 { font-size: 16px; margin: 0; padding: 14px 16px 4px; }
+#side .sub { color: var(--muted); font-size: 13px; padding: 0 16px 10px; }
+#songs { overflow-y: auto; flex: 1; padding: 0 8px 8px; }
+.song { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 7px 9px; border-radius: 7px; }
+.song:hover { background: var(--panel2); }
+.song.cur { background: var(--focus); border-color: #355571; }
+.song .nm { font-size: 14px; }
+.song .ct { font-size: 12px; color: var(--muted); align-self: center; }
+.song .ct.zero { color: var(--green); }
+.song .meta { grid-column: 1 / -1; font-size: 12px; color: var(--faint); }
+.song .meta .done { color: var(--green); }
+.song .meta .order { color: var(--amber); }
+#help { border-top: 1px solid var(--line); padding: 10px 16px 14px; font-size: 13px; color: var(--muted); }
+#help div { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
+
+/* main */
+#main { flex: 1; height: 100vh; overflow-y: auto; }
+#head { position: sticky; top: 0; z-index: 5; background: rgba(14,21,29,.96); border-bottom: 1px solid var(--line); padding: 12px 24px 10px; }
+#head h2 { margin: 0 0 6px; font-size: 20px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+#head h2 .counts { font-size: 13px; font-weight: normal; color: var(--muted); }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bar .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; }
+.seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 6px 6px 0; }
+#saved { font-size: 12px; color: var(--muted); margin-left: auto; }
+#saved.err { color: var(--red); }
+#order { font-size: 13px; color: var(--muted); margin-top: 8px; }
+#order b { color: var(--text); font-weight: 500; }
+#order .diff { color: var(--amber); }
+#playhead { font-size: 12px; color: var(--muted); }
+.banner { margin: 12px 24px 0; padding: 9px 12px; border-radius: 8px; background: #3a2a14; border: 1px solid #6b4c1d; font-size: 14px; }
+#rows { padding: 8px 24px 120px; max-width: 980px; }
+
+.part { margin: 22px 0 6px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.part .h { cursor: text; border-bottom: 1px dashed transparent; }
+.part .h:hover { border-bottom-color: var(--faint); }
+.part input { font: inherit; text-transform: none; letter-spacing: 0; background: var(--panel2); color: var(--text); border: 1px solid var(--blue); border-radius: 4px; padding: 1px 6px; }
+
+.row { display: grid; grid-template-columns: 74px 1fr auto; gap: 2px 12px; padding: 8px 10px; border-radius: 8px; border: 1px solid transparent; scroll-margin: 0 0 80px; }
+.row.focus { background: var(--panel); border-color: #355571; }
+.row.singing .t { color: #fff; }
+.row.singing .play { border-color: var(--teal); }
+.play { font-size: 12px; padding: 2px 6px; height: 26px; align-self: start; color: var(--muted); }
+.t { font-size: 17px; align-self: center; }
+.t .new { color: var(--teal); }
+.t s { color: var(--faint); }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; align-self: start; white-space: nowrap; border: 1px solid; margin-top: 3px; }
+.st-ok { color: var(--green); border-color: #2f5a3b; }
+.st-likely { color: var(--teal); border-color: #275650; }
+.st-changed { color: var(--amber); border-color: #6b4c1d; }
+.st-check { color: var(--red); border-color: #6a3329; }
+.st-extra { color: var(--purple); border-color: #4c3f6e; }
+.st-done { color: var(--blue); border-color: #2e4a66; }
+.detail { grid-column: 2 / -1; display: grid; grid-template-columns: 62px 1fr auto; gap: 1px 10px; font-size: 14px; color: var(--muted); margin-top: 3px; }
+.detail .who { color: var(--faint); font-size: 12px; padding-top: 2px; }
+.detail .use { font-size: 12px; padding: 0 8px; height: 22px; }
+.w-near { text-decoration: underline dotted; text-underline-offset: 3px; color: var(--text); }
+.w-sub { color: var(--amber); }
+.w-ins { color: var(--amber); font-style: italic; }
+.w-ok { color: var(--text); opacity: .8; }
+.agree { grid-column: 1 / -1; color: var(--amber); font-size: 13px; }
+.agree button { font-size: 12px; padding: 0 8px; height: 22px; margin-left: 6px; }
+.acts { grid-column: 2 / -1; display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.acts button { font-size: 13px; }
+.acts .k { color: var(--faint); font-size: 12px; margin-left: 4px; }
+.edit { grid-column: 2 / -1; margin-top: 6px; }
+.edit textarea { width: 100%; font: 17px/1.4 inherit; font-family: inherit; background: #0b1218; color: var(--text); border: 1px solid var(--blue); border-radius: 6px; padding: 6px 8px; resize: vertical; }
+.edit .hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.row.compact .detail, .row.compact .acts { display: none; }
+.row.compact.focus .detail, .row.compact.focus .acts { display: grid; }
+.row.compact.focus .acts { display: flex; }
+.row.hidden { display: none; }
+
+#text, #raw, #preview { margin: 14px 24px; max-width: 980px; }
+#text textarea { width: 100%; height: 60vh; font: 15px/1.5 ui-monospace, monospace; background: #0b1218; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+#preview pre { white-space: pre-wrap; font: 15px/1.5 system-ui, sans-serif; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+#preview .chg { color: var(--teal); }
+#raw details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+#raw summary { cursor: pointer; color: var(--muted); }
+#raw .clip { display: grid; grid-template-columns: 110px 1fr; gap: 2px 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+#raw .clip .who { color: var(--faint); font-size: 12px; }
+.empty { padding: 60px 24px; color: var(--muted); }
+</style>
+</head>
+<body>
+<nav id="side">
+  <h1>Lyrics review</h1>
+  <div class="sub" id="overall">Loading…</div>
+  <div id="songs"></div>
+  <div id="help">
+    <div><span>Next / previous line</span><span><kbd>j</kbd> <kbd>k</kbd></span></div>
+    <div><span>Next line to check</span><span><kbd>n</kbd></span></div>
+    <div><span>Play line / pause</span><span><kbd>Space</kbd></span></div>
+    <div><span>Play on from line</span><span><kbd>p</kbd></span></div>
+    <div><span>Keep as shown</span><span><kbd>Enter</kbd> <kbd>y</kbd></span></div>
+    <div><span>Edit</span><span><kbd>e</kbd></span></div>
+    <div><span>Start from Qwen / whisper</span><span><kbd>1</kbd> <kbd>2</kbd></span></div>
+    <div><span>Not sung / skip</span><span><kbd>x</kbd></span></div>
+    <div><span>Undo decision</span><span><kbd>u</kbd></span></div>
+    <div><span>Voice only / full mix</span><span><kbd>v</kbd></span></div>
+    <div><span>Slower</span><span><kbd>s</kbd></span></div>
+  </div>
+</nav>
+<main id="main">
+  <div class="empty" id="empty">Loading…</div>
+</main>
+<audio id="aVoice" preload="auto"></audio>
+<audio id="aMix" preload="auto"></audio>
+<script>
+'use strict';
+const PAD_BEFORE = 0.35, PAD_AFTER = 0.45;
+const NEED = new Set(['changed', 'check']);
+const LABEL = { ok: 'As written', likely: 'Probably right', changed: 'Both heard a change', check: 'Unclear', extra: 'Extra singing' };
+const TIP = {
+  ok: 'Both models heard exactly the written words.',
+  likely: 'One of the two models heard exactly the written words.',
+  changed: 'Both models heard the same thing, and it differs from the written words.',
+  check: 'Neither model heard the written words, and they disagree with each other.',
+  extra: 'Both models heard singing here that matches no written line.',
+};
+const SPEEDS = [1, 0.85, 0.7];
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = t => { t = Math.max(0, t || 0); const m = Math.floor(t / 60), s = Math.floor(t % 60); return m + ':' + String(s).padStart(2, '0'); };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('brinelight.lyricsReview.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('brinelight.lyricsReview.' + k, JSON.stringify(v)); } catch (e) { /* private mode */ } },
+};
+
+let DATA = null, REVIEW = {}, songs = [], cur = null, focusIdx = -1, editing = null, mode = 'rows';
+let source = store.get('source', 'voice'), speed = store.get('speed', 1), autoplay = store.get('autoplay', true), filter = store.get('filter', 'all');
+let stopAt = null, saveTimer = null;
+const aVoice = $('#aVoice'), aMix = $('#aMix');
+
+// ---------------------------------------------------------------- review state
+
+function rvOf(key) {
+  const s = DATA.songs[key];
+  let r = REVIEW[key];
+  if (!r || r.writtenHash !== s.writtenHash) r = REVIEW[key] = { writtenHash: s.writtenHash, done: false, lines: {}, extras: {}, headings: {}, textOverride: null };
+  r.lines = r.lines || {}; r.extras = r.extras || {}; r.headings = r.headings || {};
+  return r;
+}
+const needs = r => r.type === 'extra' || (r.type === 'line' && NEED.has(r.status));
+function decision(s, r) {
+  const rv = rvOf(s.key);
+  return r.type === 'extra' ? rv.extras[r.id] : r.type === 'line' ? rv.lines[r.id] : null;
+}
+function progress(s) {
+  const need = s.rows.filter(needs);
+  return { need: need.length, left: need.filter(r => !decision(s, r)).length };
+}
+
+function finalText(s) {
+  const rv = rvOf(s.key);
+  if (rv.textOverride != null) return rv.textOverride;
+  const parts = []; let curPart = null; const pre = [];
+  const push = t => String(t).split('\n').map(x => x.trim()).filter(Boolean).forEach(x => (curPart ? curPart.lines : pre).push(x));
+  s.rows.forEach((r, idx) => {
+    if (r.type === 'part') {
+      curPart = { heading: rv.headings[idx] != null ? rv.headings[idx] : r.heading, lines: parts.length ? [] : pre.splice(0) };
+      parts.push(curPart);
+    } else if (r.type === 'line') {
+      const d = rv.lines[r.id];
+      if (d && d.state === 'drop') return;
+      push(d && d.state === 'edit' ? d.text : r.text);
+    } else if (r.type === 'extra') {
+      const d = rv.extras[r.id];
+      if (d && d.state === 'add') push(d.text);
+    }
+  });
+  return parts.filter(p => p.lines.length).map(p => (p.heading ? '[' + p.heading + ']\n' : '') + p.lines.join('\n')).join('\n\n');
+}
+
+function save(s) {
+  const rv = rvOf(s.key);
+  rv.text = finalText(s);
+  $('#saved').textContent = 'Saving…'; $('#saved').className = '';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/review/' + s.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rv) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || res.status);
+      $('#saved').textContent = 'Saved';
+    } catch (e) {
+      $('#saved').textContent = 'Not saved: ' + e.message; $('#saved').className = 'err';
+    }
+  }, 250);
+  renderSongs();
+  renderCounts();
+}
+
+// ---------------------------------------------------------------- words
+
+/** Word pieces of a line as split by tools/lyrics-check.py: [{start, end}] offsets, parentheses skipped. */
+function pieces(text) {
+  const out = []; const re = /\(|\)|[^\s()\-—–]+/g; let m;
+  while ((m = re.exec(text))) if (m[0] !== '(' && m[0] !== ')') out.push({ start: m.index, end: m.index + m[0].length });
+  return out;
+}
+/** The written line with the words both models heard differently put in. */
+function withAgreed(text, agree) {
+  const ps = pieces(text);
+  let out = text;
+  [...agree].sort((a, b) => b.i - a.i).forEach(a => {
+    const p = ps[a.i]; if (!p) return;
+    const w = out.slice(p.start, p.end);
+    const m = /^(["“(]*)(.*?)([.,;:!?"”…]*)$/.exec(w);
+    let heard = a.heard;
+    if (/^[A-Z]/.test(m[2])) heard = heard.charAt(0).toUpperCase() + heard.slice(1);
+    else heard = heard.charAt(0).toLowerCase() + heard.slice(1);
+    out = out.slice(0, p.start) + m[1] + heard + m[3] + out.slice(p.end);
+  });
+  return out;
+}
+const heardText = h => h.words.map(w => w.w).join(' ');
+const heardHtml = h => h.words.length ? h.words.map(w => `<span class="w-${w.s}">${esc(w.w)}</span>`).join(' ') : '<span style="color:var(--faint)">(nothing)</span>';
+
+// ---------------------------------------------------------------- audio
+
+const el = () => (source === 'voice' ? aVoice : aMix);
+function loadAudio(s) {
+  aVoice.pause(); aMix.pause(); stopAt = null;
+  aVoice.src = '/file/' + s.voice; aMix.src = '/file/' + s.mix;
+}
+function playRange(a, b) {
+  const e = el(); (e === aVoice ? aMix : aVoice).pause();
+  e.currentTime = Math.max(0, a - PAD_BEFORE);
+  e.playbackRate = speed; e.preservesPitch = true;
+  stopAt = b == null ? null : b + PAD_AFTER;
+  e.play().catch(() => {});
+}
+function playRow(idx, onward) {
+  const r = cur.rows[idx]; if (!r || r.type === 'part') return;
+  playRange(r.start, onward ? null : r.end);
+}
+function togglePause() {
+  const e = el();
+  if (!e.paused) { e.pause(); return true; }
+  return false;
+}
+function tick() {
+  const e = el();
+  if (stopAt != null && !e.paused && e.currentTime >= stopAt) { e.pause(); stopAt = null; }
+  if (cur && mode === 'rows') {
+    const t = e.currentTime, playing = !e.paused;
+    document.querySelectorAll('.row.singing').forEach(x => x.classList.remove('singing'));
+    if (playing) {
+      cur.rows.forEach((r, i) => {
+        if (r.type === 'line' && t >= r.start - 0.1 && t <= r.end + 0.2) { const x = $(`.row[data-i="${i}"]`); if (x) x.classList.add('singing'); }
+      });
+    }
+    $('#playhead').textContent = (playing ? '▶ ' : '') + fmt(t) + ' / ' + fmt(cur.duration);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---------------------------------------------------------------- render
+
+function renderSongs() {
+  const box = $('#songs');
+  box.innerHTML = songs.map(s => {
+    const p = progress(s), rv = rvOf(s.key);
+    const meta = [];
+    if (rv.done) meta.push('<span class="done">done</span>');
+    if (REVIEW[s.key] && REVIEW[s.key].applied) meta.push('applied');
+    if (s.orderChanged) meta.push('<span class="order">order differs</span>');
+    if (s.stale) meta.push('stale');
+    return `<button class="song${cur && cur.key === s.key ? ' cur' : ''}" data-key="${s.key}">
+      <span class="nm">${esc(s.name)}</span><span class="ct${p.left ? '' : ' zero'}">${p.left ? p.left + ' to check' : '✓'}</span>
+      <span class="meta">${meta.join(' · ') || '&nbsp;'}</span></button>`;
+  }).join('');
+  const done = songs.filter(s => rvOf(s.key).done).length;
+  const left = songs.reduce((n, s) => n + progress(s).left, 0);
+  $('#overall').textContent = `${done} of ${songs.length} songs done · ${left} lines to check`;
+}
+
+function renderCounts() {
+  if (!cur) return;
+  const p = progress(cur), c = cur.counts;
+  $('#counts').textContent = `${p.left} of ${p.need} left to check · ${c.ok || 0} as written, ${c.likely || 0} probably right, ${c.changed || 0} changed, ${c.check || 0} unclear, ${c.extra || 0} extra`;
+  $('#doneBtn').textContent = rvOf(cur.key).done ? '✓ Song done' : 'Mark song done';
+  $('#doneBtn').className = rvOf(cur.key).done ? 'primary' : '';
+}
+
+function openSong(key) {
+  cur = DATA.songs[key]; store.set('song', key);
+  focusIdx = -1; editing = null; mode = 'rows';
+  loadAudio(cur);
+  const rv = rvOf(key);
+  const orderLine = cur.orderChanged
+    ? `<div id="order">Sung order: <b>${cur.sungOrder.map(esc).join(' → ')}</b><br><span class="diff">Differs from the written order:</span> ${cur.writtenOrder.map(esc).join(' → ')} <span style="color:var(--faint)">(found by ${esc(cur.orderFoundBy.join(', '))})</span></div>`
+    : `<div id="order">Sung in the written order: ${cur.sungOrder.map(esc).join(' → ')}</div>`;
+  $('#main').innerHTML = `
+    <div id="head">
+      <h2>${esc(cur.name)} <span class="counts" id="counts"></span></h2>
+      <div class="bar">
+        <span class="seg"><button id="srcVoice">Voice only</button><button id="srcMix">Full mix</button></span>
+        <span class="seg">${SPEEDS.map(v => `<button data-speed="${v}">${v}×</button>`).join('')}</span>
+        <button id="songPlay">▶ Play song</button>
+        <span id="playhead" class="mono"></span>
+        <span class="sep"></span>
+        <span class="seg"><button data-filter="all">All lines</button><button data-filter="todo">To check</button></span>
+        <label style="font-size:13px;color:var(--muted)"><input type="checkbox" id="autoplay"> Play next line automatically</label>
+        <span class="sep"></span>
+        <span class="seg"><button data-mode="rows">Lines</button><button data-mode="preview">Result</button><button data-mode="text">Edit as text</button></span>
+        <button id="doneBtn"></button>
+        <span id="saved"></span>
+      </div>
+      ${orderLine}
+    </div>
+    ${cur.stale ? `<div class="banner">${REVIEW[key] && REVIEW[key].applied ? 'These words are applied to js/lyrics.js.' : 'js/lyrics.js changed after this check.'} Run <code>tools/lyrics-check.py ${esc(key)}</code> again to review this song again.</div>` : ''}
+    ${rv.textOverride != null ? '<div class="banner">This song was edited as text, so the line decisions below are not used. Open “Edit as text” to change it, or to go back to the lines.</div>' : ''}
+    <div id="rows"></div><div id="preview" hidden></div><div id="text" hidden></div>
+    <div id="raw"><details><summary>Raw transcripts, clip by clip (${cur.clips.length} clips)</summary>${cur.clips.map((c, i) => `
+      <div class="clip"><button class="play mono" data-clip="${i}">▶ ${fmt(c[0])}–${fmt(c[1])}</button><div>
+      <div><span class="who">Qwen</span> ${esc(cur.qwen[i] || '')}</div><div><span class="who">Whisper</span> ${esc(cur.whisper[i] || '')}</div></div></div>`).join('')}</details></div>`;
+  $('#srcVoice').onclick = () => setSource('voice');
+  $('#srcMix').onclick = () => setSource('mix');
+  document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => setSpeed(+b.dataset.speed));
+  document.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => { filter = b.dataset.filter; store.set('filter', filter); renderRows(); syncBar(); });
+  document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  $('#songPlay').onclick = () => { if (!togglePause()) { const e = el(); stopAt = null; e.playbackRate = speed; e.play().catch(() => {}); } };
+  $('#autoplay').checked = autoplay;
+  $('#autoplay').onchange = e => { autoplay = e.target.checked; store.set('autoplay', autoplay); };
+  $('#doneBtn').onclick = () => { if (cur.stale) return; const r = rvOf(cur.key); r.done = !r.done; save(cur); };
+  document.querySelectorAll('[data-clip]').forEach(b => b.onclick = () => { const c = cur.clips[+b.dataset.clip]; playRange(c[0] + PAD_BEFORE, c[1] - PAD_AFTER); });
+  renderRows(); renderSongs(); renderCounts(); syncBar();
+  $('#main').scrollTop = 0;
+  const first = cur.rows.findIndex(r => needs(r) && !decision(cur, r));
+  setFocus(first >= 0 ? first : cur.rows.findIndex(r => r.type !== 'part'), false);
+}
+
+function syncBar() {
+  $('#srcVoice').classList.toggle('on', source === 'voice');
+  $('#srcMix').classList.toggle('on', source === 'mix');
+  document.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('on', +b.dataset.speed === speed));
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.toggle('on', b.dataset.filter === filter));
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+}
+function setSource(v) {
+  const from = el(), t = from.currentTime, playing = !from.paused;
+  source = v; store.set('source', v);
+  const to = el();
+  if (from !== to) { from.pause(); to.currentTime = t; to.playbackRate = speed; if (playing) to.play().catch(() => {}); }
+  syncBar();
+}
+function setSpeed(v) { speed = v; store.set('speed', v); aVoice.playbackRate = aMix.playbackRate = v; syncBar(); }
+
+function setMode(m) {
+  mode = m; syncBar();
+  $('#rows').hidden = m !== 'rows';
+  $('#preview').hidden = m !== 'preview';
+  $('#text').hidden = m !== 'text';
+  if (m === 'preview') {
+    const written = new Set(cur.written.split('\n').map(x => x.trim()));
+    $('#preview').innerHTML = '<pre>' + finalText(cur).split('\n').map(l => (l && !written.has(l.trim()) ? `<span class="chg">${esc(l)}</span>` : esc(l))).join('\n') + '</pre>'
+      + '<p style="color:var(--muted);font-size:13px">Lines in teal are new or changed. This is what <code>node tools/lyrics-review.js --apply</code> writes to js/lyrics.js once the song is marked done.</p>';
+  }
+  if (m === 'text') {
+    const rv = rvOf(cur.key);
+    $('#text').innerHTML = `<textarea spellcheck="false" ${cur.stale ? 'readonly' : ''}></textarea>
+      <div class="bar" style="margin-top:8px"><button class="primary" id="textSave">Save text</button>
+      <button id="textDrop" ${rv.textOverride == null ? 'disabled' : ''}>Go back to the line decisions</button>
+      <span style="color:var(--muted);font-size:13px">One part per [Heading], a blank line between parts. Saving here replaces the line decisions for this song.</span></div>`;
+    $('#text textarea').value = finalText(cur);
+    $('#textSave').onclick = () => { if (cur.stale) return; rvOf(cur.key).textOverride = $('#text textarea').value.replace(/\s+$/, ''); save(cur); openSong(cur.key); setMode('text'); };
+    $('#textDrop').onclick = () => { rvOf(cur.key).textOverride = null; save(cur); openSong(cur.key); };
+  }
+}
+
+function rowHtml(r, i) {
+  if (r.type === 'part') {
+    const rv = rvOf(cur.key);
+    const h = rv.headings[i] != null ? rv.headings[i] : r.heading;
+    return `<div class="part" data-i="${i}"><span class="h" title="Click to rename">[${esc(h)}]</span></div>`;
+  }
+  const d = decision(cur, r);
+  const st = r.type === 'extra' ? 'extra' : r.status;
+  let text, chip;
+  if (r.type === 'extra') {
+    text = d && d.state === 'add' ? `<span class="new">${esc(d.text)}</span>` : d ? '<s>(skipped)</s>' : '<span style="color:var(--muted)">Singing between lines that matches no written line</span>';
+  } else if (d && d.state === 'edit') {
+    text = `<span class="new">${esc(d.text).replace(/\n/g, '<br>')}</span> <s>${esc(r.text)}</s>`;
+  } else if (d && d.state === 'drop') {
+    text = `<s>${esc(r.text)}</s>`;
+  } else text = esc(r.text);
+  if (d) chip = `<span class="chip st-done" title="Decided: press u to undo">${d.state === 'ok' ? '✓ kept' : d.state === 'edit' ? '✎ edited' : d.state === 'add' ? '+ added' : d.state === 'skip' ? 'skipped' : '✗ not sung'}</span>`;
+  else chip = `<span class="chip st-${st}" title="${esc(TIP[st])}">${LABEL[st]}</span>`;
+  let detail;
+  if (r.type === 'extra') {
+    detail = `<div class="detail"><span class="who">Qwen</span><span>${esc(r.qtext) || '<span style="color:var(--faint)">(nothing)</span>'}</span><button class="use" data-use="q">Use</button>
+      <span class="who">Whisper</span><span>${esc(r.wtext) || '<span style="color:var(--faint)">(nothing)</span>'}</span><button class="use" data-use="w">Use</button></div>`;
+  } else {
+    detail = `<div class="detail"><span class="who">Qwen</span><span>${heardHtml(r.q)}</span><button class="use" data-use="q" title="Start an edit from Qwen's words (1)">Use</button>
+      <span class="who">Whisper</span><span>${heardHtml(r.w)}</span><button class="use" data-use="w" title="Start an edit from whisper's words (2)">Use</button>
+      ${r.agree && r.agree.length ? `<div class="agree">Both heard ${r.agree.map(a => `“${esc(a.heard)}” for “${esc(a.written)}”`).join(', ')}<button data-agree>Put these in</button></div>` : ''}</div>`;
+  }
+  const acts = cur.stale ? '' : r.type === 'extra'
+    ? `<div class="acts"><button data-act="addq">Add as line(s)…<span class="k">e</span></button><button data-act="skip">Skip: not words<span class="k">x</span></button>${d ? '<button data-act="undo">Undo<span class="k">u</span></button>' : ''}</div>`
+    : `<div class="acts"><button data-act="ok">Keep as shown<span class="k">↵</span></button><button data-act="edit">Edit<span class="k">e</span></button><button data-act="drop">Not sung<span class="k">x</span></button>${d ? '<button data-act="undo">Undo<span class="k">u</span></button>' : ''}</div>`;
+  const compact = d || (r.type === 'line' && !NEED.has(r.status));
+  const hidden = filter === 'todo' && !(needs(r) && !d);
+  return `<div class="row${compact ? ' compact' : ''}${hidden ? ' hidden' : ''}${i === focusIdx ? ' focus' : ''}" data-i="${i}">
+    <button class="play mono" title="Play this line (Space)">▶ ${fmt(r.start)}</button><div class="t">${text}</div>${chip}
+    ${detail}${editing === i ? editHtml(r) : acts}</div>`;
+}
+
+function editHtml() { return `<div class="edit"><textarea rows="1" spellcheck="false"></textarea><div class="hint">Enter saves · Shift+Enter starts another line · Esc cancels</div></div>`; }
+
+function renderRows() {
+  if (!cur) return;
+  $('#rows').innerHTML = cur.rows.map(rowHtml).join('');
+  if (editing != null) {
+    const ta = $(`.row[data-i="${editing}"] textarea`);
+    if (ta) { ta.value = editSeed; grow(ta); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }
+}
+function renderRow(i) {
+  const old = $(`[data-i="${i}"]`); if (!old) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = rowHtml(cur.rows[i], i);
+  old.replaceWith(tmp.firstElementChild);
+  if (editing === i) {
+    const ta = $(`.row[data-i="${i}"] textarea`);
+    ta.value = editSeed; grow(ta); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  }
+}
+function grow(ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 2 + 'px'; }
+
+// ---------------------------------------------------------------- focus and decisions
+
+function visible(i) { const x = $(`.row[data-i="${i}"]`); return x && !x.classList.contains('hidden'); }
+function setFocus(i, play) {
+  if (i < 0 || !cur || !cur.rows[i] || cur.rows[i].type === 'part') return;
+  const prev = focusIdx; focusIdx = i;
+  if (prev >= 0 && prev !== i) renderRow(prev);
+  renderRow(i);
+  const x = $(`.row[data-i="${i}"]`);
+  if (x) { x.style.scrollMarginTop = ($('#head').offsetHeight + 12) + 'px'; x.scrollIntoView({ block: 'nearest' }); } // clear of the sticky header
+  if (play) playRow(i);
+}
+function step(dir) {
+  for (let i = focusIdx + dir; i >= 0 && i < cur.rows.length; i += dir) if (cur.rows[i].type !== 'part' && visible(i)) return setFocus(i, autoplay);
+}
+function nextToCheck(play) {
+  const n = cur.rows.length;
+  for (let k = 1; k <= n; k++) {
+    const i = (focusIdx + k) % n, r = cur.rows[i];
+    if (needs(r) && !decision(cur, r)) return setFocus(i, play);
+  }
+  const idx = songs.findIndex(s => s.key === cur.key);
+  const next = songs.slice(idx + 1).concat(songs.slice(0, idx)).find(s => !s.stale && progress(s).left);
+  $('#saved').textContent = next ? `All lines decided. Next song with lines to check: ${next.name}` : 'All lines in every song are decided.';
+}
+function decide(i, d) {
+  if (cur.stale) return;
+  const r = cur.rows[i], rv = rvOf(cur.key);
+  const box = r.type === 'extra' ? rv.extras : rv.lines;
+  if (d) box[r.id] = d; else delete box[r.id];
+  editing = null;
+  renderRow(i); save(cur);
+  if (d) nextToCheck(autoplay);
+}
+let editSeed = '';
+function startEdit(i, seed) {
+  if (cur.stale) return;
+  const r = cur.rows[i];
+  const d = decision(cur, r);
+  editing = i;
+  editSeed = seed != null ? seed : d && (d.state === 'edit' || d.state === 'add') ? d.text : r.type === 'extra' ? r.qtext : r.text;
+  focusIdx = i; renderRow(i);
+}
+function commitEdit() {
+  const i = editing, r = cur.rows[i];
+  const ta = $(`.row[data-i="${i}"] textarea`);
+  const v = ta.value.split('\n').map(x => x.trim()).filter(Boolean).join('\n');
+  if (r.type === 'extra') decide(i, v ? { state: 'add', text: v } : { state: 'skip' });
+  else if (!v) decide(i, { state: 'drop' });
+  else if (v === r.text) decide(i, { state: 'ok' });
+  else decide(i, { state: 'edit', text: v });
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button, input[type=checkbox]');
+  if (btn) btn.blur(); // or Space, the play key, would press it again
+  const songBtn = e.target.closest('.song');
+  if (songBtn) { openSong(songBtn.dataset.key); return; }
+  if (!cur) return;
+  const h = e.target.closest('.part .h');
+  if (h && !cur.stale) {
+    const i = +h.parentElement.dataset.i, rv = rvOf(cur.key);
+    const inp = document.createElement('input'); inp.value = rv.headings[i] != null ? rv.headings[i] : cur.rows[i].heading;
+    h.replaceWith(inp); inp.focus(); inp.select();
+    const done = ok => { if (ok) { const v = inp.value.trim(); if (v === cur.rows[i].heading) delete rv.headings[i]; else rv.headings[i] = v; save(cur); } renderRow(i); };
+    inp.onkeydown = ev => { if (ev.key === 'Enter') done(true); if (ev.key === 'Escape') done(false); ev.stopPropagation(); };
+    inp.onblur = () => done(true);
+    return;
+  }
+  const row = e.target.closest('.row'); if (!row) return;
+  const i = +row.dataset.i, r = cur.rows[i];
+  if (e.target.closest('.play')) { if (focusIdx !== i) setFocus(i, false); playRow(i); return; }
+  const use = e.target.closest('[data-use]');
+  if (use) { startEdit(i, r.type === 'extra' ? (use.dataset.use === 'q' ? r.qtext : r.wtext) : heardText(use.dataset.use === 'q' ? r.q : r.w)); return; }
+  if (e.target.closest('[data-agree]')) { startEdit(i, withAgreed(r.text, r.agree)); return; }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    const a = act.dataset.act;
+    if (a === 'ok') decide(i, { state: 'ok' });
+    else if (a === 'drop') decide(i, { state: 'drop' });
+    else if (a === 'skip') decide(i, { state: 'skip' });
+    else if (a === 'undo') decide(i, null);
+    else startEdit(i);
+    return;
+  }
+  if (e.target.closest('textarea')) return;
+  if (focusIdx !== i) setFocus(i, false);
+});
+document.addEventListener('input', e => { if (e.target.matches('.edit textarea')) grow(e.target); });
+document.addEventListener('keydown', e => {
+  if (!cur) return;
+  if (e.target.matches('.edit textarea')) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(); }
+    else if (e.key === 'Escape') { e.preventDefault(); editing = null; renderRow(focusIdx); }
+    return;
+  }
+  if (e.target.matches('input, textarea') || e.ctrlKey || e.metaKey || e.altKey || mode !== 'rows') return;
+  const r = cur.rows[focusIdx];
+  const k = e.key;
+  if (k === 'j' || k === 'ArrowDown') step(1);
+  else if (k === 'k' || k === 'ArrowUp') step(-1);
+  else if (k === 'n') nextToCheck(autoplay);
+  else if (k === ' ') { if (!togglePause()) playRow(focusIdx); }
+  else if (k === 'p') playRow(focusIdx, true);
+  else if (k === 'v') setSource(source === 'voice' ? 'mix' : 'voice');
+  else if (k === 's') setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);
+  else if (!r || cur.stale) return;
+  else if (k === 'Enter' || k === 'y') { if (r.type === 'extra') startEdit(focusIdx); else decide(focusIdx, { state: 'ok' }); }
+  else if (k === 'e') startEdit(focusIdx);
+  else if (k === '1' || k === '2') {
+    const q = k === '1';
+    startEdit(focusIdx, r.type === 'extra' ? (q ? r.qtext : r.wtext) : heardText(q ? r.q : r.w));
+  }
+  else if (k === 'x') decide(focusIdx, r.type === 'extra' ? { state: 'skip' } : { state: 'drop' });
+  else if (k === 'u') decide(focusIdx, null);
+  else return;
+  e.preventDefault();
+});
+
+// ---------------------------------------------------------------- start
+
+(async function start() {
+  let j;
+  try {
+    const res = await fetch('/api/data');
+    j = await res.json();
+    if (!res.ok) throw new Error(j.error || res.status);
+  } catch (e) {
+    $('#empty').textContent = 'Could not load the check: ' + e.message;
+    $('#overall').textContent = '';
+    return;
+  }
+  DATA = j.data; REVIEW = j.review || {};
+  songs = Object.values(DATA.songs);
+  const last = store.get('song', null);
+  renderSongs();
+  openSong(DATA.songs[last] ? last : songs[0].key);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
