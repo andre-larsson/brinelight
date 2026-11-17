@@ -1743,6 +1743,11 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### A Dread's reward, lettered alike (v0.45.1, 2026-11-17)
+
+- **The user:** a screenshot of a Dread's reward, "fonts/layout look a bit inconsistent". On a wide screen "or the keepsake" was in the sans (`font-family: inherit`, from v0.40.0) while "Choose one: a card for your deck" is in the serif, and the keepsake's panel centred its contents, so its heading sat lower than the cards' heading.
+- **Now** (`style.css`, `.dread-pick .dread-or`): the keepsake's panel is the cards' twin (the same padding, gap, corner, background and border, no shadow), its heading the same 22px serif on the same line, the keepsake tile level with the cards, and the keepsake's name in the serif like the card names beside it (only in this panel; the shop and the Lazaret keep theirs). Checked at 1280x800 and 390x844 with `npm run screens`.
+
 ### Songs for the Buoy, the Dreads and the Dark Watch (v0.45.0, 2026-11-17)
 
 - **The user's calls:** eight new Gemini songs in Downloads, "I think the lyrics might be off on some places compared to sent script": transcribe them, find duplicates, suggest where they go; then names "based on lyrics, style of song and game lore", ignoring Gemini's file names. Then: "Use both Gardeners"; the Buoy A fix (trial 2) "is good"; the Cantor sings "But we were told to stay"; the Divers' song from the Dark Watch's call; a Dread's song carries on from where it stopped ("Yes, do this").

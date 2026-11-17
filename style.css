@@ -1600,9 +1600,14 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .dread-pick { width: 100%; display: flex; flex-direction: column; gap: 14px; }
 .dread-or h3 { text-align: center; color: #ffe6b0; }
 .dread-or .shop-row { justify-content: center; }
+.dread-or .shop-tile b { font-family: var(--serif); font-size: 16px; } /* the keepsake's name like the cards' beside it (v0.45.1) */
 @media (min-width: 900px) {
   .dread-pick { flex-direction: row; align-items: stretch; }
   .dread-pick .reward-main { flex: 3 1 0; }
-  .dread-pick .dread-or { flex: 1 1 0; width: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-color: rgba(255, 184, 77, .45); }
-  .dread-pick .dread-or h3 { font-size: 22px; font-family: inherit; }
+  /* the keepsake's panel is the cards' twin (v0.45.1, the user: "fonts/layout look a bit inconsistent"): the same box,
+     its heading in the same serif and size on the same line, the keepsake level with the cards */
+  .dread-pick .dread-or { flex: 1 1 0; width: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 12px;
+    padding: 14px 8px 16px; border-radius: 16px; background: rgba(6, 20, 30, .75); border-color: rgba(255, 184, 77, .45); box-shadow: none; }
+  .dread-pick .dread-or h3 { font-size: 22px; margin: 0; }
+  .dread-pick .dread-or .shop-row { padding-top: 8px; }
 }

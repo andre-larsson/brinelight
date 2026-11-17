@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.45.0';
+  BL.VERSION = '0.45.1';
   BL.CHANGELOG = [
+    { v: '0.45.1', date: '2026-11-17', items: [
+      'A Dread\'s reward: "or the keepsake" has the same lettering as "Choose one: a card for your deck" and sits on the same line, the keepsake is level with the cards, and its name is lettered like theirs.',
+    ] },
     { v: '0.45.0', date: '2026-11-17', items: [
       'Eight new songs. The Tolling Buoy\'s singer has two of her own, "What the Bell Is Saying" and "Down on the Chain", which take turns with the music box\'s "The Rocking Toll", one a fight.',
       'Four Dreads have songs: the Garden Strider two that take turns ("The Gardener" and "Put It Back"), the Crowned Oarfish "King of the Herrings", the Bell Yearling "Remember the Eye" and the Drowned Cantor "Ring It Once Again". A Dread\'s song carries on from where it stopped last time, so a short fight still gets further into it.',
