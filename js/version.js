@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.40.0';
+  BL.VERSION = '0.41.0';
   BL.CHANGELOG = [
+    { v: '0.41.0', date: '2026-11-17', items: [
+      'Toll bells: on every route through the Shallows and Dark Water, the landing after the Wreck is a lost bell hung across the way, and nobody passes for free. Pay 8 HP, 30 Pearls, or take a Barnacle Growth into your deck. Dark Water\'s ask 10 HP or 40 Pearls. The toll takes the place of a landing of stops, so the game is harder without getting longer.',
+      'Reward cards come already upgraded half as often: 7.5% of them, and 1% more for each landing (before, 15% and 2%).',
+      'Every map still has two shops, now counting the one before the pin, so the toll\'s landing doesn\'t crowd out the Skirmishes.',
+      'A Wreck\'s chest says how many keepsakes are in it (it said three when it held two).',
+      'How to Play says it plainly: Ward blocks only damage. A move that also Soaks or Chills you still does that when your Ward takes the whole hit.',
+    ] },
     { v: '0.40.0', date: '2026-11-17', items: [
       'A Dread pays Pearls and one pick: a card from three, more often uncommon or rare, or its keepsake. Taking one leaves the other. Before, it offered two keepsakes and no card.',
       'A Wreck offers 1 of 2 keepsakes. Before, 1 of 3. With the Dreads, about 40% fewer keepsakes are on offer in an expedition.',

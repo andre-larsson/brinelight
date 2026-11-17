@@ -99,6 +99,8 @@
     treasure: svg('<path d="M3 11h18v9H3z"/><path d="M4 10c0-3.3 2.2-5.5 8-5.5S20 6.7 20 10z" opacity=".75"/><rect x="10.4" y="12" width="3.2" height="4.4" rx=".8" fill="#0b1e2b"/>'),
     // a lesser bell in the Belfry, with air under it (v0.37.0)
     pocket: svg('<path d="M12 3.2a5.4 5.4 0 0 1 5.4 5.4v3.9l2.1 3.1H4.5l2.1-3.1V8.6A5.4 5.4 0 0 1 12 3.2z" opacity=".5"/><circle cx="12" cy="10.2" r="1.7"/><circle cx="9.4" cy="12.9" r="1.1"/><circle cx="14.5" cy="13.2" r="1"/><path d="M3 20.4c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'),
+    // a toll bell (v0.41.0): a bell hung from a beam across the way
+    toll: svg('<path d="M2.5 3.6h19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 4.6v1.6"  stroke="currentColor" stroke-width="2"/><path d="M12 6.4a5.2 5.2 0 0 1 5.2 5.2v3.4l2.2 3H4.6l2.2-3v-3.4A5.2 5.2 0 0 1 12 6.4z"/><circle cx="13.6" cy="20.3" r="1.8"/><path d="M19.8 9.2c1 1 1.5 2.2 1.5 3.6M4.2 9.2c-1 1-1.5 2.2-1.5 3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>'),
     boss: svg('<path d="M12 2a1.6 1.6 0 0 1 1.6 1.6v.8A6.2 6.2 0 0 1 18.2 10.4v4.8l2.3 3.2H3.5l2.3-3.2v-4.8a6.2 6.2 0 0 1 4.6-6v-.8A1.6 1.6 0 0 1 12 2z"/><circle cx="12" cy="20.6" r="2"/>'),
     might: svg('<path d="M4.5 19.5 16 8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M13.5 3.5H20.5V10.5L18 8 16.4 9.6 14.4 7.6 16 6z"/>'),
     spines: svg('<path d="M12 1.8l2 6.2 6-2.4-3.4 5.4 5.6 3-6.3.6 1.1 6.3-5-4.1-5 4.1 1.1-6.3-6.3-.6 5.6-3L4 5.6 10 8z"/>'),
@@ -134,9 +136,9 @@
     air: svg('<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="4.6" opacity=".45"/><path d="M8.5 6.5l2.6 4.2-2 2.2 3.4 4.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'),
     chevron: svg('<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   };
-  const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, boss: ICON.boss, pocket: ICON.pocket };
-  const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', boss: 'Boss', pocket: 'Air' };
-  const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'Boss', pocket: 'A lesser bell (air: choose one)' };
+  const NODE_ICON = { fight: ICON.fight, elite: ICON.elite, rest: ICON.rest, shop: ICON.shop, event: ICON.event, treasure: ICON.treasure, toll: ICON.toll, boss: ICON.boss, pocket: ICON.pocket };
+  const SHORT_NAME = { fight: 'Skirmish', elite: 'Dread', rest: 'Cove', shop: 'Shop', event: 'Fog', treasure: 'Wreck', toll: 'Toll', boss: 'Boss', pocket: 'Air' };
+  const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', toll: 'Toll bell (pay to pass)', boss: 'Boss', pocket: 'A lesser bell (air: choose one)' };
   /* Who waits on the last landing. After the Heart is home, the Belfry's last landing holds the keeper's own fear,
      so the map names it vaguely; in the fight it is the boss creature's own name. */
   const bossName = () => {
@@ -954,6 +956,7 @@
         [`${NODE_ICON.rest} Cove`, `Rest to heal 30% of your max HP, or upgrade a card, or give a keepsake to the sea: it is gone, and you ${SEA_PAYS} and upgrade a card.`],
       ].concat(levelKnown(2) ? [[`${NODE_ICON.pocket} Lesser bell`, 'In the Belfry: air under a hanging bell. Choose one of six.']] : [], [
         [`${NODE_ICON.treasure} Wreck`, `Pearls, and you may take 1 of ${E.WRECK_KEEPSAKES} keepsakes.`],
+        [`${NODE_ICON.toll} Toll`, `Right after the Wreck, on every route: a bell across the way. Pay to pass: ${tollText(0)}${levelKnown(1) ? ` (in Dark Water ${tollText(1, true)})` : ''}.`],
       ]))}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
@@ -974,7 +977,7 @@
         <li><b>Win a fight</b> by bringing every enemy to 0 HP. If your HP reaches 0, the run is over.</li>
         <li><b>Each turn</b> you get <b>3 Light</b> and draw <b>5 cards</b>. A card costs the Light in its corner.</li>
         <li>The <b>intent</b> above an enemy shows what it will do on its turn. The number is the damage it will deal, already counting statuses such as its Might and your Soaked.</li>
-        <li><b>Ward</b> blocks damage, then washes away at the start of your next turn. Enemies can have Ward too; theirs lasts until they act again.</li>
+        <li><b>Ward</b> blocks damage, then washes away at the start of your next turn. Enemies can have Ward too; theirs lasts until they act again. Ward blocks only damage: a move that also Soaks or Chills you does that even when your Ward takes the whole hit.</li>
         <li>Played and unplayed cards go to the <b>discard pile</b>. When the draw pile runs out, the discard pile is shuffled back in.</li>
       </ul>`;
     }
@@ -1217,6 +1220,7 @@
       case 'shop': return renderShop();
       case 'event': return renderEvent();
       case 'treasure': return renderTreasure();
+      case 'toll': return renderToll();
       case 'victory': return renderEnd(true);
       case 'defeat': return renderEnd(false);
     }
@@ -1910,7 +1914,7 @@
     all.forEach((n) => { nodes += nodeHTML(n); });
     nodes += nodeHTML(m.boss);
     nodes += `<div class="map-boss-label${availKey.has(m.boss.row + ',' + m.boss.col) ? ' avail' : ''}" style="left:50%;top:${bossY + 50}px">${bossName()}</div>`;
-    const legend = (m.dive ? ['elite', 'pocket'] : ['fight', 'elite', 'event', 'rest', 'shop', 'treasure']).map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
+    const legend = (m.dive ? ['elite', 'pocket'] : ['fight', 'elite', 'event', 'rest', 'shop', 'treasure', 'toll']).map((t) => `<span>${NODE_ICON[t]}${NODE_NAME[t].replace(/ \(.*\)/, '')}</span>`).join('');
     // each level's own picture behind the map, dimmed (v0.40.0, the user: "cool background art? If it does not become too
     // busy"). The line under the level's name is gone too (the user: "not needed"; it explained the Belfry's dive)
     const mapBg = E.band(run).mapBg;
@@ -3558,7 +3562,7 @@
       const picking = hasChoices && !k && !t.keepsakeLeft;
       const tPick = picking ? pickOf('tr-ks', t) : null;
       const choices = hasChoices
-        ? `<div class="panel"><h3>${k ? 'You take the ' + k.name + '.' : t.keepsakeLeft ? 'You leave the keepsakes in the chest.' : 'Three keepsakes glint in the chest. Take one?'}</h3><div class="shop-row">${ksTiles(t.choices, t.keepsake, 'tr-ks', t.keepsakeLeft, tPick)}</div>${picking ? leaveKsBtn() : ''}</div>` : '';
+        ? `<div class="panel"><h3>${k ? 'You take the ' + k.name + '.' : t.keepsakeLeft ? 'You leave the keepsakes in the chest.' : `${t.choices.length === 1 ? 'A keepsake glints' : `${['Two', 'Three', 'Four'][t.choices.length - 2] || t.choices.length} keepsakes glint`} in the chest. Take one?`}</h3><div class="shop-row">${ksTiles(t.choices, t.keepsake, 'tr-ks', t.keepsakeLeft, tPick)}</div>${picking ? leaveKsBtn() : ''}</div>` : '';
       body = `<div class="reward-list">
         <div class="reward-item done"><span class="medal" style="display:grid;place-items:center">${ICON.pearl}</span><div class="grow"><b>${t.pearls} Pearls</b></div></div>
         ${k && !hasChoices ? `<div class="reward-item done"><span class="medal"><img src="img/icons/${k.art}.webp" alt=""></span><div class="grow"><b>Keepsake: ${k.name}</b><small>${k.desc}</small></div></div>` : ''}
@@ -3569,6 +3573,28 @@
       <h1>A Wreck's Last Cargo</h1>${body}</div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+  }
+
+  /* ----- The Toll (v0.41.0) ----- */
+  /* What a toll asks on a level: "8 HP, 30 Pearls or a Barnacle Growth" (`short`: no Barnacle). */
+  function tollText(lv, short) {
+    const t = E.TOLL[Math.min(E.TOLL.length - 1, lv)];
+    return short ? `${t.hp} HP or ${t.pearls} Pearls` : `${t.hp} HP, ${t.pearls} Pearls or a Barnacle Growth in your deck`;
+  }
+  function renderToll() {
+    const t = run.toll, c = E.tollOf(run), T = BL.TOLL;
+    const body = t.paid
+      ? `<p class="lead">${T.ways[t.paid].paid}</p><button class="btn primary" data-act="tomap" autofocus>Continue</button>`
+      : `<p class="lead">${T.text}</p>
+        <div class="choice-list">${E.TOLL_WAYS.map((w) => {
+          const ok = E.tollCan(run, w);
+          return `<button class="choice" data-act="toll" data-way="${w}" ${ok === true ? '' : 'disabled'}><b>${T.ways[w].label}</b><span>${T.ways[w].desc(c)}</span>${ok === true ? '' : `<span class="reason">${ok}</span>`}</button>`;
+        }).join('')}</div>`;
+    screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
+      <div class="event-art" style="background-image:url(img/scenes/ev_toll.webp)"></div>
+      <h1>${T.title}</h1>${body}</div></div></div></div>`;
+    const f = $('[autofocus]', screenEl) || $('.choice:not([disabled])', screenEl);
+    if (f && ui.lastPointer !== 'touch') f.focus({ preventScroll: true });
   }
 
   /* ----- End screens ----- */
@@ -4079,6 +4105,7 @@
         break;
       }
       case 'evcontinue': eventContinue(); break;
+      case 'toll': if (E.payToll(run, t.dataset.way)) { sfx('toll'); save(); render(); } break;
       case 'opentreasure': E.openTreasure(run); sfx('treasure'); save(); render(); break;
     }
   }

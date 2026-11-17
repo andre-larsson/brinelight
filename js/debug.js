@@ -37,7 +37,7 @@
     outofbell: (r) => { if (r.cleared.indexOf(0) < 0) r.cleared.push(0); },
     stillwater: (r) => { [0, 1].forEach((lv) => { if (r.cleared.indexOf(lv) < 0) r.cleared.push(lv); }); },
   };
-  const GO = [['fight', 'Fight'], ['elite', 'Dread'], ['boss', 'Boss'], ['shop', 'Shop'], ['event', 'Fog'], ['treasure', 'Wreck'], ['rest', 'Cove']];
+  const GO = [['fight', 'Fight'], ['elite', 'Dread'], ['boss', 'Boss'], ['shop', 'Shop'], ['event', 'Fog'], ['treasure', 'Wreck'], ['toll', 'Toll'], ['rest', 'Cove']];
 
   const btn = (act, label, extra) => `<button class="btn small" data-dbg="${act}"${extra || ''}>${label}</button>`;
   const select = (name, entries) => `<select class="dbg-sel" data-dbg-sel="${name}" aria-label="${name}">${entries.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>`;

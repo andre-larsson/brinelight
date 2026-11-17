@@ -10,7 +10,8 @@
    Options (step and playRun): noShop, noTonics and noSwellActs turn those parts off; lateSwellOnly Bails and Stirs only
    when nothing else is left to play. { noShop, noTonics, lateSwellOnly } together play exactly like the bot before
    2026-11-14, which never shopped, never drank a tonic and never Stirred mid-turn. shopOrder and removeId change the
-   shopping (see shop()); skipCards, keepsake(run, choices), route(run, nodes), home (go home after that level's pin). */
+   shopping (see shop()); skipCards, keepsake(run, choices), route(run, nodes), toll(run) (how to pay a toll bell), home (go home after
+   that level's pin). */
 'use strict';
 const path = require('path');
 
@@ -410,6 +411,12 @@ function step(run, opts = {}) {
     E.backToMap(run);
     return 'treasure';
   }
+  // a toll bell (v0.41.0): Pearls when HP is under 60%, else HP while over 35%, else Pearls, else a Barnacle (opts.toll(run) chooses)
+  if (s === 'toll') {
+    E.payToll(run, opts.toll ? opts.toll(run) : tollWay(run));
+    E.backToMap(run);
+    return 'toll';
+  }
   if (s === 'event') {
     const ev = E.eventDef(run);
     // the first option it can take, unless opts.event(run, ev, open) chooses (open: the indexes it can take)
@@ -428,6 +435,15 @@ function step(run, opts = {}) {
   throw new Error('bot: unknown screen ' + s);
 }
 
+function tollWay(run) {
+  const { E } = load();
+  const f = run.hp / run.maxHp;
+  const can = (w) => E.tollCan(run, w) === true;
+  if (can('pearls') && f < 0.6) return 'pearls';
+  if (can('hp') && f > 0.35) return 'hp';
+  return can('pearls') ? 'pearls' : 'barnacle';
+}
+
 function playRun(run, maxSteps = 5000, opts) {
   const labels = [];
   for (let i = 0; i < maxSteps; i++) {
@@ -438,4 +454,4 @@ function playRun(run, maxSteps = 5000, opts) {
   return labels;
 }
 
-module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake, dreadKeepsake, pickRewardCard, chooseNode, coveRefit };
+module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake, dreadKeepsake, pickRewardCard, chooseNode, coveRefit, tollWay };

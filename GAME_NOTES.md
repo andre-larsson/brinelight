@@ -1743,6 +1743,66 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Harder without longer: toll bells and fewer upgraded rewards (v0.41.0, 2026-11-17)
+
+- **The user's ask:** "tune difficulty, making the game harder without making it longer, while preserving fun. Maybe we can add an unskippable landing with pure negative effects (but not sure about this, could be annoying), or less powerful end-of-battle rewards. Like you only get pearls from normal fights or something (though might be too harsh, and prevents deck-building)." Then: "you can let grok agent playtest as well".
+- **Proxies:** the bot's Heart % and pin shares (difficulty); for expeditions that bring the Heart home, combat turns and cards played (length, in player actions) and the lowest HP share on the way (tension); a blind Grok playtest on seed 5150 (a player who reads cards, which the bot doesn't). `tools/measure-detail.js` (new) prints all of these from a `measure.js` spec.
+- **Levers measured first** (bot that chooses, dress, 3000 seeds; patched in from outside the rules; v0.40.0 baseline 9.3%, Heart-run 63.0 turns and 191 cards played):
+
+  | Lever | Heart | Heart-run turns | Note |
+  |---|---|---|---|
+  | Skirmishes give Pearls only, no card (the user's example) | 0.2 | 70.8 | far too harsh, and longer: weak decks take longer fights |
+  | The first 3 Skirmishes of a level give no card | 0.5 | 71.7 | |
+  | Reward cards never come upgraded | 3.1 | 65.1 | |
+  | ... upgraded half as often | 5.9 | 63.4 | **built** |
+  | A Skirmish shows 2 cards | 7.1 | 64.2 | |
+  | Easy Skirmishes show 2 cards | 8.2 | 63.7 | |
+  | Rare Skirmish cards 6% to 2% | 7.7 | 64.3 | |
+  | A Skirmish pays a card OR its Pearls | 7.9-8.2 | 65.5 | a decision, but longer |
+  | Tonics after a Skirmish 40% to 20% | 7.5 | 63.7 | |
+  | Pearls x0.8 | 8.7 | 64.1 | |
+  | Cove rest 25% / 20% | 8.3 / 6.7 | 62.6 / 62.3 | |
+  | Stair rest 20% | 6.7 | 63.3 | |
+  | Max HP 63 | 5.6 | 63.7 | |
+  | Creatures hit 10% harder | 3.9 | 59.5 | the Shallows' pin 48 to 31 |
+  | ... 10% / 15% harder below the Shallows | 4.9 / 3.8 | 60.1 / 58.8 | Shallows untouched; shorter |
+  | A toll row (prototype: the row's stops replaced): 8 HP / a choice of 8 HP, 30 Pearls or a Barnacle | 3.6 / 3.9 | 59.8 / 60.9 | **built** |
+  | ... as a gate before the row, its stops kept | 7.4 | 63.1 | |
+  | ... Dark Water only | 7.0 | 62.7 | |
+
+- **The user chose** the toll as a whole row, with a choice of costs, and reward cards upgraded half as often. Not chosen: creatures hitting harder deeper down (4.9%), easy Skirmishes showing 2 cards.
+- **Built:**
+  - **Toll bells** (`E.TOLL_ROW` 4, `E.TOLL`, `E.tollCan`, `E.payToll`, screen `toll`, `renderToll` in `js/ui.js`, words in `BL.TOLL`): the 5th landing of the Shallows and Dark Water, right after the Wreck, is a toll bell on every route. Pay 8 HP (not with her last: `tollCan` says "Too weak" at 8 or less), 30 Pearls, or a Barnacle Growth into the deck; Dark Water asks 10 HP or 40 Pearls (the agent's numbers). The Belfry's dive has none. Lore (WORLD.md): keepers hung bells low across narrow ways so nothing came up unheard; the held water has them now, and like every lost bell they answer the Bellwether. Picture `img/scenes/ev_toll.webp` (Codex, variant B of two; A had a stray lantern standing on a rock). Icon: a bell under a beam. A Keeper's note, "Toll bells" (39 notes).
+  - **Reward cards upgraded half as often** (`E.REWARD_UP` [0.075, 0.01]; 0.15 + 0.02 a landing before, up to 31%).
+  - **Two shops a map, the one before the pin counted** (`E.MAP_SHOPS`; the shop `ensure` now runs after the pin shop is placed). With the toll's row gone, the old two-plus-the-pin's crowded the Skirmishes out of rows 2 and 5 (Skirmishes the bot visited in the Shallows: 2.58 without the toll, 1.88 with it, 2.06 with this).
+  - The bot pays Pearls under 60% HP, HP over 35%, else Pearls, else a Barnacle (`tollWay`, `opts.toll`). `tools/play.js` shows the toll (`pay hp|pearls|barnacle`).
+  - **From the playtests, wording only:** How to Play and README say Ward blocks only damage (a Soak or Chill on the same move lands anyway; all three Grok runs were surprised); a Wreck's chest says how many keepsakes it holds (it said three when it held two, in the game and the text tool); the text tool now says a Dread's reward is one pick, a card or the keepsake (v0.40.0 changed the rule and not the tool: a Grok run lost two cards to `keepsake 1; card 1`).
+- **Measured after building** (3000 seeds; the patched prototype under-guessed it, because the real map moves the row's Dreads and shops into rows 2 and 5 and loses Skirmishes instead):
+
+  | Row | Heart | Shallows' pin | Dark Water's share | Belfry's share | Heart-run turns | cards played | lowest HP | HP lost |
+  |---|---|---|---|---|---|---|---|---|
+  | v0.40.0 | 9.3 | 48.4 | 38.0 | 50.8 | 63.0 | 191 | 19% | 124 |
+  | only the toll | 2.8 | 32.1 | 24.3 | 36.3 | 64.0 | 192 | 16% | 104 |
+  | only fewer upgraded rewards | 6.3 | 42.7 | 32.3 | 45.9 | 63.1 | 191 | 19% | 119 |
+  | **v0.41.0** | **1.7** | 27.6 | 21.5 | 28.7 | 62.0 | **179** | 16% | 102 |
+  | v0.41.0, Shallows toll 6 HP / 20 Pearls | 1.7 | 28.4 | 21.0 | 27.9 | 62.0 | 180 | 17% | 103 |
+
+  The toll's price hardly matters to the bot; the landing it takes does (a Skirmish fewer, so a card and its Pearls fewer). The game is not longer: an expedition that brings the Heart home plays 6% fewer cards, in about as many turns.
+- **Grok playtests** (Cursor `agent`, grok-4.7-high-fast, blind through `tools/play.js`, seed 5150, the brief in this session's scratchpad: play to win, notes, a 7-part report). Each played its own copy of the repo: v0.40.0's rules (the toll off, upgrades as before) and v0.41.0's. Both came home after Dark Water's pin (the first expedition can't reach the Belfry). The maps differ: map generation changed.
+
+  | | v0.40.0 rules | v0.41.0 |
+  |---|---|---|
+  | Score | 1702 | 1453 |
+  | Lowest HP | 38/80 (Scallop Charm) | 17/70 |
+  | After the Hermit / the Buoy | 38/80, 43/80 | 17/70, 39/70 |
+  | Its difficulty: Shallows, Dark Water, the run | 3, 4, 3 | 3, 4, 4 |
+  | Fights | 10 (skipped both Dark Water Dreads) | 7 (one Skirmish in Dark Water before the Buoy) |
+
+  - v0.41.0: "Three fights were genuinely threatening ... Nothing added extra floors of padding." It paid the Shallows' toll in Pearls and was then 4 Pearls short of the card it wanted at the shop: a real trade, not a dead click.
+  - **Their proposals (not built; for the user):** the Wild Peal lethal if you neither Crest nor Strand, with Bail or Stir muffling it partway; the pins' Ward staying until a Crest or Strand, like the Lamp Hermit's Shell; the Buoy's Swell penalty counted from the farthest the Swell went that turn (Surge to 5 for a big hit, Crest back to 3, and pay the small Toll); Crests setting off Spines; Douse lasting until you Crest or Strand. Also: `info` with no name does nothing, and the text tool has no upgrade preview at a Cove.
+  - **A lesson:** the first Grok run (before the two above) ran its shell in the main checkout although the agent was started with `--workspace` on a copy: its tool calls carried `workingDirectory` /home/andre/code/brinelight. It played the Shallows on v0.40.0, then walked into Dark Water's toll row while the toll was half built, and the text tool ended its run. Start it with `env -C <copy> PWD=<copy> agent ...` and tell it in the brief to `cd <copy> &&` every command; check `workingDirectory` in the stream afterwards.
+- **Levers back, gentlest first:** `E.REWARD_UP` [0.15, 0.02] (+4.6 for the bot); a cheaper toll does nearly nothing; `E.TOLL_ROW = -1` turns the toll off. The tutorial's Bail check in `npm run test:ui` failed twice while two Grok runs and a measure ran beside it, and passed twice alone, as before.
+
 ## Version and What's new (v0.6.0, 2026-11-11)
 
 - `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
@@ -2200,6 +2260,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.41.0, with the bot that chooses** (2026-11-17; 3000 seeds, dress, `tools/measure-detail.js`): the Shallows' pin 27.6%, Dark Water's after it 21.5%, the Belfry after that 28.7%, the Heart 1.7% (v0.40.0: 48.4, 38.0, 50.8, 9.3). Heart runs: 62 combat turns and 179 cards played (63 and 191). See "Harder without longer".
 - **Bot run outcomes, v0.40.0, with the bot that chooses** (2026-11-17; 1500 seeds, dress): the Shallows' pin 49.4%, Dark Water's after it 35.4%, the Belfry after that 48.9%, the Heart 8.5% (v0.39.0 on the same seeds: 46.4, 38.4, 43.1, 7.7). See "Playtest on v0.39.0".
 - **Bot run outcomes, v0.39.0, with the bot that chooses** (2026-11-16; 1000 seeds, dress): the Shallows' pin 46.7%, Dark Water's after it 38.1%, the Belfry after that 44.9%, the Heart 8.0%.
 - **Bot run outcomes, v0.38.0, with the bot that chooses** (2026-11-16; 1000 seeds, first expedition in the dress): the Shallows' pin 47.6%, Dark Water's after it 43.1%, the Belfry after that 46.3%, the Heart 9.5%. See "An agent's blind playtest, and a harder game".
@@ -2222,6 +2283,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 
 - `tests/rules.test.js`: every rule in README.md and How to Play, plus determinism and save/continue. `tests/tutorial.test.js`: the scripted tutorial fight.
 - `tests/ui-smoke.js`: headless Chrome through the real UI (desktop mouse and keyboard, phone touch, tutorial with mouse, touch and keyboard, tutorial from inside a run). Since 2026-11-15 its 24 scenarios run as jobs on 4 Chromes, longest first (`--workers`). That cut the suite from 663 s to 157 s, with Chrome's memory peaking at about 6.8 GB. The two Dark Water scenarios set the pace (about 110 s each, mostly six real fights); the next step down would be a test-only animation speed in the game. The test's own waits per card were trimmed too: no fixed 320 ms after raising a card, since the next click waits for it to hold still. Checks for JS errors, stuck screens, horizontal overflow, Continue, the keeper's incoming number and End Turn lighting up.
+- `tools/measure-detail.js`: `measure.js`'s spec files and bot, with length and tension too: combat turns and cards played by expeditions that bring the Heart home, their lowest HP share, turns to clear each level, turns per fight by kind and level, deck size and upgrades (v0.41.0).
 - `tools/bot.js`: loads the engine in Node and plays runs with a deterministic policy that shops, drinks tonics and uses the Bailer. Its options turn each part off, and `{ noShop, noTonics, lateSwellOnly }` plays like the bot before 2026-11-14. A measure row passes them as `bot`. `tests/bot.test.js` checks its shopping, tonics and double Swell acts, and that whole runs stay deterministic across a save.
 - `tools/opening.js`: the opening measurements above.
 - `tools/screens.js`: screenshots of every screen at the four sizes, plus the small-text list. `tools/tutorial-shots.js`: one screenshot per tutorial step.
@@ -2410,6 +2472,8 @@ The user asked which is more fun next, a new keeper or a new intermediary level,
 
 ## Open questions for the next playtest
 
+- v0.41.0: Is the game harder now, and still fun? Do the toll bells feel like a decision (HP, Pearls or a Barnacle) or an annoyance? Does a level with one stop fewer feel thin, or tighter?
+- v0.41.0: Do you miss upgraded reward cards?
 - v0.40.0: With Light from the first Strand only and Abyssal Pull not stacking, can you still chain Strands, and does it feel too tight? Is the game still too easy (for the bot it is even with v0.39.0; the combo deck lost 20 points)?
 - v0.40.0: Do Dreads feel worth it now that you choose between a card and a keepsake? Are keepsakes still too many?
 - v0.40.0: Do the map pictures help, or is any of them too busy or too dark?

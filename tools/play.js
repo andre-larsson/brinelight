@@ -41,7 +41,7 @@ function writeRun(run) {
 }
 
 /* ---------------- words ---------------- */
-const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', boss: 'Boss', pocket: 'A lesser bell (air: choose one)' };
+const NODE_NAME = { fight: 'Skirmish', elite: 'Dread (elite)', rest: 'Sheltered Cove (rest)', shop: "Barnaby's Shop", event: 'Fog (unknown)', treasure: 'Wreck (treasure)', toll: 'Toll bell (pay to pass)', boss: 'Boss', pocket: 'A lesser bell (air: choose one)' };
 const TYPE_LABEL = { attack: 'Attack', skill: 'Skill', rite: 'Rite', status: 'Status', curse: 'Curse' };
 const plainFmt = { d: (n) => String(n), tide: null, ward: null };
 
@@ -169,19 +169,23 @@ function showReward(run) {
   const rw = run.rewards;
   hud(run);
   say('', `REWARDS: +${rw.pearls} Pearls${(rw.bonuses || []).length ? ` (including ${rw.bonuses.map((b) => `${b.name} +${b.pearls}`).join(', ')})` : ''}${rw.roilPay ? `, Roiled +${rw.roilPay}` : ''}.`);
-  if (rw.keepsakeChoices && rw.keepsakeChoices.length) {
+  // a Dread's one pick (v0.40.0): a card from three or its keepsake, not both
+  const one = rw.oneOf && !rw.keepsake && !rw.cardTaken && !rw.keepsakeLeft;
+  if (one) say(`A Dread's pick: take ONE of these, a card or the keepsake. Taking one closes the other. 'leave' turns both down for +${E.DECLINE_SCORE.eliteCard} score.`);
+  else if (rw.oneOf) say(rw.keepsake ? `You took the ${BL.KEEPSAKES[rw.keepsake].name} (so no card).` : rw.cardTaken && rw.keepsakeLeft ? 'You turned both down.' : 'You took a card (so no keepsake).');
+  if (rw.oneOf && !one) { /* already said */ } else if (rw.keepsakeChoices && rw.keepsakeChoices.length) {
     if (rw.keepsake) say(`Keepsake: you took the ${BL.KEEPSAKES[rw.keepsake].name}.`);
     else if (rw.keepsakeLeft) say('Keepsakes: you left them.');
     else {
-      say(`Keepsakes (take 1, or leave them for +${E.DECLINE_SCORE.keepsake} score):`);
+      say(one ? 'The keepsake (keepsake 1):' : `Keepsakes (take 1, or leave them for +${E.DECLINE_SCORE.keepsake} score):`);
       rw.keepsakeChoices.forEach((k, i) => say(`  ${i + 1}. ${BL.KEEPSAKES[k].name} (Roil ${BL.KEEPSAKES[k].charge}): ${strip(BL.KEEPSAKES[k].desc)}${roilAfter(run, k)}`));
     }
   } else if (rw.keepsake) say(`Keepsake: ${BL.KEEPSAKES[rw.keepsake].name}: ${strip(BL.KEEPSAKES[rw.keepsake].desc)}`);
   if (rw.tonic) say(`Tonic: ${BL.TONICS[rw.tonic].name}: ${strip(BL.TONICS[rw.tonic].desc)} ${rw.tonicTaken ? '(taken)' : run.tonics.indexOf(null) < 0 ? '(your slots are full)' : `(take it, or leave it for +${E.DECLINE_SCORE.tonic} score)`}`);
-  if (rw.cards && rw.cards.length) {
+  if (rw.cards && rw.cards.length && !(rw.oneOf && !one)) {
     if (rw.cardTaken) say('Card: done.');
     else {
-      say(`Cards (take 1, or skip for +${E.DECLINE_SCORE.card} score):`);
+      say(one ? 'Or a card (card <number>):' : `Cards (take 1, or skip for +${E.DECLINE_SCORE.card} score):`);
       rw.cards.forEach((it, i) => say(`  ${i + 1}. ${cardLine(run, { uid: 0, id: it.id, up: it.up })} (${BL.CARDS[it.id].rarity}${it.up ? ', already upgraded' : ''})`));
     }
   }
@@ -239,10 +243,19 @@ function showTreasure(run) {
     if (t.keepsake) say(`  You took the ${BL.KEEPSAKES[t.keepsake].name}.`);
     else if (t.keepsakeLeft) say('  You left the keepsakes.');
     else {
-      say(`  Three keepsakes glint in the chest. Take one, or leave them for +${E.DECLINE_SCORE.keepsake} score:`);
+      say(`  ${t.choices.length === 1 ? 'A keepsake glints' : `${['Two', 'Three', 'Four'][t.choices.length - 2] || t.choices.length} keepsakes glint`} in the chest. Take one, or leave them for +${E.DECLINE_SCORE.keepsake} score:`);
       t.choices.forEach((k, i) => say(`  ${i + 1}. ${BL.KEEPSAKES[k].name} (Roil ${BL.KEEPSAKES[k].charge}): ${strip(BL.KEEPSAKES[k].desc)}${roilAfter(run, k)}`));
     }
   } else if (t.keepsake) say(`  Keepsake: ${BL.KEEPSAKES[t.keepsake].name}: ${strip(BL.KEEPSAKES[t.keepsake].desc)}`);
+}
+
+function showToll(run) {
+  const t = run.toll, c = E.tollOf(run), T = BL.TOLL;
+  hud(run);
+  say('', T.title.toUpperCase() + '.');
+  if (t.paid) { say(T.ways[t.paid].paid, "  ('continue')"); return; }
+  say(T.text);
+  E.TOLL_WAYS.forEach((w) => { const ok = E.tollCan(run, w); say(`  pay ${w}: ${T.ways[w].label}. ${T.ways[w].desc(c)}${ok === true ? '' : ` -- not available: ${ok}`}`); });
 }
 
 function showEvent(run) {
@@ -296,6 +309,7 @@ function show(run) {
     case 'shop': return showShop(run);
     case 'rest': return showRest(run);
     case 'treasure': return showTreasure(run);
+    case 'toll': return showToll(run);
     case 'event': return showEvent(run);
     case 'pin': return showPin(run);
     default: return showEnd(run);
@@ -311,6 +325,7 @@ const HELP = {
   rest: ['rest', 'refit <deck number>', 'sea <keepsake number> <deck number>', 'continue: go on'],
   stair: ['rest', 'refit <deck number>', 'shed <deck number>', 'flask', 'cache (look), then cache <number> (take)', 'sea <keepsake number> <deck number>', 'fog (under a lesser bell only)', 'continue: go on, picks unused or not'],
   treasure: ['open', 'keepsake <number> / leave', 'continue'],
+  toll: ['pay hp|pearls|barnacle: pay the toll one way', 'continue (once paid)'],
   event: ['choose <number>', 'pick <deck number> (when it asks for a card from your deck)', 'card <number> / skip (when it offers cards)', 'continue'],
   pin: ['deeper (when you can)', 'home'],
 };
@@ -490,6 +505,10 @@ function act(run, cmd, args) {
     if (cmd === 'keepsake') { const k = (t.choices || [])[num(args[0])]; if (!k || t.keepsake || t.keepsakeLeft) return no('no such keepsake.'); E.takeTreasureKeepsake(run, k); return true; }
     if (cmd === 'leave') { if (!E.leaveKeepsakes(run)) return no('nothing to leave.'); return true; }
     if (cmd === 'continue') { if (!t.opened) E.openTreasure(run); if (t.choices && t.choices.length && !t.keepsake && !t.keepsakeLeft) return no("take a keepsake or 'leave' them first."); E.backToMap(run); return true; }
+  }
+  if (s === 'toll') {
+    if (cmd === 'pay') { if (!E.payToll(run, args[0])) return no(run.toll.paid ? 'paid already.' : 'say hp, pearls or barnacle (and one you can pay).'); return true; }
+    if (cmd === 'continue') { if (!run.toll.paid) return no('pay the toll first.'); E.backToMap(run); return true; }
   }
   if (s === 'event') {
     const st = run.event;

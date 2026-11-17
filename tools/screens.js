@@ -94,6 +94,9 @@ const SIZES = {
       // treasure, opened
       await setup(`const r = B.run; E.backToMap(r); E.enterNode(r, { row: 5, col: 2, type: 'treasure' }); E.openTreasure(r); B.render();`);
       await shot(tag, '10_treasure');
+      // a toll bell, with Pearls too few for one way
+      await setup(`const r = B.run; E.backToMap(r); r.pearls = 12; E.enterNode(r, { row: 4, col: 2, type: 'toll' }); B.render();`);
+      await shot(tag, '10b_toll');
       // elite fight
       await setup(`const r = B.run; E.backToMap(r); E.startCombat(r, 'elite', ['angler', 'angler']); B.render();`);
       await sleep(1800);

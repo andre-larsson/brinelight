@@ -79,7 +79,7 @@ test('chapter 1 is the opening and is always open; every other entry is locked b
 });
 
 test('every mark can be earned in the game as it is', () => {
-  const plain = ['fell', 'shop', 'cove', 'wreck', 'boss', 'keepsake', 'roiled', 'home', 'heart', 'quiet'];
+  const plain = ['fell', 'shop', 'cove', 'wreck', 'toll', 'boss', 'keepsake', 'roiled', 'home', 'heart', 'quiet'];
   E.storyEntries().filter((en) => en.when).forEach((en) => {
     const [kind, id] = en.when.split(':');
     if (kind === 'ev') assert.ok(BL.EVENTS.some((ev) => ev.id === id), en.when);
@@ -93,12 +93,12 @@ test('every mark can be earned in the game as it is', () => {
   assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
-test('there are ten chapters and 38 notes, with a note for every Fog event, a shop, a Cove, a Wreck and each boss', () => {
+test('there are ten chapters and 39 notes, with a note for every Fog event, a shop, a Cove, a Wreck, a toll bell and each boss', () => {
   assert.equal(S.chapters.length, 10);
-  assert.equal(S.notes.length, 38);
+  assert.equal(S.notes.length, 39);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));
-  ['shop', 'cove', 'wreck', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit', 'en:harbour', 'en:bellthing', 'en:cantor', 'en:darkwatch'].forEach((m) => assert.ok(whens.includes(m), m));
+  ['shop', 'cove', 'wreck', 'toll', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit', 'en:harbour', 'en:bellthing', 'en:cantor', 'en:darkwatch'].forEach((m) => assert.ok(whens.includes(m), m));
   // every boss has a note
   Object.keys(BL.ENEMIES).filter((id) => BL.ENEMIES[id].boss && !BL.ENEMIES[id].tutorial).forEach((id) => assert.ok(whens.includes('en:' + id), id));
   assert.ok(S.chapters.some((c) => c.when === 'fell'));
@@ -112,6 +112,7 @@ test('a run earns marks from what it meets', () => {
   assert.ok(at('shop').includes('shop'));
   assert.ok(at('rest').includes('cove'));
   assert.ok(at('treasure').includes('wreck'));
+  assert.ok(at('toll').includes('toll'));
   const ev = E.newRun(7);
   E.enterNode(ev, { row: 0, col: 0, type: 'event' });
   assert.deepEqual(E.storyMarks(ev), ['ev:' + ev.event.id]);

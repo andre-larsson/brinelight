@@ -13,6 +13,7 @@
   E.MAP_ROWS = MAP_ROWS;
   E.LANDINGS = MAP_ROWS + 1; // landings in a walkable level, the pin's included (the Belfry, a dive, has fewer: E.landingsOf)
   E.WRECK_ROW = 3; // every path passes one Wreck, halfway down
+  E.TOLL_ROW = 4; // and a toll bell right after it (v0.41.0; E.TOLL)
   E.MAP_COLS = MAP_COLS;
   E.TIDE_MAX = TIDE_MAX;
 
@@ -301,6 +302,7 @@
         if (r === 0) { n.type = 'fight'; continue; }
         if (r === MAP_ROWS - 1) { n.type = 'rest'; continue; }
         if (r === E.WRECK_ROW) { n.type = 'treasure'; continue; }
+        if (r === E.TOLL_ROW) { n.type = 'toll'; continue; }
         let opts = [['fight', 46], ['event', 22]];
         if (r >= 2) opts.push(['elite', 13]);
         if (r >= 2 && r <= 4) opts.push(['rest', 11]);
@@ -315,7 +317,7 @@
     grid.forEach((row) => row.forEach((n) => n && all.push(n)));
     // with 7 rows a run of Fog and shops can leave a row with no fight: each open row gets one (from v0.19.0)
     for (let r = 1; r < MAP_ROWS - 1; r++) {
-      if (r === E.WRECK_ROW) continue;
+      if (r === E.WRECK_ROW || r === E.TOLL_ROW) continue;
       const row = all.filter((n) => n.row === r);
       if (!row.some((n) => n.type === 'fight' || n.type === 'elite')) { const ev = row.filter((n) => n.type === 'event'); if (ev.length) R.pick(ev).type = 'fight'; }
     }
@@ -332,10 +334,6 @@
         count++;
       }
     };
-    ensure('shop', 2, shopFrom, MAP_ROWS - 2);
-    ensure('elite', 2, 2, MAP_ROWS - 2);
-    ensure('rest', 1, 2, 4);
-    ensure('event', 2, 1, MAP_ROWS - 2);
     // v0.38.0: the landing before the pin was all Coves. One of them is Barnaby's instead, where every route still has a
     // Cove beside it (each landing that leads to it leads to a Cove too): a last chance to spend Pearls, against a rest
     if (E.PIN_SHOP) {
@@ -343,6 +341,12 @@
       const ok = last.filter((n) => parentsOf(n).every((p) => p.type !== 'shop' && childrenOf(p).some((ch) => ch !== n && ch.type === 'rest')));
       if (last.length >= 2 && ok.length) R.pick(ok).type = 'shop';
     }
+    // two shops a map, the one before the pin counted (v0.41.0: the toll's row leaves fewer stops, and two more shops
+    // squeezed out the Skirmishes; until then two besides it)
+    ensure('shop', E.MAP_SHOPS, shopFrom, MAP_ROWS - 2);
+    ensure('elite', 2, 2, MAP_ROWS - 2);
+    ensure('rest', 1, 2, 4);
+    ensure('event', 2, 1, MAP_ROWS - 2);
 
     grid.forEach((row) => row.forEach((n) => {
       if (!n) return;
@@ -353,6 +357,7 @@
   }
   E.genMap = genMap;
   E.PIN_SHOP = true; // one shop on the landing before the pin, where it leaves every route a Cove (v0.38.0)
+  E.MAP_SHOPS = 2; // shops a map has at least, the one before the pin counted
 
   E.nodeAt = (run, pos) => (pos.row >= E.mapRows(run) ? run.map.boss : run.map.grid[pos.row][pos.col]);
 
@@ -381,6 +386,7 @@
       case 'pocket': run.screen = 'rest'; run.restDone = false; run.pocket = true; run.stair = { picks: [], cache: null }; break;
       case 'shop': genShop(run); run.screen = 'shop'; break;
       case 'treasure': genTreasure(run); run.screen = 'treasure'; break;
+      case 'toll': run.toll = { paid: null }; run.screen = 'toll'; break;
       case 'event': E.startEvent(run); break;
     }
   };
@@ -398,6 +404,7 @@
     run.event = null;
     run.shop = null;
     run.treasure = null;
+    run.toll = null;
   };
 
   /* ---------------- Rewards & pools ---------------- */
@@ -754,6 +761,33 @@
     if (!t || t.keepsake || t.keepsakeLeft || t.choices.indexOf(k) < 0) return;
     t.keepsake = k;
     E.gainKeepsake(run, k);
+  };
+
+  /* The Toll (v0.41.0, the user's idea: "an unskippable landing with pure negative effects", to make the game harder
+     without making it longer). One landing of each walkable level, right after the Wreck, is a toll bell on every
+     route: a lost bell hung across the way, still answering the Bellwether, that lets nobody pass for free. Wren
+     chooses how to pay: in HP (never her last), in Pearls, or with a Barnacle Growth in her deck. Dark Water asks
+     more. It takes the place of a row of stops, so a level has one stop fewer: harder, and a little shorter. */
+  E.TOLL = [{ hp: 8, pearls: 30 }, { hp: 10, pearls: 40 }];
+  E.TOLL_WAYS = ['hp', 'pearls', 'barnacle'];
+  E.tollOf = (run) => E.TOLL[Math.min(E.TOLL.length - 1, run.level || 0)];
+  /* Can she pay this way? True, or the reason she can't. */
+  E.tollCan = function (run, way) {
+    const t = E.tollOf(run);
+    if (way === 'hp') return run.hp > t.hp || 'Too weak';
+    if (way === 'pearls') return run.pearls >= t.pearls || 'Not enough Pearls';
+    return way === 'barnacle';
+  };
+  E.payToll = function (run, way) {
+    const t = run.toll;
+    if (run.screen !== 'toll' || !t || t.paid || E.tollCan(run, way) !== true) return false;
+    const c = E.tollOf(run);
+    if (way === 'hp') E.loseHp(run, c.hp);
+    if (way === 'pearls') run.pearls -= c.pearls;
+    if (way === 'barnacle') E.addCard(run, 'barnacles');
+    t.paid = way;
+    run.stats.tolls = (run.stats.tolls || 0) + 1;
+    return true;
   };
 
   /* The Fog events of the run's band. */
@@ -1750,6 +1784,7 @@
   };
 
   /* ----- After a fight ----- */
+  E.REWARD_UP = [0.075, 0.01]; // the chance a reward card comes upgraded: the first, plus the second for each landing
   E.finishCombat = function (run) {
     const c = run.combat;
     if (!c || !c.won) return;
@@ -1798,7 +1833,8 @@
     /* A Dread pays Pearls and one pick (`oneOf`): a card from three, rolled as a Dread's (more uncommon and rare than a
        skirmish's), or its one keepsake. Taking either closes the other. Until v0.40.0 it offered 2 keepsakes and no card;
        until v0.16.0 a card, the keepsakes and often a tonic. A save from before v0.40.0 has no `oneOf` and plays as then. */
-    const upChance = 0.15 + 0.02 * run.floor;
+    // half as often since v0.41.0 (0.15 + 0.02 a landing before: up to 31% of reward cards came upgraded)
+    const upChance = E.REWARD_UP[0] + E.REWARD_UP[1] * run.floor;
     const cards = E.rewardCards(run, elite ? 'elite' : 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
     const rw = { pearls, bonuses, roilPay, roilSteps: c.roilSteps || 0, cards, elite, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
     if (!elite && R.chance(0.4)) rw.tonic = E.randomTonic(run);
@@ -2212,6 +2248,7 @@
     if (run.screen === 'shop') m.push('shop');
     if (run.screen === 'rest') m.push('cove');
     if (run.screen === 'treasure') m.push('wreck');
+    if (run.screen === 'toll') m.push('toll');
     if (run.screen === 'defeat') m.push('fell');
     (run.cleared || []).forEach((lv) => m.push('won:' + lv));
     if (run.level) m.push('in:' + run.level); // down in a level below the Shallows (v0.40.0: 'in:2' opens Into the Belfry)

@@ -130,6 +130,15 @@ test('Ward blocks damage', () => {
   assert.equal(run.hp, 70 - 3);
 });
 
+test('Ward blocks only damage: a move that Chills you does so even when Ward takes the whole hit', () => {
+  const { run, c } = fight(['kelp'], { hand: ['brace'] });
+  c.enemies[0].intent = 'entangle'; // 4 damage and Chilled 1
+  play(run, 'brace');
+  E.endTurn(run);
+  assert.equal(run.hp, 70);
+  assert.ok(c.player.st.chilled >= 1);
+});
+
 test('Ward washes away at the start of your next turn', () => {
   const { run, c } = fight(['kelp'], { hand: ['brace', 'brace'] });
   pacify(c);
@@ -530,7 +539,7 @@ test('the Bellwether calls a shoal of Bell Minnows at two thirds of its health, 
 
 test('a Dread pays Pearls and one pick: a card from three or its one keepsake, and no tonic; taking one leaves the other', () => {
   const rarities = { common: 0, uncommon: 0, rare: 0 };
-  for (let seed = 1; seed <= 40; seed++) {
+  for (let seed = 1; seed <= 80; seed++) {
     const f = fight(['hulk'], { kind: 'elite', seed });
     f.c.enemies[0].dead = true;
     f.c.won = true;
@@ -560,7 +569,7 @@ test('a Dread pays Pearls and one pick: a card from three or its one keepsake, a
     assert.equal(f.run.stats.declined, d0, 'taking either is not a decline');
   }
   // rolled as a Dread's cards: more uncommon and rare than a skirmish's (45/40/15 against 60/34/6)
-  assert.ok(rarities.rare / 120 > 0.1, JSON.stringify(rarities)); // a skirmish's are rare 6% of the time
+  assert.ok(rarities.rare / 240 > 0.1, JSON.stringify(rarities)); // a skirmish's are rare 6% of the time
   // skipping both is one reward turned down, scored as a Dread's card
   const f = fight(['hulk'], { kind: 'elite', seed: 3 });
   f.c.enemies[0].dead = true;
@@ -794,7 +803,7 @@ test('a Roiled aether pays: 4 more Pearls after a fight for each step over the H
   assert.equal(run.rewards.roilPay, 4);
 });
 
-test('the map: 8 landings a level (7 rows of stops, then the pin), fights first, a wreck halfway, a cove before the pin, and enough variety', () => {
+test('the map: 8 landings a level (7 rows of stops, then the pin), fights first, a wreck halfway, a toll bell after it, a cove before the pin, and enough variety', () => {
   let pinShops = 0;
   for (let seed = 1; seed <= 200; seed++) {
     const run = E.newRun(seed);
@@ -803,13 +812,15 @@ test('the map: 8 landings a level (7 rows of stops, then the pin), fights first,
     assert.equal(E.LANDINGS, 8);
     assert.ok(run.map.grid[0].filter(Boolean).every((n) => n.type === 'fight'));
     assert.ok(run.map.grid[3].filter(Boolean).every((n) => n.type === 'treasure'));
+    assert.ok(run.map.grid[4].filter(Boolean).every((n) => n.type === 'toll'), 'every route passes a toll bell, right after the Wreck');
+    assert.equal(nodes.filter((n) => n.type === 'toll').length, run.map.grid[4].filter(Boolean).length);
     // the landing before the pin: Coves, and since v0.38.0 one Barnaby's where every route still has a Cove beside it
     const last = run.map.grid[6].filter(Boolean);
     assert.ok(last.every((n) => n.type === 'rest' || n.type === 'shop') && last.filter((n) => n.type === 'shop').length <= 1);
     run.map.grid[5].filter(Boolean).forEach((p) => assert.ok(p.next.some((c) => run.map.grid[6][c].type === 'rest'), `seed ${seed}: every route keeps a Cove before the pin`));
     if (last.some((n) => n.type === 'shop')) pinShops++;
     const count = (t) => nodes.filter((n) => n.type === t).length;
-    ['fight', 'elite', 'event', 'shop', 'rest', 'treasure'].forEach((t) => assert.ok(count(t) >= 1, `seed ${seed} has a ${t}`));
+    ['fight', 'elite', 'event', 'shop', 'rest', 'treasure', 'toll'].forEach((t) => assert.ok(count(t) >= 1, `seed ${seed} has a ${t}`));
     assert.ok(nodes.every((n) => n.type !== 'elite' || n.row >= 2), 'no elites in the first rows');
     // Wren sets out with no Pearls: the Shallows have no shop on their first two landings, and still two shops in all
     assert.ok(nodes.every((n) => n.type !== 'shop' || n.row >= 2), `seed ${seed}: no shop on the Shallows' first two landings`);
@@ -887,6 +898,66 @@ test('Wrecks: a chest of Pearls and a choice of 1 of 2 keepsakes', () => {
   assert.ok(E.has(run, run.treasure.choices[1]));
   E.takeTreasureKeepsake(run, run.treasure.choices[0]);
   assert.ok(!E.has(run, run.treasure.choices[0]), 'only one');
+});
+
+test('a toll bell: pay 8 HP (never the last), 30 Pearls or a Barnacle Growth to pass; Dark Water asks 10 HP or 40 Pearls; not in the Belfry', () => {
+  const at = (level) => { const run = E.newRun(4, level, ['suit']); E.enterNode(run, { row: E.TOLL_ROW, col: 0, type: 'toll' }); return run; };
+  assert.equal(E.TOLL_ROW, 4);
+  // in HP
+  let run = at(0);
+  assert.equal(run.screen, 'toll');
+  run.pearls = 0;
+  assert.equal(E.tollCan(run, 'pearls'), 'Not enough Pearls');
+  assert.equal(E.payToll(run, 'pearls'), false);
+  assert.equal(E.payToll(run, 'hp'), true);
+  assert.equal(run.hp, 70 - 8);
+  assert.equal(E.payToll(run, 'barnacle'), false, 'once');
+  assert.equal(run.toll.paid, 'hp');
+  E.backToMap(run);
+  assert.equal(run.toll, null);
+  // in Pearls
+  run = at(0);
+  run.pearls = 45;
+  assert.equal(E.payToll(run, 'pearls'), true);
+  assert.equal(run.pearls, 15);
+  assert.equal(run.hp, 70);
+  // with barnacles; and HP can't pay with her last
+  run = at(0);
+  run.hp = 8;
+  assert.equal(E.tollCan(run, 'hp'), 'Too weak');
+  assert.equal(E.payToll(run, 'hp'), false);
+  const deck = run.deck.length;
+  assert.equal(E.payToll(run, 'barnacle'), true);
+  assert.equal(run.deck.length, deck + 1);
+  assert.equal(run.deck[run.deck.length - 1].id, 'barnacles');
+  assert.equal(BL.CARDS.barnacles.unplayable, true);
+  // only on its own screen
+  run = E.newRun(4);
+  assert.equal(E.payToll(run, 'hp'), false);
+  // Dark Water asks more
+  run = at(1);
+  run.pearls = 39;
+  assert.equal(E.tollCan(run, 'pearls'), 'Not enough Pearls');
+  E.payToll(run, 'hp');
+  assert.equal(run.hp, 70 - 10);
+  assert.deepEqual(E.TOLL, [{ hp: 8, pearls: 30 }, { hp: 10, pearls: 40 }]);
+  // every walkable level has its toll row; the Belfry's dive has none
+  assert.ok(E.newRun(9, 1).map.grid[4].filter(Boolean).every((n) => n.type === 'toll'));
+  assert.ok(E.newRun(9, 2, ['suit']).map.grid.flat().filter(Boolean).every((n) => n.type !== 'toll'));
+});
+
+test('reward cards come upgraded 7.5% of the time, plus 1% a landing', () => {
+  assert.deepEqual(E.REWARD_UP, [0.075, 0.01]);
+  let up = 0, n = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const f = fight(['crab'], { seed });
+    f.run.floor = 8;
+    f.c.enemies[0].dead = true;
+    f.c.won = true;
+    E.finishCombat(f.run);
+    f.run.rewards.cards.forEach((rc) => { n++; up += rc.up; });
+  }
+  assert.ok(up / n > 0.1 && up / n < 0.22, `${up} of ${n} (15.5% expected at landing 8)`);
 });
 
 test('a keepsake pick is optional: take one, or leave them for +80 score; a pick left open is lost', () => {

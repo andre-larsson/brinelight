@@ -289,6 +289,10 @@ async function afterStop(page, label) {
       await clickIf(page, '[data-act="opentreasure"]');
       await decideKeepsake(page, label, 'tr-ks');
       await clickIf(page, '[data-act="tomap"]');
+    } else if (s === 'toll') {
+      // a toll bell (v0.41.0): pay the first way open, then go on
+      if (!(await clickIf(page, '[data-act="toll"]:not([disabled])'))) failures.push(`${label}: no way to pay the toll`);
+      await clickIf(page, '[data-act="tomap"]');
     } else if (s === 'event') {
       if (!(await clickIf(page, '[data-act="evopt"]:not([disabled])'))) await clickIf(page, '[data-act="evcontinue"]');
       await handleOverlay(page);

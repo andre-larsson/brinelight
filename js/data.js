@@ -982,6 +982,17 @@
    *    { cards: [ids] }                 -> choose one of these cards (or skip)
    *    { fight: 'hard' }                -> start a fight
    * ------------------------------------------------------------------ */
+  /* The Toll's words (v0.41.0; its rules are E.TOLL in js/engine.js): a lost bell across the way, on every route. */
+  BL.TOLL = {
+    title: 'A Toll Bell',
+    text: 'A lost bell hangs low across the only way on, swinging by itself in the held water. Like every bell on this coast it answers the Bellwether, and it lets nobody pass for free.',
+    ways: {
+      hp: { label: 'Wade under it', desc: (t) => `Lose ${t.hp} HP.`, paid: 'You wade in under it. It swings down and strikes you across the shoulders, hard, and lets you by.' },
+      pearls: { label: 'Feed it Pearls', desc: (t) => `Pay ${t.pearls} Pearls.`, paid: 'You throw the Pearls up into its mouth. The bell drinks their light and hangs still while you wade under.' },
+      barnacle: { label: 'Squeeze past', desc: () => 'A Barnacle Growth joins your deck: unplayable, it stays until you remove it.', paid: 'You squeeze through the slit beside it. The barnacles tear at you, and some of them come with you.' },
+    },
+  };
+
   BL.EVENTS = [
     {
       id: 'shrine', title: 'The Sunken Shrine', art: 'ev_shrine',
@@ -1354,6 +1365,8 @@
         text: 'Here and there the caves have a dry hollow above the reach of the tide. Somebody has left a blanket, a kettle and a coil of rope in each one. The bell\'s water cannot reach you there, and a lantern burns steadily.' },
       { id: 'chest', title: 'Sea chests', when: 'wreck', lock: 'Found at a Wreck.', art: 'scenes/treasure',
         text: 'On an ordinary coast the sea breaks a wreck up and washes the pieces ashore. The water the bell holds keeps everything it takes. Chests lie where they sank, and what is inside has soaked in brinelight for years. That is why it glows.' },
+      { id: 'toll', title: 'Toll bells', when: 'toll', lock: 'Pass a toll bell.', art: 'scenes/ev_toll',
+        text: 'Where the keepers\' way down narrowed, they hung a bell across it, low, so that nothing could come up out of the deep without ringing it. The Bellwether\'s water has those bells now, and like every lost bell on this coast they answer it. Each one swings over the only way on and lets nothing pass for free. It strikes whoever wades under it. Pearls are brinelight gone hard, and it drinks them if you throw them into its mouth. Or you can squeeze past it through the barnacled rock beside it, and the barnacles come with you.' },
       { id: 'keepsake', title: 'How a keepsake is made', when: 'keepsake', lock: 'Carry a keepsake.', art: 'icons/k_whaletooth',
         text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not. Throw one back into the bell\'s water at a Cove and it gives up at once the brinelight it took years to soak in. That is enough to close a wound and to temper a piece of gear. The keepers called it giving one to the sea.' },
       { id: 'seep', title: 'A Roiled aether', when: 'roiled', lock: 'Carry more Roil than your Hold.', art: 'cards/c_seep',
