@@ -1,0 +1,83 @@
+title    Home with Your Haul
+composer musicbox
+about    A grounded 4/4 harbour-step walk up to the dark lighthouse with upright bass, squeezebox, guitar chops and horn — pausing at the top while the bells start again below.
+tempo    78
+beats    4
+steps    4        # 4/4 in sixteenths with a light coastal swing: boots climbing the harbour steps
+swing    0.14
+reverb   0.38
+key      A minor
+
+bed   sea     sea       vol=0.6  swell=9
+bed   wind    wind      vol=0.2  pan=-0.3
+bed   deep    drone     vol=0.22 note=A1 layer=1
+
+voice walk    upright   vol=0.74
+voice squeeze accordion vol=0.46 pan=-0.28 center=E4 att=0.06 rel=0.4 rev=0.35
+voice strum   guitar    vol=0.48 pan=0.3   center=C4 gate=0.5 rev=0.3
+voice horn    horn      vol=0.64 pan=0.16  center=D4 att=0.12 rev=0.4
+voice clar    clarinet  vol=0.72 pan=-0.2  rev=0.38
+voice flute   flute     vol=0.76 pan=-0.22 rev=0.4
+voice step    bodhran   vol=0.42 pan=-0.18
+voice knell   bell      vol=0.38 pan=-0.15 rev=0.72
+voice shaker  shaker    vol=0.22 pan=0.35  chance=0.8 layer=1
+voice toll    bell      vol=0.36 pan=-0.5  rev=0.75 layer=1
+voice choir   choir     vol=0.24 center=A3 att=1.5 rel=3.0 layer=2
+
+eq step peak=80,-6,1.4
+eq mix  highshelf=8k,+2
+
+# boots on the wet steps with a full sack, Bosun trotting ahead
+pattern hl_in
+harmony | Am | D | Fmaj7 | E7 |
+walk    | A1:4 E2:4 A1:4 E2:4 | D2:4 A1:4 D2:4 F#2:4 | F1:4 C2:4 F1:4 C2:4 | E1:4 B1:4 E2:4 G#1:4 |
+strum   | .:4 [*]:4 .:4 [*]:4 | % | % | .:4 [*]:4 .:4 [*]?:4 |
+squeeze | [*]?:16 | % | % | [*]:12 .:4 |
+step    | X... o... x... o.x. | % | % | X... o.x. X.x. o.x. |
+
+# Wren's song as a steady 4/4 climb: warm D major at Hester's door, back to F under the dark lamp room
+pattern hl1
+harmony | Am | D | F | C | Dm7 | Am | Fmaj7 | E7 |
+walk    | A1:4 E2:4 A2:4 E2:4 | D2:4 A1:4 D2:4 F#2:4 | F1:4 C2:4 F2:4 C2:4 | C2:4 G1:4 C2:4 E2:4 |
+walk    | D2:4 A1:4 D2:4 F2:4 | A1:4 E2:4 A1:4 C2:4 | F1:4 C2:4 F1:4 A1:4 | E1:4 B1:4 E2:4 B1:4 |
+strum   | .:4 [*]:4 .:4 [*]:4 | % | % | % | % | % | % | % |
+squeeze | [*]?:8 .:2 [*]?:6 | % | % | % | % | % | % | [*]?:12 .:4 |
+step    | X... o.x. X... o.x. | % | % | % | % | % | % | X... o.x. X.x. x.o. |
+shaker  | ..x. ..o. ..x. ..ox | % | % | % | % | % | % | % |
+horn    | A3:6 B3:2 C4:4 E4:4 | F#4:6 E4:2 D4:8 | C4:6 D4:2 F4:4 A4:4 | G4:6 E4:2 C4:6 .:2 |
+horn    | F4:6 E4:2 D4:4 C4:4 | E4:6 D4:2 C4:4 A3:4 | A3:6 C4:2 E4:8 | B3:12 .:4 |
+
+# at the cottage doorway: flute, clarinet and squeezebox together
+pattern hl2
+harmony | F | G | C:12 G/B:4 | Am | Dm7 | Em7 | Fmaj7 | E7 |
+walk    | F1:4 C2:4 F2:4 C2:4 | G1:4 D2:4 G2:4 D2:4 | C2:4 G1:4 C2:4 B1:4 | A1:4 E2:4 A2:4 E2:4 |
+walk    | D2:4 A1:4 D2:4 A1:4 | E1:4 B1:4 E2:4 B1:4 | F1:4 C2:4 F1:4 A1:4 | E1:4 B1:4 E2:4 G#1:4 |
+strum   | .:4 [*]:4 .:4 [*]:4 | % | % | % | % | % | % | .:4 [*]:4 .:8 |
+squeeze | [*]:8 .:2 [*]:6 | % | % | % | % | % | [*]?:8 .:2 [*]?:6 | [*]?:12 .:4 |
+step    | X... o.x. X... o.x. | % | % | % | % | % | X... o... x... o... | X... .... .... .... |
+shaker  | ..x. ..o. ..x. ..ox | % | % | % | % | % | ..x. .... ..o. .... | _ |
+flute   | C5:6 D5:2 F5:4 A5:4 | G5:6 F5:2 D5:8 | E5:6 D5:2 C5:4 G4:4 | A4:12 .:4 |
+flute   | _ | B4:4 D5:4 G5:4 E5:4 | C5:6 B4:2 A4:8 | B4:10 .:6 |
+clar    | A3:8 C4:8 | B3:8 G3:8 | G3:8 E4:4 D4:4 | C4:6 B3:2 A3:8 |
+clar    | F4:6 E4:2 D4:4 A3:4 | G3:8 B3:8 | A3:8 C4:8 | G#3:12 .:4 |
+choir   | [*]?:16 | % | % | % | % | % | % | % |
+
+# looking back down from the gallery: the footsteps stop, and far below the bells start ringing again
+pattern hl3
+harmony | Am | Fmaj7 | Dm7 | Esus4 E7 |
+walk    | A1:16 | F1:16 | D2:16 | E1:12 B1:4 |
+squeeze | [*]??:16 | % | % | [*]?:12 .:4 |
+clar    | E4?:6 D4?:2 C4?:8 | A3?:12 .:4 | _ | _ |
+knell   | _ | A3??:16 | D4??:16 | A3?:16 |
+toll    | A3??:16 | _ | D4??:16 | _ |
+choir   | [*]?:16 | % | % | % |
+
+# the horn lingers in place of the clarinet before the walk resumes
+pattern hl3b from hl3
+mute    clar
+horn    | E4?:6 D4?:2 C4?:8 | C4?:8 A3?:8 | _ | _ |
+
+cue haul
+play hl_in
+loop hl1 hl2 {hl3 hl3b}
+beds sea wind deep=0.4

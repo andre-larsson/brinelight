@@ -1,0 +1,89 @@
+title    Above the Tide Line
+composer musicbox
+about    A Sheltered Cove, a dry step on the stair, or air under a lesser bell. Intensity 1 adds harp and a far bell; 2 adds the resonance inside the bronze.
+tempo    56
+beats    3
+steps    2        # 3/4 in eighth notes, 6 steps a bar
+reverb   0.48
+key      A minor
+
+bed   sea     sea       vol=0.42 swell=11
+bed   deep    drone     vol=0.16 note=A1 layer=2   # above the Belfry, the deep cannot reach a Cove
+
+voice guitar  guitar    vol=0.58 pan=-0.22 center=C4 arp=updown span=1 rev=0.45
+voice flute   flute     vol=0.76 pan=-0.25 rev=0.5
+voice clar    clarinet  vol=0.66 pan=0.28  rev=0.45
+voice pad     strings   vol=0.26 pan=-0.08 center=C4 att=1.6 rel=3.0
+voice bass    fretless  vol=0.54
+voice pluck   celesta   vol=0.3  pan=0.42  center=A5 chance=0.55 jitter=0.12 rev=0.6
+voice lyre    harp      vol=0.36 pan=0.38  center=A3 arp=updown rate=2 span=2 chance=0.8 jitter=0.04 rev=0.55 layer=1
+voice toll    bell      vol=0.26 pan=-0.5  rev=0.75 layer=1
+voice choir   choir     vol=0.24 center=A3 att=1.8 rel=3.2 layer=2
+
+eq mix highshelf=8k,+2
+
+# setting the lantern down on dry rock
+pattern c_in
+harmony | Fmaj7 | C | Dm7 | G6 |
+guitar  | [*]:6 | % | % | % |
+pad     | [*]?:6 | % | % | % |
+bass    | F1:6 | C2:6 | D2:6 | G1:6 |
+
+# the keeper's song in the warm light of Fmaj7 and C, unhurried
+pattern c1
+harmony | Fmaj7 | C | Dm7 | Am7 | Fmaj7 | C/E | Dm7 | G6 |
+guitar  | [*]:6 | % | % | % | % | % | % | % |
+pad     | [*]?:6 | % | % | % | % | % | % | % |
+bass    | F1:4 C2:2 | C2:4 G1:2 | D2:4 A1:2 | A1:4 E2:2 | F1:4 C2:2 | E2:4 C2:2 | D2:4 A1:2 | G1:6 |
+flute   | A4?:3 B4? C5?:2 | E5?:4 C5?:2 | D5?:2 C5?:2 A4?:2 | G4?:6 |
+flute   | .:2 A4?:2 C5?:2 | G5?:4 E5?:2 | F5?:3 E5? D5?:2 | E5?:4 .:2 |
+lyre    | [*]:6 | % | % | % | % | % | % | % |
+toll    | _ | _ | _ | A3??:6 | _ | _ | _ | _ |
+choir   | [*]?:6 | % | % | % | % | % | % | % |
+
+# sparser: sparks off the lantern glass before the flute comes in
+pattern c1b from c1
+flute   | _ | _ | _ | _ | .:2 A4?:2 C5?:2 | G5?:4 E5?:2 | F5?:3 E5? D5?:2 | E5?:4 .:2 |
+pluck   | {A5 C6 E6 G5}:2 .:4 | .:2 {G5 C6 E6}:4 | {A5 C6 D6 F6}:2 .:4 | .:6 | .:6 | .:2 {G5 C6 E6 .}:4 | .:6 | .:6 |
+
+# low clarinet, like someone waiting by the fire
+pattern c2
+harmony | Am7 | Em7 | Fmaj7 | C | Dm7 | Am7 | Fmaj7 | G6 |
+guitar  | [*]:6 | % | % | % | % | % | % | % |
+pad     | [*]?:6 | % | % | % | % | % | % | % |
+bass    | A1:4 E2:2 | E2:4 B1:2 | F1:4 C2:2 | C2:4 G1:2 | D2:4 A1:2 | A1:4 E2:2 | F1:6 | G1:6 |
+clar    | E4?:3 D4? C4?:2 | B3?:4 G3?:2 | A3?:3 B3? C4?:2 | E4?:4 .:2 |
+clar    | F4?:3 E4? D4?:2 | C4?:4 A3?:2 | C4?:4 A3?:2 | B3?:4 .:2 |
+pluck   | .:2 {A5 C6 E6 G5 .}:4 | .:6 | .:2 {A5 C6 E6 G5 .}:4 | .:6 | .:2 {A5 C6 D6 F6 .}:4 | .:6 | {A5 C6 E6}:2 .:4 | .:6 |
+lyre    | [*]:6 | % | % | % | % | % | % | % |
+toll    | A3??:6 | _ | _ | _ | D4??:6 | _ | _ | _ |
+choir   | [*]?:6 | % | % | % | % | % | % | % |
+
+# flute and clarinet together before the lantern settles
+pattern c3
+harmony | Fmaj7 | G6 | Am7 | C/E | Fmaj7 | Dm7 | Gsus4 | G |
+guitar  | [*]:6 | % | % | % | % | % | % | % |
+pad     | [*]:6 | % | % | % | [*]?:6 | % | % | % |
+bass    | F1:4 C2:2 | G1:4 D2:2 | A1:4 E2:2 | E2:4 C2:2 | F1:4 C2:2 | D2:4 A1:2 | G1:6 | = |
+flute   | C5?:4 E5?:2 | D5?:4 B4?:2 | C5?:4 E5?:2 | G5?:4 .:2 |
+flute   | A4?:3 B4? C5?:2 | F5?:4 D5?:2 | C5?:4 D5?:2 | B4?:4 .:2 |
+clar    | A3?:6 | B3?:6 | E4?:4 C4?:2 | C4?:6 |
+clar    | F3?:6 | A3?:6 | G3?:6 | = |
+lyre    | [*]:6 | % | % | % | % | % | % | % |
+toll    | _ | _ | A3??:6 | _ | _ | _ | _ | _ |
+choir   | [*]?:6 | % | % | % | % | % | % | % |
+
+# only the guitar, the sea far off, and a spark
+pattern c4
+harmony | Am7 | % | Dm7 | G6 |
+guitar  | [*]:6 | % | % | % |
+pad     | [*]?:6 | % | % | % |
+bass    | A1:6 | = | D2:6 | G1:6 |
+pluck   | {A5 C6 E6 G5}:2 .:2 {chord}?:2 | .:6 | {A5 C6 D6 F6 .}:2 .:4 | .:2 {G5 B5 D6 E6 .}:4 |
+lyre    | [*]:6 | % | % | % |
+choir   | [*]?:6 | % | % | % |
+
+cue cove
+play c_in
+loop {c1 c1b} c2 c3 c4
+beds sea deep

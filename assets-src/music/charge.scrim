@@ -1,0 +1,165 @@
+title    Harpoon Charge
+composer musicbox
+about    High-energy 158 BPM twin-lead gallop in E minor, inspired by Iron Maiden's The Trooper. Intensity 1 adds upper bass clank, fiddle and war-bell; 2 adds the Belfry choir.
+tempo    158
+beats    4
+steps    4        # 16 sixteenth-note steps per bar: X.xx gallop on every beat
+swing    0
+reverb   0.24
+key      E minor
+
+# Twin Marshall-voiced sawtooth leads panned left and right, rhythm guitar chug, brass stabs, and Steve Harris gallop bass
+voice lead1   saw       vol=0.78 pan=-0.52 bright=1.1  att=0.005 rel=0.07 rev=0.25
+voice lead2   saw       vol=0.72 pan=0.52  bright=1.25 att=0.005 rel=0.07 rev=0.25
+voice chug    guitar    vol=0.72 pan=0     bright=1.6  center=G3 gate=0.58 rev=0.12
+voice stab    brass     vol=0.56 pan=0.08  bright=1.5  center=B3 att=0.015 rel=0.1 gate=0.75 rev=0.22
+voice gallop  synbass   vol=0.88 pan=0     bright=1.45 att=0.002 rel=0.05 gate=0.72 rev=0.05
+# Drum kit: one voice per drum
+voice kick    kick      vol=0.95
+voice snare   snare     vol=0.92 pan=-0.05 rev=0.22
+voice hat     hat       vol=0.44 pan=-0.28
+voice ohat    ohat      vol=0.42 pan=-0.28
+voice ride    ride      vol=0.36 pan=0.32
+voice crash   crash     vol=0.56 pan=-0.35
+voice tomh    tomhi     vol=0.72 pan=-0.25
+voice tomm    tommid    vol=0.74 pan=0.05
+voice toml    tomlo     vol=0.76 pan=0.3
+# Depth layers: 1 = string clank, fiddle & war-bell; 2 = epic choir
+voice clank   upright   vol=0.54 pan=0.08  bright=2.0  gate=0.65 rev=0.08 layer=1
+voice fiddle  fiddle    vol=0.58 pan=-0.22 bright=1.2  rev=0.28 layer=1
+voice toll    bell      vol=0.4  pan=-0.45 rev=0.55 layer=1
+voice choir   choir     vol=0.34 center=B3 att=0.22 rel=0.8 layer=2
+
+# Cabinet-style mid focus on the twin leads, clank on the bass, and clean low end on kick and toms
+eq lead1  highpass=200 peak=1.35k,+4.5,1.6 peak=2.7k,+2.5,1.5 lowpass=4.8k
+eq lead2  highpass=220 peak=1.6k,+4.5,1.6  peak=3.1k,+2.5,1.5 lowpass=5k
+eq chug   highpass=130 peak=950,+3,1.2
+eq gallop peak=80,-3,1.5 peak=1.1k,+4,1.8
+eq clank  highpass=180 peak=1.4k,+3,1.5
+eq kick   peak=62,+2,1.4 peak=220,-3,1.5
+eq ride   highpass=2.5k
+eq tomm   peak=132,-3,1.4
+eq toml   peak=92,-5,1.4
+eq mix    highshelf=8k,+1.5
+
+# ============================================================= 4-bar stop-time twin-lead intro + full tom fill
+pattern ch_in
+harmony | Em | D | Cmaj7 | D B7 |
+lead1   | E5!:4 B4:2 E5 F#5 G5:2 F#5 E5 B4:2 E5:2 | D5!:4 A4:2 D5 E5 F#5:2 E5 D5 A4:2 D5:2 | C5!:4 G4:2 C5 D5 E5:4 G5:4 | F#5!:4 A5:4 B5!:8 |
+lead2   | G5!:4 E5:2 G5 A5 B5:2 A5 G5 E5:2 G5:2 | F#5!:4 D5:2 F#5 G5 A5:2 G5 F#5 D5:2 F#5:2 | E5!:4 C5:2 E5 F#5 G5:4 B5:4 | A5!:4 D6:4 D#6!:8 |
+chug    | E2+B2!:4 .:12 | D3+A3!:4 .:12 | C3+G3!:4 .:12 | D3+A3!:8 B2+F#3!:8 |
+stab    | [Em]!:4 .:12 | [D]!:4 .:12 | [C]!:4 .:12 | [D]!:8 [B7]!:8 |
+gallop  | E1!:4 E1:2 E1 E1 E2:2 E1 E1 E1:2 E1 E1 | D2!:4 D2:2 D2 D2 A1:2 D2 D2 D2:2 A1 D2 | C2!:4 C2:2 C2 C2 G1:2 C2 C2 G1:2 E1 G1 | D2!:4 A1:4 B1!:2 B1 B1 B1:2 F#1:2 |
+clank   | E2!:4 E2:2 E2 E2 E3:2 E2 E2 E2:2 E2 E2 | D3!:4 D3:2 D3 D3 A2:2 D3 D3 D3:2 A2 D3 | C3!:4 C3:2 C3 C3 G2:2 C3 C3 G2:2 E2 G2 | D3!:4 A2:4 B2!:2 B2 B2 B2:2 F#2:2 |
+kick    | X... .... .... ..x. | X... .... .... ..x. | X... .... .... ..x. | X... X... X... X... |
+snare   | .... .... .... .... | .... .... .... .... | .... .... .... .... | .... X... ..XX ..XX |
+crash   | X... .... .... .... | X... .... .... .... | X... .... .... .... | X... .... X... .... |
+tomh    | _ | _ | _ | xxxx .... .... .... |
+tomm    | _ | _ | _ | .... xxxx .... .... |
+toml    | _ | _ | _ | .... .... xx.. xx.. |
+toll    | E4!:16 | _ | _ | _ |
+
+# ============================================================= main twin-guitar gallop riff in parallel thirds
+pattern ch1
+harmony | Em | Em7 | D | % | Cmaj7 | D | Em | D B7 |
+lead1   | B4:2 E5 F#5 G5:4 F#5:2 G5 F#5 E5:4 | B4:2 E5 F#5 G5:2 A5:2 B5:4 G5:4 | A4:2 D5 E5 F#5:4 E5:2 F#5 E5 D5:4 | A4:2 D5 E5 F#5:2 G5:2 A5:4 F#5:4 |
+lead1   | G4:2 C5 D5 E5:4 G5:4 E5:4 | F#5:2 G5 F#5 D5:4 A5:4 F#5:4 | G5:2 F#5 E5 B4:4 E5:8 | F#5:4 D5:4 D#5:4 B4:4 |
+lead2   | G5:2 G5 A5 B5:4 A5:2 B5 A5 G5:4 | G5:2 G5 A5 B5:2 C6:2 D6:4 B5:4 | F#5:2 F#5 G5 A5:4 G5:2 A5 G5 F#5:4 | F#5:2 F#5 G5 A5:2 B5:2 D6:4 A5:4 |
+lead2   | E5:2 E5 F#5 G5:4 B5:4 G5:4 | A5:2 B5 A5 F#5:4 D6:4 A5:4 | B5:2 A5 G5 E5:4 G5:8 | A5:4 F#5:4 F#5:4 D#5:4 |
+chug    | E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 | % | D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 | % |
+chug    | C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 | D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 | E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 | D3+A3!:8 B2+F#3!:8 |
+gallop  | E1:2 E1 E1 E1:2 E1 E1 E2:2 E1 E1 B1:2 G1:2 | E1:2 E1 E1 E1:2 E1 E1 E2:2 E1 E1 G1:2 E1:2 | D2:2 D2 D2 D2:2 D2 D2 A1:2 D2 D2 A1:2 F#1:2 | D2:2 D2 D2 D2:2 D2 D2 A1:2 D2 A1 F#1:2 D2:2 |
+gallop  | C2:2 C2 C2 C2:2 C2 C2 G1:2 C2 C2 G1:2 E1:2 | D2:2 D2 D2 D2:2 D2 D2 A1:2 D2 D2 A1:2 F#1:2 | E1:2 E1 E1 E1:2 E1 E1 E2:2 B1 G1 E1:4 | D2:2 D2 D2 A1:4 B1:2 B1 B1 F#1:4 |
+clank   | E2:2 E2 E2 E2:2 E2 E2 E3:2 E2 E2 B2:2 G2:2 | E2:2 E2 E2 E2:2 E2 E2 E3:2 E2 E2 G2:2 E2:2 | D3:2 D3 D3 D3:2 D3 D3 A2:2 D3 D3 A2:2 F#2:2 | D3:2 D3 D3 D3:2 D3 D3 A2:2 D3 A2 F#2:2 D3:2 |
+clank   | C3:2 C3 C3 C3:2 C3 C3 G2:2 C3 C3 G2:2 E2:2 | D3:2 D3 D3 D3:2 D3 D3 A2:2 D3 D3 A2:2 F#2:2 | E2:2 E2 E2 E2:2 E2 E2 E3:2 B2 G2 E2:4 | D3:2 D3 D3 A2:4 B2:2 B2 B2 F#2:4 |
+kick    | X..x X..x X..x X..x | % | % | % | % | % | % | X..x X..x X.x. X.x. |
+snare   | .... X... .... X... | % | % | % | % | % | % | .... X... ..X. ..XX |
+hat     | x.xx x.xx x.xx x.x. | % | % | % | % | % | % | x.xx x.xx .... .... |
+ohat    | .... .... .... ..x. | % | % | % | % | % | % | .... .... x... x... |
+crash   | X... .... .... .... | _ | _ | _ | X... .... .... .... | _ | _ | _ |
+toll    | E4:16 | _ | _ | _ | _ | _ | E4:16 | _ |
+
+# ============================================================= Trooper-style verse: stop-time guitar stabs over exposed bass gallop
+pattern ch2
+harmony | Em | Em:8 D:4 Em:4 | D | Em:8 Bm:4 Em:4 | C | G | Am9 | B7 |
+chug    | E2+B2!:2 .:14 | .:8 D3+A3!:4 E2+B2!:4 | D3+A3!:2 .:10 D3+A3!:4 | E2+B2!:2 .:6 B2+F#3!:4 E2+B2!:4 |
+chug    | C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 | G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 | A2+E3:2 A2+E3 A2+E3 A2+E3:2 A2+E3 A2+E3 A2+E3:2 A2+E3 A2+E3 A2+E3:2 A2+E3 A2+E3 | B2+F#3!:4 .:4 B2+F#3!:4 B2+F#3!:4 |
+stab    | [Em]!:2 .:14 | .:8 [D]!:4 [Em]!:4 | [D]!:2 .:10 [D]!:4 | [Em]!:2 .:6 [Bm]!:4 [Em]!:4 |
+stab    | [C]?:16 | [G]?:16 | [Am7]:16 | [B7]!:4 .:4 [B7]!:4 [B7]!:4 |
+gallop  | E1:2 E1 E1 E1:2 E1 E1 E2:2 E1 E1 B1:2 G1:2 | E1:2 E1 E1 E1:2 E1 E1 D2:4 E2:4 | D2:2 D2 D2 D2:2 D2 D2 A1:2 D2 F#1 D2:4 | E1:2 E1 E1 E1:2 E1 E1 B1:4 E2:4 |
+gallop  | C2:2 C2 C2 C2:2 C2 C2 G1:2 C2 E1 C2:4 | G1:2 G1 G1 G1:2 G1 G1 G2:2 D2 B1 G1:4 | A1:2 A1 A1 A1:2 A1 A1 A2:2 E2 C2 A1:4 | B1!:4 B1:2 B1 B1 B1!:4 F#1!:4 |
+clank   | E2:2 E2 E2 E2:2 E2 E2 E3:2 E2 E2 B2:2 G2:2 | E2:2 E2 E2 E2:2 E2 E2 D3:4 E3:4 | D3:2 D3 D3 D3:2 D3 D3 A2:2 D3 F#2 D3:4 | E2:2 E2 E2 E2:2 E2 E2 B2:4 E3:4 |
+clank   | C3:2 C3 C3 C3:2 C3 C3 G2:2 C3 E2 C3:4 | G2:2 G2 G2 G2:2 G2 G2 G3:2 D3 B2 G2:4 | A2:2 A2 A2 A2:2 A2 A2 A3:2 E3 C3 A2:4 | B2!:4 B2:2 B2 B2 B2!:4 F#2!:4 |
+lead1   | .:4 B4:2 E5:2 G5:4 F#5:2 E5:2 | B4:6 .:2 D5!:4 E5!:4 | .:4 A4:2 D5:2 F#5:4 E5:2 D5:2 | E5:8 .:8 |
+lead1   | E5:4 G5:4 C6:4 B5:2 G5:2 | B5:4 G5:4 D5:8 | C5:4 E5:4 A5:4 G5:4 | F#5!:4 .:4 F#5!:4 B5!:4 |
+lead2   | _ | .:8 F#5!:4 G5!:4 | _ | _ |
+lead2   | G5:4 C6:4 E6:4 D6:2 C6:2 | D6:4 B5:4 G5:8 | E5:4 A5:4 C6:4 B5:4 | B5!:4 .:4 B5!:4 D#6!:4 |
+kick    | X..x X..x X..x X..x | X..x X..x X... X... | X..x X..x X..x X... | X..x X..x X... X... |
+kick    | X..x X..x X..x X..x | % | % | X... ..x. X... X... |
+snare   | .... X... .... X... | % | % | % | % | % | % | .... X.x. .... X.XX |
+hat     | x.xx x.xx x.xx x.xx | x.xx x.xx .... .... | x.xx x.xx x.xx .... | x.xx x.xx .... .... |
+hat     | x.xx x.xx x.xx x.xx | % | % | .... x.x. .... .... |
+ohat    | _ | .... .... x... x... | .... .... .... x... | .... .... x... x... |
+ohat    | _ | _ | _ | x... .... x... x... |
+crash   | X... .... .... .... | _ | _ | _ | X... .... .... .... | _ | _ | X... .... .... .... |
+
+# ============================================================= anthemic ride-cymbal chorus: Wren's song at full battle gallop
+pattern ch3
+harmony | C | G | D | Em | C | G | Bm7 | B7 |
+lead1   | E5:6 F#5:2 G5:8 | B5:6 A5:2 G5:4 D5:4 | F#5:6 G5:2 A5:4 D5:4 | G5:6 F#5:2 E5:8 |
+lead1   | G5:4 E5:4 C5:4 E5:4 | D5:4 G5:4 B5:4 D6:4 | D6:6 B5:2 F#5:8 | F#5!:4 G5:2 F#5:2 D#5!:8 |
+lead2   | C6:6 D6:2 E6:8 | D6:6 C6:2 B5:4 G5:4 | A5:6 B5:2 D6:4 F#5:4 | B5:6 A5:2 G5:8 |
+lead2   | C6:4 G5:4 E5:4 G5:4 | B5:4 B5:4 D6:4 G6:4 | F#6:6 D6:2 B5:8 | B5!:4 C6:2 B5:2 F#5!:8 |
+fiddle  | E5:6 F#5:2 G5:8 | B5:6 A5:2 G5:4 D5:4 | F#5:6 G5:2 A5:4 D5:4 | G5:6 F#5:2 E5:8 |
+fiddle  | G5:4 E5:4 C5:4 E5:4 | D5:4 G5:4 B5:4 D6:4 | D6:6 B5:2 F#5:8 | F#5!:4 G5:2 F#5:2 D#5!:8 |
+chug    | C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 | G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 | D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 | E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 |
+chug    | C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 | G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 G2+D3:2 G2+D3 G2+D3 | B2+F#3:2 B2+F#3 B2+F#3 B2+F#3:2 B2+F#3 B2+F#3 B2+F#3:2 B2+F#3 B2+F#3 B2+F#3:2 B2+F#3 B2+F#3 | B2+F#3!:8 B2+F#3!:8 |
+stab    | [*]:16 | % | % | % | % | % | % | [*]!:8 [*]!:8 |
+gallop  | C2:2 C2 C2 C2:2 C2 C2 G1:2 C2 E1 C2:4 | G1:2 G1 G1 G1:2 G1 G1 G2:2 D2 B1 G1:4 | D2:2 D2 D2 D2:2 D2 D2 A1:2 D2 F#1 D2:4 | E1:2 E1 E1 E1:2 E1 E1 E2:2 B1 G1 E1:4 |
+gallop  | C2:2 C2 C2 C2:2 C2 C2 G1:2 C2 E1 C2:4 | G1:2 G1 G1 G1:2 G1 G1 G2:2 D2 B1 G2:4 | B1:2 B1 B1 B1:2 B1 B1 B2:2 F#2 D2 B1:4 | B1!:4 F#1:4 B1!:4 F#1!:4 |
+clank   | C3:2 C3 C3 C3:2 C3 C3 G2:2 C3 E2 C3:4 | G2:2 G2 G2 G2:2 G2 G2 G3:2 D3 B2 G2:4 | D3:2 D3 D3 D3:2 D3 D3 A2:2 D3 F#2 D3:4 | E2:2 E2 E2 E2:2 E2 E2 E3:2 B2 G2 E2:4 |
+clank   | C3:2 C3 C3 C3:2 C3 C3 G2:2 C3 E2 C3:4 | G2:2 G2 G2 G2:2 G2 G2 G3:2 D3 B2 G3:4 | B2:2 B2 B2 B2:2 B2 B2 B3:2 F#3 D3 B2:4 | B2!:4 F#2:4 B2!:4 F#2!:4 |
+kick    | X..x X..x X..x X..x | % | % | % | % | % | % | X... X... X..x X... |
+snare   | .... X... .... X... | % | % | % | % | % | % | .... X... .... X.XX |
+ride    | X.x. X.x. X.x. X.xx | % | % | % | % | % | % | X.x. X.x. .... .... |
+crash   | X... .... .... .... | _ | _ | _ | X... .... .... .... | _ | _ | X... .... X... .... |
+tomh    | _ | _ | _ | _ | _ | _ | _ | .... .... xxxx .... |
+tomm    | _ | _ | _ | _ | _ | _ | _ | .... .... .... xx.. |
+toml    | _ | _ | _ | _ | _ | _ | _ | .... .... .... ..xx |
+toll    | G3:16 | _ | _ | E4:16 | _ | _ | B3:16 | _ |
+choir   | [*]:16 | % | % | % | % | % | % | [*]!:16 |
+
+# ============================================================= trade-off twin-guitar solos -> harmonized 16th-note climb
+pattern ch4
+harmony | Em | C | D | Em | C | D | Bm7 | B7 |
+# bars 1-2: left lead shreds; bars 3-4: right lead answers; bars 5-8: both lock in harmonized 16ths!
+lead1   | E5 G5 B5 E6 D6 B5 G5 B5 E5 G5 B5 D6 E6!:4 | C6 B5 G5 E5 G5 B5 C6 E6 G6!:4 E6:4 | _ | .:8 B4 D5 E5 F#5 G5!:4 |
+lead1   | C5 E5 G5 C6 B5 G5 E5 G5 C5 E5 G5 B5 C6:4 | D5 F#5 A5 D6 C6 A5 F#5 A5 D5 F#5 A5 C6 D6:4 | B4 D5 F#5 B5 A5 F#5 D5 F#5 B5 D6 F#6 D6 B5:4 | B5!:4 A5:2 G5:2 F#5!:4 D#5!:4 |
+lead2   | _ | _ | D5 F#5 A5 D6 C6 A5 F#5 A5 D6 E6 F#6 D6 A5!:4 | G5 B5 E6 B5 G5 E5 G5 B5 E6!:4 B5!:4 |
+lead2   | E5 G5 C6 E6 D6 C6 G5 C6 E5 G5 C6 D6 E6:4 | F#5 A5 D6 F#6 E6 D6 A5 D6 F#5 A5 D6 E6 F#6:4 | D5 F#5 B5 D6 C6 B5 F#5 B5 D6 F#6 A6 F#6 D6:4 | D#6!:4 C6:2 B5:2 B5!:4 F#5!:4 |
+chug    | E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 | C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 | D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 | E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 E2+B2:2 E2+B2 E2+B2 |
+chug    | C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 C3+G3:2 C3+G3 C3+G3 | D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 D3+A3:2 D3+A3 D3+A3 | B2+F#3:2 B2+F#3 B2+F#3 B2+F#3:2 B2+F#3 B2+F#3 B2+F#3:2 B2+F#3 B2+F#3 B2+F#3:2 B2+F#3 B2+F#3 | B2+F#3!:4 B2+F#3!:4 B2+F#3!:8 |
+gallop  | E1:2 E1 E1 E1:2 E1 E1 E2:2 E1 E1 B1:2 G1:2 | C2:2 C2 C2 C2:2 C2 C2 G1:2 C2 E1 C2:4 | D2:2 D2 D2 D2:2 D2 D2 A1:2 D2 F#1 D2:4 | E1:2 E1 E1 E1:2 E1 E1 E2:2 B1 G1 E1:4 |
+gallop  | C2:2 C2 C2 C2:2 C2 C2 G1:2 C2 E1 C2:4 | D2:2 D2 D2 D2:2 D2 D2 A1:2 D2 F#1 D2:4 | B1:2 B1 B1 B1:2 B1 B1 B2:2 F#2 D2 B1:4 | B1!:4 B1!:4 B1:2 B1 B1 F#1!:4 |
+clank   | E2:2 E2 E2 E2:2 E2 E2 E3:2 E2 E2 B2:2 G2:2 | C3:2 C3 C3 C3:2 C3 C3 G2:2 C3 E2 C3:4 | D3:2 D3 D3 D3:2 D3 D3 A2:2 D3 F#2 D3:4 | E2:2 E2 E2 E2:2 E2 E2 E3:2 B2 G2 E2:4 |
+clank   | C3:2 C3 C3 C3:2 C3 C3 G2:2 C3 E2 C3:4 | D3:2 D3 D3 D3:2 D3 D3 A2:2 D3 F#2 D3:4 | B2:2 B2 B2 B2:2 B2 B2 B3:2 F#3 D3 B2:4 | B2!:4 B2!:4 B2:2 B2 B2 F#2!:4 |
+kick    | X.x. X.x. X.x. X.x. | % | % | % | X.xx X.xx X.xx X.xx | % | % | X... X... X.x. X... |
+snare   | .... X... .... X... | % | % | % | % | % | % | .... X... ..XX XXXX |
+ride    | X.xx X.xx X.xx X.xx | % | % | % | X.x. X.x. X.x. X.x. | % | % | X... X... .... .... |
+crash   | X... .... .... .... | _ | X... .... .... .... | _ | X... .... .... .... | _ | _ | X... X... .... .... |
+tomh    | _ | _ | _ | _ | _ | _ | _ | .... .... xxxx .... |
+tomm    | _ | _ | _ | _ | _ | _ | _ | .... .... .... xx.. |
+toml    | _ | _ | _ | _ | _ | _ | _ | .... .... .... ..xx |
+toll    | E4:16 | _ | _ | _ | _ | _ | B3:16 | _ |
+choir   | _ | _ | _ | _ | [*]:16 | % | % | [*]!:16 |
+
+# alternate solo trade-off on every other pass
+pattern ch4b from ch4
+lead1   | B5 G5 E5 G5 B5 E6 G6 E6 B5!:4 G5:4 | G5 C6 E6 G6 E6 C6 G5 C6 E6!:4 C6:4 | _ | .:8 E5 F#5 G5 A5 B5!:4 |
+lead1   | C5 E5 G5 C6 B5 G5 E5 G5 C5 E5 G5 B5 C6:4 | D5 F#5 A5 D6 C6 A5 F#5 A5 D5 F#5 A5 C6 D6:4 | B4 D5 F#5 B5 A5 F#5 D5 F#5 B5 D6 F#6 D6 B5:4 | B5!:4 A5:2 G5:2 F#5!:4 D#5!:4 |
+lead2   | _ | _ | A5 F#5 D5 F#5 A5 D6 F#6 D6 A5!:4 F#5:4 | B5 E6 G6 E6 B5 G5 B5 E6 G6!:4 E6!:4 |
+lead2   | E5 G5 C6 E6 D6 C6 G5 C6 E5 G5 C6 D6 E6:4 | F#5 A5 D6 F#6 E6 D6 A5 D6 F#5 A5 D6 E6 F#6:4 | D5 F#5 B5 D6 C6 B5 F#5 B5 D6 F#6 A6 F#6 D6:4 | D#6!:4 C6:2 B5:2 B5!:4 F#5!:4 |
+
+cue charge
+play ch_in
+loop ch1 ch2 ch3 {ch4 ch4b} ch1 ch3

@@ -1753,6 +1753,17 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 - The user's request: replace "Continue (Landing 0)" with the actual level name. The title button uses the existing level-name helper: The Shallows, Dark Water or The Belfry. Saves without a level retain the Shallows default.
 - Checks: all 247 rule tests and build pass. A temporary Chrome check verified all three names, resuming, a legacy save without a level, no saved run, and text fitting at 1280×800, 390×844, 360×640 and 844×390. Screenshots: `/tmp/brinelight-continue-level-2CUZM7/`.
 
+### Five new Musicbox pieces and the opening's Keeper's Song (v0.51.0, 2026-11-17)
+
+- **The user's calls:** review the soundtrack for gaps, compose the missing pieces in `.scrim`, rewrite `fog` and `haul` so they contrast sharply, unlock all five by progress like the other score pieces, and play `cue: title` ("The Keeper's Song") during the five-picture opening. Two high-energy 16-bit synth drafts (`assets-src/music/charge.scrim` "Harpoon Charge" at 158 BPM in E minor, and `assets-src/music/gale.scrim` "Break the Bronze" at 172 BPM in D minor) stay in `assets-src/music/` as candidates for a post-Heart Super-Mega-Retro bonus mini-game.
+- **Added to `music/brinelight.scrim` and `music/jukebox.json` (14 cues, 42 depth links):**
+  - `murk` ("Held Water", 4/4 at 96 BPM in A minor with Phrygian Bb, via `lurch`): ordinary fights in Dark Water, replacing the Shallows' 6/8 surf jig there.
+  - `cove` ("Above the Tide Line", 3/4 at 56 BPM): Sheltered Coves, stairs down and lesser bells (`rest`), with fingerpicked guitar and no `deep` drone.
+  - `fog` ("What Waits in the Fog", 5/4 at 58 BPM in C minor / Dbmaj7): Fog events, wrecks and toll bells, over a low-passed sunken pipe organ, isolated musicbox/glock drops and a wordless voice.
+  - `haul` ("Home with Your Haul", 4/4 at 78 BPM with coastal swing): early retreats (`victory` without `heart` or `quieted`), with upright walking bass, squeezebox, guitar chops and the distant bells restarting at the turn of the loop; `home` ("Dawn") stays on full-win dawn screens.
+  - `watch` ("Her Own Bell", 6/8 at 76 BPM in A minor, via `her_bell`): the Dark Watch's first phase before Nobody Comes Home, with a Watch Glass rim tick and Wren's motif inverted on musicbox against solo fiddle.
+- **Unlocks and hints:** `E.noteMusicProgress` and `JUKE_UNLOCK_HINTS` cover all five cues from live encounters and saved Story/Logbook marks. `assets-src/music/listen.html` (`node assets-src/music/build-listen.js`) previews all drafts and the shipped score in-page and links to Musicbox without CLI line wrapping.
+
 ### Music unlocks from game progress, including muted runs (v0.50.0, 2026-11-17)
 
 - **The user's correction:** music should unlock while muted and depend only on game progress. Hints must state specific, objective unlock conditions. The v0.49.0 "music on / listen on the map" requirement came from the old playback-driven implementation; it has been removed.

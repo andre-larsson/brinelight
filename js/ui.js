@@ -1184,15 +1184,17 @@
     if (!titleFirst) titleFirst = meta.heard.indexOf('song:title') < 0 ? 'title' : open[Math.floor(Math.random() * open.length)];
     const at = Math.max(0, open.indexOf(titleFirst));
     let cue = 'title', depth = 0, band = null, density = 0, song = open.slice(at).concat(open.slice(0, at));
-    if (run) {
+    if (ui.opening && !ui.opening.scene) {
+      song = null; // the five-picture opening plays the score's Keeper's Song
+    } else if (run) {
       song = null;
       band = E.bandId(run);
       depth = Math.max(0, ['shallows', 'dark', 'belfry'].indexOf(band));
       const c = run.screen === 'combat' && run.combat;
-      if (run.screen === 'victory') { cue = 'home'; if (run.heart) song = 'bells'; } // the Heart home: Harbour Bells at Dawn
+      if (run.screen === 'victory') { cue = run.heart || run.quieted ? 'home' : 'haul'; if (run.heart) song = 'bells'; } // the Heart home: Harbour Bells at Dawn; an early return: Home with Your Haul
       else if (run.screen === 'defeat') cue = 'fallen';
       else if (c) {
-        cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
+        cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : band === 'dark' ? 'murk' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
         // the Hermit has two songs, and one plays for the whole fight (fightSong chooses it when the fight starts)
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'harbour')) song = 'hermit';
         if (song === 'hermit' && c.song === 'deep') song = 'deep';
@@ -1200,11 +1202,11 @@
         // a fight with songs of its own (FIGHT_SONGS) plays the one fightSong chose; the Buoy's 'box' is its music-box piece
         if (c.song && Sound.juke.SONGS[c.song]) song = c.song;
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bell' || e.id === 'bellthing')) song = 'bell'; // its second phase is the Thing in the Bell
-        // the Dark Watch plays the score's pin cue until it calls Nobody Comes Home, a Hollow Diver; then the Divers' song
-        // (v0.45.0, the user's call: the music changed there already, from the pin cue to its second phase)
-        if (c.kind === 'boss' && c.phase2 && c.enemies.some((e) => e.id === 'darkwatch')) song = 'nobody';
+        // the Dark Watch plays Her Own Bell (watch) until it calls Nobody Comes Home, a Hollow Diver; then the Divers' song
+        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'darkwatch')) { if (c.phase2) song = 'nobody'; else cue = 'watch'; }
       } else {
-        cue = 'reach'; density = 1;
+        cue = run.screen === 'rest' ? 'cove' : run.screen === 'event' || run.screen === 'treasure' || run.screen === 'toll' ? 'fog' : 'reach';
+        density = 1;
         if (run.screen === 'shop') {
           if (!inShop) shopSong = shopSong ? SHOP_SONGS[(SHOP_SONGS.indexOf(shopSong) + 1) % SHOP_SONGS.length] : SHOP_SONGS[Math.floor(Math.random() * SHOP_SONGS.length)];
           song = shopSong;
@@ -1349,6 +1351,7 @@
       const all = scene ? BL.STORY.scenes[scene].beats.filter((x) => !x.found || replay || (run && run.found === x.found)) : BL.STORY.opening;
       ui.opening = { done: done || null, replay: !!replay, scene: scene || null, beats: all, go: go || (scene ? 'Go on' : 'Go down') };
       all.forEach((x) => { new Image().src = `img/${x.art}.webp`; });
+      if (!scene) updateSound();
     }
     const beats = ui.opening.beats, b = beats[i], last = i === beats.length - 1;
     openOverlay(`<div class="opening" role="dialog" aria-modal="true" aria-label="The story, part ${i + 1} of ${beats.length}">
@@ -1368,6 +1371,7 @@
     if (!o.scene && !story.opening) { story.opening = true; saveStory(); }
     closeOverlay(true);
     if (o.done) o.done();
+    if (!o.scene) updateSound();
     // a scene covered the screen while it drew, so its main button never got the focus: give it now
     if (o.scene && overlayEl.hidden) { const f = document.querySelector('[autofocus]'); if (f) f.focus({ preventScroll: true }); }
   }
@@ -1481,11 +1485,15 @@
   const JUKE_UNLOCK_HINTS = [
     ['cue:reach', 'Start a descent.'],
     ['cue:fight', 'Enter a fight.'],
+    ['cue:fog', 'Enter the Fog, a wreck or a toll bell.'],
+    ['cue:cove', 'Rest at a Sheltered Cove.'],
     ['cue:dread', 'Encounter a Dread.'],
     ['cue:pin', 'Encounter a pin.'],
     ['cue:pin2', "Reach a pin's second phase."],
     ['cue:home', 'Return home after defeating a pin.'],
+    ['cue:haul', 'Choose Go home after defeating a pin.'],
     ['song:deep', 'Encounter the Harbour Hermit a second time.'],
+    ['cue:murk', 'Enter a fight below the Shallows.'],
     ['song:gardener', 'Encounter the Garden Strider.'],
     ['song:putback', 'Encounter the Garden Strider again.'],
     ['song:hush', 'Encounter the Tolling Buoy.'],
@@ -1496,6 +1504,7 @@
     ['song:bells', 'Bring the Heart home.'],
     ['song:eye', 'Encounter the Bell Yearling.'],
     ['song:cantor', 'Encounter the Drowned Cantor.'],
+    ['cue:watch', 'Encounter the Dark Watch.'],
     ['song:nobody', "Reach the Dark Watch's second phase."],
     ['cue:fallen', 'End a descent in a fall.'],
   ];

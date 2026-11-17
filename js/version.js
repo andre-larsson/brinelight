@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.50.2';
+  BL.VERSION = '0.51.0';
   BL.CHANGELOG = [
+    { v: '0.51.0', date: '2026-11-17', items: [
+      'Five new music box pieces: "Held Water" in Dark Water\'s ordinary fights, "Above the Tide Line" at Sheltered Coves, stairs and lesser bells, "What Waits in the Fog" in the Fog, wrecks and toll bells, "Home with Your Haul" when you retreat early, and "Her Own Bell" in the Dark Watch\'s first phase.',
+      'The five-picture opening plays the music box\'s "The Keeper\'s Song".',
+    ] },
     { v: '0.50.2', date: '2026-11-17', items: [
       'Hear all music in the debug menu also unlocks Harbour Bells at Dawn, clearing the last Next unlock hint without needing to bring the Heart home.',
     ] },

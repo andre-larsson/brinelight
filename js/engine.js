@@ -2025,10 +2025,16 @@
     const add = (id) => { if (meta.heard.indexOf(id) < 0) { meta.heard.push(id); changed = true; } };
     const heart = record.hearts > 0 || known.has('heart');
     if (active || known.size || record.runs > 0 || record.deep || meta.reached > 0) add('cue:reach');
+    if (known.has('cove') || known.has('in:1') || known.has('in:2') || meta.reached > 0 || (record.deep && record.deep.level >= 1)) add('cue:cove');
+    if ([...known].some((m) => m.startsWith('ev:')) || known.has('wreck') || known.has('toll')) add('cue:fog');
     if (c || enemies.length || record.runs > 0 || (active && active.stats.fights > 0)) add('cue:fight');
+    if ((c && c.kind !== 'boss' && c.kind !== 'elite' && E.bandId(active) === 'dark') || ['shrimp', 'ray', 'hermit'].some((id) => enemies.indexOf(id) >= 0) || (record.deep && (record.deep.level > 1 || (record.deep.level === 1 && record.deep.floor >= 1)))) add('cue:murk');
     if ((c && c.kind === 'elite') || enemies.some((id) => BL.ENEMIES[id] && BL.ENEMIES[id].elite)) add('cue:dread');
     if ((c && c.kind === 'boss') || known.has('boss') || [...known].some((m) => m.startsWith('won:')) || enemies.some((id) => BL.ENEMIES[id] && BL.ENEMIES[id].boss) || heart) add('cue:pin');
     if ((c && c.kind === 'boss' && c.phase2) || known.has('en:bellthing') || known.has('quiet') || record.quiets > 0 || heart) add('cue:pin2');
+    if ((c && c.enemies.some((e) => e.id === 'darkwatch')) || enemies.indexOf('darkwatch') >= 0 || known.has('quiet') || record.quiets > 0) add('cue:watch');
+    const earlyWin = active && active.screen === 'victory' ? !active.heart && !active.quieted : (known.has('home') && !heart && !known.has('quiet') && !(record.quiets > 0));
+    if (earlyWin || record.wins > (record.hearts || 0) + (record.quiets || 0)) add('cue:haul');
     if (known.has('home') || record.wins > 0) add('cue:home');
     if (known.has('fell') || record.runs > record.wins) add('cue:fallen');
     const firstSongs = { strider: 'gardener', buoy: 'hush', oarfish: 'herring', bell: 'bell', bellthing: 'bell', yearling: 'eye', cantor: 'cantor' };

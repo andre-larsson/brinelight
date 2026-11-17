@@ -1566,11 +1566,15 @@ async function jukeHintChecks(page, name) {
     try {
       check('first descent', { heard: ['song:title'], heart: false }, 'Start a descent.');
       check('first fight', { heard: ['song:title', 'cue:reach'], heart: false }, 'Enter a fight.');
-      check('first Dread', { heard: ['song:title', 'cue:reach', 'cue:fight'], heart: false }, 'Encounter a Dread.');
+      check('first Fog', { heard: ['song:title', 'cue:reach', 'cue:fight'], heart: false }, 'Enter the Fog, a wreck or a toll bell.');
+      check('first Cove', { heard: ['song:title', 'cue:reach', 'cue:fight', 'cue:fog'], heart: false }, 'Rest at a Sheltered Cove.');
+      check('first Dread', { heard: ['song:title', 'cue:reach', 'cue:fight', 'cue:fog', 'cue:cove'], heart: false }, 'Encounter a Dread.');
       check('pin', { missing: ['cue:pin'] }, 'Encounter a pin.');
       check('second phase', { missing: ['cue:pin2', 'song:nobody'] }, "Reach a pin's second phase.");
       check('homecoming', { missing: ['cue:home'] }, 'Return home after defeating a pin.');
+      check('early haul', { missing: ['cue:haul'] }, 'Choose Go home after defeating a pin.');
       check('songs filter', { heard: ['song:title'], heart: false, filter: 'song' }, 'Encounter the Harbour Hermit a second time.');
+      check('Dark Water fight', { missing: ['cue:murk'], filter: 'cue' }, 'Enter a fight below the Shallows.');
       check('first Strider song', { missing: ['song:gardener', 'song:putback'] }, 'Encounter the Garden Strider.');
       check('alternate Strider song', { missing: ['song:putback'] }, 'Encounter the Garden Strider again.');
       check('first Buoy song', { missing: ['song:hush', 'song:chain', 'cue:buoy'] }, 'Encounter the Tolling Buoy.');
@@ -1580,6 +1584,7 @@ async function jukeHintChecks(page, name) {
       check('Bellwether', { missing: ['song:bell'], heart: false }, 'Encounter the Drowned Bellwether, or bring the Heart home.');
       check('Yearling', { missing: ['song:eye'] }, 'Encounter the Bell Yearling.');
       check('Cantor', { missing: ['song:cantor'] }, 'Encounter the Drowned Cantor.');
+      check('Dark Watch phase 1', { missing: ['cue:watch', 'song:nobody'] }, 'Encounter the Dark Watch.');
       check('Dark Watch', { missing: ['song:nobody'] }, "Reach the Dark Watch's second phase.");
       check('fall', { missing: ['cue:fallen'] }, 'End a descent in a fall.');
       check('dawn gate', { heart: false }, 'Bring the Heart home.');
@@ -1835,10 +1840,11 @@ async function audioScenario(page, base, name, size) {
   }
   await clickIf(page, '#overlay [data-act="close"]');
   await expect('the Jukebox closed, still playing', { playing: true, target: 'dread', intensity: 2, song: null });
-  await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 0; B.meta.record.hearts = 0; B.meta.reached = 0; })()`); // a first descent again
-  // a descent: the map plays the reach cue, with the Shallows' sounds
+  await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 0; B.meta.record.hearts = 0; B.meta.reached = 0; B.story.opening = false; })()`); // a first descent again
+  // the five-picture opening plays the score's Keeper's Song, then hands over to the map
   await page.click('[data-act="newrun"]');
   await sleep(200);
+  await expect("the opening: The Keeper's Song", { playing: true, target: 'title', depth: 0, intensity: 0, song: null });
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
@@ -1892,9 +1898,17 @@ async function audioScenario(page, base, name, size) {
   if (!(await heardList()).includes('song:deep')) failures.push(`${name}: Ring for the Deep didn't count as heard`);
   await set('B.E.backToMap(B.run)');
   await expect('the map, after the Hermit', { playing: true, target: 'reach', song: null });
-  // Dark Water: the far bell and the drone come in, and the echo lengthens
+  // Sheltered Coves and Fog stops have their own score pieces
+  await set(`B.run.screen = 'rest'`);
+  await expect('a Sheltered Cove', { playing: true, target: 'cove', ambience: 'shallows/1', song: null });
+  await set(`B.run.screen = 'toll'; B.run.toll = { paid: null }`);
+  await expect('a toll bell (Fog piece)', { playing: true, target: 'fog', ambience: 'shallows/1', song: null });
+  await set('B.E.backToMap(B.run)');
+  // Dark Water: the far bell and the drone come in, the echo lengthens, and ordinary fights play Held Water (murk)
   await page.eval('(() => { const B = window.Brinelight; B.run.level = 1; B.render(); })()');
   await expect('Dark Water', { depth: 1, intensity: 1, ambience: 'dark/1' });
+  await set(`B.E.startCombat(B.run, 'easy')`);
+  await expect('a Dark Water fight', { playing: true, target: 'murk', depth: 1, intensity: 1, ambience: 'dark/0.5', song: null });
   // a pin has no place sounds, and its own cue for each phase; then the end screens
   await set(`B.E.startCombat(B.run, 'elite', ['gulper']); B.fightSong()`);
   await expect('a Dread', { target: 'dread', ambience: 'dark/0.5', song: null });
@@ -1938,14 +1952,16 @@ async function audioScenario(page, base, name, size) {
   await set(`B.E.startCombat(B.run, 'elite', ['cantor']); B.fightSong()`);
   await expect('the Drowned Cantor', { playing: false, song: 'cantor' });
   await plays('Ring It Once Again');
-  // once the Heart is home the Belfry's last pin is the Dark Watch, with the score's pin cue until its call
+  // once the Heart is home the Belfry's last pin is the Dark Watch, with Her Own Bell (watch) until its call
   await set(`B.run.heartHome = true; B.E.startCombat(B.run, 'boss')`);
-  await expect('a pin', { playing: true, target: 'pin', ambience: '', song: null });
+  await expect('the Dark Watch, first phase', { playing: true, target: 'watch', ambience: '', song: null });
   // the Dark Watch calls Nobody Comes Home, a Hollow Diver: the Divers' song from then on (v0.45.0; the score's pin2 before)
   await set('B.run.combat.phase2 = true');
   await expect("the Dark Watch's call", { playing: false, song: 'nobody' });
   await plays('Nobody in the Dress');
-  await set(`B.run.screen = 'victory'`);
+  await set(`B.run.quieted = false; B.run.screen = 'victory'`);
+  await expect('early return: Home with Your Haul', { target: 'haul', depth: 2, intensity: 2, ambience: '' });
+  await set(`B.run.quieted = true; B.run.screen = 'victory'`);
   await expect('the win screen', { target: 'home', depth: 2, intensity: 2, ambience: '' });
   await set(`B.run.screen = 'defeat'`);
   await expect('the loss screen', { target: 'fallen', ambience: '' });
