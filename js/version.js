@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.47.0';
+  BL.VERSION = '0.48.0';
   BL.CHANGELOG = [
+    { v: '0.48.0', date: '2026-11-17', items: [
+      'The Jukebox has a prominent Open score in Musicbox button beside the volume control. The songs\' Words button is now Lyrics.',
+      'In debug mode, Cheats count as real runs is on by default. Your saved choice still applies.',
+    ] },
     { v: '0.47.0', date: '2026-11-17', items: [
       'The Jukebox shows only music you can play, with All, Songs and Music box filters. Undiscovered titles and unlock hints stay hidden.',
       'High Tide Departure and Barnaby\'s two songs, No Haggling, No Biting and Pop the Shell, are open from the start. Harbour Bells at Dawn still waits for the Heart to come home.',

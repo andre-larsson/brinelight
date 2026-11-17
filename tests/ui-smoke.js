@@ -490,6 +490,14 @@ async function debugScenario(page, base) {
   await inject(page);
   await page.click('.dbg-tab');
   await sleep(150);
+  if (!(await page.eval(`document.querySelector('[data-dbg="count"]').getAttribute('aria-pressed') === 'true'`))) failures.push('debug: Cheats count as real runs should default to On');
+  // A player can still opt out, and an explicit saved choice survives a reload.
+  await clickIf(page, '#overlay [data-dbg="count"]');
+  await page.goto(base + '?seed=5555&debug');
+  await inject(page);
+  await page.click('.dbg-tab');
+  if (!(await page.eval(`document.querySelector('[data-dbg="count"]').getAttribute('aria-pressed') === 'false'`))) failures.push('debug: a saved Cheats count choice should survive a reload');
+  await clickIf(page, '#overlay [data-dbg="count"]');
   await clickIf(page, '#overlay [data-dbg="salvage"]');
   await clickIf(page, '#overlay [data-dbg="allkit"]');
   await clickIf(page, '#overlay [data-dbg="hearts"]');
@@ -513,6 +521,8 @@ async function debugScenario(page, base) {
   await page.key('`');
   await sleep(150);
   await clickIf(page, '#overlay [data-dbg="god"]');
+  if (await page.eval('!!window.Brinelight.run.cheated')) failures.push('debug: the default count setting should let a cheated run count normally');
+  await clickIf(page, '#overlay [data-dbg="count"]'); // opt out for the marked-run checks below
   await clickIf(page, '#overlay [data-dbg="tide"][data-n="5"]');
   if ((await page.eval('window.Brinelight.run.combat.tide')) !== 5) failures.push('debug: setting the Swell did nothing');
   await clickIf(page, '#overlay [data-act="close"]');
@@ -1597,15 +1607,16 @@ async function audioScenario(page, base, name, size) {
   if (!(await jb(`!!o.querySelector('.juke-score') && !o.querySelector('.juke-item.cur')`))) failures.push(`${name}: filtering out the playing piece should preserve the player and score link`);
   await expect('filtering Songs, still the Keeper\'s Song', { song: null, playing: true, target: 'title' });
   await page.click('#overlay [data-act="jukeplay"][data-kind="song"][data-key="title"]');
-  // the song playing has a Words button: its words on a page of their own, and Back returns to the Jukebox, the song still playing
+  // Lyrics opens the song's lyrics; Back returns to the player and keeps the song playing.
+  if (!(await jb(`o.querySelector('[data-act="jukewords"]').textContent === 'Lyrics' && o.querySelector('[data-act="jukewords"]').getAttribute('aria-label').startsWith('Lyrics of ')`))) failures.push(`${name}: the lyrics button should be named Lyrics, including its accessible label`);
   await page.click('#overlay [data-act="jukewords"][data-key="title"]');
   await sleep(150);
-  if (!(await jb(`!!o.querySelector('.lyrics-modal') && /Burn low, my lantern/.test(o.textContent) && o.querySelectorAll('.lyrics h3').length >= 6`))) failures.push(`${name}: the title song's Words page doesn't show its words in parts`);
+  if (!(await jb(`!!o.querySelector('.lyrics-modal') && /Burn low, my lantern/.test(o.textContent) && o.querySelectorAll('.lyrics h3').length >= 6`))) failures.push(`${name}: the title song's Lyrics page doesn't show its words in parts`);
   await checkPage(page, name + ' words');
   await page.click('#overlay [data-act="jukeback"]');
   await sleep(150);
-  if (!(await jb(`!!o.querySelector('.jp-links [data-act="jukewords"]') && o.querySelector('[data-filter="song"]').getAttribute('aria-pressed') === 'true'`))) failures.push(`${name}: Back from words doesn't keep the player and browsing filter`);
-  if (!(await jb(`document.activeElement === o.querySelector('.jp-links [data-act="jukewords"]')`))) failures.push(`${name}: Back from the words doesn't put the focus back on the Words button`);
+  if (!(await jb(`!!o.querySelector('.jp-links [data-act="jukewords"]') && o.querySelector('[data-filter="song"]').getAttribute('aria-pressed') === 'true'`))) failures.push(`${name}: Back from lyrics doesn't keep the player and browsing filter`);
+  if (!(await jb(`document.activeElement === o.querySelector('.jp-links [data-act="jukewords"]')`))) failures.push(`${name}: Back from the lyrics doesn't put the focus back on the Lyrics button`);
   await expect('the title song, after its words', { song: 'title' });
   await page.click('#overlay [data-act="jukefilter"][data-filter="all"]');
   // A legacy save that heard Harbour Bells on the title still waits for the Heart.

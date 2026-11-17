@@ -1026,8 +1026,9 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .jp-bottom { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .jp-links:empty { display: none; }
 .juke-words { min-height: 36px; }
-.juke-score { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; color: #9fdcd0; font-size: 14px; text-underline-offset: 3px; }
-.juke-score:focus-visible { outline: 2px solid #9fdcd0; outline-offset: 3px; border-radius: 3px; }
+.btn.juke-score { min-height: 42px; color: #c3f5e9; background: rgba(63, 174, 138, .22); border-color: #68c6af; font-size: 14px; text-decoration: none; }
+.juke-score:hover, .juke-score:focus-visible { background: rgba(63, 174, 138, .36); border-color: #9fdcd0; filter: none; }
+.juke-score:focus-visible { outline: 2px solid #9fdcd0; outline-offset: 3px; }
 .jp-now { flex: 1 1 200px; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 10px; }
 .jp-now small { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
 .jp-kind { color: #f3dfb2; }

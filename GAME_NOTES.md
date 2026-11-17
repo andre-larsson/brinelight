@@ -1743,6 +1743,13 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Clearer Jukebox actions and debug runs counting by default (v0.48.0, 2026-11-17)
+
+- **The user's calls:** make the score link more prominent; rename the Gemini songs' Words button to Lyrics; default Cheats count as real runs to On when debug is enabled.
+- **Jukebox:** a teal outlined **Open score in Musicbox ↗** button sits beside the volume control on desktop and wraps above it on phones. Lyrics has the updated visible and accessible label; its page and Back behavior are unchanged. The score button retains the selected cue/depth's existing portable link. Screenshots at all four target sizes: `/tmp/brinelight-jukebox-layout-zpJ3Ao/`; no overflow or JS errors, and two complete track rows remain visible at 360×640.
+- **Debug:** `opts.count` defaults to true. Loading options overrides it only when a saved boolean exists, so an explicit Off choice still lasts across reloads. Skip fights still defaults to Off. The panel and README explain both states.
+- **Checks:** `npm test` (241 pass), build, desktop/phone audio UI scenarios (score links, Lyrics/Back/focus and the existing playback checks), and the debug UI scenario (new default, a default-counted god-mode cheat, saved Off surviving a reload, and the existing marked/counting run flows).
+
 ### A smaller Jukebox, hidden discoveries and Musicbox links (v0.47.0, 2026-11-17)
 
 - **The user:** investigate early unlocks, hiding locked titles/info, folders versus a long list, and links to Musicbox definitions; then implement the recommendations.

@@ -1545,7 +1545,6 @@
         <button class="jp-btn jp-main" data-act="jukepp" aria-label="${on ? 'Pause' : 'Play'}">${on ? ICON.pause : ICON.play}</button>
         <button class="jp-btn" data-act="jukenext" aria-label="Next">${ICON.next}</button>
         <button class="jp-btn jp-shuffle" data-act="jukeshuffle" aria-pressed="${!!prefs.jukeShuffle}" aria-label="Shuffle" title="Shuffle: ${prefs.jukeShuffle ? 'on' : 'off'}">${ICON.shuffle}</button>
-        ${jukeScoreLink(st)}
       </div>${st.song ? `<div class="juke-seek">
         <button class="btn small" data-act="jukeskip" data-by="-10" aria-label="Back 10 seconds">&minus;10 s</button>
         <input type="range" class="juke-pos" min="0" max="${Math.round(st.secs)}" step="1" value="${Math.floor(st.at)}" aria-label="Position in ${name}">
@@ -1554,13 +1553,13 @@
         ? `<option value="${i}"${st.depth === i ? ' selected' : ''}>${d}</option>` : '').join('')}</select></label>` : ''}`;
   }
   function jukeLinks(st) {
-    if (st.song && BL.LYRICS && BL.LYRICS[st.song]) return `<button class="btn small juke-words" data-act="jukewords" data-key="${st.song}" aria-label="Words of ${nowName('song:' + st.song)}">Words</button>`;
-    return '';
+    if (st.song && BL.LYRICS && BL.LYRICS[st.song]) return `<button class="btn small juke-words" data-act="jukewords" data-key="${st.song}" aria-label="Lyrics of ${nowName('song:' + st.song)}">Lyrics</button>`;
+    return jukeScoreLink(st);
   }
   function jukeScoreLink(st) {
     if (st.cue && jukeOpen('cue', st.cue) && jukeDepthOpen(st.depth)) {
       const links = BL.MUSIC_LINKS[st.cue];
-      if (links && links[st.depth]) return `<a class="juke-score" href="${links[st.depth]}" target="_blank" rel="noopener noreferrer" title="Open score in Musicbox (new tab)" aria-label="Open ${nowName('cue:' + st.cue)} in Musicbox (new tab)">Score <span aria-hidden="true">↗</span></a>`;
+      if (links && links[st.depth]) return `<a class="btn small juke-score" href="${links[st.depth]}" target="_blank" rel="noopener noreferrer" title="Open score in Musicbox (new tab)" aria-label="Open ${nowName('cue:' + st.cue)} in Musicbox (new tab)">Open score in Musicbox <span aria-hidden="true">↗</span></a>`;
     }
     return '';
   }
@@ -1607,7 +1606,7 @@
     ui.jukeSig = sig;
     if (focus) { const g = $(focus, overlayEl); if (g) g.focus({ preventScroll: true }); }
   }
-  // Back from words keeps the browsing filter and returns focus to Words in the player.
+  // Back from lyrics keeps the browsing filter and returns focus to Lyrics in the player.
   function showJukebox(fromWords) {
     const st = Sound.juke.state();
     const body = `<div class="juke-player" role="group" aria-label="Player"><div class="jp-top">${jukePlayer(st)}</div><div class="jp-bottom"><div class="jp-links">${jukeLinks(st)}</div>${jukeVolume()}</div></div><div class="juke-filters" role="group" aria-label="Filter tracks">${jukeFilters()}</div><div class="juke-list">${jukeList(st)}</div>`;

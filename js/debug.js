@@ -1,12 +1,12 @@
 /* Brinelight — debug and cheat mode, for testing.
    Turn it on with ?debug in the address (it stays on in this browser), and off with ?debug=0 or from
    the panel. When it's on, a DEBUG tab sits at the left edge, and the ` key opens the panel too.
-   Cheats that change a run mark it (run.cheated): such a run keeps no best score, opens no currents, opens
+   With Cheats count as real runs off, cheats mark a run (run.cheated): it keeps no best score, opens no currents, opens
    no story and puts nothing in the Lazaret. It still earns Salvage and achievements, so the Workshop can
    be tested; the panel can reset them.
    Two switches are kept for this browser (OPT_KEY), so they last from run to run:
    - skip: every fight is won the moment it starts, to walk through a whole expedition quickly;
-   - count: cheats do not mark the run, so a debug run opens currents, story and the Lazaret like a real one. */
+   - count (on by default): cheats do not mark the run, so it opens currents, story and the Lazaret like a real one. */
 (function () {
   'use strict';
   const KEY = 'brinelight.debug.v1';
@@ -19,8 +19,8 @@
   const B = () => window.Brinelight;
   const BL = window.BL;
   const OPT_KEY = 'brinelight.debugopts.v1';
-  const opts = { skip: false, count: false };
-  try { const o = JSON.parse(localStorage.getItem(OPT_KEY) || '{}'); opts.skip = !!o.skip; opts.count = !!o.count; } catch (e) { /* ignore */ }
+  const opts = { skip: false, count: true };
+  try { const o = JSON.parse(localStorage.getItem(OPT_KEY) || '{}'); opts.skip = !!o.skip; if (typeof o.count === 'boolean') opts.count = o.count; } catch (e) { /* ignore */ }
   const saveOpts = () => { try { localStorage.setItem(OPT_KEY, JSON.stringify(opts)); } catch (e) { /* ignore */ } };
 
   /* Achievements reached on purpose: the stat each one checks. Unlocked after the next won fight. */
@@ -68,7 +68,7 @@
       html += sec('This fight', btn('win', 'Win the fight') + btn('lose', 'Lose the fight') + btn('light', '+3 Light') + btn('draw', 'Draw 3') +
         '<span class="dbg-pair">Swell ' + [0, 1, 2, 3, 4, 5, 6].map((n) => btn('tide', String(n), ` data-n="${n}"`)).join('') + '</span>');
     }
-    return html + `<p class="dbg-note"><b>Skip fights</b> wins every fight the moment it starts. Cheats mark the run: it keeps no best score, opens no currents, opens no story and puts nothing in the Lazaret. Turn on <b>Cheats count as real runs</b> to switch that off. Press <span class="kbd">\`</span> to open this panel.</p>`;
+    return html + `<p class="dbg-note"><b>Skip fights</b> wins every fight the moment it starts. <b>Cheats count as real runs</b> is on by default. Turn it off to mark cheated runs: they keep no best score, open no currents or story, and put nothing in the Lazaret. Press <span class="kbd">\`</span> to open this panel.</p>`;
   }
 
   function open() {
