@@ -1743,6 +1743,29 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### From the Grok playtests: Spines, the Bell, Douse, a free Bail, the Crab and the Wild Peal (v0.42.0, 2026-11-17)
+
+- **The user's call:** build the agent's five suggestions from the Grok playtests of v0.41.0 (below), and "make such that each step away from 3 muffles [the Wild Peal]: Bail and Stir a bit. Full Strand/Crest muffles it on top of this. Make it fairer and harder."
+- **Built:**
+  - **Spines strike back at any damage the keeper deals** (`dealDamage`: `src === c.player` as well as attacks): Crests, a Strand's damage (Abyssal Pull, the Drowned Anchor), Spindrift, a Rite's wave, the Lantern Beam. Not Brine, Burst or the Powder Horn. A Grok run beat the Reefback Hulk by never attacking it (Crests and Spindrift only).
+  - **The Hermit's Bell takes a Crest** (`crest`): the wave hits its Ward first, then the bell shakes off what is left. Before, the Crest stripped all of it and hit in full, so 20 Ward did nothing against a Crest deck. A Strand still strips it all.
+  - **Doused lasts until a Crest or Strand** (`turnedSwell` clears it, with a "Lantern rekindled" float; `E.DOUSE_MAX` 2, so the Thing's arms can't take all the Light). The Glimmer Chain opens with Drink the Light (it started anywhere in its cycle). The spent-Light chip on Wren now shows only on a turn a Crest or Strand rekindled it; while Doused lasts its own chip shows.
+  - **A free Bail needs no Light** (`E.freeBail`, `E.canSwellAct(run, kind)`): a Bail into the turn's first Strand (or any Strand with the Glimmer Bulb) works at 0 Light, as the keyword always said. A Grok run was refused and took a bigger Toll.
+  - **The Brine Crab's Harden gives 6 Ward** (9): its Harden turn with a hand of Braces was a turn where nothing happened, the most repeated complaint across the playtests.
+  - **The Wild Peal** (`BL.PEAL` { dmg 40, quiet 20, step 8 }; the agent's numbers): 40, 8 less for each step the Swell is away from 3 when it rings, 20 less for each Crest or Strand that turn. Ignored at Swell 3: 40 (30 before). A Bail or Stir alone: 32 (30 before: it couldn't help). Swell 1 or 5: 24. One Crest or Strand: 20 (15 before); with a step away after it, 12. Two: 0, as before. Slip the Chain's Might adds 1 to each. It pushes against the Rocking Toll, which wants the Swell at 3: the Peal's turn wants it away. The note above the Swell bar: "Wild Peal 32: −8 a step off 3, −20 a Crest/Strand" (fits a 360 px phone).
+- **Measured** (bot that chooses, dress, 3000 seeds, `tools/measure-detail.js`):
+
+  | Row | Heart | Shallows' pin | Dark Water's share | Belfry's share | Heart-run turns | cards played |
+  |---|---|---|---|---|---|---|
+  | v0.41.0 | 1.7 | 27.6 | 21.5 | 28.7 | 62.0 | 179 |
+  | **v0.42.0** | **1.2** | 23.8 | 19.9 | 24.6 | 59.7 | 179 |
+  | v0.42.0 with the old Peal | 1.1 | 23.8 | 21.3 | 22.4 | 60.5 | 180 |
+  | v0.42.0 with Doused for one turn | 1.4 | 23.8 | 22.7 | 25.3 | 58.5 | 178 |
+  | v0.42.0 with Harden 9 | 1.2 | 23.5 | 20.3 | 24.5 | 59.7 | 179 |
+
+  For the bot the Shallows' pin falls 4 points (the Bell and Spines), Dark Water's share 1.6 (lasting Douse 2.8 harder, the Peal 1.4 harder, the free Bail some back), and fights are a little shorter. The Crab change is noise for the bot; it is for people.
+- **The tutorial's Bail in `npm run test:ui`:** under full load (4 Chromes) the first click on Bail after the blocked Jab is lost, although nothing covers Bail, the UI is idle and the game would take it (diagnosed this time: `busy` false, `Teach.allows` true, `canSwellAct` ok). A second click works. The test now clicks again and logs it. Open: whether a person can lose that click too (raise a card, Escape, click Bail).
+
 ### Harder without longer: toll bells and fewer upgraded rewards (v0.41.0, 2026-11-17)
 
 - **The user's ask:** "tune difficulty, making the game harder without making it longer, while preserving fun. Maybe we can add an unskippable landing with pure negative effects (but not sure about this, could be annoying), or less powerful end-of-battle rewards. Like you only get pearls from normal fights or something (though might be too harsh, and prevents deck-building)." Then: "you can let grok agent playtest as well".
@@ -2260,6 +2283,7 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - **Tutorial fight:** 16 steps = 6 Next taps + 8 card plays + 2 End Turns (24 taps on a phone). 253 words of bubble text. Estimated about 2 minutes (about 100 s reading at 180 wpm, 13 s tapping, 8 s animation).
 - **Time to the end of the first real fight:** about 1 minute without the tutorial, about 3 minutes with it.
 - **Readability:** rendered text below 12px over every screen at 1280x800, 390x844, 360x640 and 844x390: 161 elements before the interface pass, 1 after (a rotated card measured at 11.7px). In v0.32.0: 3, all the long rules text of a RITE card in the hand (11.3 to 11.9px). The hand's badges were 9.4px on a computer and 11px on a phone, but no screenshot showed one until v0.32.0, when the busy fight got a creature low enough for LETHAL.
+- **Bot run outcomes, v0.42.0, with the bot that chooses** (2026-11-17; 3000 seeds, dress, `tools/measure-detail.js`): the Shallows' pin 23.8%, Dark Water's after it 19.9%, the Belfry after that 24.6%, the Heart 1.2%. Heart runs: 59.7 combat turns and 179 cards played. See "From the Grok playtests".
 - **Bot run outcomes, v0.41.0, with the bot that chooses** (2026-11-17; 3000 seeds, dress, `tools/measure-detail.js`): the Shallows' pin 27.6%, Dark Water's after it 21.5%, the Belfry after that 28.7%, the Heart 1.7% (v0.40.0: 48.4, 38.0, 50.8, 9.3). Heart runs: 62 combat turns and 179 cards played (63 and 191). See "Harder without longer".
 - **Bot run outcomes, v0.40.0, with the bot that chooses** (2026-11-17; 1500 seeds, dress): the Shallows' pin 49.4%, Dark Water's after it 35.4%, the Belfry after that 48.9%, the Heart 8.5% (v0.39.0 on the same seeds: 46.4, 38.4, 43.1, 7.7). See "Playtest on v0.39.0".
 - **Bot run outcomes, v0.39.0, with the bot that chooses** (2026-11-16; 1000 seeds, dress): the Shallows' pin 46.7%, Dark Water's after it 38.1%, the Belfry after that 44.9%, the Heart 8.0%.
@@ -2472,6 +2496,7 @@ The user asked which is more fun next, a new keeper or a new intermediary level,
 
 ## Open questions for the next playtest
 
+- v0.42.0: The Wild Peal: does a Bail or Stir softening it feel fair, and does its pull away from 3 against the Toll's pull to 3 read? Is a lasting Douse fun or a slog? Does the Hulk feel different now that Crests set off its Spines?
 - v0.41.0: Is the game harder now, and still fun? Do the toll bells feel like a decision (HP, Pearls or a Barnacle) or an annoyance? Does a level with one stop fewer feel thin, or tighter?
 - v0.41.0: Do you miss upgraded reward cards?
 - v0.40.0: With Light from the first Strand only and Abyssal Pull not stacking, can you still chain Strands, and does it feel too tight? Is the game still too easy (for the bot it is even with v0.39.0; the combo deck lost 20 points)?

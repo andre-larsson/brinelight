@@ -5,8 +5,16 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.41.0';
+  BL.VERSION = '0.42.0';
   BL.CHANGELOG = [
+    { v: '0.42.0', date: '2026-11-17', items: [
+      'Spines strike back at more than attacks: your Crests, the damage your Strands deal and your Rites set them off too. The Reefback Hulk can no longer be beaten by never attacking it.',
+      'The Harbour Hermit\'s Bell: a Crest\'s wave hits its Ward first, then rings the bell and shakes off what Ward is left. Before, the Crest knocked all the Ward off and then hit it in full. A Strand still shakes off all of it.',
+      'Doused lasts until you Crest or Strand: you start every turn with that much less Light until the water swings hard enough to rekindle your lantern. It takes 2 Light at most. Before, it lasted one turn. The Glimmer Chain opens with Drink the Light.',
+      'A Bail that makes your first Strand of the turn works even with no Light left: the Strand\'s Light pays for it, as its words always said.',
+      'The Wild Peal is fairer and harder: 40 damage, 8 less for each step your Swell is away from 3 when it rings, and 20 less for each Crest or Strand you make that turn. A Bail or a Stir always softens it now; two Crests or Strands still silence it. Before: 30, and 15 less for each Crest or Strand, so a hand that could make neither took all of it.',
+      'The Brine Crab\'s Harden gives it 6 Ward, not 9: with four Braces in a starting deck, its Harden turn was a turn where nothing happened.',
+    ] },
     { v: '0.41.0', date: '2026-11-17', items: [
       'Toll bells: on every route through the Shallows and Dark Water, the landing after the Wreck is a lost bell hung across the way, and nobody passes for free. Pay 8 HP, 30 Pearls, or take a Barnacle Growth into your deck. Dark Water\'s ask 10 HP or 40 Pearls. The toll takes the place of a landing of stops, so the game is harder without getting longer.',
       'Reward cards come already upgraded half as often: 7.5% of them, and 1% more for each landing (before, 15% and 2%).',

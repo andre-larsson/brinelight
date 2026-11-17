@@ -40,6 +40,37 @@ test('a Bail that makes a Strand is free: it costs 1 Light and the Strand gives 
   assert.match(BL.KEYWORDS.Bail, /is free/);
 });
 
+test('a free Bail needs no Light: with none left, a Bail into the turn\'s first Strand still works; not into a later Strand, not short of one', () => {
+  let { run, c } = fight(['kelp']);
+  c.tide = 1;
+  c.light = 0;
+  assert.equal(E.canSwellAct(run).reason, 'Not enough Light', 'Stir still needs it');
+  assert.equal(E.canSwellAct(run, 'stir').reason, 'Not enough Light');
+  assert.deepEqual(E.canSwellAct(run, 'bail'), { ok: true });
+  assert.ok(E.swellAct(run, 'bail'));
+  assert.equal(c.turnLows, 1);
+  assert.equal(c.light, 0, 'the Strand\'s Light paid for it');
+  // a Bail that only moves the Swell needs its Light
+  ({ run, c } = fight(['kelp']));
+  c.tide = 2;
+  c.light = 0;
+  assert.equal(E.canSwellAct(run, 'bail').reason, 'Not enough Light');
+  // a second Strand gives no Light back, so it isn't free
+  ({ run, c } = fight(['kelp']));
+  c.tide = 1;
+  c.light = 0;
+  c.turnLows = 1;
+  assert.equal(E.canSwellAct(run, 'bail').reason, 'Not enough Light');
+  // with the Glimmer Bulb every Strand gives Light back
+  run.keepsakes.push('bulb');
+  assert.ok(E.canSwellAct(run, 'bail').ok);
+  assert.match(BL.KEYWORDS.Bail, /even with no Light left/);
+});
+
+test('the Brine Crab\'s Harden gives it 6 Ward (9 until v0.41.0)', () => {
+  assert.equal(BL.ENEMIES.crab.moves.harden.ward, 6);
+});
+
 test('the Pale Gulper shows Full Belly until a blow brings it to half, then Retches and loses it', () => {
   const { run, c } = fight(['gulper']);
   const g = c.enemies[0];

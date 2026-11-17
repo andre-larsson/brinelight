@@ -28,7 +28,7 @@ const quiet = (c) => E.alive(c).forEach((e) => { e.intent = 'none'; });
 const safe = (run) => { run.hp = run.maxHp = 999; };
 
 /* ---------- The Shallows' pin ---------- */
-test('the Harbour Hermit: In its Bell, its Ward stays from turn to turn, and a Crest or a Strand shakes it all out', () => {
+test('the Harbour Hermit: In its Bell, its Ward stays from turn to turn; a Crest\'s wave hits the Ward, then shakes off the rest, and a Strand shakes it all out', () => {
   assert.deepEqual(BL.BANDS.shallows.enc.boss, [['harbour']]);
   let { run, c } = fight(['harbour'], { kind: 'boss', level: 0 });
   safe(run);
@@ -40,17 +40,29 @@ test('the Harbour Hermit: In its Bell, its Ward stays from turn to turn, and a C
   assert.equal(h.ward, 20);
   E.endTurn(run); // Pinch: its Ward does not wash away
   assert.equal(h.ward, 20);
-  // a Crest knocks it out of the bell before the wave lands, so the wave hits its HP
+  // a Crest's wave hits the Ward first (v0.41.0), then the bell rings and the rest of the Ward is shaken off
   c.tide = 5;
-  give(run, 'stormsurge');
   c.light = 3;
   const hp = h.hp;
-  play(run, 'stormsurge');
+  E.swellAct(run, 'stir');
   const crest = c.fx.find((f) => f.t === 'crest');
-  assert.deepEqual(crest.stripped, [{ who: h.uid, n: 20 }]);
+  assert.ok(crest.n > 0 && crest.n < 20);
+  assert.deepEqual(crest.stripped, [{ who: h.uid, n: 20 - crest.n }]);
   assert.equal(h.ward, 0);
-  assert.equal(h.hp, hp - c.fx.filter((f) => f.t === 'crest').reduce((a, f) => a + f.n, 0), 'every wave hits its HP');
-  // a Strand strips it too
+  assert.equal(h.hp, hp, 'the Ward took the whole wave');
+  // a wave bigger than its Ward: the rest hits its HP
+  ({ run, c } = fight(['harbour'], { kind: 'boss', level: 0 }));
+  const h2 = c.enemies[0];
+  h2.ward = 5;
+  c.tide = 5;
+  c.light = 3;
+  const hp2 = h2.hp;
+  E.swellAct(run, 'stir');
+  const w = c.fx.find((f) => f.t === 'crest').n;
+  assert.ok(w > 5);
+  assert.equal(h2.hp, hp2 - (w - 5));
+  assert.equal(h2.ward, 0);
+  // a Strand strips it all
   ({ run, c } = fight(['harbour'], { kind: 'boss', level: 0 }));
   c.enemies[0].ward = 20;
   c.tide = 1;
@@ -244,6 +256,8 @@ test('the Thing in the Bell drinks from your lantern through its arms, opens its
   E.endTurn(run);
   assert.equal(c.light, c.maxLight - 2, 'Doused 1 for each arm');
   assert.equal(c.dousedTurn, c.turn);
+  assert.equal(c.player.st.doused, 2, 'it lasts until a Crest or Strand');
+  delete c.player.st.doused; // as a Crest or Strand would
   // the eye opens: Soaked 2 on itself, and 8 Ward
   assert.equal(t.intent, 'eye');
   quiet(c);
@@ -260,6 +274,7 @@ test('the Thing in the Bell drinks from your lantern through its arms, opens its
   t.intent = 'drink';
   E.endTurn(run);
   assert.equal(c.light, c.maxLight - 1);
+  delete c.player.st.doused;
   quiet(c);
   t.intent = 'reach';
   E.endTurn(run);

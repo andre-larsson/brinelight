@@ -85,8 +85,8 @@ function chooseCombatAction(run) {
 function chooseSwellAct(run, endOfTurn, opts = {}) {
   const { E } = load();
   const c = run.combat;
+  if (c.tide === 1 && E.canSwellAct(run, 'bail').ok) return 'bail'; // free into the turn's first Strand, even at 0 Light
   if (!E.canSwellAct(run).ok) return null;
-  if (c.tide === 1) return 'bail';
   const reach = Math.min(E.swellActsPerTurn(run) - E.swellActsUsed(c), Math.floor(c.light / E.SWELL_ACT_COST));
   if (!endOfTurn) {
     if (opts.lateSwellOnly) return null;

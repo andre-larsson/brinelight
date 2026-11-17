@@ -933,7 +933,7 @@
         <li><b>Crest</b> at 6: 6 damage to <b>every</b> enemy. Ward blocks it, as it blocks any hit. <b>Strand</b> at 0: every enemy loses its Ward, and your first Strand each turn gives you 1 Light. Either way the Swell resets to 3. So a Strand first, then a Crest, hits hardest.</li>
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Only the first Strand of a turn gives Light; later ones still strip Ward. Save Surge for one big turn.</li>
-        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes your first Strand of the turn is free: that Strand's 1 Light pays it back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
+        <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes your first Strand of the turn is free, even with no Light left: that Strand's 1 Light pays it back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
         <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn, or Ward instead of a card.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST&times;2</span> means that card makes two Crests.</li>
       </ul>`;
@@ -2002,9 +2002,11 @@
   }
   const NO_COUNT = ['submerged', 'shell', 'belled', 'echo', 'fullbelly']; // statuses that are on or off, with no number
   /* What was taken from Wren at the start of this turn: [status, amount] for Doused (Light) and Breathless (cards). */
-  const spentNow = (c) => [['doused', c.dousedTurn === c.turn ? c.dousedN || 0 : -1], ['breathless', c.breathlessTurn === c.turn ? c.breathlessN || 0 : -1]].filter((x) => x[1] >= 0);
+  // (Doused lasts until a Crest or Strand since v0.41.0: while it lasts its own chip shows, so this one only stays for a
+  // turn whose Light it took before a Crest or Strand rekindled the lantern)
+  const spentNow = (c) => [['doused', c.dousedTurn === c.turn && !c.player.st.doused ? c.dousedN || 0 : -1], ['breathless', c.breathlessTurn === c.turn ? c.breathlessN || 0 : -1]].filter((x) => x[1] >= 0);
   const spentTip = (k, n) => (k === 'doused'
-    ? `<b>Doused</b><br>Something drank from your lantern: you started this turn with ${n ? `<b>${n}</b> ` : ''}less Light. It is over when the turn ends. An enemy's intent warns you a turn before.`
+    ? `<b>Doused</b><br>Something drank from your lantern: you started this turn with ${n ? `<b>${n}</b> ` : ''}less Light. Your Crest or Strand has rekindled it.`
     : `<b>Breathless</b><br>Something squeezed the air out of your diving dress: you drew ${n ? `<b>${n}</b> ` : ''}fewer card${n === 1 ? '' : 's'} this turn. It is over when the turn ends. An enemy's intent warns you a turn before.`);
   function statusesHTML(o, who) {
     const c = run.combat;
@@ -2193,15 +2195,15 @@
     if (!hint && swellHit && c.phase === 'player') {
       hint = `<div class="tb-hint note">${ICON.slot_bell}<span>${swellHit.swell === 'mid'
         ? (swellHit.dmg > swellHit.calm ? `${swellHit.name} <b>${swellHit.dmg}</b>: only <b>${swellHit.calm}</b> at Swell 3` : `${swellHit.name} <b>${swellHit.dmg}</b>: weakest here, at Swell 3`)
-        : `${swellHit.name} <b>${swellHit.dmg}</b>: &minus;${BL.PEAL.quiet} for each Crest or Strand this turn`}</span></div>`;
+        : `${swellHit.name} <b>${swellHit.dmg}</b>: &minus;${BL.PEAL.step} a step off 3, &minus;${BL.PEAL.quiet} a Crest/Strand`}</span></div>`;
     }
     tb.setAttribute('aria-label', `Swell ${c.tide} of 6`);
     // Bail and Stir: once a turn, 1 Light for one step toward Strand or Crest, without a card
-    const can = E.canSwellAct(run);
     const per = E.swellActsPerTurn(run);
     const used = E.swellActsUsed(c) >= per;
     const actBtn = (kind, arrow) => {
       const a = E.SWELL_ACTS[kind];
+      const can = E.canSwellAct(run, kind); // a Bail into the turn's first Strand needs no Light
       const off = !can.ok || ui.busy;
       return `<button class="tb-act ${kind}${used ? ' used' : ''}" data-act="swellact" data-kind="${kind}" data-tip="kw:${a.name}"${off ? ' aria-disabled="true"' : ''}
         aria-label="${a.name}: spend 1 Light to ${a.ebb ? 'Ebb' : 'Surge'} 1. ${per > 1 ? 'Twice a turn with the Bailer' : 'Once a turn'}, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>1</i>${kind === 'stir' ? arrow : ''}</button>`;
@@ -2541,7 +2543,7 @@
       const ok = Teach.allows('swellact', kind);
       if (ok !== true) { if (!Teach.nudge(ok)) toast(ok); return; }
     }
-    const can = E.canSwellAct(run);
+    const can = E.canSwellAct(run, kind);
     if (!can.ok) { toast(can.reason); return; }
     deselect();
     if (!E.swellAct(run, kind)) return;
@@ -3025,6 +3027,7 @@
         case 'line': { const el = unitEl('p'); floatAt(el, `The line holds: ${f.n} HP`, 'status buff'); anim(el, 'gain', 700); toast(`Your ${BL.KIT.line.name} holds. You are left with ${f.n} HP. It holds only once an expedition.`, 4200); sfx('buff'); await wait(400); break; }
         // Dark Water
         case 'doused': { const o = $('#orb'); anim(o, 'doused', 900); floatAt(o, `-${f.n} Light: doused`, 'status debuff'); sfx('douse'); break; }
+        case 'relit': { const o = $('#orb'); anim(o, 'gain', 700); floatAt(o, 'Lantern rekindled', 'light-gain'); break; }
         case 'submerge': { const el = unitEl(f.who); floatAt(el, 'Submerged', 'status buff'); sfx('submerge', { pan: panOf(el) }); await wait(200); break; }
         case 'swallow': { const el = unitEl(f.who); floatAt(el, `Swallowed ${f.name}`, 'status debuff'); anim($('#pile-discard'), 'pulse', 500); toast(`It swallowed your ${f.name}. Kill it to get the card back.`); sfx('debuff'); await wait(300); break; }
         case 'disgorge': toast(`Back in your discard pile: ${f.names.join(', ')}`); anim($('#pile-discard'), 'pulse', 500); break;

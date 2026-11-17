@@ -414,6 +414,42 @@ test('Spines deal damage back to attackers', () => {
   assert.equal(run.hp, 70 - 2 - 6, 'once per hit');
 });
 
+test('Spines strike back at a Crest, a Strand\'s damage and a Rite\'s too, not only at attacks; not at Brine', () => {
+  // a Crest
+  let { run, c } = fight(['hulk'], { kind: 'elite' });
+  tough(c);
+  c.tide = 5;
+  c.light = 3;
+  E.swellAct(run, 'stir');
+  assert.equal(c.turnCrests, 1);
+  assert.equal(run.hp, 70 - 2, 'the wave set off the Spines');
+  // Abyssal Pull's damage on a Strand
+  ({ run, c } = fight(['hulk'], { kind: 'elite' }));
+  tough(c);
+  c.player.st.r_abyss = 4;
+  c.tide = 1;
+  c.light = 3;
+  E.swellAct(run, 'bail');
+  assert.equal(run.hp, 70 - 2);
+  // Spindrift's spray
+  ({ run, c } = fight(['hulk'], { kind: 'elite' }));
+  tough(c);
+  c.player.st.r_spindrift = 3;
+  c.tide = 3;
+  c.light = 3;
+  E.swellAct(run, 'stir');
+  assert.equal(run.hp, 70 - 2);
+  // Brine ticking on it is not a hit from the keeper
+  ({ run, c } = fight(['hulk'], { kind: 'elite' }));
+  tough(c);
+  c.enemies[0].st.brine = 5;
+  c.enemies[0].intent = 'none';
+  const hp = run.hp;
+  E.endTurn(run);
+  assert.equal(run.hp, hp);
+  assert.match(BL.KEYWORDS.Spines, /Crests/);
+});
+
 test('Soaked: takes 50% more damage from attacks and Crests', () => {
   const { run, c } = fight(['kelp'], { hand: ['jab', 'swell'], keepsakes: [] });
   tough(c);

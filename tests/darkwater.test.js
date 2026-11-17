@@ -174,19 +174,40 @@ test('Lamp Hermit: Shell keeps its Ward from turn to turn, and a Strand strips i
   assert.equal(h.ward, 0);
 });
 
-test('Glimmer Chain: Drink the Light douses your lantern, and you start your next turn with 1 less Light', () => {
+test('Glimmer Chain opens with Drink the Light: Doused, you start each turn with 1 less Light until you Crest or Strand (2 at most)', () => {
   const { run, c } = fight(['chain']);
   tough(c);
   const ch = c.enemies[0];
-  ch.intent = 'douse';
-  assert.match(E.intentInfo(run, ch).parts.join('. '), /Douse your lantern: 1 less Light next turn/);
+  assert.equal(ch.intent, 'douse', 'it opens by drinking');
+  assert.match(E.intentInfo(run, ch).parts.join('. '), /Douse your lantern: 1 less Light each turn until you Crest or Strand/);
   E.endTurn(run);
   assert.equal(c.light, 2);
-  assert.ok(!c.player.st.doused, 'used up at the start of the turn');
+  assert.equal(c.player.st.doused, 1, 'it stays');
   assert.equal(c.dousedTurn, c.turn);
   ch.intent = 'lash';
   E.endTurn(run);
-  assert.equal(c.light, 3, 'back to full the turn after');
+  assert.equal(c.light, 2, 'still doused the turn after');
+  // two more drinks: it can't take more than 2
+  ch.intent = 'douse';
+  E.endTurn(run);
+  ch.intent = 'douse';
+  E.endTurn(run);
+  assert.equal(c.player.st.doused, E.DOUSE_MAX);
+  assert.equal(E.DOUSE_MAX, 2);
+  assert.equal(c.light, 1);
+  // a Strand rekindles it: from the next turn the Light is full again
+  c.tide = 1;
+  E.swellAct(run, 'bail');
+  assert.ok(!c.player.st.doused);
+  ch.intent = 'lash';
+  E.endTurn(run);
+  assert.equal(c.light, 3, 'rekindled');
+  // and a Crest does too
+  c.player.st.doused = 1;
+  c.tide = 5;
+  c.light = 3;
+  E.swellAct(run, 'stir');
+  assert.ok(!c.player.st.doused);
   // two douses stack, and the Storm Bottle's extra Light still counts
   c.player.st.doused = 2;
   run.keepsakes = ['stormbottle'];
@@ -307,32 +328,46 @@ test('The Tolling Buoy: at two thirds of its health it slips its chain (15 Ward,
   assert.equal(E.canGoDeeper(run), false);
 });
 
-test('The Wild Peal hits for 30, and each Crest or Strand you make that turn muffles it by 15; two of them and it does not hit at all', () => {
-  assert.deepEqual(BL.PEAL, { dmg: 30, quiet: 15 });
-  const { run, c } = fight(['buoy'], { kind: 'boss', hand: ['jab', 'jab', 'jab'] });
+test('The Wild Peal hits for 40: 8 less for each step the Swell is away from 3 when it rings, and 20 less for each Crest or Strand you make that turn; two of them and it does not hit at all', () => {
+  assert.deepEqual(BL.PEAL, { dmg: 40, quiet: 20, step: 8 });
+  const { run, c } = fight(['buoy'], { kind: 'boss', hand: ['jab', 'jab', 'jab', 'slack'] });
   const b = c.enemies[0];
   b.hp = b.maxHp = 500;
   b.mem.free = true;
   b.intent = 'peal';
   delete b.st.might;
   const shown = () => E.intentInfo(run, b).dmg;
-  assert.equal(shown(), 30);
+  assert.equal(shown(), 40, 'ignored, at Swell 3');
   c.light = 9;
-  c.tide = 1;
+  // a Bail alone, a step from 3: always some help
   E.swellAct(run, 'bail');
-  assert.equal(shown(), 15, 'one Strand: 30 - 15');
-  play(run, 'jab', b); // no wave
-  assert.equal(shown(), 15);
-  // one wave: it hits for 15
+  assert.equal(c.tide, 2);
+  assert.equal(shown(), 32);
+  c.tide = 1;
+  assert.equal(shown(), 24, 'two steps from 3');
+  c.tide = 5;
+  assert.equal(shown(), 24, 'either side');
+  // a Strand: 20 less, and the Swell is back at 3
+  c.tide = 1;
+  c.swellActTurn = null;
+  E.swellAct(run, 'bail');
+  assert.equal(c.turnLows, 1);
+  assert.equal(c.tide, 3);
+  assert.equal(shown(), 20);
+  // a Strand, then a step away again: 12
+  c.tide = 4;
+  assert.equal(shown(), 12);
   const mid = JSON.parse(JSON.stringify(run));
   mid.combat.player.ward = 0;
+  const hp0 = mid.hp;
   E.endTurn(mid);
-  assert.equal(run.hp - mid.hp, 15);
+  assert.equal(hp0 - mid.hp, 12, 'it hits for what it showed');
+  // a Strand and a Crest: silenced
   c.swellActTurn = null;
   c.tide = 5;
   E.swellAct(run, 'stir');
   assert.equal(c.turnCrests + c.turnLows, 2);
-  assert.equal(shown(), 0, 'a Strand and a Crest: 30 - 30');
+  assert.equal(shown(), 0, '40 - 20 - 20');
   const hp = run.hp;
   c.player.ward = 0;
   E.endTurn(run);

@@ -119,7 +119,7 @@ function showCombat(run) {
   say('', `FIGHT (${c.kind}), turn ${c.turn}. Light ${c.light}/${c.maxLight}. Swell ${c.tide} (0 = Strand, 6 = Crest). Draw pile ${c.draw.length}, discard ${c.discard.length}${c.sunk.length ? `, sunk ${c.sunk.length}` : ''}.`);
   const sw = E.canSwellAct(run);
   say(`You: ${run.hp}/${run.maxHp} HP${c.player.ward ? `, Ward ${c.player.ward}` : ''}${statusLine(c.player) ? '. ' + statusLine(c.player) : ''}${c.echo ? `. Echo ${c.echo}: your next card is played twice` : ''}.`);
-  say(`Bail/Stir (1 Light: Ebb 1 / Surge 1): ${sw.ok ? 'available' : sw.reason}.`);
+  say(`Bail/Stir (1 Light: Ebb 1 / Surge 1): ${sw.ok ? 'available' : sw.reason}${!sw.ok && E.canSwellAct(run, 'bail').ok ? ', but a Bail is free now: it makes your first Strand' : ''}.`);
   say('', 'Enemies:');
   const tg = E.targets(c);
   c.enemies.forEach((e) => {
@@ -440,7 +440,7 @@ function act(run, cmd, args) {
       return true;
     }
     if (cmd === 'end') { E.endTurn(run); afterCombatStep(run); return true; }
-    if (cmd === 'bail' || cmd === 'stir') { const w = E.canSwellAct(run); if (!w.ok) return no(w.reason); if (!E.swellAct(run, cmd)) return no('not now.'); afterCombatStep(run); return true; }
+    if (cmd === 'bail' || cmd === 'stir') { const w = E.canSwellAct(run, cmd); if (!w.ok) return no(w.reason); if (!E.swellAct(run, cmd)) return no('not now.'); afterCombatStep(run); return true; }
     if (cmd === 'tonic') {
       const slot = num(args[0]);
       if (!run.tonics[slot]) return no('no tonic in that slot.');

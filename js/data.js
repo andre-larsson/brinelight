@@ -341,10 +341,10 @@
     Float: 'Stays in your hand at the end of your turn.',
     Rite: 'Rites stay in effect for the rest of the fight once played.',
     Echo: 'Your next card is played twice. On a creature: its next move happens twice.',
-    Bail: 'Once a turn, without a card: spend 1 Light to Ebb 1. A Bail that makes your first Strand of the turn is free: that Strand\'s 1 Light pays it back. Bail or Stir, not both.',
+    Bail: 'Once a turn, without a card: spend 1 Light to Ebb 1. A Bail that makes your first Strand of the turn is free, even with no Light left: that Strand\'s 1 Light pays it back. Bail or Stir, not both.',
     Stir: 'Once a turn, without a card: spend 1 Light to Surge 1. Bail or Stir, not both.',
     Might: 'Each hit of an attack deals that much more damage.',
-    Spines: 'Whenever you are attacked, deal that much damage back.',
+    Spines: 'Whatever hits it takes that much damage back: an attack, and also your Crests, Strands and Rites.',
     Soaked: 'Takes 50% more damage from attacks and Crests. Wears off by 1 each turn.',
     Chilled: 'Deals 25% less attack damage. Wears off by 1 each turn.',
     Brine: 'Loses that much HP at the start of its turn, then Brine drops by 1.',
@@ -353,7 +353,7 @@
     Hold: 'How much Roil the aether around you holds while it stays Calm. The lantern in the Workshop raises it for good.',
     Seep: 'Seawater shed by a Roiled aether: an unplayable card shuffled into your draw pile at the start of each fight. It is gone after the fight.',
     Thrash: 'A Roiled aether thrashes, and it strikes you through a fight. Thrash 1: at the start of each of your turns, take 1 damage. Ward you still have from the turn before stops it.',
-    Doused: 'Something drank from your lantern: you start your next turn with that much less Light.',
+    Doused: 'Something drank from your lantern: you start each turn with that much less Light, until you Crest or Strand.',
     Submerged: 'Sunk out of reach until it next acts. You cannot target it, and attacks cannot reach it, but Crests and other waves still hit it. A Strand brings it up.',
     Shell: 'Its Ward does not wash away from turn to turn. A Strand still strips it.',
     Breathless: 'Something squeezed the air out of your suit: you draw that many fewer cards at the start of your next turn.',
@@ -367,7 +367,7 @@
    * ------------------------------------------------------------------ */
   BL.STATUSES = {
     might: { name: 'Might', kind: 'buff', icon: 'might', desc: (n) => `Attacks deal +${n} damage per hit.` },
-    spines: { name: 'Spines', kind: 'buff', icon: 'spines', desc: (n) => `When attacked, deals ${n} damage back.` },
+    spines: { name: 'Spines', kind: 'buff', icon: 'spines', desc: (n) => `Whatever hits it takes ${n} damage back: an attack, and also your Crests, Strands and Rites.` },
     soaked: { name: 'Soaked', kind: 'debuff', icon: 'soaked', desc: (n) => `Takes 50% more damage from attacks and Crests for ${n} more turn${n > 1 ? 's' : ''}.` },
     chilled: { name: 'Chilled', kind: 'debuff', icon: 'chilled', desc: (n) => `Deals 25% less attack damage for ${n} more turn${n > 1 ? 's' : ''}.` },
     brine: { name: 'Brine', kind: 'debuff', icon: 'brine', desc: (n) => `Loses ${n} HP at the start of its turn, then Brine drops by 1.` },
@@ -379,13 +379,13 @@
     r_beam: { name: 'Lighthouse Beam', kind: 'rite', icon: 'beam', desc: (n) => `At the end of your turn, deal ${n} damage per Swell to a random enemy.` },
     grief: { name: 'Twin Bond', kind: 'buff', icon: 'bond', desc: () => `When its twin dies, it gains 4 Might.` },
     // Dark Water
-    doused: { name: 'Doused', kind: 'debuff', icon: 'doused', desc: (n) => `Your lantern is doused: you start your next turn with ${n} less Light.` },
+    doused: { name: 'Doused', kind: 'debuff', icon: 'doused', desc: (n) => `Your lantern is doused: you start each turn with ${n} less Light, until you Crest or Strand.` },
     submerged: { name: 'Submerged', kind: 'buff', icon: 'submerged', desc: () => 'Sunk out of reach until it acts. You cannot target it, and attacks cannot reach it. Crests and other waves still hit it, and a Strand brings it up.' },
     shell: { name: 'Shell', kind: 'buff', icon: 'shell', desc: () => 'Its Ward does not wash away from turn to turn. A Strand still strips it.' },
     fullbelly: { name: 'Full Belly', kind: 'buff', icon: 'swallowed', desc: () => 'Two Glimmer Leeches are alive in its belly. The moment a blow brings it to half its HP or below, it Retches them up, out of turn, with any cards it swallowed. They act this turn.' },
     swallowed: { name: 'Swallowed', kind: 'buff', icon: 'swallowed', desc: (n) => `It has swallowed ${n} of your card${n > 1 ? 's' : ''}. They come back to your discard pile when it dies.` },
     // the Shallows' pin
-    belled: { name: 'In its Bell', kind: 'buff', icon: 'boss', desc: () => 'Its Ward does not wash away from turn to turn. Each Crest or Strand rings the bell around it and shakes off all its Ward, but it stays in its bell.' },
+    belled: { name: 'In its Bell', kind: 'buff', icon: 'boss', desc: () => 'Its Ward does not wash away from turn to turn. A Crest\'s wave hits its Ward first, then rings the bell and shakes off the rest. A Strand shakes off all of it. It stays in its bell.' },
     // the Belfry
     echo: { name: 'Echo', kind: 'buff', icon: 'echo', desc: () => 'Its next move happens twice.' },
     burst: { name: 'Burst', kind: 'buff', icon: 'burst', desc: (n) => `When it dies, it bursts: ${n} damage to you and to every other creature. Your Ward stops it.` },
@@ -434,8 +434,11 @@
      health (at once, out of turn, since v0.36.0; before, it was its next move, and it could die first). */
   BL.DREAD_CALL = 1 / 2;
   BL.SWARM = 2; // a Glimmer Leech's Latch: this much harder for each other Leech in the fight (v0.39.0)
-  /* The Tolling Buoy's Wild Peal: this much damage, less this much for each Crest or Strand you make that turn. */
-  BL.PEAL = { dmg: 30, quiet: 15 };
+  /* The Tolling Buoy's Wild Peal: this much damage, less `step` for each step the Swell is away from 3 when it rings, and
+     less `quiet` for each Crest or Strand you make that turn. v0.41.0 (the user: "each step away from 3 muffles ... Full
+     Strand/Crest muffles it on top of this. Make it fairer and harder"): a Bail or a Stir always helps a little, and ignoring
+     it costs more. Until then 30, less 15 a Crest or Strand, and a hand that could neither ate all of it. */
+  BL.PEAL = { dmg: 40, quiet: 20, step: 8 };
   /* A Glimmer Bladder's burst when it dies: this much damage to the keeper and to every other creature. */
   BL.BURST = 8;
   /* When the Bellwether's bronze breaks, the Lantern Heart's light pours out: the keeper heals this share of her
@@ -458,7 +461,7 @@
       init: (e, R) => { e.mem.offset = R.int(0, 2); },
       moves: {
         snap: { name: 'Snap', dmg: 8 },
-        harden: { name: 'Harden', ward: 9, dmg: 3 },
+        harden: { name: 'Harden', ward: 6, dmg: 3 }, // 9 Ward until v0.41.0: with four Braces, a turn where nothing happened
         pinch: { name: 'Pinch', dmg: 4, hits: 2 },
       },
       ai: cycleFrom(['snap', 'harden', 'pinch']),
@@ -634,13 +637,13 @@
     },
     chain: {
       name: 'Glimmer Chain', hp: [74, 78], art: 'chain', scale: 1.25, elite: true,
-      init: (e, R) => { e.mem.offset = R.int(0, 2); },
       moves: {
         lash: { name: 'Lash', dmg: 6, hits: 2 },
         douse: { name: 'Drink the Light', dmg: 8, debuff: { doused: 1 } },
         glut: { name: 'Glut', buff: { might: 2 }, ward: 10 },
       },
-      ai: cycleFrom(['lash', 'douse', 'glut']),
+      // it opens by drinking from the lantern (v0.41.0; it started anywhere in its cycle, so the drink often came too late to matter)
+      ai: cycleFrom(['douse', 'lash', 'glut']),
     },
     gulper: {
       name: 'Pale Gulper', hp: [62, 66], art: 'gulper', scale: 1.2, elite: true,
@@ -682,8 +685,8 @@
         // at two thirds of its health its chain snaps: it swings free, and with no chain left to haul it rings wild
         slip: { name: 'Slip the Chain', ward: 15, buff: { might: 1 }, phase: 'The Chain Snaps!' },
         // a wave smothers a bell and a Strand grounds it: each Crest or Strand you make this turn muffles the Peal
-        peal: { name: 'Wild Peal', dmg: (e, c) => Math.max(0, BL.PEAL.dmg - BL.PEAL.quiet * ((c && (c.turnCrests + c.turnLows)) || 0)),
-          swell: 'ends', tip: `Each Crest or Strand you make this turn muffles it by ${BL.PEAL.quiet}` },
+        peal: { name: 'Wild Peal', dmg: (e, c) => Math.max(0, BL.PEAL.dmg - BL.PEAL.step * Math.abs(((c && c.tide) == null ? 3 : c.tide) - 3) - BL.PEAL.quiet * ((c && (c.turnCrests + c.turnLows)) || 0)),
+          swell: 'ends', tip: `${BL.PEAL.step} softer for each step your Swell is away from 3 when it rings, and ${BL.PEAL.quiet} softer for each Crest or Strand you make this turn` },
       },
       ai: (e) => {
         if (!e.mem.free && e.hp <= e.maxHp * BL.PIN_CALL) { e.mem.free = true; e.mem.step = 0; return 'slip'; }
@@ -1395,7 +1398,7 @@
         text: 'A hundred years under the sea have changed the bell. Coral and weed grow on its bronze, and something with one eye and many arms has grown into it. When the bronze cracks, a shoal of Bell Minnows comes to its call.' },
       // Dark Water
       { id: 'lighteaters', title: 'What eats the light', when: 'en:leech', lock: 'Found in Dark Water.', art: 'units/leech',
-        text: 'Below the Shallows the water has been held still for a hundred years. The brinelight that soaks into it has no tide to carry it away, so it gathers, and things have learned to live on it. Leeches, pale stalks and long glowing chains all shine with what they have eaten. They all turn toward an open flame. A keeper\'s lantern is the brightest thing they have ever seen. When one drinks from it, you start your next turn with less Light: you are Doused.' },
+        text: 'Below the Shallows the water has been held still for a hundred years. The brinelight that soaks into it has no tide to carry it away, so it gathers, and things have learned to live on it. Leeches, pale stalks and long glowing chains all shine with what they have eaten. They all turn toward an open flame. A keeper\'s lantern is the brightest thing they have ever seen. When one drinks from it, you start each turn with less Light until the water swings hard enough to fan the flame again, at a Crest or a Strand: you are Doused.' },
       { id: 'hermit', title: 'Lamp Hermits', when: 'en:hermit', lock: 'Found in Dark Water.', art: 'units/hermit',
         text: 'Keepers carried lanterns down the stair, and not all of them came back up. The hermit crabs of Dark Water grew too big for whelk shells long ago. They live in the keepers\' lanterns now, and they keep their Ward from turn to turn the way the lanterns kept their glass. A Strand still strips it.' },
       { id: 'strider', title: 'The Garden Strider', when: 'en:strider', lock: 'Found at a Dread in Dark Water.', art: 'units/strider',

@@ -954,8 +954,9 @@
     }
     if (!isPlayer && tgt.hp <= 0) killEnemy(run, c, tgt);
     else if (!isPlayer && loss > 0) hurtReact(run, c, tgt);
-    // Spines strike back at attackers
-    if (isAttack && src && (tgt.st.spines || 0) > 0 && !src.dead && !c.lost) {
+    // Spines strike back at attackers, and at any damage the keeper deals: her Crests, Strands and Rites too (v0.41.0; until
+    // then only attacks, so a Crest deck never felt the Reefback Hulk's spines)
+    if (src && (isAttack || src === c.player) && (tgt.st.spines || 0) > 0 && !src.dead && !c.lost) {
       dealDamage(run, c, src, tgt.st.spines, null, false);
     }
     return loss;
@@ -1108,10 +1109,12 @@
     fx(c, { t: 'ward', who: tgt === c.player ? 'p' : tgt.uid, n });
   }
 
+  E.DOUSE_MAX = 2; // Doused never takes more than this much Light a turn (a lantern holds 3)
   function applyStatus(run, c, tgt, key, n, fromPlayer) {
     if (!tgt || tgt.dead || n <= 0) return;
     if (key === 'brine' && fromPlayer && tgt !== c.player && E.has(run, 'saltedhook')) n += 1;
     tgt.st[key] = (tgt.st[key] || 0) + n;
+    if (key === 'doused') tgt.st[key] = Math.min(E.DOUSE_MAX, tgt.st[key]); // it lasts now, so it can't pile up past this
     fx(c, { t: 'status', who: tgt === c.player ? 'p' : tgt.uid, key, n });
   }
 
@@ -1184,6 +1187,8 @@
      and the Bell Clapper rings on the first of a turn: the next card is played twice. */
   function turnedSwell(run, c) {
     if (c.turnCrests > 0 && c.turnLows > 0 && !run.tutorial) run.stats.bothEnds = true;
+    // the swing of the water rekindles a doused lantern (v0.41.0: Doused lasts until a Crest or Strand; one turn before)
+    if (c.player.st.doused) { delete c.player.st.doused; fx(c, { t: 'relit' }); }
     if (c.turnCrests + c.turnLows === 1 && E.has(run, 'clapper')) {
       c.echo += 1;
       fx(c, { t: 'ks', k: 'clapper' });
@@ -1201,11 +1206,12 @@
     turnedSwell(run, c);
     const dmg = E.crestDamage(run, c, c.turnCrests);
     run.stats.crests++;
-    // a wave rings a bell around the ears of whatever hides in it: it loses its Ward before the wave lands
+    // a wave rings a bell around the ears of whatever hides in it: its Ward takes the wave, then what is left of it is
+    // shaken off (v0.41.0; before, the bell lost all its Ward before the wave landed, so the Ward did nothing against a Crest)
     const stripped = [];
-    E.alive(c).forEach((e) => { if (e.st.belled && e.ward > 0) { stripped.push({ who: e.uid, n: e.ward }); e.ward = 0; } });
     fx(c, { t: 'crest', n: dmg, chain: c.turnCrests, fury, stripped });
-    E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, dmg), null, false));
+    E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, dmg), c.player, false));
+    E.alive(c).forEach((e) => { if (e.st.belled && e.ward > 0) { stripped.push({ who: e.uid, n: e.ward }); e.ward = 0; } });
     if (E.hasKit(run, 'net')) { fx(c, { t: 'kit', k: 'ditty' }); gainPearls(run, c, 3); }
     const mem = c.player.st.r_tidalmemory || 0;
     if (mem) { c.light += mem; fx(c, { t: 'light', n: mem }); }
@@ -1238,7 +1244,7 @@
     if (E.has(run, 'kelpbracelet')) { fx(c, { t: 'ks', k: 'kelpbracelet' }); gainWard(c, c.player, 8); }
     const abyss = (c.player.st.r_abyss || 0) + (E.has(run, 'anchor') ? 4 : 0);
     if (E.has(run, 'anchor')) fx(c, { t: 'ks', k: 'anchor' });
-    if (abyss) E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, abyss), null, false));
+    if (abyss) E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, abyss), c.player, false));
     c.tide = TIDE_MID;
     onTideTurn(run, c, 'low');
   }
@@ -1259,7 +1265,7 @@
       if (al.length) {
         const t = makeR(run).pick(al);
         fx(c, { t: 'spray', who: t.uid });
-        dealDamage(run, c, t, sd, null, false);
+        dealDamage(run, c, t, sd, c.player, false);
       }
     }
   }
@@ -1284,26 +1290,33 @@
   E.swellActsPerTurn = (run) => (E.hasKit(run, 'bailer') ? 2 : 1);
   /* Bails and Stirs used this turn (a fight saved before v0.22.0 kept only the turn). */
   E.swellActsUsed = (c) => (c.swellActTurn === c.turn ? c.swellActN || 1 : 0);
-  E.canSwellAct = function (run) {
+  /* A Bail that makes a Strand which gives Light back (the turn's first, or any with the Glimmer Bulb) is free: it can be
+     made with no Light at all (v0.41.0; before, it needed the 1 Light up front, though the words called it free). */
+  E.freeBail = (run, c) => c.tide <= E.SWELL_ACTS.bail.ebb && E.strandLight(run, c.turnLows + 1) >= E.SWELL_ACT_COST;
+  /* Can she Bail or Stir now? `kind` ('bail' or 'stir') counts the free Bail; without it, the check for either. */
+  E.canSwellAct = function (run, kind) {
     const c = run.combat;
     if (!c) return { ok: false, reason: 'Not in a fight' };
     if (c.phase !== 'player' || c.won || c.lost) return { ok: false, reason: 'Not your turn' };
     const per = E.swellActsPerTurn(run);
     if (E.swellActsUsed(c) >= per) return { ok: false, reason: per > 1 ? 'Twice a turn with the Bailer: you have already Bailed or Stirred twice' : 'Once a turn: you have already Bailed or Stirred' };
-    if (c.light < E.SWELL_ACT_COST) return { ok: false, reason: 'Not enough Light' };
+    if (c.light < E.SWELL_ACT_COST && !(kind === 'bail' && E.freeBail(run, c))) return { ok: false, reason: 'Not enough Light' };
     return { ok: true };
   };
   E.swellAct = function (run, kind) {
     const act = E.SWELL_ACTS[kind];
-    if (!act || !E.canSwellAct(run).ok) return false;
+    if (!act || !E.canSwellAct(run, kind).ok) return false;
     const c = run.combat;
-    c.light -= E.SWELL_ACT_COST;
+    // a free Bail with no Light: its Strand's Light pays for it (so it is spent, not added)
+    const owed = c.light < E.SWELL_ACT_COST;
+    if (!owed) c.light -= E.SWELL_ACT_COST;
     c.swellActN = E.swellActsUsed(c) + 1;
     c.swellActTurn = c.turn;
     run.stats[kind === 'bail' ? 'bails' : 'stirs'] = (run.stats[kind === 'bail' ? 'bails' : 'stirs'] || 0) + 1;
     fx(c, { t: 'swellact', kind });
     if (act.ebb) ebb(run, c, act.ebb);
     else surge(run, c, act.surge);
+    if (owed) c.light = Math.max(0, c.light - E.SWELL_ACT_COST);
     return true;
   };
 
@@ -1338,7 +1351,7 @@
           dealDamage(run, c, t, attackValue(P, t, base), P, true);
         }
       },
-      wave(n) { E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, n), null, false)); },
+      wave(n) { E.alive(c).forEach((e) => dealDamage(run, c, e, waveValue(e, n), P, false)); },
       ward: (n) => gainWard(c, P, n),
       wardNow: () => P.ward,
       crestsThisTurn: () => c.turnCrests,
@@ -1396,9 +1409,8 @@
       P.st.brine--;
       if (c.lost) return;
     }
-    // a doused lantern starts the turn with less Light
+    // a doused lantern starts every turn with less Light, until a Crest or Strand rekindles it (turnedSwell)
     const doused = P.st.doused || 0;
-    delete P.st.doused;
     c.light = Math.max(0, c.maxLight + (E.has(run, 'stormbottle') && c.turn % 3 === 0 ? 1 : 0) + (E.has(run, 'cinder') && (c.turn - 1) % BL.KEEPSAKES.cinder.every === 0 ? 1 : 0) + (P.st.heartfire || 0) + (c.turn === 1 && E.hasKit(run, 'watchglass') ? 1 : 0) - doused);
     if (doused) { c.dousedTurn = c.turn; c.dousedN = doused; fx(c, { t: 'doused', n: doused }); }
     // a squeezed suit: fewer cards this turn (never fewer than 1)
@@ -1553,7 +1565,7 @@
       if (al.length && c.tide > 0) {
         const t = makeR(run).pick(al);
         fx(c, { t: 'beam', who: t.uid });
-        dealDamage(run, c, t, P.st.r_beam * c.tide, null, false);
+        dealDamage(run, c, t, P.st.r_beam * c.tide, P, false);
       }
     }
     const keep = [];
@@ -1746,7 +1758,7 @@
     }
     if (m.debuff) {
       info.kinds.push('debuff');
-      Object.keys(m.debuff).forEach((k) => info.parts.push(k === 'doused' ? `Douse your lantern: ${m.debuff[k] * twice} less Light next turn`
+      Object.keys(m.debuff).forEach((k) => info.parts.push(k === 'doused' ? `Douse your lantern: ${m.debuff[k] * twice} less Light each turn until you Crest or Strand`
         : k === 'breathless' ? `Squeeze your suit: draw ${m.debuff[k] * twice} fewer card${m.debuff[k] * twice > 1 ? 's' : ''} next turn`
           : `Apply ${m.debuff[k] * twice} ${BL.STATUSES[k].name}`));
     }

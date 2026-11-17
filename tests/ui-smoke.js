@@ -633,11 +633,23 @@ async function tutorialScenario(page, base, name, size, input) {
         await page.key('Escape');
       }
       const light = await page.eval('window.Brinelight.run.combat.light');
+      // under load the raised Jab and its Escape can still be animating (a click while busy is ignored): wait for idle
+      await waitIdle(page, 'before the Bail');
+      const cover = await page.eval(`(() => { const b = document.querySelector('#tidebar .tb-act.bail'); const r = b.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return h === b || b.contains(h) ? '' : (h ? (h.id || h.className || h.tagName) + ' ' + (h.textContent || '').slice(0, 40) : 'none'); })()`);
+      const why = await page.eval(`(() => { const B = window.Brinelight; return JSON.stringify({ busy: B.ui.busy, allows: B.teach.allows('swellact', 'bail'), can: B.E.canSwellAct(B.run, 'bail'), phase: B.run.combat.phase }); })()`);
       if (input === 'keyboard') await page.key('b'); else await page.click('#tidebar .tb-act.bail');
       actions++;
       await waitIdle(page, 'the Bail');
+      // under heavy load (4 Chromes and more beside them) the first click after the blocked Jab can be lost although
+      // nothing covers Bail and the game would take it (seen since v0.40.0, never alone): press it once more, and say so
+      if (input !== 'keyboard' && (await page.eval('window.Brinelight.run.combat.turnLows')) === 0) {
+        log(`  ${name}: the first Bail click was lost; clicking again`);
+        await sleep(300);
+        await page.click('#tidebar .tb-act.bail');
+        await waitIdle(page, 'the Bail, again');
+      }
       const after = await page.eval('(() => { const c = window.Brinelight.run.combat; return { lows: c.turnLows, light: c.light, used: !!document.querySelector("#tidebar .tb-act.used") }; })()');
-      if (after.lows !== 1 || after.light !== light || !after.used) failures.push(`${name}: the tutorial's Bail should Strand, give the Light back and use up the turn's Bail (${JSON.stringify(after)})`);
+      if (after.lows !== 1 || after.light !== light || !after.used) failures.push(`${name}: the tutorial's Bail should Strand, give the Light back and use up the turn's Bail (${JSON.stringify(after)}; covered by: ${cover || 'nothing'}; ${why})`);
     } else {
       // try a wrong card first once, to check the gate holds
       if (s.id === 'attack') {
@@ -1068,7 +1080,8 @@ async function darkwaterScenario(page, base, name, size, opts) {
   const at3 = await intentAt(3), at5 = await intentAt(5);
   if (at3 !== '12' || at5 !== '20') failures.push(`${name}: the Rocking Toll intent should read 12 at Swell 3 and 20 at Swell 5 (got ${at3}, ${at5})`);
   await checkPage(page, name + ' buoy');
-  // v0.18.0: once it has slipped its chain, a Bail that Strands muffles the Wild Peal from 30 to 15 (15 off since v0.35.0)
+  // once it has slipped its chain, the Wild Peal (v0.41.0: 40, 8 less a step from 3, 20 less a Crest or Strand) reads 24 at
+  // Swell 1, and 20 after a Bail that Strands (the Swell back at 3)
   await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat; c.enemies[0].mem.free = true; c.enemies[0].intent = 'peal'; c.tide = 1; c.light = 3; c.swellActTurn = null; B.render(); })()`);
   await sleep(300);
   const pealText = () => page.eval(`document.querySelector('.unit.enemy .intent').innerText.replace(/\\s+/g, '')`);
@@ -1078,7 +1091,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await tap('#tidebar .tb-act.bail');
   await waitIdle(page);
   const peal1 = await pealText();
-  if (peal0 !== '30' || peal1 !== '15') failures.push(`${name}: the Wild Peal intent should read 30, then 15 after a Bail that Strands (got ${peal0}, ${peal1})`);
+  if (peal0 !== '24' || peal1 !== '20') failures.push(`${name}: the Wild Peal intent should read 24 at Swell 1, then 20 after a Bail that Strands (got ${peal0}, ${peal1})`);
   await checkPage(page, name + ' wild peal');
 
   // then a few stops of the real descent
