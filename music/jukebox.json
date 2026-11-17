@@ -1,0 +1,32 @@
+{
+  "depths": ["The Shallows", "Dark Water", "The Belfry"],
+  "tracks": [
+    ["song", "title"],
+    ["song", "bells"],
+    ["cue", "title", "The Keeper's Song", "Only in the Jukebox"],
+    ["cue", "reach", "The Way Down", "The map and its stops"],
+    ["cue", "fight", "The Waves", "Fights"],
+    ["song", "shop"],
+    ["song", "shell"],
+    ["cue", "dread", "Dread", "Dreads"],
+    ["song", "hermit"],
+    ["song", "buoy"],
+    ["song", "gardener"],
+    ["song", "putback"],
+    ["cue", "buoy", "The Rocking Toll", "The Tolling Buoy"],
+    ["song", "hush"],
+    ["song", "chain"],
+    ["song", "deep"],
+    ["song", "herring"],
+    ["song", "bell"],
+    ["cue", "pin", "The Bell", "A pin without a song of its own"],
+    ["cue", "pin2", "The Bell Cracks", "Only in the Jukebox"],
+    ["cue", "home", "Dawn", "Bringing the Heart home"],
+    ["song", "departure"],
+    ["song", "eye"],
+    ["song", "cantor"],
+    ["song", "nobody"],
+    ["cue", "fallen", "The Ember", "When the tide takes you"],
+    ["song", "watch"]
+  ]
+}

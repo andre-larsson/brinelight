@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* The game's music, as files the page loads as plain scripts (so index.html still works from disk):
-     node tools/music.js                    js/music-score.js from music/brinelight.scrim (run it after editing the score)
+     node tools/music.js                    js/music-score.js from music/brinelight.scrim and music/jukebox.json
+                                            (score, catalog and portable links; run after editing either source)
      node tools/music.js --vendor [DIR]     also bundle musicbox's src/ from a clone (default ../musicbox) into
                                             js/vendor/musicbox/, with its LICENSE and NOTICE
    musicbox is ES modules; the bundle wraps each module in a function and links them by name, in one script that
@@ -9,16 +10,81 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { deflateRawSync } = require('zlib');
 
 const root = path.join(__dirname, '..');
 const SCORE = path.join(root, 'music/brinelight.scrim');
 const SCORE_JS = path.join(root, 'js/music-score.js');
 const VENDOR = path.join(root, 'js/vendor/musicbox');
 const MODULES = ['score', 'random', 'synth', 'player']; // in dependency order
+const JUKEBOX = require('../music/jukebox.json');
+
+// Export one cue at one depth. Keep the written notes, random choices and pattern inheritance, but leave out
+// other cues, transitions, comments and voices/beds from deeper layers. Bake the chosen depth into this copy so
+// the editor plays the same arrangement without an intensity setting. No browser compression API is needed.
+function pieceScore(text, song, cue, depth, title) {
+  const globals = [], patterns = new Map(), cues = new Map();
+  let block = globals;
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/(^|\s+)#.*$/, '').trim();
+    if (!line) continue;
+    const start = /^(pattern|cue)\s+(\w+)/.exec(line);
+    if (start) {
+      block = [];
+      (start[1] === 'pattern' ? patterns : cues).set(start[2], block);
+    } else if (/^switch\s/.test(line)) { block = []; }
+    block.push(line);
+  }
+  const c = song.cues[cue];
+  if (!c || !cues.has(cue) || c.then) throw new Error(`Can't export the standalone cue ${cue}`);
+  const used = new Set();
+  const addPattern = (name) => {
+    if (used.has(name)) return;
+    used.add(name);
+    const from = /^pattern\s+\w+\s+from\s+(\w+)/.exec(patterns.get(name)[0]);
+    if (from) addPattern(from[1]);
+  };
+  for (const part of ['intro', 'loop']) {
+    for (const tl of c[part + 'Slots'] ? c[part + 'Slots'].flat() : [c[part]]) {
+      tl.sections.forEach((s) => addPattern(s.name));
+    }
+  }
+  const voiceNames = new Set(song.voices.filter((v) => v.layer <= depth && [...used].some((p) => song.patterns[p].perVoice[v.name])).map((v) => v.name));
+  const bedNames = new Set(song.beds.filter((b) => b.layer <= depth && (!c.beds || c.beds[b.name] != null)).map((b) => b.name));
+  const header = globals.filter((line) => {
+    const [kw, name] = line.split(/\s+/);
+    if (kw === 'title' || kw === 'about') return false;
+    if (kw === 'voice') return voiceNames.has(name);
+    if (kw === 'bed') return bedNames.has(name);
+    if (kw === 'eq') return name === 'mix' || voiceNames.has(name) || bedNames.has(name);
+    return true;
+  }).map((line) => line.replace(/\s+layer=\d+/g, ''));
+  const body = [...patterns].filter(([name]) => used.has(name)).map(([, lines]) => lines.filter((line) => {
+    const kw = line.split(/\s+/)[0];
+    return !line.includes('|') || kw === 'harmony' || voiceNames.has(kw);
+  }).map((line) => line.startsWith('mute ') ? 'mute ' + line.slice(5).split(/\s+/).filter((n) => voiceNames.has(n)).join(' ') : line).filter((line) => line !== 'mute '));
+  const arrangement = cues.get(cue).map((line) => line.startsWith('beds ')
+    ? 'beds ' + (line.slice(5).split(/\s+/).filter((b) => bedNames.has(b.split('=')[0])).join(' ') || 'none') : line);
+  return [`title ${title}`, `about From Brinelight, as heard in ${JUKEBOX.depths[depth]}.`, ...header, '', ...body.flatMap((lines) => [...lines, '']), ...arrangement, ''].join('\n');
+}
+
+function musicLinks(text) {
+  require('../js/vendor/musicbox/musicbox.js');
+  const song = globalThis.Musicbox.compile(text);
+  if (song.errors.length) throw new Error('Fix the score before generating Musicbox links');
+  return Object.fromEntries(JUKEBOX.tracks.filter(([kind]) => kind === 'cue').map(([, cue, name]) => [cue, JUKEBOX.depths.map((_, depth) => {
+    const score = pieceScore(text, song, cue, depth, name);
+    const check = globalThis.Musicbox.compile(score);
+    if (check.errors.length || check.warnings.length) throw new Error(`${cue}, depth ${depth}: ${JSON.stringify(check.errors.concat(check.warnings))}`);
+    return 'https://a403.space/musicbox/editor/#score=' + deflateRawSync(Buffer.from(score), { level: 9 }).toString('base64url');
+  })]));
+}
 
 function scoreJs(text) {
-  return '/* Generated by tools/music.js from music/brinelight.scrim: edit the .scrim, then run node tools/music.js. */\n'
-    + `(globalThis.BL = globalThis.BL || {}).MUSIC_SCORE = ${JSON.stringify(text)};\n`;
+  return '/* Generated by tools/music.js from music/brinelight.scrim and music/jukebox.json. */\n'
+    + `(globalThis.BL = globalThis.BL || {}).MUSIC_SCORE = ${JSON.stringify(text)};\n`
+    + `globalThis.BL.MUSIC_JUKE = ${JSON.stringify(JUKEBOX)};\n`
+    + `globalThis.BL.MUSIC_LINKS = ${JSON.stringify(musicLinks(text))};\n`;
 }
 
 // one ES module as a function body: imports read earlier modules, exports become the returned object

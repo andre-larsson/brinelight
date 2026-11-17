@@ -5,6 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const { inflateRawSync } = require('zlib');
 const root = path.join(__dirname, '..');
 const { scoreJs, SCORE, SCORE_JS } = require('../tools/music.js');
 globalThis.window = globalThis; // js/sfx.js hangs its kit on window.BL
@@ -84,10 +85,10 @@ test('the recorded songs: every song ui.js names is in music/songs with its leng
   assert.deepEqual(songs.filter((t) => !t.jukeOnly && !screens.includes(t.key)).map((t) => t.key), [], 'songs no screen plays');
 });
 
-test('the Jukebox lists every song and every cue of the score once, and remembers what was heard', () => {
+test('the Jukebox catalog has every song and cue once, and remembers what was heard', () => {
   const song = globalThis.Musicbox.compile(BL.MUSIC_SCORE);
-  const block = ui.slice(ui.indexOf('const JUKE = ['), ui.indexOf('];', ui.indexOf('const JUKE = [')));
-  const items = [...block.matchAll(/^\s+\['(song|cue)', '([a-z0-9]+)'/gm)].map((m) => m[1] + ':' + m[2]);
+  assert.deepEqual(BL.MUSIC_JUKE, require('../music/jukebox.json'));
+  const items = BL.MUSIC_JUKE.tracks.map(([kind, key]) => kind + ':' + key);
   assert.equal(new Set(items).size, items.length, 'each once');
   assert.deepEqual(items.filter((k) => k.startsWith('cue:')).map((k) => k.slice(4)).sort(), Object.keys(song.cues).sort());
   const songsBlock = ui.slice(ui.indexOf('const SONGS = {'), ui.indexOf('};', ui.indexOf('const SONGS = {')));
@@ -99,6 +100,48 @@ test('the Jukebox lists every song and every cue of the score once, and remember
   assert.deepEqual(E.newMeta().heard, []);
   assert.deepEqual(E.migrateMeta({ owned: [], ach: [] }).heard, []);
   assert.deepEqual(E.migrateMeta({ owned: [], ach: [], heard: ['song:shop', 'cue:fight', 'song:shop', 7, 'nonsense', 'cue:<x>', 'depth:2'] }).heard, ['song:shop', 'cue:fight', 'depth:2']);
+});
+
+test('each Musicbox link plays only its piece at the selected depth, including every random choice', () => {
+  const full = globalThis.Musicbox.compile(BL.MUSIC_SCORE);
+  assert.deepEqual(Object.keys(BL.MUSIC_LINKS).sort(), full.cueOrder.slice().sort());
+  const withoutLocation = ({ ln, layer, ...settings }) => settings;
+  for (const [kind, cue, title] of BL.MUSIC_JUKE.tracks) {
+    if (kind !== 'cue') continue;
+    assert.equal(BL.MUSIC_LINKS[cue].length, BL.MUSIC_JUKE.depths.length);
+    for (const [depth, link] of BL.MUSIC_LINKS[cue].entries()) {
+      assert.match(link, /^https:\/\/a403\.space\/musicbox\/editor\/#score=[A-Za-z0-9_-]+$/);
+      const text = inflateRawSync(Buffer.from(link.split('#score=')[1], 'base64url')).toString('utf8');
+      const piece = globalThis.Musicbox.compile(text), label = `${cue} at depth ${depth}`;
+      assert.deepEqual(piece.errors, [], label);
+      assert.deepEqual(piece.warnings, [], label);
+      assert.equal(piece.title, title);
+      assert.deepEqual(piece.cueOrder, [cue], 'other cues are not exposed');
+      assert.deepEqual(piece.transitions, [], 'other cue names and transitions are not exposed');
+      assert.equal(piece.about, `From Brinelight, as heard in ${BL.MUSIC_JUKE.depths[depth]}.`);
+      assert.ok(!/^\s*#|\s+#/m.test(text), 'lore comments are not exposed');
+      assert.ok(piece.voices.concat(piece.beds).every((v) => v.layer === 0), 'the chosen arrangement plays at the editor default');
+      for (const voice of piece.voices) {
+        const original = full.voices.find((v) => v.name === voice.name);
+        assert.ok(original.layer <= depth, 'no deeper voice is exposed');
+        assert.deepEqual(withoutLocation(voice), withoutLocation(original), 'instrument settings stay intact');
+      }
+      const c = full.cues[cue], p = piece.cues[cue];
+      const beds = full.beds.filter((b) => b.layer <= depth && (!c.beds || c.beds[b.name] != null));
+      assert.deepEqual(piece.beds.map(withoutLocation), beds.map(withoutLocation), 'only the beds used at this depth');
+      assert.deepEqual(p.beds, c.beds && Object.fromEntries(Object.entries(c.beds).filter(([name]) => beds.some((b) => b.name === name))));
+      const timeline = (tl, score) => ({
+        dur: tl.dur,
+        sections: tl.sections,
+        events: tl.events.filter((e) => score.voices[e.v].layer <= depth).map((e) => ({ ...e, v: score.voices[e.v].name })),
+      });
+      for (const part of ['intro', 'loop']) {
+        assert.deepEqual(timeline(p[part], piece), timeline(c[part], full), `${label}: ${part}`);
+        const slots = (which, score) => which[part + 'Slots'] && which[part + 'Slots'].map((slot) => slot.map((tl) => timeline(tl, score)));
+        assert.deepEqual(slots(p, piece), slots(c, full), `${label}: all ${part} choices`);
+      }
+    }
+  }
 });
 
 test("every song with singing has its words (js/lyrics.js), in parts headed [like this], and the page loads them", () => {

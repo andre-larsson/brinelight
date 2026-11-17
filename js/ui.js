@@ -839,7 +839,7 @@
     if (r.matches && r.matches('input.juke-pos')) { // the Jukebox's slider: move through the song as it is dragged
       Sound.juke.seek(+r.value);
       ui.jukeSeekAt = Date.now();
-      const t = $('.juke-item.cur .juke-t', overlayEl);
+      const t = $('.jp-t', overlayEl);
       if (t) t.textContent = `${mmss(+r.value)} / ${mmss(+r.max)}`;
       return;
     }
@@ -852,6 +852,7 @@
   });
   overlayEl.addEventListener('change', (e) => {
     const r = e.target;
+    if (r.matches && r.matches('.juke-depth select')) { jukeDepth(+r.value); return; }
     if (!r.matches || !r.matches('input[data-vol]')) return;
     savePrefs();
     if (r.dataset.vol === 'sound') sfx('select');
@@ -1414,36 +1415,9 @@
      Gemini's songs and pieces of the score in one list, in the order you meet them. A pick plays until a descent starts: a song that ends goes on to the next one you have
      heard, and a piece of the score loops. The song playing can be moved through. A player at the top (v0.32.0) has
      previous, play or pause, next, shuffle and the music's volume. ----- */
-  const JUKE = [ // [kind, key] for a song (its name and place are in SONGS); [kind, key, name, where] for a cue of the score
-    ['song', 'title'],
-    ['song', 'bells'],
-    ['cue', 'title', "The Keeper's Song", 'Only in the Jukebox'], // the title screen's tune until it had songs
-    ['cue', 'reach', 'The Way Down', 'The map and its stops'],
-    ['cue', 'fight', 'The Waves', 'Fights'],
-    ['song', 'shop'],
-    ['song', 'shell'],
-    ['cue', 'dread', 'Dread', 'Dreads'],
-    ['song', 'hermit'],
-    ['song', 'buoy'],
-    ['song', 'gardener'],
-    ['song', 'putback'],
-    ['cue', 'buoy', 'The Rocking Toll', 'The Tolling Buoy'],
-    ['song', 'hush'],
-    ['song', 'chain'],
-    ['song', 'deep'],
-    ['song', 'herring'],
-    ['song', 'bell'],
-    ['cue', 'pin', 'The Bell', 'A pin without a song of its own'],
-    ['cue', 'pin2', 'The Bell Cracks', 'Only in the Jukebox'], // the Dark Watch's second half until v0.45.0, when Nobody in the Dress took it
-    ['cue', 'home', 'Dawn', 'Bringing the Heart home'],
-    ['song', 'departure'],
-    ['song', 'eye'],
-    ['song', 'cantor'],
-    ['song', 'nobody'],
-    ['cue', 'fallen', 'The Ember', 'When the tide takes you'],
-    ['song', 'watch'],
-  ];
-  const JUKE_DEPTHS = ['The Shallows', 'Dark Water', 'The Belfry'];
+  // Track order and names come from music/jukebox.json, bundled with the score by tools/music.js.
+  const JUKE = BL.MUSIC_JUKE.tracks;
+  const JUKE_DEPTHS = BL.MUSIC_JUKE.depths;
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   /* What you have heard (meta.heard). A debug-cheated run records nothing, as with Story so far. Some tracks open
      sooner (JUKE_EARLY), and High Tide Departure only that way, since it plays nowhere else. A depth of the score
@@ -1473,25 +1447,20 @@
     drawNow();
     if (run && np && np.indexOf('song:') === 0) toast('\u266A ' + nowName(np), 3500);
   });
-  const JUKE_EARLY = { // open: when it opens without being heard; how: what a locked one says
+  const JUKE_EARLY = { // open: when it opens without being heard; locked tracks are absent from the Jukebox
     'song:title': { open: () => true },
     // the dawn song: it plays when the Heart first comes home, and only then opens (v0.40.0, the user's call; open from
     // the start before). `gate`: having heard it is not enough, so a player who heard it on the title keeps it locked too
-    'song:bells': { open: () => E.heartIsHome(meta), gate: true, how: 'Bring the Heart home to hear it' },
+    'song:bells': { open: () => E.heartIsHome(meta), gate: true },
     'cue:title': { open: () => true }, // the title screen plays its songs instead now, so it is heard only here
     'song:hermit': { open: () => true }, // the pins' songs foreshadow them (the user's call)
     'song:buoy': { open: () => true },
-    'song:departure': { open: () => E.heartIsHome(meta), how: 'Bring the Heart home to hear it' },
+    'song:departure': { open: () => true },
+    'song:shop': { open: () => true },
+    'song:shell': { open: () => true },
     'song:watch': { open: () => true }, // it tells of a fall; open from the start since v0.36.0 (the user's call), after a finished descent before
-    // the Dreads' songs and the Divers' open only when heard, and until then their rows name no creature and no level
-    'song:gardener': { open: () => false, how: 'A Dread, deeper down · not heard yet' },
-    'song:putback': { open: () => false, how: 'A Dread, deeper down · not heard yet' },
-    'song:herring': { open: () => false, how: 'A Dread, deeper down · not heard yet' },
-    'song:eye': { open: () => false, how: 'A Dread, after the Heart comes home · not heard yet' },
-    'song:cantor': { open: () => false, how: 'A Dread, after the Heart comes home · not heard yet' },
-    'song:nobody': { open: () => false, how: 'After the Heart comes home · not heard yet' },
     // the Dark Watch's second half played it until Nobody in the Dress took its place (v0.45.0): it opens with that song
-    'cue:pin2': { open: () => meta.heard.indexOf('song:nobody') >= 0, how: 'After the Heart comes home · not heard yet' },
+    'cue:pin2': { open: () => meta.heard.indexOf('song:nobody') >= 0 },
   };
   const jukeOpen = (kind, key) => {
     const k = kind + ':' + key, early = JUKE_EARLY[k];
@@ -1540,6 +1509,7 @@
   function jukeGo(id) {
     if (!id) return;
     const [kind, key] = id.split(':'), off = !prefs.music;
+    if (!jukeOpen(kind, key)) return;
     Sound.juke.pick(kind, key, true);
     if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
   }
@@ -1551,6 +1521,15 @@
       if (id === jukeId(st)) { jukeGo(id); if (st.song) Sound.juke.seek(0); } else jukeGo(id);
     }
     ui.jukeSeekAt = 0;
+    drawJuke();
+  }
+  function jukeDepth(depth) {
+    if (!Number.isInteger(depth) || !JUKE_DEPTHS[depth] || !jukeDepthOpen(depth)) return;
+    const st = Sound.juke.state(), off = !prefs.music;
+    if (st.song || !st.cue) return;
+    Sound.juke.depth(depth);
+    Sound.juke.pick('cue', st.cue, true);
+    if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
     drawJuke();
   }
   /* The player: what plays, with previous, play or pause, next and shuffle (redrawn with the list), and the music's
@@ -1566,7 +1545,24 @@
         <button class="jp-btn jp-main" data-act="jukepp" aria-label="${on ? 'Pause' : 'Play'}">${on ? ICON.pause : ICON.play}</button>
         <button class="jp-btn" data-act="jukenext" aria-label="Next">${ICON.next}</button>
         <button class="jp-btn jp-shuffle" data-act="jukeshuffle" aria-pressed="${!!prefs.jukeShuffle}" aria-label="Shuffle" title="Shuffle: ${prefs.jukeShuffle ? 'on' : 'off'}">${ICON.shuffle}</button>
-      </div>`;
+        ${jukeScoreLink(st)}
+      </div>${st.song ? `<div class="juke-seek">
+        <button class="btn small" data-act="jukeskip" data-by="-10" aria-label="Back 10 seconds">&minus;10 s</button>
+        <input type="range" class="juke-pos" min="0" max="${Math.round(st.secs)}" step="1" value="${Math.floor(st.at)}" aria-label="Position in ${name}">
+        <button class="btn small" data-act="jukeskip" data-by="10" aria-label="Forward 10 seconds">+10 s</button>
+      </div>` : st.cue ? `<label class="juke-depth"><span>As heard in</span><select aria-label="Depth of the music box">${JUKE_DEPTHS.map((d, i) => jukeDepthOpen(i)
+        ? `<option value="${i}"${st.depth === i ? ' selected' : ''}>${d}</option>` : '').join('')}</select></label>` : ''}`;
+  }
+  function jukeLinks(st) {
+    if (st.song && BL.LYRICS && BL.LYRICS[st.song]) return `<button class="btn small juke-words" data-act="jukewords" data-key="${st.song}" aria-label="Words of ${nowName('song:' + st.song)}">Words</button>`;
+    return '';
+  }
+  function jukeScoreLink(st) {
+    if (st.cue && jukeOpen('cue', st.cue) && jukeDepthOpen(st.depth)) {
+      const links = BL.MUSIC_LINKS[st.cue];
+      if (links && links[st.depth]) return `<a class="juke-score" href="${links[st.depth]}" target="_blank" rel="noopener noreferrer" title="Open score in Musicbox (new tab)" aria-label="Open ${nowName('cue:' + st.cue)} in Musicbox (new tab)">Score <span aria-hidden="true">↗</span></a>`;
+    }
+    return '';
   }
   function jukeVolume() {
     const v = Math.round(prefs.musicVol * 100);
@@ -1574,71 +1570,58 @@
     return `<div class="jp-vol" role="group" aria-label="Music volume"><span class="jp-vol-ic" aria-hidden="true">${ICON.volume}</span><span class="jp-vol-lbl">Volume</span><span class="jp-vol-track" style="--v:${v}%"><input type="range" class="jp-vol-range" min="0" max="100" step="5" value="${v}" data-vol="music" aria-label="Music volume"></span><output>${v}%</output></div>`;
   }
   // what the list shows as playing: it is redrawn when that changes, and the time moves in between
-  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, meta.heard.length, !!prefs.jukeShuffle].join('/');
+  const jukeSig = (st) => [st.song, st.cue, st.paused, st.depth, ui.jukeFilter || 'all', jukeTracks().join(','), JUKE_DEPTHS.map((_, i) => jukeDepthOpen(i)), !!prefs.jukeShuffle].join('/');
+  function jukeFilters() {
+    return ['all', 'song', 'cue'].map((kind, i) => `<button class="btn small" data-act="jukefilter" data-filter="${kind}" aria-pressed="${(ui.jukeFilter || 'all') === kind}">${['All', 'Songs', 'Music box'][i]}</button>`).join('');
+  }
   function jukeList(st) {
     const S = Sound.juke.SONGS;
-    const rows = JUKE.map(([kind, key, cueName, cueWhere]) => {
+    const rows = JUKE.filter(([kind, key]) => jukeOpen(kind, key) && (!ui.jukeFilter || ui.jukeFilter === 'all' || ui.jukeFilter === kind)).map(([kind, key, cueName, cueWhere]) => {
       const song = kind === 'song', name = song ? S[key].name : cueName, where = song ? S[key].where : cueWhere;
       // a song generated with Google Gemini, or a piece the music box plays from the score (not "Recorded": nobody recorded them)
       const tag = song ? '<span class="juke-tag rec">Gemini</span>' : '<span class="juke-tag box">Music box</span>';
-      if (!jukeOpen(kind, key)) {
-        const early = JUKE_EARLY[kind + ':' + key], how = (early && early.how) || `${where} · not heard yet`;
-        return `<div class="juke-item locked"><button class="juke-row" disabled aria-label="${name}: locked. ${how}">
-          <span class="juke-ic">${ICON.lock}</span><span class="juke-txt"><b>${name}</b><small>${how}</small></span><span class="juke-time">${tag}</span></button></div>`;
-      }
       const cur = song ? st.song === key : !st.song && st.cue === key, on = cur && !st.paused;
-      const time = song ? (cur ? `${mmss(st.at)} / ${mmss(st.secs)}` : mmss(S[key].secs)) : '';
-      const seek = cur && song ? `<div class="juke-seek">
-          <button class="btn small" data-act="jukeskip" data-by="-10" aria-label="Back 10 seconds">&minus;10 s</button>
-          <input type="range" class="juke-pos" min="0" max="${Math.round(st.secs)}" step="1" value="${Math.floor(st.at)}" aria-label="Position in ${name}">
-          <button class="btn small" data-act="jukeskip" data-by="10" aria-label="Forward 10 seconds">+10 s</button>${BL.LYRICS && BL.LYRICS[key] ? `
-          <button class="btn small juke-words" data-act="jukewords" data-key="${key}" aria-label="Words of ${name}">Words</button>` : ''}</div>` : '';
+      const time = song ? mmss(S[key].secs) : '';
       return `<div class="juke-item${cur ? ' cur' : ''}"><button class="juke-row" data-act="jukeplay" data-kind="${kind}" data-key="${key}" aria-pressed="${on}" aria-label="${on ? 'Pause' : 'Play'}: ${name}">
-        <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${tag}${time ? `<span class="juke-t">${time}</span>` : ''}</span></button>${seek}</div>`;
+        <span class="juke-ic">${on ? ICON.pause : ICON.play}</span><span class="juke-txt"><b>${name}</b><small>${where}</small></span><span class="juke-time">${tag}${time ? `<span class="juke-t">${time}</span>` : ''}</span></button></div>`;
     }).join('');
-    // the depth is the music box's: none is lit while a song plays, and choosing one plays the music box at that depth
-    const box = !st.song && !!st.cue;
-    const depths = JUKE_DEPTHS.map((d, i) => jukeDepthOpen(i)
-      ? `<button class="btn small" data-act="jukedepth" data-depth="${i}" aria-pressed="${box && st.depth === i}" aria-label="Play the music box as heard in ${d}">${d}</button>`
-      : `<button class="btn small" disabled aria-label="${levelKnown(i) ? d : 'A deeper level'}: not reached yet">${ICON.lock}${levelKnown(i) ? d : '?'}</button>`).join('');
-    return `<div class="juke-depth" role="group" aria-label="Depth of the music box"><span>Music box as heard in</span>${depths}</div>${rows}`;
+    return rows + (JUKE.some(([kind, key]) => !jukeOpen(kind, key)) ? '<p class="juke-more">More music to discover.</p>' : '');
   }
   function drawJuke() {
     const list = $('.juke-list', overlayEl);
     if (!list) { clearInterval(ui.jukeTick); return; }
     const st = Sound.juke.state(), sig = jukeSig(st);
     if (sig === ui.jukeSig) { // only the time moves, and the slider unless it is being dragged
-      const t = $('.juke-item.cur .juke-t', list), r = $('.juke-item.cur .juke-pos', list), pt = $('.jp-t', overlayEl);
-      if (t && st.song) t.textContent = `${mmss(st.at)} / ${mmss(st.secs)}`;
+      const r = $('.juke-pos', overlayEl), pt = $('.jp-t', overlayEl);
       if (pt && st.song) pt.textContent = `${mmss(st.at)} / ${mmss(st.secs)}`;
       if (r && Date.now() - (ui.jukeSeekAt || 0) > 700) { r.max = Math.round(st.secs); r.value = Math.floor(st.at); }
       return;
     }
-    const f = document.activeElement, top = $('.jp-top', overlayEl);
-    const fk = f && list.contains(f) ? (f.dataset.key ? `[data-act="${f.dataset.act}"][data-key="${f.dataset.key}"]` : f.dataset.depth ? `[data-depth="${f.dataset.depth}"]` : f.dataset.by ? `[data-by="${f.dataset.by}"]` : f.classList.contains('juke-pos') ? '.juke-pos' : null) : null;
-    const fp = f && top && top.contains(f) && f.dataset.act ? `[data-act="${f.dataset.act}"]` : null;
+    const f = document.activeElement, top = $('.jp-top', overlayEl), links = $('.jp-links', overlayEl), filters = $('.juke-filters', overlayEl);
+    const focus = f && overlayEl.contains(f) ? f.classList.contains('juke-pos') ? '.juke-pos' : f.matches('.juke-depth select') ? '.juke-depth select' : f.classList.contains('juke-score') ? '.juke-score'
+      : f.dataset.act ? `[data-act="${f.dataset.act}"]${['key', 'kind', 'by', 'depth', 'filter'].filter((k) => f.dataset[k] != null).map((k) => `[data-${k}="${f.dataset[k]}"]`).join('')}` : null : null;
     list.innerHTML = jukeList(st);
     if (top) top.innerHTML = jukePlayer(st);
+    if (links) links.innerHTML = jukeLinks(st);
+    if (filters) filters.innerHTML = jukeFilters();
     ui.jukeSig = sig;
-    if (fk) { const g = $(fk, list); if (g) g.focus({ preventScroll: true }); }
-    if (fp) { const g = $(fp, top); if (g) g.focus({ preventScroll: true }); }
+    if (focus) { const g = $(focus, overlayEl); if (g) g.focus({ preventScroll: true }); }
   }
-  // back from a song's words, the list opens at that song with its Words button in focus
+  // Back from words keeps the browsing filter and returns focus to Words in the player.
   function showJukebox(fromWords) {
     const st = Sound.juke.state();
-    const body = `<div class="juke-player" role="group" aria-label="Player"><div class="jp-top">${jukePlayer(st)}</div>${jukeVolume()}</div><div class="juke-list">${jukeList(st)}</div>`;
+    const body = `<div class="juke-player" role="group" aria-label="Player"><div class="jp-top">${jukePlayer(st)}</div><div class="jp-bottom"><div class="jp-links">${jukeLinks(st)}</div>${jukeVolume()}</div></div><div class="juke-filters" role="group" aria-label="Filter tracks">${jukeFilters()}</div><div class="juke-list">${jukeList(st)}</div>`;
     ui.jukeSig = jukeSig(st);
     clearInterval(ui.jukeTick);
     openOverlay(modal('Jukebox', body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'jukebox-modal'),
-      { onClose: () => clearInterval(ui.jukeTick), focus: fromWords ? '.juke-item.cur [data-act="jukewords"]' : null });
-    if (fromWords) { const c = $('.juke-item.cur', overlayEl); if (c) c.scrollIntoView({ block: 'center' }); }
+      { onClose: () => clearInterval(ui.jukeTick), focus: fromWords ? '.jp-links [data-act="jukewords"]' : null });
     ui.jukeTick = setInterval(drawJuke, 500);
   }
   /* The words of a song (js/lyrics.js), one page a song, opened from the song playing in the Jukebox. The song plays on;
      Back returns to the Jukebox. A line in [brackets] heads a part of the song. */
   function showWords(key) {
     const text = BL.LYRICS && BL.LYRICS[key], S = Sound.juke.SONGS[key];
-    if (!text || !S) return;
+    if (!text || !S || !jukeOpen('song', key)) return;
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const parts = text.trim().split(/\n\s*\n/).map((p) => {
       const lines = p.split('\n'), head = /^\[(.+)\]$/.exec(lines[0].trim());
@@ -3903,21 +3886,16 @@
       case 'continue': run = loadSave(); render(); break;
       case 'help': showHelp(); break;
       case 'jukebox': showJukebox(); break;
+      case 'jukefilter':
+        if (['all', 'song', 'cue'].indexOf(t.dataset.filter) < 0) break;
+        ui.jukeFilter = t.dataset.filter;
+        drawJuke();
+        break;
       case 'jukeplay': {
+        if (!jukeOpen(t.dataset.kind, t.dataset.key)) break;
         // choosing a track means you want to hear it: switch the music on if it's off
         const off = !prefs.music;
         Sound.juke.pick(t.dataset.kind, t.dataset.key, off);
-        if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
-        drawJuke();
-        break;
-      }
-      case 'jukedepth': {
-        // a depth is the music box's, so choosing one plays it: the piece chosen (carrying on if paused), or, while a
-        // song plays, The Way Down (The Keeper's Song before the map has been heard); music on if it's off
-        const st = Sound.juke.state(), off = !prefs.music;
-        const cue = !st.song && st.cue ? st.cue : jukeOpen('cue', 'reach') ? 'reach' : 'title';
-        Sound.juke.depth(+t.dataset.depth);
-        Sound.juke.pick('cue', cue, true);
         if (off) { prefs.music = true; savePrefs(); Sound.changed(); toast('Music on'); }
         drawJuke();
         break;

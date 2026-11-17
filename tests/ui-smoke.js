@@ -1567,24 +1567,36 @@ async function audioScenario(page, base, name, size) {
   await page.click('[data-act="workshop"]');
   await expect('the Workshop', { playing: false, song: 'title' });
   await clickIf(page, '#overlay [data-act="close"]');
-  // the Jukebox: one list of what you've heard, the song playing first; what you haven't heard is locked
+  // The Jukebox shows only playable tracks. Eight are open from the start; there are no spoiler placeholders.
   const heardList = () => page.eval('window.Brinelight.meta.heard.slice()');
   if (!(await heardList()).includes('song:title')) failures.push(`${name}: hearing the title song didn't count it as heard`);
   await page.click('.title-now [data-act="jukebox"]'); // the song's name opens the Jukebox
   const jb = (js) => page.eval(`(() => { const o = document.querySelector('#overlay'); return ${js}; })()`);
   const items = await jb(`o.querySelectorAll('.juke-item').length`);
-  if (items !== 27) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 18 songs and 9 pieces of the score`);
-  if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 18 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 9) failures.push(`${name}: the Jukebox doesn't mark the 18 Gemini songs and the 9 music box pieces`);
+  if (items !== 8) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 8 playable tracks`);
+  if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 7 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 1) failures.push(`${name}: the Jukebox doesn't mark the 7 open songs and the Keeper's Song`);
   if (!(await jb(`!!o.querySelector('.juke-item.cur [data-key="title"][aria-pressed="true"]')`))) failures.push(`${name}: the Jukebox doesn't show the title song playing`);
-  // open from the start: four title songs (It Went Dark on My Watch too, since v0.36.0; Harbour Bells at Dawn waits for
-  // the Heart since v0.40.0) and the score's title tune
-  const locked = await jb(`[...o.querySelectorAll('.juke-item.locked .juke-row')].filter((b) => b.disabled).length`);
-  if (locked !== 22) failures.push(`${name}: ${locked} tracks are locked, expected all but four title songs and the Keeper's Song`);
-  // a locked track names no creature and no level the player may not have met (the Dreads' songs and the Divers', v0.45.0)
-  const lockedText = await jb(`[...o.querySelectorAll('.juke-item.locked')].map((r) => r.textContent).join(' | ')`);
-  if (/Strider|Oarfish|Yearling|Cantor|Dark Watch|Diver|Belfry|Dark Water/.test(lockedText)) failures.push(`${name}: a locked track names a creature or a level (${lockedText})`);
+  if (await jb(`!!o.querySelector('.juke-item.locked, .juke-row:disabled')`)) failures.push(`${name}: the Jukebox still has locked placeholders`);
+  const shownText = await jb(`o.textContent + [...o.querySelectorAll('[aria-label], [title]')].map((e) => (e.getAttribute('aria-label') || '') + (e.title || '')).join(' ')`);
+  if (/Harbour Bells at Dawn|Gardener|Put It Back|Herrings|Remember the Eye|Ring It Once Again|Nobody in the Dress|Sunken Stair|The Rocking Toll|Bring the Heart|after the Heart|Belfry|Dark Water|not heard yet/.test(shownText)) failures.push(`${name}: undiscovered music leaks through text or accessibility labels (${shownText})`);
+  for (const key of ['departure', 'shop', 'shell']) if (!(await jb(`!!o.querySelector('[data-act="jukeplay"][data-key="${key}"]')`))) failures.push(`${name}: ${key} should be open from the start`);
   if (!(await jb(`[...o.querySelectorAll('.juke-item:not(.locked) .juke-row')].some((b) => /It Went Dark/.test(b.getAttribute('aria-label')))`))) failures.push(`${name}: It Went Dark on My Watch should be open from the start`);
-  if (!(await jb(`o.querySelector('[data-act="jukedepth"][data-depth="0"]') && !o.querySelector('[data-act="jukedepth"][data-depth="1"]')`))) failures.push(`${name}: the Jukebox's depths beyond the Shallows aren't locked`);
+  if (await jb(`!!o.querySelector('.juke-depth')`)) failures.push(`${name}: depth controls should be absent while a song is selected`);
+  // Browsing filters don't interrupt playback, and the player stays usable when its track isn't in the list.
+  await page.click('#overlay [data-act="jukefilter"][data-filter="song"]');
+  if ((await jb(`o.querySelectorAll('.juke-item').length`)) !== 7 || await jb(`!!o.querySelector('.juke-tag.box')`)) failures.push(`${name}: Songs doesn't filter the list`);
+  await expect('filtering Songs, still the title song', { song: 'title' });
+  await page.click('#overlay [data-act="jukefilter"][data-filter="cue"]');
+  if ((await jb(`o.querySelectorAll('.juke-item').length`)) !== 1 || await jb(`!!o.querySelector('.juke-tag.rec')`)) failures.push(`${name}: Music box doesn't filter the list`);
+  await expect('filtering Music box, still the title song', { song: 'title' });
+  await page.click('#overlay [data-act="jukeplay"][data-kind="cue"][data-key="title"]');
+  await expect('the Keeper\'s Song', { song: null, playing: true, target: 'title', intensity: 0 });
+  if (!(await jb(`o.querySelector('.juke-depth select').value === '0' && o.querySelectorAll('.juke-depth option').length === 1`))) failures.push(`${name}: the music box should offer only the Shallows at first`);
+  if (!(await jb(`(() => { const a = o.querySelector('.juke-score'); return a && a.href.startsWith('https://a403.space/musicbox/editor/#score=') && a.target === '_blank' && a.rel.includes('noopener'); })()`))) failures.push(`${name}: no portable Musicbox score link for the piece playing`);
+  await page.click('#overlay [data-act="jukefilter"][data-filter="song"]');
+  if (!(await jb(`!!o.querySelector('.juke-score') && !o.querySelector('.juke-item.cur')`))) failures.push(`${name}: filtering out the playing piece should preserve the player and score link`);
+  await expect('filtering Songs, still the Keeper\'s Song', { song: null, playing: true, target: 'title' });
+  await page.click('#overlay [data-act="jukeplay"][data-kind="song"][data-key="title"]');
   // the song playing has a Words button: its words on a page of their own, and Back returns to the Jukebox, the song still playing
   await page.click('#overlay [data-act="jukewords"][data-key="title"]');
   await sleep(150);
@@ -1592,19 +1604,24 @@ async function audioScenario(page, base, name, size) {
   await checkPage(page, name + ' words');
   await page.click('#overlay [data-act="jukeback"]');
   await sleep(150);
-  if (!(await jb(`!!o.querySelector('.juke-list .juke-item.cur [data-act="jukewords"]')`))) failures.push(`${name}: Back from the words doesn't return to the Jukebox`);
-  if (!(await jb(`document.activeElement === o.querySelector('.juke-item.cur [data-act="jukewords"]')`))) failures.push(`${name}: Back from the words doesn't put the focus back on the Words button`);
+  if (!(await jb(`!!o.querySelector('.jp-links [data-act="jukewords"]') && o.querySelector('[data-filter="song"]').getAttribute('aria-pressed') === 'true'`))) failures.push(`${name}: Back from words doesn't keep the player and browsing filter`);
+  if (!(await jb(`document.activeElement === o.querySelector('.jp-links [data-act="jukewords"]')`))) failures.push(`${name}: Back from the words doesn't put the focus back on the Words button`);
   await expect('the title song, after its words', { song: 'title' });
-  // hear more (the Heart home opens High Tide Departure; the Belfry reached opens its depth), then open it again
+  await page.click('#overlay [data-act="jukefilter"][data-filter="all"]');
+  // A legacy save that heard Harbour Bells on the title still waits for the Heart.
+  await page.eval(`window.Brinelight.meta.heard.push('song:bells')`);
+  await sleep(600);
+  if (await jb(`!!o.querySelector('[data-act="jukeplay"][data-key="bells"]')`)) failures.push(`${name}: hearing Harbour Bells before the Heart must not open it`);
+  // Hear more: the Heart opens Harbour Bells; reaching the Belfry opens its depth.
   await clickIf(page, '#overlay [data-act="close"]');
   await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 1; B.meta.record.hearts = 1; B.meta.reached = 2; B.meta.heard.push('cue:dread'); })()`);
   await page.click('.title-third [data-act="jukebox"]');
-  if ((await jb(`o.querySelectorAll('.juke-item.locked').length`)) !== 19) failures.push(`${name}: hearing a Dread and bringing the Heart home didn't open 2 more tracks`);
+  if ((await jb(`o.querySelectorAll('.juke-item').length`)) !== 10 || !(await jb(`!!o.querySelector('[data-key="bells"]')`))) failures.push(`${name}: hearing a Dread and bringing the Heart home didn't reveal 2 more tracks`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: High Tide Departure', { playing: false, song: 'departure' });
   await plays('High Tide Departure');
   if (await jb(`!!o.querySelector('[data-act="jukewords"]')`)) failures.push(`${name}: High Tide Departure has no words, but the Jukebox offers them`);
-  if (!(await jb(`o.querySelector('.juke-item.cur .juke-t').textContent.includes(' / ') && !!o.querySelector('.juke-item.cur input.juke-pos')`))) failures.push(`${name}: the Jukebox doesn't show the time and a slider for the song playing`);
+  if (!(await jb(`o.querySelector('.jp-t').textContent.includes(' / ') && !!o.querySelector('.juke-player input.juke-pos') && !o.querySelector('.juke-list input')`))) failures.push(`${name}: the Jukebox should put seeking and elapsed time in the player only`);
   // move through it: 10 s on, then the slider to 1:40
   let at = (await audio()).songAt;
   await clickIf(page, '#overlay [data-act="jukeskip"][data-by="10"]');
@@ -1661,16 +1678,31 @@ async function audioScenario(page, base, name, size) {
   await expect('High Tide Departure again', { song: 'departure' });
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: paused', { playing: false, song: null });
-  // a depth is the music box's: none is lit while a song is chosen, and choosing one plays the music box at that depth
-  if (await jb(`!!o.querySelector('[data-act="jukedepth"][aria-pressed="true"]')`)) failures.push(`${name}: a depth of the music box is lit while a song is chosen`);
+  // Depth controls appear after choosing a music box piece, then change only its depth.
+  if (await jb(`!!o.querySelector('.juke-depth')`)) failures.push(`${name}: depth controls should be absent while a song is chosen`);
   const box = (await page.eval(`window.Brinelight.meta.heard.includes('cue:reach')`)) ? 'reach' : 'title';
-  await clickIf(page, '#overlay [data-act="jukedepth"][data-depth="1"]');
+  await clickIf(page, `#overlay [data-act="jukeplay"][data-kind="cue"][data-key="${box}"]`);
+  const chooseDepth = async (depth) => {
+    await page.eval(`document.querySelector('.juke-depth select').focus()`);
+    const before = +(await jb(`o.querySelector('.juke-depth select').value`));
+    for (let i = 0; i < Math.abs(depth - before); i++) await page.key(depth > before ? 'ArrowDown' : 'ArrowUp');
+  };
+  const shallowLink = await jb(`o.querySelector('.juke-score').href`);
+  await chooseDepth(1);
   await expect('the Jukebox: Dark Water, chosen after a song', { playing: true, target: box, intensity: 1, song: null });
-  if (!(await jb(`!!o.querySelector('[data-act="jukedepth"][data-depth="1"][aria-pressed="true"]')`))) failures.push(`${name}: Dark Water isn't lit once the music box plays there`);
+  if (!(await jb(`o.querySelector('.juke-depth select').value === '1'`))) failures.push(`${name}: Dark Water isn't selected once the music box plays there`);
+  if (!(await jb(`document.activeElement === o.querySelector('.juke-depth select')`)) || (await jb(`o.querySelector('.juke-score').href`)) === shallowLink) failures.push(`${name}: choosing a depth must preserve keyboard focus and update the score link`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-kind="cue"][data-key="dread"]');
   await expect('the Jukebox: a Dread', { playing: true, target: 'dread', song: null });
-  await clickIf(page, '#overlay [data-act="jukedepth"][data-depth="2"]');
+  await chooseDepth(2);
   await expect('the Jukebox: the Belfry', { playing: true, target: 'dread', intensity: 2 });
+  if (size.w < 500) {
+    await page.viewport(360, 640, size);
+    await checkPage(page, name + ' small jukebox');
+    const visible = await jb(`(() => { const p = o.querySelector('.juke-player').getBoundingClientRect(), b = o.querySelector('.modal-body').getBoundingClientRect(); return [...o.querySelectorAll('.juke-item')].filter((el) => { const r = el.getBoundingClientRect(); return r.top >= p.bottom && r.bottom <= b.bottom; }).length; })()`);
+    if (visible < 2) failures.push(`${name}: the small-phone player leaves only ${visible} complete track rows`);
+    await page.viewport(size.w, size.h, size);
+  }
   await clickIf(page, '#overlay [data-act="close"]');
   await expect('the Jukebox closed, still playing', { playing: true, target: 'dread', intensity: 2, song: null });
   await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 0; B.meta.record.hearts = 0; B.meta.reached = 0; })()`); // a first descent again

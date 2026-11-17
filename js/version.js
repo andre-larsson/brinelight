@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.46.0';
+  BL.VERSION = '0.47.0';
   BL.CHANGELOG = [
+    { v: '0.47.0', date: '2026-11-17', items: [
+      'The Jukebox shows only music you can play, with All, Songs and Music box filters. Undiscovered titles and unlock hints stay hidden.',
+      'High Tide Departure and Barnaby\'s two songs, No Haggling, No Biting and Pop the Shell, are open from the start. Harbour Bells at Dawn still waits for the Heart to come home.',
+      'Seeking, Words and the music box\'s depth controls are together in the player, leaving more room for the list.',
+      'Score ↗ opens a music box piece in Musicbox: just that piece, as heard at the depth you chose, without other pieces or deeper layers.',
+    ] },
     { v: '0.46.0', date: '2026-11-17', items: [
       'Toll bells ask less: 5 HP or 20 Pearls in the Shallows (8 or 30 before), and 7 HP or 30 Pearls in Dark Water (10 or 40 before). A Barnacle Growth still pays either.',
       'The Reefback Hulk has 56 to 60 HP (68 to 72 before), so its fight is about as long as the other Dreads\' of the Shallows. Its Spines and Rouse are as before.',
