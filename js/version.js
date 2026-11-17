@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.50.0';
+  BL.VERSION = '0.50.1';
   BL.CHANGELOG = [
+    { v: '0.50.1', date: '2026-11-17', items: [
+      'The Continue button names the saved run\'s level, such as The Shallows, instead of its landing number.',
+    ] },
     { v: '0.50.0', date: '2026-11-17', items: [
       'Music unlocks through game progress, even with music muted or unavailable. Starting a descent, entering fights, meeting creatures, reaching a pin\'s second phase and returning home or falling unlock their pieces.',
       'Next unlock names the exact action or encounter required. No listening, volume setting or waiting is required.',

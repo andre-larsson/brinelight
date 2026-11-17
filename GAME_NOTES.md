@@ -1743,6 +1743,11 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Continue names the saved level (v0.50.1, 2026-11-17)
+
+- The user's request: replace "Continue (Landing 0)" with the actual level name. The title button uses the existing level-name helper: The Shallows, Dark Water or The Belfry. Saves without a level retain the Shallows default.
+- Checks: all 247 rule tests and build pass. A temporary Chrome check verified all three names, resuming, a legacy save without a level, no saved run, and text fitting at 1280×800, 390×844, 360×640 and 844×390. Screenshots: `/tmp/brinelight-continue-level-2CUZM7/`.
+
 ### Music unlocks from game progress, including muted runs (v0.50.0, 2026-11-17)
 
 - **The user's correction:** music should unlock while muted and depend only on game progress. Hints must state specific, objective unlock conditions. The v0.49.0 "music on / listen on the map" requirement came from the old playback-driven implementation; it has been removed.

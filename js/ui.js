@@ -1273,7 +1273,7 @@
       <div class="logo">BRINELIGHT</div>
       <p class="tagline">${BL.STORY.title}</p>
       <div class="title-buttons">
-        ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (Landing ${saved.floor})</button>` : ''}
+        ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (${LevelName(saved.level)})</button>` : ''}
         <button class="btn ${saved ? '' : 'primary solo'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
         ${workshopOpen() ? `<button class="btn ghost second ws-btn${lazaretOpen() ? '' : ' span'}" data-act="workshop" aria-label="${MT.shop}: ${meta.salvage} ${MT.currency}">${ICON.salvage}${MT.shop} <small>${meta.salvage}</small></button>` : ''}
         ${lazaretOpen() ? `<button class="btn ghost second${workshopOpen() ? '' : ' span'}" data-act="lazaret" aria-label="Lazaret: ${E.lazKinds(meta).length} of ${KS_TOTAL} kinds of keepsake">Lazaret <small class="btn-count">${E.lazKinds(meta).length}/${KS_TOTAL}</small></button>` : ''}
