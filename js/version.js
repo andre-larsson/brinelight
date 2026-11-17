@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.42.0';
+  BL.VERSION = '0.43.0';
   BL.CHANGELOG = [
+    { v: '0.43.0', date: '2026-11-17', items: [
+      'Wren is not alone. Hester, the old keeper who carried her lantern for forty years, waits at the lighthouse, and Hester\'s dog Bosun goes down the Reach with her. The opening has a new picture of them, and the story says who they are: Bosun pulls Wren out of the sea when it gives her back, waits by her lantern on the last dry step above the Belfry, and Hester keeps the key to the Lazaret.',
+      'Two new Keeper\'s notes, Hester and Bosun, and entries for them in The world.',
+      'The Wild Peal: each Crest or Strand you make muffles it by 15 (20 in 0.42.0, when one Strand and one Crest silenced it). Each step your Swell is away from 3 still muffles it by 8.',
+      'Maelstrom doubles a Crest\'s own damage, but not the extra a chained Crest adds: a second Crest in a turn hits for 15 with it, not 18.',
+    ] },
     { v: '0.42.0', date: '2026-11-17', items: [
       'Spines strike back at more than attacks: your Crests, the damage your Strands deal and your Rites set them off too. The Reefback Hulk can no longer be beaten by never attacking it.',
       'The Harbour Hermit\'s Bell: a Crest\'s wave hits its Ward first, then rings the bell and shakes off what Ward is left. Before, the Crest knocked all the Ward off and then hit it in full. A Strand still shakes off all of it.',

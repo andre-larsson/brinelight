@@ -21,8 +21,8 @@ test('the title line is short and says who you are, what was taken and what to d
   ['bell', 'lighthouse', 'town', 'keeper', 'Go down'].forEach((w) => assert.ok(S.title.includes(w), w));
 });
 
-test('the opening is four pictures, each with its text and art that exists', () => {
-  assert.equal(S.opening.length, 4);
+test('the opening is five pictures, each with its text and art that exists; the fourth brings in Hester and Bosun', () => {
+  assert.equal(S.opening.length, 5);
   S.opening.forEach((b) => {
     assert.ok(b.text.length > 40 && b.pos);
     assert.ok(fs.existsSync(img(b.art)), b.art);
@@ -32,6 +32,8 @@ test('the opening is four pictures, each with its text and art that exists', () 
   assert.match(S.opening[0].text, /Wren, the lighthouse keeper of Saltmere, a harbour town/);
   assert.match(S.opening[0].text, /a magic fire called the Lantern Heart/);
   assert.match(S.opening[1].text, /an enchanted bell, the Bellwether/);
+  assert.match(S.opening[3].text, /Hester/);
+  assert.match(S.opening[3].text, /Bosun/);
 });
 
 test('story scenes: one for each pin above the last, one for the dress, one for going down into the Belfry, one for the Heart and one for the first quiet (the Dark Watch), each with pictures that exist and a chapter that replays it', () => {
@@ -93,9 +95,10 @@ test('every mark can be earned in the game as it is', () => {
   assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
-test('there are ten chapters and 39 notes, with a note for every Fog event, a shop, a Cove, a Wreck, a toll bell and each boss', () => {
+test('there are ten chapters and 41 notes, with a note for every Fog event, a shop, a Cove, a Wreck, a toll bell, Hester, Bosun and each boss', () => {
   assert.equal(S.chapters.length, 10);
-  assert.equal(S.notes.length, 39);
+  assert.equal(S.notes.length, 41);
+  assert.deepEqual(['hester', 'bosun'].map((id) => S.notes.find((n) => n.id === id).when), ['home', 'fell']);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));
   ['shop', 'cove', 'wreck', 'toll', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit', 'en:harbour', 'en:bellthing', 'en:cantor', 'en:darkwatch'].forEach((m) => assert.ok(whens.includes(m), m));

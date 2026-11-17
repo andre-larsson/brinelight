@@ -328,8 +328,8 @@ test('The Tolling Buoy: at two thirds of its health it slips its chain (15 Ward,
   assert.equal(E.canGoDeeper(run), false);
 });
 
-test('The Wild Peal hits for 40: 8 less for each step the Swell is away from 3 when it rings, and 20 less for each Crest or Strand you make that turn; two of them and it does not hit at all', () => {
-  assert.deepEqual(BL.PEAL, { dmg: 40, quiet: 20, step: 8 });
+test('The Wild Peal hits for 40: 8 less for each step the Swell is away from 3 when it rings, and 15 less for each Crest or Strand you make that turn; three of them and it does not hit at all', () => {
+  assert.deepEqual(BL.PEAL, { dmg: 40, quiet: 15, step: 8 });
   const { run, c } = fight(['buoy'], { kind: 'boss', hand: ['jab', 'jab', 'jab', 'slack'] });
   const b = c.enemies[0];
   b.hp = b.maxHp = 500;
@@ -347,39 +347,44 @@ test('The Wild Peal hits for 40: 8 less for each step the Swell is away from 3 w
   assert.equal(shown(), 24, 'two steps from 3');
   c.tide = 5;
   assert.equal(shown(), 24, 'either side');
-  // a Strand: 20 less, and the Swell is back at 3
+  // a Strand: 15 less, and the Swell is back at 3
   c.tide = 1;
   c.swellActTurn = null;
   E.swellAct(run, 'bail');
   assert.equal(c.turnLows, 1);
   assert.equal(c.tide, 3);
-  assert.equal(shown(), 20);
-  // a Strand, then a step away again: 12
+  assert.equal(shown(), 25);
+  // a Strand, then a step away again: 17
   c.tide = 4;
-  assert.equal(shown(), 12);
+  assert.equal(shown(), 17);
   const mid = JSON.parse(JSON.stringify(run));
   mid.combat.player.ward = 0;
   const hp0 = mid.hp;
   E.endTurn(mid);
-  assert.equal(hp0 - mid.hp, 12, 'it hits for what it showed');
-  // a Strand and a Crest: silenced
+  assert.equal(hp0 - mid.hp, 17, 'it hits for what it showed');
+  // a Strand and a Crest: 10 left, and a step off 3 after them takes that too
   c.swellActTurn = null;
   c.tide = 5;
   E.swellAct(run, 'stir');
   assert.equal(c.turnCrests + c.turnLows, 2);
-  assert.equal(shown(), 0, '40 - 20 - 20');
+  assert.equal(c.tide, 3);
+  assert.equal(shown(), 10, '40 - 15 - 15');
+  c.tide = 2;
+  assert.equal(shown(), 2, 'and 8 for the step');
+  c.tide = 1;
+  assert.equal(shown(), 0, 'two steps: silenced');
   const hp = run.hp;
   c.player.ward = 0;
   E.endTurn(run);
   assert.equal(hp - run.hp, 0);
-  // two waves silence it: no hit at all, so not even its Might gets through
+  // three waves silence it: no hit at all, so not even its Might gets through
   const f2 = fight(['buoy'], { kind: 'boss' });
   const b2 = f2.c.enemies[0];
   b2.hp = b2.maxHp = 500;
   b2.mem.free = true;
   b2.intent = 'peal';
   b2.st.might = 1;
-  f2.c.turnCrests = 1;
+  f2.c.turnCrests = 2;
   f2.c.turnLows = 1;
   assert.equal(E.intentInfo(f2.run, b2).dmg, 0);
   const hp2 = f2.run.hp;

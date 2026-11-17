@@ -1163,10 +1163,12 @@
     return (tgt.st.soaked || 0) > 0 ? Math.floor(n * 1.5) : n;
   }
   E.waveValue = waveValue;
+  /* A Crest's damage: 6 (10 with the Tidewatch), times Maelstrom, then 3 more for each Crest before it this turn. Since
+     v0.43.0 Maelstrom doubles only the Crest's own damage, not what chaining adds (a Grok playtest: its second Crest hit
+     for 18, and a Breaker played into it for 30); until then the whole Crest was doubled. */
   E.crestDamage = function (run, c, chain) {
-    let dmg = 6 + 3 * Math.max(0, chain - 1) + (E.has(run, 'tidewatch') ? 4 : 0);
-    dmg *= 1 + (c.player.st.r_maelstrom || 0);
-    return dmg;
+    const own = (6 + (E.has(run, 'tidewatch') ? 4 : 0)) * (1 + (c.player.st.r_maelstrom || 0));
+    return own + 3 * Math.max(0, chain - 1);
   };
   function gainPearls(run, c, n) {
     if (n <= 0) return;

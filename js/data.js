@@ -244,7 +244,7 @@
   card('maelstrom', {
     name: 'Maelstrom', type: 'rite', rarity: 'rare', cost: 2, target: 'none',
     v: { n: 1 }, up: { cost: 1 }, art: 'c_maelstrom',
-    text: () => `Your Crests deal double damage.`,
+    text: () => `Your Crests deal double damage (not the extra a chained Crest adds).`,
     play: (A, v) => A.rite('r_maelstrom', v.n),
   });
   card('beam', {
@@ -373,7 +373,7 @@
     brine: { name: 'Brine', kind: 'debuff', icon: 'brine', desc: (n) => `Loses ${n} HP at the start of its turn, then Brine drops by 1.` },
     r_moonpull: { name: 'Moon Pull', kind: 'rite', icon: 'moon', desc: (n) => `At the start of your turn, Surge ${n}.` },
     r_tidalmemory: { name: 'Tidal Memory', kind: 'rite', icon: 'shell', desc: (n) => `Whenever you Crest, gain ${n} Light.` },
-    r_maelstrom: { name: 'Maelstrom', kind: 'rite', icon: 'vortex', desc: (n) => `Crests deal ${n + 1}x damage.` },
+    r_maelstrom: { name: 'Maelstrom', kind: 'rite', icon: 'vortex', desc: (n) => `Crests deal ${n + 1}x damage, not counting the extra a chained Crest adds.` },
     r_spindrift: { name: 'Spindrift', kind: 'rite', icon: 'wave', desc: (n) => `Each time you Surge (by any amount), deal ${n} damage to a random enemy.` },
     r_abyss: { name: 'Abyssal Pull', kind: 'rite', icon: 'anchor', desc: (n) => `Whenever you Strand, deal ${n} damage to ALL enemies.` },
     r_beam: { name: 'Lighthouse Beam', kind: 'rite', icon: 'beam', desc: (n) => `At the end of your turn, deal ${n} damage per Swell to a random enemy.` },
@@ -438,7 +438,7 @@
      less `quiet` for each Crest or Strand you make that turn. v0.41.0 (the user: "each step away from 3 muffles ... Full
      Strand/Crest muffles it on top of this. Make it fairer and harder"): a Bail or a Stir always helps a little, and ignoring
      it costs more. Until then 30, less 15 a Crest or Strand, and a hand that could neither ate all of it. */
-  BL.PEAL = { dmg: 40, quiet: 20, step: 8 };
+  BL.PEAL = { dmg: 40, quiet: 15, step: 8 }; // quiet 20 in v0.42.0: one Strand and one Crest silenced it, and a Grok run took 0
   /* A Glimmer Bladder's burst when it dies: this much damage to the keeper and to every other creature. */
   BL.BURST = 8;
   /* When the Bellwether's bronze breaks, the Lantern Heart's light pours out: the keeper heals this share of her
@@ -915,7 +915,7 @@
       pocketArt: 'pocket', // under a lesser bell (v0.37.0)
       pocket: 'A lesser bell hangs here from a beam of the old tower, and air is caught under it. You come up into the dark inside the bronze, open your helmet and breathe.',
       stair: 'Below Dark Water the stair goes on down into the sea. On the last dry step you check the seams of the diving dress, light its sealed lamp, and rest a while before you go under.',
-      win: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. The thing that grew into the bell lets go of the Heart and sinks away into the dark under the floor. You carry the Heart up three levels of stairs, and by dawn the great light of Saltmere is turning again.',
+      win: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. The thing that grew into the bell lets go of the Heart and sinks away into the dark under the floor. You carry the Heart up three levels of stairs, and by dawn the great light of Saltmere is turning again. Hester watches it from the gallery.',
       quiet: 'The keeper in your coat goes out like a pinched wick, and the Belfry goes quiet. The broken bell hangs still over the place where the Heart lay, and a faint light stays behind there, as it always does. You climb home, and the great light is still turning.',
       /* The Belfry is a dive (v0.37.0, E.DIVE): two Dreads, each guarded, a lesser bell after each, then the pin. Before
          v0.37.0 it was a map like the others, with easy and hard fights of its own creatures. */
@@ -1216,8 +1216,11 @@
         text: 'In the sea-caves under the cliffs hangs an enchanted bell, the Bellwether. Keepers sank it there long ago to hold the sea back. Nobody has tended it for a hundred years.' },
       { art: 'scenes/op_fire', pos: '28% center', wide: '30% center', zoom: 1.08, sfx: 'bell',
         text: 'Tonight the bell rang by itself. Its magic pulled the Lantern Heart out of the lighthouse and down into the caves. Now the bell is flooding the caves and lifting the sea toward the town, a little higher with every tide.' },
+      // v0.43.0: Hester and Bosun, who wait for Wren and bring her home when she falls (WORLD.md, "Who waits for Wren")
+      { art: 'scenes/op_home', pos: '74% center', wide: 'center 30%', zoom: 1.06,
+        text: 'Your lantern holds the last of that fire. Hester carried it for forty years before she gave it to you, and her knees will not take the tower stairs now. Her dog Bosun is already waiting on the step.' },
       { art: 'scenes/rest', pos: 'center', wide: 'left center', zoom: 1.6, fig: 'units/keeper',
-        text: 'Your lantern holds the last of that fire. Your hand-bell moves water the way the great bell does. Take both, and your harpoon. Go down through the caves, fight what lives there, and bring the Lantern Heart home.' },
+        text: 'Your hand-bell moves water the way the great bell does. Take your lantern, your bell and your harpoon. Go down through the caves, fight what lives there, and bring the Lantern Heart home.' },
     ],
     /* Story scenes (v0.33.0, the user's idea): a few pictures with a few lines each, like the opening, the first time
        something big happens. `at` is when one plays: 'pin:<level>' as that level's pin breaks (before the choice to go
@@ -1241,13 +1244,13 @@
       ] },
       dress: { at: 'dress', beats: [
         { art: 'scenes/sc_mend', pos: '45% center', wide: 'center 30%', zoom: 1.04,
-          text: 'At home, in the boathouse on the harbour, you sew up the seams with waxed thread and proof them with lamp oil. You fill the sealed lamp and try it with the glass shut. It burns. Wear the dress in your Rig place on your next expedition, and the last stair is open.' },
+          text: 'At home, in the boathouse on the harbour, Hester holds the lamp while you sew up the seams with waxed thread and proof them with lamp oil. You fill the sealed lamp and try it with the glass shut. It burns. Wear the dress in your Rig place on your next expedition, and the last stair is open.' },
       ] },
       // the first time Wren goes down into the Belfry, in the dress (v0.40.0, the user's request); the second picture says
       // why there are so many bells, which the user asked to have made clear
       below: { at: 'in:2', beats: [
-        { art: 'scenes/sc_belfry1', pos: '62% center', wide: 'center 25%', zoom: 1.04, sfx: 'bell',
-          text: 'On the last dry step you seal the helmet and light its lamp from your lantern. The open lantern stays on the step. Then you walk down the keepers\' stair, into the sea.' },
+        { art: 'scenes/sc_belfry1', pos: '21% center', wide: 'center 25%', zoom: 1.04, sfx: 'bell',
+          text: 'On the last dry step you seal the helmet and light its lamp from your lantern. The open lantern stays on the step, and Bosun lies down beside it to wait. Then you walk down the keepers\' stair, into the sea.' },
         { art: 'scenes/sc_belfry2', pos: '40% center', wide: 'center 30%', zoom: 1.04,
           text: 'The Belfry is full of bells. Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. The harbour bell and the old bell-buoy held the water because they rang with the great bell. Down here, a hundred lost bells still do.' },
         { art: 'bg/bg_belfry_boss', pos: '55% center', wide: 'center 40%', zoom: 1.04,
@@ -1259,7 +1262,7 @@
         { art: 'scenes/sc_heart2', pos: '68% center', wide: 'center 25%', zoom: 1.04,
           text: 'You carry the Heart up three levels of stairs. The water runs away in front of it.' },
         { art: 'scenes/op_lighthouse', pos: '78% center', wide: 'center top', zoom: 1.08,
-          text: 'By dawn the great light of Saltmere is turning again, and the sea has stopped rising. The boats go out past the rocks.' },
+          text: 'By dawn the great light of Saltmere is turning again. Hester is out on the gallery to see it, and Bosun will not stop barking. The sea has stopped rising, and the boats go out past the rocks.' },
         { art: 'scenes/ev_heartglow', pos: 'center', wide: 'center 60%', zoom: 1.04,
           text: 'The Bellwether is silent. But in the Belfry a faint light stayed behind where the Heart lay, and things still grow toward it. Saltmere will need a keeper who goes down.' },
       ] },
@@ -1268,15 +1271,15 @@
         { art: 'scenes/sc_watch1', pos: 'center', wide: 'center 30%', zoom: 1.04, sfx: 'bell',
           text: 'Under the broken bell, the keeper in your coat lowers your harpoon. For a moment its lantern is lit, from yours, and you see its face. Then it goes out like a pinched wick, and there is only water where it stood.' },
         { art: 'scenes/op_lighthouse', pos: '78% center', wide: 'center top', zoom: 1.08,
-          text: 'You climb home. The great light is turning, as it has every night since the Heart came home. In the keeper\'s room you turn the watch glass over, and for the first time since that night you sleep through to morning.' },
+          text: 'You climb home. The great light is turning, as it has every night since the Heart came home. In the keeper\'s room you turn the watch glass over, and for the first time since that night you sleep through to morning, with Bosun across the foot of the bed.' },
       ] },
     },
     chapters: [
       { id: 'night', title: 'The night the light went out', opening: true },
       { id: 'fall', title: 'The sea gives you back', when: 'fell', lock: 'Fall in the Reach.', text: [
-        'The cold water closed over your lantern, and you went under. You woke on the shingle below the lighthouse, alive, with your harpoon beside you. Your lantern had burned down to an ember, but it was still alight.',
-        'The water the bell holds keeps everything it takes. The open sea does not. It carries the drowned back to shore, and it carried you. The keepsakes you found in the caves are gone: the bell called them back.',
-        'The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again.',
+        'The cold water closed over your lantern, and you went under. The water the bell holds keeps everything it takes. The open sea does not: past the bell\'s reach it gives back what it takes, and it gave you back.',
+        'Bosun went in after you and would not let go of your scarf. He swam you in to the shingle below the lighthouse, and barked until Hester saw your ember from the gallery and came down with a blanket. You woke under it, alive, with your harpoon beside you. Your lantern had burned down to an ember, but it was still alight.',
+        'The keepsakes you found in the caves are gone: the bell called them back. The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again, and Bosun goes with you.',
       ] },
       { id: 'home', title: 'The harbour bell', when: 'won:0', lock: "Break the Shallows' pin.", scene: 'hermit', text: [
         'On the last landing of the Shallows waited a hermit crab as big as a rowing boat. It wore Saltmere\'s old harbour bell for a shell: the bell that rang the boats home in fog, until a winter storm tore it off the harbour wall. When the bell cracked, the crab let go of the water, and the water ran away down a stair that had been under the sea for a hundred years.',
@@ -1290,18 +1293,18 @@
       ] },
       { id: 'belfry', title: 'The diving dress', when: 'won:1', lock: "Break Dark Water's pin.", scene: 'dress', text: [
         'Below Dark Water there is one more chamber, and its floor is under the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
-        'The Belfry is full of water and it does not drain, and an open lantern cannot go there. But on the wall above its stair hung an old keeper\'s diving dress, with a sealed lamp on its helmet. Its seams had rotted and its lamp was dry, so you carried it home and mended it.',
+        'The Belfry is full of water and it does not drain, and an open lantern cannot go there. But on the wall above its stair hung an old keeper\'s diving dress, with a sealed lamp on its helmet. Its seams had rotted and its lamp was dry, so you carried it home and mended it, with Hester holding the lamp.',
         'Pack the dress in your Rig place, and the last stair is open. It does nothing in a fight, and it takes the place of anything else you would wear.',
       ] },
       { id: 'below', title: 'Into the Belfry', when: 'in:2', lock: 'Go down into the Belfry.', scene: 'below', text: [
-        'On the last dry step you sealed the helmet, lit its lamp from your lantern, and walked down the keepers\' stair into the sea.',
+        'On the last dry step you sealed the helmet, lit its lamp from your lantern, and walked down the keepers\' stair into the sea. Bosun lay down beside the open lantern to wait for you.',
         'The Belfry is full of bells. Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. The harbour bell and the old bell-buoy held the water because they rang with the great bell, and down here a hundred lost bells still do.',
         'Whatever lives in the Belfry has learned it too. Its young wear broken bronze for shells, and look for bigger bells as they grow.',
       ] },
       { id: 'heart', title: 'The Heart comes home', when: 'heart', lock: 'Bring the Heart home.', scene: 'heart', text: [
         'The Bellwether hung in the Belfry over the Lantern Heart, and it rang with no hand on its rope. When its bronze broke, the Heart\'s light poured out through the water, and something came out of the bell with it: a thing with one eye and many arms, which had grown into the bronze in the hundred years nobody came down.',
         'You do not know if you killed it. When it let go of the Heart, it sank away into the dark under the floor.',
-        'You carried the Heart up three levels of stairs. By dawn the great light of Saltmere was turning again, and the water stopped rising.',
+        'You carried the Heart up three levels of stairs. By dawn the great light of Saltmere was turning again, and the water stopped rising. Hester was out on the gallery to see it.',
       ] },
       { id: 'followed', title: 'Why the fire followed', when: 'heart', lock: 'Bring the Heart home.', text: [
         'Every keeper\'s hand-bell is tuned to the Bellwether, and every keeper\'s lantern is lit from the Lantern Heart. The great bell leads and the small ones follow. That is what a bellwether is: the sheep that wears the bell, and the flock walks behind it.',
@@ -1315,14 +1318,14 @@
       ] },
       { id: 'watch', title: 'The Dark Watch', when: 'quiet', lock: 'Quiet the Belfry after the Heart comes home.', scene: 'watch', text: [
         'On the Belfry\'s last landing, under the broken bell, a keeper was waiting for you. She wore your oilskin and your scarf. She carried your harpoon and your hand-bell, and your lantern, unlit.',
-        'The light went out on your watch. You have not said it to anyone. Down there it had grown a body, and the body wanted the lighthouse dark again. When it was hurt it called for help, and what came was a diving dress with nobody in it.',
+        'The light went out on your watch. You have not said it to anyone, not even Hester. Down there it had grown a body, and the body wanted the lighthouse dark again. When it was hurt it called for help, and what came was a diving dress with nobody in it.',
         'It went out like a pinched wick. You do not know if it was ever really there. The deep will grow it back, the way the bell brought back the water. Next time you will know its face. You climbed home, and the great light was turning.',
       ] },
     ],
     world: [
       { group: 'Places', items: [
         ['Saltmere', 'A harbour town on a rocky headland. Its lighthouse stands on a rock off the end of the headland and warns ships off the rocks.'],
-        ['The lighthouse', 'It stands on its own rock off the harbour, and you keep it. At low tide you can walk across to the town. Its lamp burns the Lantern Heart.'],
+        ['The lighthouse', 'It stands on its own rock off the harbour, and you keep it. You live there with Hester, who kept it before you, and Bosun. At low tide you can walk across to the town. Its lamp burns the Lantern Heart.'],
         ['The Drowned Reach', 'The sea-caves, stairs and rock terraces under the cliffs, below the lighthouse. The Bellwether keeps them flooded.'],
         ['Expeditions', 'Every expedition starts on the shore and goes down through the Reach a level at a time: the Shallows, then Dark Water, then the Belfry. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.',
           { level: 2, before: 'Every expedition starts on the shore and goes down through the Reach a level at a time, from the Shallows. You can go home after any pin, with everything you carry. The next expedition starts on the shore again.' }],
@@ -1332,10 +1335,13 @@
           { level: 2, before: 'The stops on the way down through a level. A boss waits on the last one: in the Shallows, the Harbour Hermit.' }],
         ['Pins', 'A pin is a boss that holds the water over the stair down to the next level. Break it, and the water runs away down the stair.'],
         ['Currents', 'Moods of the sea that make an expedition harder and its score higher. You choose them on shore, once the Heart has come home.'],
-        ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. It opens the first time you come home.'],
+        ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. Hester keeps its key, and gives it to you the first time you come home.'],
       ] },
       { group: 'People', items: [
         ['Wren', 'You. The last lighthouse keeper of Saltmere.'],
+        ['Hester', 'The old keeper. She kept the light for forty years and taught you. The lantern you carry was hers: when her knees gave out on the tower stairs she gave it to you, and the keeping with it. She never went down the stair. She knows the Reach only from the keepers\' book, and she waits for you at home.'],
+        ['Bosun', 'A big golden dog with a soft mouth, Hester\'s first and yours now. He goes down the Reach with you and keeps back from a fight. When the sea gives you back, he is the one who pulls you out of it. He cannot follow you under the sea: he waits on the last dry step.',
+          { level: 2, before: 'A big golden dog with a soft mouth, Hester\'s first and yours now. He goes down the Reach with you and keeps back from a fight. When the sea gives you back, he is the one who pulls you out of it.' }],
         ['Keepers', 'The people who tend the light and the bell. A keeper carries a lantern lit from the Lantern Heart and a hand-bell tuned to the Bellwether.'],
         ['The oilskin', 'A keeper\'s coat, proofed with the oil that burns in the great lamp under the Heart\'s fire. Brine runs off it, and so does brinelight, so the Reach never soaks into a keeper the way it soaks into lost things. No keeper goes down without one. Everything else you wear goes over it, in your Rig place.'],
         ['Barnaby', 'A hermit crab who keeps a shop in his shell. He sells cards, keepsakes and tonics for pearls.'],
@@ -1375,7 +1381,11 @@
       { id: 'seep', title: 'A Roiled aether', when: 'roiled', lock: 'Carry more Roil than your Hold.', art: 'cards/c_seep',
         text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether thrashes like a hooked fish. It has no aim. It strikes whoever stands nearest, again and again, and each blow takes a little of you unless you are still braced for it. That is Thrash. Further still, and the noise carries. The Bellwether listens for it, and sends a Bell Minnow to find what is calling. A thrashing aether also shakes Pearls loose from the rock and from whatever you fight in it, so a keeper who can stand it comes home richer. To calm it, drop a keepsake, give one to the sea at a Cove, or bring fewer from home.' },
       { id: 'lazaret', title: 'A night in the Lazaret', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/lazaret',
-        text: 'A lazaret is a ship\'s store locker, and also a house where the sick are kept apart. The keepers\' Lazaret is a little of both. A keepsake fresh from the Reach still answers the Bellwether, and the bell calls it back if its finder falls. One night shut in the Lazaret breaks that pull. After that the keepsake answers its keeper, and it turns up in the Lazaret again even if she leaves it behind in the caves.' },
+        text: 'A lazaret is a ship\'s store locker, and also a house where the sick are kept apart. The keepers\' Lazaret is a little of both. A keepsake fresh from the Reach still answers the Bellwether, and the bell calls it back if its finder falls. One night shut in the Lazaret breaks that pull. After that the keepsake answers its keeper, and it turns up in the Lazaret again even if she leaves it behind in the caves. Hester keeps the key.' },
+      { id: 'hester', title: 'Hester', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/op_home',
+        text: 'Hester kept the light for forty years. She taught you to trim a wick, to read the tide-board and to ring a hand-bell so the water listens. When her knees gave out on the tower stairs she gave you her lantern, and the keeping with it, so she is not a keeper any more. Like every keeper since the Lost Lamplighter, she never went down the stair. What she knows of the Reach is in the keepers\' book, which she keeps and you read. When you come home, the kettle is on.' },
+      { id: 'bosun', title: 'Bosun', when: 'fell', lock: 'Fall in the Reach.', art: 'scenes/op_home',
+        text: 'Bosun was Hester\'s dog first. He is big and golden and soft-mouthed, and he has pulled gulls, oars and once a fisherman\'s boy out of the harbour. He goes down the Reach with you and keeps back from a fight. When the held water takes you he goes in after you, and he does not let go of your scarf until the sea gives you back.' },
       { id: 'kelp', title: 'The old coast', when: 'ev:ambush', lock: 'Found in the Fog.', art: 'scenes/ev_ambush',
         text: 'Not everything in the Reach serves the bell. Crabs, eels, gulls and kelp lived on this coast long before it rang by itself. The flooding gave them more room, and they guard what they find in it.' },
       { id: 'deckhand', title: 'Drowned Deckhands', when: 'en:sailor', lock: 'Found in a fight.', art: 'units/sailor',

@@ -760,7 +760,8 @@ async function storyScenario(page, base, name, size) {
   await page.click('#overlay [data-act="opening"]');
   await sleep(200);
   if (!(await count('#overlay .opening'))) failures.push(`${name}: Play the opening again didn't start the opening`);
-  for (let i = 0; i < 4 && await count('#overlay .opening'); i++) { await page.click('#overlay [data-act="opnext"]'); await sleep(200); }
+  const beats = await page.eval('window.BL.STORY.opening.length');
+  for (let i = 0; i < beats && await count('#overlay .opening'); i++) { await page.click('#overlay [data-act="opnext"]'); await sleep(200); }
   if (!(await count('#overlay .story'))) failures.push(`${name}: the replayed opening didn't come back to Story so far`);
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   // a fight opens a note, and a fall opens chapter 2 on the end screen
@@ -836,7 +837,7 @@ async function lazaretScenario(page, base, name, size) {
   if (await news()) failures.push(`${name}: Got it didn't close the New at the lighthouse window`);
   if (!m.told || m.told.join(',') !== 'workshop,lazaret') failures.push(`${name}: what was told isn't stored (${JSON.stringify(m.told)})`);
   if (!m.lazOpen || m.lazaret.join(',') !== 'moonshard,anchor') failures.push(`${name}: the first win didn't keep both keepsakes (${JSON.stringify(m.lazaret)})`);
-  if (!/The Lazaret is open/.test(await text('.lz-box')) || !/Moon Shard/.test(await text('.lz-box'))) failures.push(`${name}: the end screen doesn't say the Lazaret opened and what it kept`);
+  if (!/key to the Lazaret/.test(await text('.lz-box')) || !/Moon Shard/.test(await text('.lz-box'))) failures.push(`${name}: the end screen doesn't say the Lazaret opened and what it kept`);
   await checkPage(page, name + ' first win');
   await clickIf(page, '.lz-box');
   await sleep(200);
@@ -1080,8 +1081,8 @@ async function darkwaterScenario(page, base, name, size, opts) {
   const at3 = await intentAt(3), at5 = await intentAt(5);
   if (at3 !== '12' || at5 !== '20') failures.push(`${name}: the Rocking Toll intent should read 12 at Swell 3 and 20 at Swell 5 (got ${at3}, ${at5})`);
   await checkPage(page, name + ' buoy');
-  // once it has slipped its chain, the Wild Peal (v0.41.0: 40, 8 less a step from 3, 20 less a Crest or Strand) reads 24 at
-  // Swell 1, and 20 after a Bail that Strands (the Swell back at 3)
+  // once it has slipped its chain, the Wild Peal (v0.43.0: 40, 8 less a step from 3, 15 less a Crest or Strand) reads 24 at
+  // Swell 1, and 25 after a Bail that Strands (the Swell back at 3)
   await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat; c.enemies[0].mem.free = true; c.enemies[0].intent = 'peal'; c.tide = 1; c.light = 3; c.swellActTurn = null; B.render(); })()`);
   await sleep(300);
   const pealText = () => page.eval(`document.querySelector('.unit.enemy .intent').innerText.replace(/\\s+/g, '')`);
@@ -1091,7 +1092,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await tap('#tidebar .tb-act.bail');
   await waitIdle(page);
   const peal1 = await pealText();
-  if (peal0 !== '24' || peal1 !== '20') failures.push(`${name}: the Wild Peal intent should read 24 at Swell 1, then 20 after a Bail that Strands (got ${peal0}, ${peal1})`);
+  if (peal0 !== '24' || peal1 !== '25') failures.push(`${name}: the Wild Peal intent should read 24 at Swell 1, then 25 after a Bail that Strands (got ${peal0}, ${peal1})`);
   await checkPage(page, name + ' wild peal');
 
   // then a few stops of the real descent

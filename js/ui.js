@@ -1823,7 +1823,7 @@
      end screen as the expedition ends, or over the title screen if that was missed (a closed tab, the debug panel). */
   const NEWS = {
     workshop: () => [gearArt({ art: 'g_salvage' }), `The ${MT.shop} is open`, `Every finished expedition turns its score into <b>${MT.currency}</b>. Spend it on <b>${MT.item.toLowerCase()}</b>: gear that is yours for good. You wear one piece in each of five places.`, `Title screen &rarr; ${MT.shop}`],
-    lazaret: () => ['<span class="medal"><img src="img/icons/k_whaletooth.webp" alt=""></span>', 'The Lazaret is open', 'The locked store room at the lighthouse. Every keepsake you carry home is kept there, as many of each as you bring. Before an expedition you choose which to bring: each one counts toward your Hold, and a fall loses it, but for one you hold on to.', 'Title screen &rarr; Lazaret'],
+    lazaret: () => ['<span class="medal"><img src="img/icons/k_whaletooth.webp" alt=""></span>', 'The Lazaret is open', 'The locked store room at the lighthouse: Hester has given you its key. Every keepsake you carry home is kept there, as many of each as you bring. Before an expedition you choose which to bring: each one counts toward your Hold, and a fall loses it, but for one you hold on to.', 'Title screen &rarr; Lazaret'],
     suit: () => [gearArt(BL.KIT.suit), `The ${BL.KIT.suit.name} is mended`, `You carried it home and mended it. Wear it in your <b>${placeOf(BL.KIT.suit.place).name}</b> place when you pack, and the stair below Dark Water is open.`, 'New Descent &rarr; Pack for the expedition'],
     currents: () => [`<span class="medal">${ICON.wave}</span>`, 'Currents are open', `The sea is wide awake now, and it has moods. Switch on any <b>currents</b> when you pack: each makes the whole expedition harder and adds &times;${E.CURRENT_SCORE} to your score.`, 'New Descent &rarr; Pack for the expedition'],
   };
@@ -3620,7 +3620,7 @@
     const z = fin.laz;
     if (z) {
       const parts = [];
-      if (z.opened) parts.push('<b>The Lazaret is open.</b> It is the locked store room at the lighthouse, on the title screen. Keepsakes kept there are yours until you take them down again, and you choose which to bring on each descent.');
+      if (z.opened) parts.push('<b>Hester gives you the key to the Lazaret.</b> It is the locked store room at the lighthouse, on the title screen. Keepsakes kept there are yours until you take them down again, and you choose which to bring on each descent.');
       if ((z.added || []).length) parts.push(`Into the Lazaret: ${ksNames(z.added)}.${z.kept.length && z.kept.length < z.added.length ? ` New there: ${ksNames(z.kept)}.` : ''}`);
       // kit found on the expedition (the diving dress) is mended at home and joins the Workshop
       const kit = (z.found || []).map((id) => `<div class="unlock-box found-kit">${gearArt(BL.KIT[id])}<span><b>You carried home the ${BL.KIT[id].name}.</b> You mend it at the lighthouse. Wear it in your ${BL.KIT_PLACES.find((pl) => pl.id === BL.KIT[id].place).name} place, and the stair below Dark Water is open.</span></div>`).join('');
@@ -3683,8 +3683,8 @@
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? (run.heart ? 'The Lantern Heart rises' : run.quieted ? 'The Belfry is quiet' : 'Home with your haul') : 'The tide takes you';
     const text = win
-      ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : `You climb back up the drained stairs with everything you carry. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
-      : `The cold water closes over your lantern, and you go under. The sea carries you back to shore, alive. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
+      ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : `You climb back up the drained stairs with everything you carry, and Bosun runs ahead to tell Hester. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
+      : `The cold water closes over your lantern, and you go under. Past the bell's reach the sea gives you back, and Bosun drags you out of the surf by your scarf. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
     // once the Heart is home the lighthouse is lit, so a homecoming shows it lit; before that it is still dark
     const endArt = win ? (run.heart || run.heartHome ? 'scenes/op_lighthouse' : 'bg/bg_title') : `bg/${E.band(run).bossBg}`;
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
