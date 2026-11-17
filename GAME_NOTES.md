@@ -1743,6 +1743,12 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### The old keeper and the dog (2026-11-17; lore only)
+
+- **The user's idea:** "give Wren something that makes the game feels less lonely. Like a companion pet or lighthouse mentor. Maybe both. Only for lore for now. But could allow for new mechanics in game." The mentor or pet could explain how Wren is saved after a fall.
+- **The user's choices** (of three pets and three mentors offered): a golden-retriever kind of dog, its breed never named in the game, and the old keeper. The lore is in WORLD.md, "Who waits for Wren". The names Hester and Bosun, and the details, are the agent's and provisional.
+- **Not built:** no game text, pictures or rules yet. The ideas for later mechanics are in WORLD.md. The first would be the dog bringing one keepsake home when Wren falls.
+
 ### From the Grok playtests: Spines, the Bell, Douse, a free Bail, the Crab and the Wild Peal (v0.42.0, 2026-11-17)
 
 - **The user's call:** build the agent's five suggestions from the Grok playtests of v0.41.0 (below), and "make such that each step away from 3 muffles [the Wild Peal]: Bail and Stir a bit. Full Strand/Crest muffles it on top of this. Make it fairer and harder."
@@ -1823,7 +1829,7 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
   - v0.41.0: "Three fights were genuinely threatening ... Nothing added extra floors of padding." It paid the Shallows' toll in Pearls and was then 4 Pearls short of the card it wanted at the shop: a real trade, not a dead click.
   - **Their proposals (not built; for the user):** the Wild Peal lethal if you neither Crest nor Strand, with Bail or Stir muffling it partway; the pins' Ward staying until a Crest or Strand, like the Lamp Hermit's Shell; the Buoy's Swell penalty counted from the farthest the Swell went that turn (Surge to 5 for a big hit, Crest back to 3, and pay the small Toll); Crests setting off Spines; Douse lasting until you Crest or Strand. Also: `info` with no name does nothing, and the text tool has no upgrade preview at a Cove.
-  - **A lesson:** the first Grok run (before the two above) ran its shell in the main checkout although the agent was started with `--workspace` on a copy: its tool calls carried `workingDirectory` /home/andre/code/brinelight. It played the Shallows on v0.40.0, then walked into Dark Water's toll row while the toll was half built, and the text tool ended its run. Start it with `env -C <copy> PWD=<copy> agent ...` and tell it in the brief to `cd <copy> &&` every command; check `workingDirectory` in the stream afterwards.
+  - **A lesson:** the first Grok run (before the two above) ran its shell in the main checkout although the agent was started with `--workspace` on a copy: its tool calls carried `workingDirectory` /home/andre/code/brinelight. It played the Shallows on v0.40.0, then walked into Dark Water's toll row while the toll was half built, and the text tool ended its run. Start it with `env -C <copy> PWD=<copy> agent ...` and check `workingDirectory` in the stream afterwards. The copy's `.cursor/cli.json` allows only `Shell(node)` (and writes to `.play/`), so don't tell it to `cd <copy> &&`: Cursor rejects the chained `cd`, and one run (v0.42.0) spent 18 minutes polling a missing terminal file before it was stopped and started again with plain `node tools/play.js` commands.
 - **Levers back, gentlest first:** `E.REWARD_UP` [0.15, 0.02] (+4.6 for the bot); a cheaper toll does nearly nothing; `E.TOLL_ROW = -1` turns the toll off. The tutorial's Bail check in `npm run test:ui` failed twice while two Grok runs and a measure ran beside it, and passed twice alone, as before.
 
 ## Version and What's new (v0.6.0, 2026-11-11)

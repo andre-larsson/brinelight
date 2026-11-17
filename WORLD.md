@@ -211,6 +211,21 @@ The suit still has to be carried home before it can be worn on a later expeditio
 - **In the game:** The Lost Lamplighter is drowned and waits on a dripping stair. He holds a keeper's lantern that has not burned in a hundred years. If Wren shares her light, he shows her an old keeper's trick. He says the deep is kind to the light and advises Wren to carry less. A hundred years is the only span of time stated in the game.
 - **In the game:** An unnamed sea goddess has been forgotten. At the Sunken Shrine, her stone hands are still held out. She accepts blood or pearls, and the water warms when she accepts an offering.
 
+### Who waits for Wren: the old keeper and the dog (2026-11-17; lore only, not in the game)
+
+- **Agreed (the user's idea and choices):** Wren is not alone. An old keeper waits at the lighthouse, and a dog goes down the Reach with her. They are lore only for now, and both leave room for mechanics later. Between them they explain how Wren gets home when she falls. The dog is a golden-retriever kind of dog, but the game never names its breed.
+- **Draft (the agent's details; names provisional):**
+  - **The old keeper, Hester.** She kept the light for forty years and taught Wren. The lantern Wren carries was hers. When her knees gave out on the tower stairs she handed it on, and the keeping with it. Without a lit lantern she is no longer a keeper, so Wren is still the last one. Like every keeper since the Lost Lamplighter, Hester never went down the stair. She knows the Reach only from the keepers' book, which she keeps and Wren reads. She is what makes the lighthouse home: the kettle, the patched oilskin, the key to the Lazaret, the bench in the boathouse where the dress was mended. She does not go down and does not fight. What she gives is what the book knows, and someone to come home to. Dev, the errand boy in the keeper drafts, runs her errands.
+  - **The dog, Bosun.** Hester's dog first, and Wren's now: big, golden and soft-mouthed. It has pulled gulls, oars and once a fisherman's boy out of the harbour. It goes down with Wren through the Shallows and Dark Water and keeps back from fights, which is why a fight shows her alone. It cannot follow her under the sea. On the last dry step above the Belfry it lies down beside the open lantern she leaves there, and waits. In pictures its coat is the warm gold of lantern light against the teal Reach.
+  - **How Wren gets home when she falls.** This adds to "Wren does not die when she falls" above, and changes nothing in it. The held water takes her, and her lantern burns down to an ember. The dog goes in after her and does not let go of her scarf. Past the bell's reach the ordinary sea gives her back, and the dog swims her in to the shingle below the lighthouse. It barks until Hester sees the ember from the gallery and comes down with a blanket. In the Belfry the dog is already waiting on the last dry step, and that is where the sea lets go of her. This is why Wren wakes on the shingle in *The sea gives you back*.
+- **Ideas for later mechanics (not agreed):**
+  - The dog retrieves. When Wren falls, it brings one keepsake from that expedition home in its mouth. This would answer the open question of what she loses.
+  - In a fight, once: fetch a card back from the discard pile, or bark so a Listener loses track of what she plays.
+  - The keepers' notes in Story so far are pages of Hester's book, and the hints are her advice.
+  - Hester says a word at home after each expedition: about a new creature, a pin broken, a fall.
+  - The Dark Watch is Wren's fear that the light went out on her watch. With Hester watching from the gallery, it was Hester's light she let go out.
+  - Story text and pictures to change once they are in the game: the opening, *The sea gives you back*, and the homecomings.
+
 ## Places
 
 Wren walks, wades, and climbs while the slow tide is out. Her coat and open lantern are suitable for every band except the Belfry.
@@ -296,6 +311,7 @@ Story so far is a screen on the title and in the menu. Its text is in `BL.STORY`
 - Which Dreads grow from Wren's own fears on the dives after the Heart, besides the Dark Watch? (Restoring water and ringers, keepsake recall and the Minnows: answered 2026-11-16 in "After the Heart comes home".)
 - What is the exact ending scene, and how much does Wren learn about what remains in the Reach?
 - What does Wren lose when she falls, besides that expedition's keepsakes?
+- The old keeper's and the dog's names (Hester and Bosun are provisional). When do they come into the game, and with which mechanic?
 - Besides keepsakes, how is everything brought home kept or used between expeditions?
 - How does a lost thing in brinelight become a keepsake?
 - What does the forgotten goddess have to do with the bell and the Heart? Leave her name forgotten unless an event needs it.
