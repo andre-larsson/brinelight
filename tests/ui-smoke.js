@@ -25,7 +25,7 @@ const WORKERS = Math.max(1, Math.floor(+arg('workers', 4)) || 1);
 const failures = [];
 /* v0.33.0: a story scene plays the first time a pin breaks and on the end screen, and a "New at the lighthouse" window
    says what opened. The Belfry and Lazaret scenarios go through them; the others start with them seen and told. */
-const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart'], TOLD = ['workshop', 'lazaret', 'suit', 'currents'];
+const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart', 'fall'], TOLD = ['workshop', 'lazaret', 'suit', 'currents'];
 const QUIET_STORY = JSON.stringify(JSON.stringify({ opening: true, scenes: SEEN_SCENES }));
 const QUIET_META = `localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify({ told: TOLD }))});`;
 const log = (...a) => console.log(...a);
@@ -374,7 +374,7 @@ async function workshopScenario(page, base, name, size) {
   page.errors.length = 0;
   await page.goto(base + '?seed=4444');
   // stored in the v0.9.0 shape: gear owned and packed
-  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true }));
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true, scenes: ['fall'] }));
     localStorage.setItem('brinelight.meta.v1', JSON.stringify({ salvage: 60, earned: 60, owned: ['purse'], packed: ['purse'], ach: ['twocrests'] })); })()`);
   await page.goto(base + '?seed=4444');
   await inject(page);
@@ -779,6 +779,13 @@ async function storyScenario(page, base, name, size) {
   if (!marks.some((m) => m.indexOf('en:') === 0)) failures.push(`${name}: the first fight stored no story mark (${marks})`);
   await page.eval(`(() => { const B = window.Brinelight; B.run.hp = 0; B.run.combat.lost = true; B.onDefeat(); })()`);
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "defeat" && !!document.querySelector(".story-new")', 5000, 'the fall on the end screen');
+  // the first fall plays its story scene over the end screen, and its picture stays behind it (v0.44.0)
+  if (!/sc_fall/.test(await page.eval(`(document.querySelector('#overlay .op-art') || {}).style ? document.querySelector('#overlay .op-art').style.backgroundImage : ''`))) failures.push(`${name}: the first fall didn't play its story scene`);
+  if (!/sc_fall/.test(await page.eval(`document.querySelector('.scene').style.backgroundImage`))) failures.push(`${name}: the fall's end screen doesn't show Bosun bringing Wren out`);
+  await checkPage(page, name + ' fall scene');
+  await page.click('#overlay [data-act="opnext"]');
+  await sleep(200);
+  await clickIf(page, '#overlay [data-act="newsok"]');
   await checkPage(page, name + ' defeat');
   await page.click('.story-new');
   await sleep(200);
@@ -891,6 +898,10 @@ async function lazaretScenario(page, base, name, size) {
   await dive('the third descent');
   if ((await keeps()) !== 'moonshard') failures.push(`${name}: a keepsake left at home came along (${await keeps()})`);
   await end('defeat', ['gullfeather']);
+  await sleep(200);
+  // the first fall's story scene plays over the end screen (v0.44.0)
+  if (!(await count('#overlay .opening'))) failures.push(`${name}: the first fall didn't play its story scene`);
+  await clickIf(page, '#overlay [data-act="opnext"]');
   await sleep(200);
   m = await stored();
   if (m.lazaret.join(',') !== 'anchor,tidewatch') failures.push(`${name}: a fall should lose the brought Moon Shard and keep what stayed home (${JSON.stringify(m.lazaret)})`);

@@ -1334,7 +1334,7 @@
     // a scene covered the screen while it drew, so its main button never got the focus: give it now
     if (o.scene && overlayEl.hidden) { const f = document.querySelector('[autofocus]'); if (f) f.focus({ preventScroll: true }); }
   }
-  /* Play the story scene for `at` ('pin:0', 'pin:1', 'dress', 'heart') if it hasn't played yet, then call `done`. It
+  /* Play the story scene for `at` ('pin:0', 'pin:1', 'in:2', 'dress', 'heart', 'quiet', 'fell') if it hasn't played yet, then call `done`. It
      counts as played once it starts. The tutorial and debug-cheated runs play none (they open nothing in the story). */
   function playScene(at, done, go) {
     const id = Object.keys(BL.STORY.scenes).find((k) => BL.STORY.scenes[k].at === at);
@@ -3685,10 +3685,13 @@
     const text = win
       ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : `You climb back up the drained stairs with everything you carry, and Bosun runs ahead to tell Hester. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
       : `The cold water closes over your lantern, and you go under. Past the bell's reach the sea gives you back, and Bosun drags you out of the surf by your scarf. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
-    // once the Heart is home the lighthouse is lit, so a homecoming shows it lit; before that it is still dark
-    const endArt = win ? (run.heart || run.heartHome ? 'scenes/op_lighthouse' : 'bg/bg_title') : `bg/${E.band(run).bossBg}`;
+    /* v0.44.0: Hester and Bosun on the end screens. Bringing the Heart home shows her on the gallery as the light turns;
+       coming home shows her in the doorway with Bosun running ahead, the lamp lit once the Heart is home; a fall shows
+       Bosun bringing Wren out of the surf (the first fall's story scene). */
+    const endArt = win ? (run.heart ? 'scenes/sc_heart3' : run.heartHome ? 'scenes/end_home_lit' : 'scenes/end_home') : 'scenes/sc_fall';
+    const endPos = { 'scenes/sc_heart3': '45% center', 'scenes/sc_fall': '45% center' }[endArt] || '55% center'; // where the people are, on a phone
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
-    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/${endArt}.webp)"><div class="scene-inner" style="padding-top:8vh">
+    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/${endArt}.webp);background-position:${endPos}"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
       ${scoreHTML}
       <div class="stats end-stats">${stats}</div>
@@ -3696,8 +3699,8 @@
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
-    // coming home with the dress or with the Heart has a story scene the first time; then what opened is told
-    if (fin.tell) { fin.tell = false; playScene(win && run.heart ? 'heart' : win && run.quieted ? 'quiet' : fin.laz && (fin.laz.found || []).indexOf('suit') >= 0 ? 'dress' : '', showNews, 'Home'); }
+    // coming home with the dress or with the Heart, and the first fall, have a story scene the first time; then what opened is told
+    if (fin.tell) { fin.tell = false; playScene(win && run.heart ? 'heart' : win && run.quieted ? 'quiet' : fin.laz && (fin.laz.found || []).indexOf('suit') >= 0 ? 'dress' : !win ? 'fell' : '', showNews, win ? 'Home' : 'Go on'); }
   }
 
   /* ================================================================== *

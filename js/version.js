@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.43.0';
+  BL.VERSION = '0.44.0';
   BL.CHANGELOG = [
+    { v: '0.44.0', date: '2026-11-17', items: [
+      'New pictures of Hester and Bosun. The first time you fall, a picture shows Bosun dragging Wren out of the surf while Hester comes down the rock with a blanket, and every fall\'s end screen shows it after that.',
+      'Coming home shows Hester in the lighthouse door and Bosun running up the steps ahead of you, with the lamp lit once the Heart is home. Bringing the Heart home shows Hester on the gallery as the great light turns again.',
+      'In the opening, Hester looks worried as you go down the steps. In the Workshop, Bosun sits in the doorway, watching the harbour.',
+    ] },
     { v: '0.43.0', date: '2026-11-17', items: [
       'Wren is not alone. Hester, the old keeper who carried her lantern for forty years, waits at the lighthouse, and Hester\'s dog Bosun goes down the Reach with her. The opening has a new picture of them, and the story says who they are: Bosun pulls Wren out of the sea when it gives her back, waits by her lantern on the last dry step above the Belfry, and Hester keeps the key to the Lazaret.',
       'Two new Keeper\'s notes, Hester and Bosun, and entries for them in The world.',

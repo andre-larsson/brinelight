@@ -1217,14 +1217,15 @@
       { art: 'scenes/op_fire', pos: '28% center', wide: '30% center', zoom: 1.08, sfx: 'bell',
         text: 'Tonight the bell rang by itself. Its magic pulled the Lantern Heart out of the lighthouse and down into the caves. Now the bell is flooding the caves and lifting the sea toward the town, a little higher with every tide.' },
       // v0.43.0: Hester and Bosun, who wait for Wren and bring her home when she falls (WORLD.md, "Who waits for Wren")
-      { art: 'scenes/op_home', pos: '74% center', wide: 'center 30%', zoom: 1.06,
+      { art: 'scenes/op_home', pos: '80% center', wide: 'center 30%', zoom: 1.06,
         text: 'Your lantern holds the last of that fire. Hester carried it for forty years before she gave it to you, and her knees will not take the tower stairs now. Her dog Bosun is already waiting on the step.' },
       { art: 'scenes/rest', pos: 'center', wide: 'left center', zoom: 1.6, fig: 'units/keeper',
         text: 'Your hand-bell moves water the way the great bell does. Take your lantern, your bell and your harpoon. Go down through the caves, fight what lives there, and bring the Lantern Heart home.' },
     ],
     /* Story scenes (v0.33.0, the user's idea): a few pictures with a few lines each, like the opening, the first time
        something big happens. `at` is when one plays: 'pin:<level>' as that level's pin breaks (before the choice to go
-       home or deeper), 'dress' on coming home with the diving dress, 'heart' on bringing the Heart home. A beat with
+       home or deeper), 'dress' on coming home with the diving dress, 'heart' on bringing the Heart home, 'fell' on the
+       first fall (its picture stays on every fall's end screen). A beat with
        `found` shows only when that kit was found there. The chapter that names a scene (`scene`) can play it again.
        The tutorial and debug-cheated runs play none. */
     scenes: {
@@ -1256,12 +1257,17 @@
         { art: 'bg/bg_belfry_boss', pos: '55% center', wide: 'center 40%', zoom: 1.04,
           text: 'Whatever lives down here has learned it too. Its young wear broken bronze for shells, and look for bigger bells as they grow. Far below, the Bellwether rings with no hand on its rope, and the Lantern Heart burns under it.' },
       ] },
+      // the first fall (v0.44.0, the user's request): Bosun brings her out of the surf; every later fall's end screen shows it
+      fall: { at: 'fell', beats: [
+        { art: 'scenes/sc_fall', pos: '45% center', wide: 'center 35%', zoom: 1.04,
+          text: 'The cold water closed over your lantern, and the sea gave you back. Bosun went in after you and dragged you out of the surf by your scarf, barking until Hester came down the rock with a lantern and a blanket. In your lantern an ember was still alight.' },
+      ] },
       heart: { at: 'heart', beats: [
         { art: 'scenes/sc_heart1', pos: 'center', wide: 'center 35%', zoom: 1.04, sfx: 'bell',
           text: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. Something lets go of it: a thing with one eye and many arms, which grew into the bell in the hundred years nobody came down. It sinks away into the dark under the floor. You do not know if you killed it.' },
         { art: 'scenes/sc_heart2', pos: '68% center', wide: 'center 25%', zoom: 1.04,
           text: 'You carry the Heart up three levels of stairs. The water runs away in front of it.' },
-        { art: 'scenes/op_lighthouse', pos: '78% center', wide: 'center top', zoom: 1.08,
+        { art: 'scenes/sc_heart3', pos: '45% center', wide: 'center 20%', zoom: 1.04,
           text: 'By dawn the great light of Saltmere is turning again. Hester is out on the gallery to see it, and Bosun will not stop barking. The sea has stopped rising, and the boats go out past the rocks.' },
         { art: 'scenes/ev_heartglow', pos: 'center', wide: 'center 60%', zoom: 1.04,
           text: 'The Bellwether is silent. But in the Belfry a faint light stayed behind where the Heart lay, and things still grow toward it. Saltmere will need a keeper who goes down.' },
@@ -1276,7 +1282,7 @@
     },
     chapters: [
       { id: 'night', title: 'The night the light went out', opening: true },
-      { id: 'fall', title: 'The sea gives you back', when: 'fell', lock: 'Fall in the Reach.', text: [
+      { id: 'fall', title: 'The sea gives you back', when: 'fell', lock: 'Fall in the Reach.', scene: 'fall', text: [
         'The cold water closed over your lantern, and you went under. The water the bell holds keeps everything it takes. The open sea does not: past the bell\'s reach it gives back what it takes, and it gave you back.',
         'Bosun went in after you and would not let go of your scarf. He swam you in to the shingle below the lighthouse, and barked until Hester saw your ember from the gallery and came down with a blanket. You woke under it, alive, with your harpoon beside you. Your lantern had burned down to an ember, but it was still alight.',
         'The keepsakes you found in the caves are gone: the bell called them back. The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again, and Bosun goes with you.',
@@ -1384,7 +1390,7 @@
         text: 'A lazaret is a ship\'s store locker, and also a house where the sick are kept apart. The keepers\' Lazaret is a little of both. A keepsake fresh from the Reach still answers the Bellwether, and the bell calls it back if its finder falls. One night shut in the Lazaret breaks that pull. After that the keepsake answers its keeper, and it turns up in the Lazaret again even if she leaves it behind in the caves. Hester keeps the key.' },
       { id: 'hester', title: 'Hester', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/op_home',
         text: 'Hester kept the light for forty years. She taught you to trim a wick, to read the tide-board and to ring a hand-bell so the water listens. When her knees gave out on the tower stairs she gave you her lantern, and the keeping with it, so she is not a keeper any more. Like every keeper since the Lost Lamplighter, she never went down the stair. What she knows of the Reach is in the keepers\' book, which she keeps and you read. When you come home, the kettle is on.' },
-      { id: 'bosun', title: 'Bosun', when: 'fell', lock: 'Fall in the Reach.', art: 'scenes/op_home',
+      { id: 'bosun', title: 'Bosun', when: 'fell', lock: 'Fall in the Reach.', art: 'scenes/sc_fall',
         text: 'Bosun was Hester\'s dog first. He is big and golden and soft-mouthed, and he has pulled gulls, oars and once a fisherman\'s boy out of the harbour. He goes down the Reach with you and keeps back from a fight. When the held water takes you he goes in after you, and he does not let go of your scarf until the sea gives you back.' },
       { id: 'kelp', title: 'The old coast', when: 'ev:ambush', lock: 'Found in the Fog.', art: 'scenes/ev_ambush',
         text: 'Not everything in the Reach serves the bell. Crabs, eels, gulls and kelp lived on this coast long before it rang by itself. The flooding gave them more room, and they guard what they find in it.' },

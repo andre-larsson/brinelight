@@ -36,9 +36,9 @@ test('the opening is five pictures, each with its text and art that exists; the 
   assert.match(S.opening[3].text, /Bosun/);
 });
 
-test('story scenes: one for each pin above the last, one for the dress, one for going down into the Belfry, one for the Heart and one for the first quiet (the Dark Watch), each with pictures that exist and a chapter that replays it', () => {
+test('story scenes: one for each pin above the last, one for the dress, one for going down into the Belfry, one for the Heart, one for the first quiet (the Dark Watch) and one for the first fall, each with pictures that exist and a chapter that replays it', () => {
   const at = Object.values(S.scenes).map((sc) => sc.at);
-  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'in:' + (E.LEVELS.length - 1), 'heart', 'quiet']).sort());
+  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'in:' + (E.LEVELS.length - 1), 'heart', 'quiet', 'fell']).sort());
   Object.keys(S.scenes).forEach((id) => {
     const sc = S.scenes[id];
     assert.ok(sc.beats.length >= 1 && sc.beats.length <= 4, `${id}: a scene is one to four pictures`);
@@ -51,7 +51,7 @@ test('story scenes: one for each pin above the last, one for the dress, one for 
     assert.equal(S.chapters.filter((c) => c.scene === id).length, 1, `${id}: one chapter replays it`);
   });
   // the scene opens with the chapter that replays it: the same mark
-  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', 'in:2': 'in:2', heart: 'heart', quiet: 'quiet' };
+  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', 'in:2': 'in:2', heart: 'heart', quiet: 'quiet', fell: 'fell' };
   S.chapters.filter((c) => c.scene).forEach((c) => assert.equal(c.when, mark[S.scenes[c.scene].at], c.id));
   // the Belfry is named for the first time when Dark Water's pin breaks, and the dress is found there
   assert.match(S.scenes.buoy.beats[1].text, /The keepers called it the Belfry/);
