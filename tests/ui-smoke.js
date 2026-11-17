@@ -4,7 +4,7 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
-          [--only darkwater|belfry|progress|finds|workshop|audio] [--workers 4]
+          [--only darkwater|belfry|progress|finds|workshop|audio|music-unlocks] [--workers 4]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path)
    Each scenario starts from cleared storage, so they run on several headless Chromes at once (--workers, 4 unless
    given; each has its own throwaway profile, so their saves don't meet). --workers 1 plays them one after another. */
@@ -1530,51 +1530,97 @@ async function progressScenario(page, base, name, size) {
 async function jukeHintChecks(page, name) {
   const errors = await page.eval(`(() => {
     const B = window.Brinelight, errors = [], all = B.juke.map(([kind, key]) => kind + ':' + key);
-    const saved = { heard: B.meta.heard.slice(), reached: B.meta.reached, owned: B.meta.owned.slice(), hearts: B.meta.record.hearts, marks: B.story.marks.slice(), filter: B.ui.jukeFilter };
+    const saved = { heard: B.meta.heard.slice(), hearts: B.meta.record.hearts, filter: B.ui.jukeFilter };
     const show = () => { B.closeOverlay(); document.querySelector('.title-third [data-act="jukebox"]').click(); };
-    const check = (label, options, match, avoid) => {
+    const check = (label, options, expected) => {
       B.meta.heard = options.heard || all.filter((id) => !(options.missing || []).includes(id));
-      B.meta.reached = options.reached || 0;
-      B.meta.owned = options.suit ? ['suit'] : [];
       B.meta.record.hearts = options.heart === false ? 0 : 1;
-      B.story.marks = options.marks || [];
       B.ui.jukeFilter = options.filter || 'all';
       show();
-      const h = document.querySelector('.juke-more'), text = h ? h.textContent : '';
-      if (match ? !match.test(text) : !!h) errors.push(label + ': unexpected hint ' + JSON.stringify(text));
-      if (avoid && avoid.test(text)) errors.push(label + ': spoiler in hint ' + JSON.stringify(text));
+      const h = document.querySelector('.juke-more span'), text = h ? h.textContent : null;
+      if (text !== expected) errors.push(label + ': ' + JSON.stringify(text) + ', expected ' + JSON.stringify(expected));
+      if (text && /listen|music on|hear its|unfamiliar|farther down|explore/.test(text)) errors.push(label + ': hint must state an objective progress trigger');
     };
     try {
-      check('first map', { heard: ['song:title'], heart: false }, /Start a descent.*map/, /Heart|Dark Water|Belfry|Bellwether/);
-      check('after map', { heard: ['song:title', 'cue:reach'], heart: false }, /ordinary fight/);
-      check('after ordinary fight', { heard: ['song:title', 'cue:reach', 'cue:fight'], heart: false }, /Dread in the Shallows/);
-      check('songs filter', { heard: ['song:title'], heart: false, filter: 'song' }, /Shallows' pin.*another encounter/, /map|Dark Water|Belfry/);
-      check('repeat first pin', { heard: ['song:title'], heart: false, filter: 'song', marks: ['en:harbour'] }, /Shallows' pin again/);
-      check('unseen depth', { missing: ['song:gardener', 'song:putback'] }, /Shallows' pin.*farther down/, /Dark Water|Garden|Strider/);
-      check('known depth, unseen Dread', { missing: ['song:gardener', 'song:putback'], reached: 1 }, /unfamiliar Dread in Dark Water/, /Garden|Strider/);
-      check('alternate Dread song', { missing: ['song:putback'], reached: 1 }, /Garden Strider again/, /Put It Back/);
-      check('first Buoy song', { missing: ['song:hush', 'song:chain', 'cue:buoy'], reached: 1 }, /pin in Dark Water/, /Tolling Buoy|What the Bell|Down on the Chain/);
-      check('second Buoy song', { missing: ['song:chain', 'cue:buoy'], reached: 1 }, /Tolling Buoy again/, /Down on the Chain/);
-      check('Buoy score', { missing: ['cue:buoy'], reached: 1, filter: 'cue' }, /Tolling Buoy again/, /Rocking Toll/);
-      check('unknown Belfry', { missing: ['song:herring'] }, /next pin.*farther down/, /Belfry|Oarfish|Herrings/);
-      check('dress must be carried home', { missing: ['song:herring'], reached: 2 }, /diving dress home.*pack/);
-      check('known Belfry', { missing: ['song:herring'], reached: 2, suit: true }, /unfamiliar Dread in The Belfry/, /Oarfish|Herrings/);
-      check('known Yearling', { missing: ['song:eye'], reached: 2, suit: true, marks: ['en:yearling'] }, /Bell Yearling again/, /Remember the Eye/);
-      check('unknown final', { missing: ['song:nobody', 'cue:pin2'], reached: 2, suit: true }, /last pin.*hear its call/, /Dark Watch|Nobody|Dress/);
-      check('known final', { missing: ['song:nobody', 'cue:pin2'], reached: 2, suit: true, marks: ['en:darkwatch'] }, /Dark Watch.*hear its call/, /Nobody in the Dress/);
-      check('fall music', { missing: ['cue:fallen'] }, /ends in a fall/, /Ember/);
-      check('legacy dawn gate', { heart: false }, /Bring the Heart home/, /Harbour Bells/);
-      check('retired encounter stays collectible', { missing: ['song:bell'] }, null);
+      check('first descent', { heard: ['song:title'], heart: false }, 'Start a descent.');
+      check('first fight', { heard: ['song:title', 'cue:reach'], heart: false }, 'Enter a fight.');
+      check('first Dread', { heard: ['song:title', 'cue:reach', 'cue:fight'], heart: false }, 'Encounter a Dread.');
+      check('pin', { missing: ['cue:pin'] }, 'Encounter a pin.');
+      check('second phase', { missing: ['cue:pin2', 'song:nobody'] }, "Reach a pin's second phase.");
+      check('homecoming', { missing: ['cue:home'] }, 'Return home after defeating a pin.');
+      check('songs filter', { heard: ['song:title'], heart: false, filter: 'song' }, 'Encounter the Harbour Hermit a second time.');
+      check('first Strider song', { missing: ['song:gardener', 'song:putback'] }, 'Encounter the Garden Strider.');
+      check('alternate Strider song', { missing: ['song:putback'] }, 'Encounter the Garden Strider again.');
+      check('first Buoy song', { missing: ['song:hush', 'song:chain', 'cue:buoy'] }, 'Encounter the Tolling Buoy.');
+      check('second Buoy song', { missing: ['song:chain', 'cue:buoy'] }, 'Encounter the Tolling Buoy again.');
+      check('Buoy score', { missing: ['cue:buoy'], filter: 'cue' }, 'Encounter the Tolling Buoy again after unlocking both of its songs.');
+      check('Oarfish', { missing: ['song:herring'] }, 'Encounter the Crowned Oarfish.');
+      check('Bellwether', { missing: ['song:bell'], heart: false }, 'Encounter the Drowned Bellwether, or bring the Heart home.');
+      check('Yearling', { missing: ['song:eye'] }, 'Encounter the Bell Yearling.');
+      check('Cantor', { missing: ['song:cantor'] }, 'Encounter the Drowned Cantor.');
+      check('Dark Watch', { missing: ['song:nobody'] }, "Reach the Dark Watch's second phase.");
+      check('fall', { missing: ['cue:fallen'] }, 'End a descent in a fall.');
+      check('dawn gate', { heart: false }, 'Bring the Heart home.');
+      check('retired encounter', { missing: ['song:bell'] }, null);
       for (const filter of ['all', 'song', 'cue']) check('complete ' + filter, { filter }, null);
       check('songs complete, score incomplete', { heard: all.filter((id) => id.startsWith('song:')), filter: 'song' }, null);
-      check('same collection, score filter', { heard: all.filter((id) => id.startsWith('song:')), filter: 'cue' }, /Start a descent.*map/);
+      check('score filter', { heard: all.filter((id) => id.startsWith('song:')), filter: 'cue' }, 'Start a descent.');
     } finally {
-      B.meta.heard = saved.heard; B.meta.reached = saved.reached; B.meta.owned = saved.owned; B.meta.record.hearts = saved.hearts;
-      B.story.marks = saved.marks; B.ui.jukeFilter = saved.filter; show();
+      B.meta.heard = saved.heard; B.meta.record.hearts = saved.hearts; B.ui.jukeFilter = saved.filter; show();
     }
     return errors;
   })()`);
   failures.push(...errors.map((e) => name + ' unlock hints: ' + e));
+}
+
+async function mutedMusicScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  await page.goto(base + '?seed=5555');
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, musicVol: 0, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', ${QUIET_STORY}); ${QUIET_META} })()`);
+  await page.goto(base + '?seed=5555');
+  await inject(page);
+  const check = async (label, opened, locked = []) => {
+    const state = await page.eval(`(() => { const B = Brinelight, a = B.audio(); return { ids: B.meta.heard, stored: JSON.parse(localStorage.getItem('brinelight.meta.v1') || '{}').heard || [], music: !!a.music, song: a.song, setting: JSON.parse(localStorage.getItem('brinelight.prefs.v1')).music }; })()`);
+    for (const id of opened) if (!state.ids.includes(id) || !state.stored.includes(id)) failures.push(`${name}: ${label} did not persist ${id} while muted`);
+    for (const id of locked) if (state.ids.includes(id)) failures.push(`${name}: ${label} opened ${id} too early`);
+    if (state.setting !== false || state.music || state.song) failures.push(`${name}: ${label} started music while muted (${JSON.stringify(state)})`);
+  };
+  await page.click('[data-act="newrun"]');
+  await clickIf(page, '#overlay [data-act="dive"]');
+  await clickIf(page, '#overlay [data-act="opskip"]');
+  await clickIf(page, '#overlay [data-act="tutorialskip"]');
+  await page.waitFor('Brinelight.run && Brinelight.run.screen === "map"', 5000, 'muted descent');
+  await check('starting a descent', ['cue:reach']);
+  const set = (js) => page.eval(`(() => { const B = Brinelight; ${js}; B.fightSong(); B.render(); B.save(); B.closeOverlay(true); })()`);
+  await set(`B.E.startCombat(B.run, 'elite', ['strider'])`);
+  await check('first Strider encounter', ['cue:fight', 'cue:dread', 'song:gardener'], ['song:putback']);
+  await set('B.render(); B.render()');
+  await check('redrawing the same encounter', ['song:gardener'], ['song:putback']);
+  await set(`B.E.startCombat(B.run, 'elite', ['strider'])`);
+  await check('second Strider encounter', ['song:putback']);
+  for (const [song, id] of [['hush', 'song:hush'], ['chain', 'song:chain'], ['box', 'cue:buoy']]) {
+    await set(`B.run.level = 1; B.E.startCombat(B.run, 'boss')`);
+    if ((await page.eval('Brinelight.run.combat.song')) !== song) failures.push(`${name}: expected ${song} on the next muted Buoy encounter`);
+    await check('Buoy ' + song, [id, 'cue:pin'], song === 'box' ? [] : ['cue:buoy']);
+  }
+  await set('B.run.combat.phase2 = true');
+  await check('second phase', ['cue:pin2'], ['song:nobody']);
+  await set(`B.run.level = 0; B.E.startCombat(B.run, 'boss')`);
+  await check('first Hermit encounter', ['song:hermit'], ['song:deep']);
+  await set(`B.E.startCombat(B.run, 'boss')`);
+  await check('repeat Hermit encounter', ['song:deep']);
+  await set(`B.run.level = 2; B.run.heartHome = true; B.E.startCombat(B.run, 'boss'); B.run.combat.phase2 = true`);
+  await check('the Dark Watch call', ['song:nobody']);
+  await page.goto(base + '?seed=5555');
+  await check('reload', ['cue:reach', 'song:putback', 'song:chain', 'cue:buoy', 'song:deep', 'song:nobody']);
+  // An old muted collection is recovered from progress at boot, before any audio context or click exists.
+  await page.eval(`(() => { localStorage.removeItem('brinelight.save.v1'); localStorage.setItem('brinelight.meta.v1', JSON.stringify({ heard: [], told: ${JSON.stringify(TOLD)}, record: { runs: 2, wins: 1, hearts: 1, quiets: 0, deep: { level: 2, floor: 3 } } })); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true, marks: ['en:strider', 'en:buoy', 'en:oarfish', 'heart', 'home', 'fell'] })); })()`);
+  await page.goto(base + '?seed=5555');
+  await inject(page);
+  await check('legacy progress recovery', ['cue:reach', 'cue:fight', 'cue:pin', 'cue:pin2', 'cue:home', 'cue:fallen', 'song:gardener', 'song:hush', 'song:herring', 'song:bells', 'song:bell'], ['song:putback', 'song:chain', 'cue:buoy']);
+  await checkPage(page, name);
 }
 
 async function audioScenario(page, base, name, size) {
@@ -1998,8 +2044,10 @@ const JOBS = [
   ['darkwater', 'dark water desktop', (p, b) => darkwaterScenario(p, b, 'dark water desktop', DESK, { seed: 4444 })],
   ['phone', 'phone', (p, b) => scenario(p, b, 'phone', PHONE, { seed: 2222, drag: true })],
   ['audio', 'audio phone', (p, b) => audioScenario(p, b, 'audio phone', PHONE)],
+  ['music-unlocks', 'muted music phone', (p, b) => mutedMusicScenario(p, b, 'muted music phone', PHONE)],
   ['desktop', 'desktop', (p, b) => scenario(p, b, 'desktop', DESK, { seed: 1111, drag: true, keyboardTurns: true })],
   ['audio', 'audio desktop', (p, b) => audioScenario(p, b, 'audio desktop', DESK)],
+  ['music-unlocks', 'muted music desktop', (p, b) => mutedMusicScenario(p, b, 'muted music desktop', DESK)],
   ['belfry', 'belfry phone', (p, b) => belfryScenario(p, b, 'belfry phone', PHONE, { seed: 6262 })],
   ['belfry', 'belfry desktop', (p, b) => belfryScenario(p, b, 'belfry desktop', DESK, { seed: 6161 })],
   ['tutorial', 'tutorial phone touch', (p, b) => tutorialScenario(p, b, 'tutorial phone touch', PHONE, 'touch')],

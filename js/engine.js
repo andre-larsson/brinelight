@@ -2013,6 +2013,34 @@
     meta.reached = lv;
     return true;
   };
+  /* Jukebox unlocks are game progress, independent of audio playback. `heard` keeps its old storage name so old
+     saves keep their collection. Story marks and the Logbook also recover encounters played with music muted.
+     Alternate tracks use the encounter's saved song choice, so redrawing one fight never unlocks its next song. */
+  E.noteMusicProgress = function (meta, run, marks) {
+    const active = run && !run.tutorial && !run.cheated ? run : null;
+    const known = new Set((marks || []).concat(active ? E.storyMarks(active) : []));
+    const record = meta.record || E.newRecord(), c = active && active.combat;
+    const enemies = [...known].filter((m) => m.startsWith('en:')).map((m) => m.slice(3));
+    let changed = false;
+    const add = (id) => { if (meta.heard.indexOf(id) < 0) { meta.heard.push(id); changed = true; } };
+    const heart = record.hearts > 0 || known.has('heart');
+    if (active || known.size || record.runs > 0 || record.deep || meta.reached > 0) add('cue:reach');
+    if (c || enemies.length || record.runs > 0 || (active && active.stats.fights > 0)) add('cue:fight');
+    if ((c && c.kind === 'elite') || enemies.some((id) => BL.ENEMIES[id] && BL.ENEMIES[id].elite)) add('cue:dread');
+    if ((c && c.kind === 'boss') || known.has('boss') || [...known].some((m) => m.startsWith('won:')) || enemies.some((id) => BL.ENEMIES[id] && BL.ENEMIES[id].boss) || heart) add('cue:pin');
+    if ((c && c.kind === 'boss' && c.phase2) || known.has('en:bellthing') || known.has('quiet') || record.quiets > 0 || heart) add('cue:pin2');
+    if (known.has('home') || record.wins > 0) add('cue:home');
+    if (known.has('fell') || record.runs > record.wins) add('cue:fallen');
+    const firstSongs = { strider: 'gardener', buoy: 'hush', oarfish: 'herring', bell: 'bell', bellthing: 'bell', yearling: 'eye', cantor: 'cantor' };
+    enemies.forEach((id) => { if (firstSongs[id]) add('song:' + firstSongs[id]); });
+    if (c && c.song) {
+      if (c.song === 'box') { if (c.enemies.some((e) => e.id === 'buoy')) add('cue:buoy'); }
+      else if (/^[a-z]+$/.test(c.song)) add('song:' + c.song);
+    }
+    if ((c && c.phase2 && c.enemies.some((e) => e.id === 'darkwatch')) || known.has('quiet') || record.quiets > 0) add('song:nobody');
+    if (heart) { add('song:bells'); add('song:bell'); }
+    return changed;
+  };
   /* The Hold the next expedition starts with. */
   E.metaHold = (meta) => E.holdAt(meta.reached || 0) + E.holdUpOf(meta);
   /* A steadier lantern (v0.36.0, the user: "Add option to improve roil resistance or similar, increasing max hold"; of
@@ -2118,7 +2146,8 @@
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
     m.currents = uniq2(m.currents);
-    // the music heard, for the Jukebox (v0.28.0): 'song:<key>' and 'cue:<cue>', one of each; 'depth:<n>' opens a depth
+    // Music unlocked through progress (called "heard" in old saves): 'song:<key>' and 'cue:<cue>', one of each.
+    // 'depth:<n>' opens a depth
     // of the score without reaching it (v0.29.1, only the debug panel's "Hear all music" writes it)
     m.heard = (Array.isArray(m.heard) ? m.heard : []).filter((k, i, a) => typeof k === 'string' && /^(song|cue|depth):[a-z0-9]+$/.test(k) && a.indexOf(k) === i);
     // the deepest level reached (v0.22.0) sets the Hold; the logbook's deepest landing counts from before

@@ -1212,6 +1212,7 @@
       }
     }
     inShop = !!run && run.screen === 'shop';
+    if (E.noteMusicProgress(meta, run, story.marks)) saveMeta();
     Sound.scene(cue, depth, band, density, song);
   }
   /* The songs a fight chooses from as it starts (fightSong), by the id of the creature they are for (v0.45.0): the
@@ -1419,11 +1420,14 @@
   const JUKE = BL.MUSIC_JUKE.tracks;
   const JUKE_DEPTHS = BL.MUSIC_JUKE.depths;
   const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-  /* What you have heard (meta.heard). A debug-cheated run records nothing, as with Story so far. Some tracks open
+  /* What you have unlocked (meta.heard, the old storage name). A debug-cheated run records nothing, as with Story so far. Some tracks open
      sooner (JUKE_EARLY), and High Tide Departure only that way, since it plays nowhere else. A depth of the score
      opens when you have reached it, or with 'depth:<n>' in meta.heard (the debug panel's "Hear all music"). */
   Sound.juke.onHeard((k) => {
-    if ((run && run.cheated) || meta.heard.indexOf(k) >= 0) return;
+    // Keep listening history only for tracks already available (including the first title song's rotation rule).
+    // Playback never grants access; noteMusicProgress records encounters even while audio is muted or unavailable.
+    const [kind, key] = k.split(':');
+    if ((run && (run.cheated || run.tutorial)) || !jukeOpen(kind, key) || meta.heard.indexOf(k) >= 0) return;
     meta.heard.push(k);
     saveMeta();
   });
@@ -1451,7 +1455,7 @@
     'song:title': { open: () => true },
     // the dawn song: it plays when the Heart first comes home, and only then opens (v0.40.0, the user's call; open from
     // the start before). `gate`: having heard it is not enough, so a player who heard it on the title keeps it locked too
-    'song:bells': { open: () => E.heartIsHome(meta), gate: true },
+    'song:bells': { open: () => E.heartIsHome(meta) || story.marks.indexOf('heart') >= 0, gate: true },
     // This encounter is replaced once the Heart is home. Its song must remain collectible if music was off then.
     'song:bell': { open: () => E.heartIsHome(meta) },
     'cue:title': { open: () => true }, // the title screen plays its songs instead now, so it is heard only here
@@ -1470,54 +1474,35 @@
     return meta.heard.indexOf(k) >= 0 || !!(early && early.open());
   };
   const jukeDepthOpen = (d) => d <= (meta.reached || 0) || meta.heard.indexOf('depth:' + d) >= 0;
-  // Hints follow the route rather than catalog order (whose second track is the Heart's homecoming). Name only
-  // places and creatures already known, and keep alternate songs in the order fightSong actually plays them.
-  function jukeEncounterHint(enemy, level) {
-    if (!levelKnown(level)) return level === 1
-      ? "Break the Shallows' pin, then explore farther down with music on."
-      : 'Continue past the next pin to discover music farther down.';
-    if (level === 2 && !E.ownsKit(meta, 'suit')) return 'Carry the diving dress home, then pack it for a deeper descent with music on.';
-    const met = story.marks.indexOf('en:' + enemy) >= 0 || (FIGHT_SONGS[enemy] || []).some((k) => meta.heard.indexOf(k === 'box' ? 'cue:' + enemy : 'song:' + k) >= 0);
-    if (met) return `Meet ${BL.ENEMIES[enemy].name.replace(/^The /, 'the ')} again with music on to hear another piece.`;
-    const place = JUKE_DEPTHS[level];
-    return enemy === 'buoy' || enemy === 'bell'
-      ? `Reach the pin in ${place} with music on.`
-      : `Seek an unfamiliar Dread in ${place} with music on.`;
-  }
-  const jukeLaterHint = (enemy, call) => !E.heartIsHome(meta)
-    ? 'Bring the Heart home, then return for another descent with music on.'
-    : enemy === 'darkwatch'
-      ? `Reach ${story.marks.indexOf('en:darkwatch') >= 0 ? 'the Dark Watch' : 'the last pin'} again with music on${call ? ' and hear its call' : ''}.`
-      : jukeEncounterHint(enemy, 2);
+  // State the actual unlock trigger. Track titles stay hidden; encounter names make the condition unambiguous.
+  // Hints follow the route and the order of alternate tracks, not the catalog's homecoming-first display order.
   const JUKE_UNLOCK_HINTS = [
-    ['cue:reach', () => 'Start a descent with music on and listen on the map.'],
-    ['cue:fight', () => 'Enter an ordinary fight with music on.'],
-    ['cue:dread', () => 'Meet a Dread in the Shallows with music on.'],
-    ['cue:home', () => 'Win a pin fight, then choose Go home with music on.'],
-    ['song:deep', () => story.marks.indexOf('en:harbour') >= 0
-      ? "Meet the Shallows' pin again with music on."
-      : "Meet the Shallows' pin, then return for another encounter with music on."],
-    ['song:gardener', () => jukeEncounterHint('strider', 1)],
-    ['song:putback', () => jukeEncounterHint('strider', 1)],
-    ['song:hush', () => jukeEncounterHint('buoy', 1)],
-    ['song:chain', () => jukeEncounterHint('buoy', 1)],
-    ['cue:buoy', () => jukeEncounterHint('buoy', 1)],
-    ['song:herring', () => jukeEncounterHint('oarfish', 2)],
-    ['song:bell', () => jukeEncounterHint('bell', 2)],
-    ['song:bells', () => 'Bring the Heart home to unlock music for the homecoming.'],
-    ['song:eye', () => jukeLaterHint('yearling')],
-    ['song:cantor', () => jukeLaterHint('cantor')],
-    ['cue:pin', () => jukeLaterHint('darkwatch')],
-    ['song:nobody', () => jukeLaterHint('darkwatch', true)],
-    ['cue:pin2', () => jukeLaterHint('darkwatch', true)],
-    ['cue:fallen', () => 'This music is heard when a descent ends in a fall. Keep music on to discover it.'],
+    ['cue:reach', 'Start a descent.'],
+    ['cue:fight', 'Enter a fight.'],
+    ['cue:dread', 'Encounter a Dread.'],
+    ['cue:pin', 'Encounter a pin.'],
+    ['cue:pin2', "Reach a pin's second phase."],
+    ['cue:home', 'Return home after defeating a pin.'],
+    ['song:deep', 'Encounter the Harbour Hermit a second time.'],
+    ['song:gardener', 'Encounter the Garden Strider.'],
+    ['song:putback', 'Encounter the Garden Strider again.'],
+    ['song:hush', 'Encounter the Tolling Buoy.'],
+    ['song:chain', 'Encounter the Tolling Buoy again.'],
+    ['cue:buoy', 'Encounter the Tolling Buoy again after unlocking both of its songs.'],
+    ['song:herring', 'Encounter the Crowned Oarfish.'],
+    ['song:bell', 'Encounter the Drowned Bellwether, or bring the Heart home.'],
+    ['song:bells', 'Bring the Heart home.'],
+    ['song:eye', 'Encounter the Bell Yearling.'],
+    ['song:cantor', 'Encounter the Drowned Cantor.'],
+    ['song:nobody', "Reach the Dark Watch's second phase."],
+    ['cue:fallen', 'End a descent in a fall.'],
   ];
   function jukeNextHint() {
     const next = JUKE_UNLOCK_HINTS.find(([id]) => {
       const [kind, key] = id.split(':');
       return (!ui.jukeFilter || ui.jukeFilter === 'all' || ui.jukeFilter === kind) && !jukeOpen(kind, key);
     });
-    return next ? next[1]() : '';
+    return next ? next[1] : '';
   }
   /* Previous and next go through the open tracks in the list's order, songs and music box pieces alike. A song that
      ends goes on to the next open song, since a music box piece loops and would never hand on. With shuffle on
@@ -4365,6 +4350,8 @@
   // tidy up keys from older builds
   try { ['brinelight.seenhelp', 'brinelight.tip1'].forEach((k) => localStorage.removeItem(k)); } catch (e) { /* ignore */ }
 
+  // Recover muted encounters from existing progress and from a saved descent before rendering the title.
+  if (E.noteMusicProgress(meta, loadSave(), story.marks)) saveMeta();
   computeSizes();
   render();
 

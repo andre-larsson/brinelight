@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.49.0';
+  BL.VERSION = '0.50.0';
   BL.CHANGELOG = [
+    { v: '0.50.0', date: '2026-11-17', items: [
+      'Music unlocks through game progress, even with music muted or unavailable. Starting a descent, entering fights, meeting creatures, reaching a pin\'s second phase and returning home or falling unlock their pieces.',
+      'Next unlock names the exact action or encounter required. No listening, volume setting or waiting is required.',
+      'Existing story and Logbook progress restores music from earlier muted encounters. Alternate songs still open on repeat encounters.',
+    ] },
     { v: '0.49.0', date: '2026-11-17', items: [
       'The Jukebox shows one Next unlock hint for the selected filter. It advances as you discover music, without naming locked tracks or unfamiliar creatures and places.',
       'Bringing the Heart home opens the Bellwether\'s song even if music was off in that encounter, so it remains collectible afterward.',
