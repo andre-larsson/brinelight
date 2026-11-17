@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.44.0';
+  BL.VERSION = '0.45.0';
   BL.CHANGELOG = [
+    { v: '0.45.0', date: '2026-11-17', items: [
+      'Eight new songs. The Tolling Buoy\'s singer has two of her own, "What the Bell Is Saying" and "Down on the Chain", which take turns with the music box\'s "The Rocking Toll", one a fight.',
+      'Four Dreads have songs: the Garden Strider two that take turns ("The Gardener" and "Put It Back"), the Crowned Oarfish "King of the Herrings", the Bell Yearling "Remember the Eye" and the Drowned Cantor "Ring It Once Again". A Dread\'s song carries on from where it stopped last time, so a short fight still gets further into it.',
+      'When the Dark Watch calls Nobody Comes Home, the Hollow Divers sing "Nobody in the Dress" for the rest of the fight. The music box\'s "The Bell Cracks", which played there before, stays in the Jukebox.',
+      'Each new song opens in the Jukebox, with its words, the first time you hear it.',
+    ] },
     { v: '0.44.0', date: '2026-11-17', items: [
       'New pictures of Hester and Bosun. The first time you fall, a picture shows Bosun dragging Wren out of the surf while Hester comes down the rock with a blanket, and every fall\'s end screen shows it after that.',
       'Coming home shows Hester in the lighthouse door and Bosun running up the steps ahead of you, with the lamp lit once the Heart is home. Bringing the Heart home shows Hester on the gallery as the great light turns again.',
@@ -378,7 +384,7 @@
       '[github.com/andre-larsson](https://github.com/andre-larsson)',
     ] },
     { head: 'Made with', lines: [
-      'Claude Code (Anthropic): the code, the rules, the story text, the music score, the sound effects, and the words and prompts for the songs.',
+      'Claude Code (Anthropic): the code, the rules, the story text, the music score, the sound effects, and the words and prompts for the songs (the words of "Remember the Eye" are the maker\'s).',
       'Google Gemini: the songs, generated from those words and prompts, and the title picture.',
       'Grok (xAI, in the Cursor agent CLI), and Terra and Sol (OpenAI, in Codex): discussions of the world and its lore.',
       'Codex (OpenAI): the other pictures, which were then cropped, cleaned and recoloured, and the lit title picture, an edit of Gemini\'s.',
@@ -386,7 +392,7 @@
     { head: 'Music', lines: [
       'The score is played by [musicbox](https://a403.space/musicbox/), a fork of [Scrimshaw Jukebox](https://tools.simonwillison.net/scrimshaw-jukebox) by Simon Willison. Its synthesizer comes from Scrimshaw, and the score is plain text in Scrimshaw\'s format. Apache License 2.0.',
       'The score and the sound effects are made in your browser as you play.',
-      'Ten songs were generated with Google Gemini from words and prompts written with Claude Code: "The Great Light Turning Slow", "Harbour Bells at Dawn" and "It Went Dark on My Watch" (the title screen), "No Haggling, No Biting" and "Pop the Shell" (Barnaby\'s), "The Hermit\'s Heavy Toll" (the Harbour Hermit), "Tide Swings Its Tongue" (the Tolling Buoy), "Ring for the Deep" (both of those pins, once they turn), "The Toll of the Sunken Stair" (the Drowned Bellwether) and "High Tide Departure" (only in the Jukebox).',
+      'Eighteen songs were generated with Google Gemini from words and prompts written with Claude Code: "The Great Light Turning Slow", "Harbour Bells at Dawn", "Tide Swings Its Tongue" and "It Went Dark on My Watch" (the title screen), "No Haggling, No Biting" and "Pop the Shell" (Barnaby\'s), "The Hermit\'s Heavy Toll" and "Ring for the Deep" (the Harbour Hermit), "What the Bell Is Saying" and "Down on the Chain" (the Tolling Buoy), "The Toll of the Sunken Stair" (the Drowned Bellwether), six more for what you meet deeper down, and "High Tide Departure" (only in the Jukebox).',
     ] },
     { head: 'More', lines: [
       'Source code: [github.com/andre-larsson/brinelight](https://github.com/andre-larsson/brinelight)',

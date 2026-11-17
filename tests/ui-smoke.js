@@ -1573,13 +1573,16 @@ async function audioScenario(page, base, name, size) {
   await page.click('.title-now [data-act="jukebox"]'); // the song's name opens the Jukebox
   const jb = (js) => page.eval(`(() => { const o = document.querySelector('#overlay'); return ${js}; })()`);
   const items = await jb(`o.querySelectorAll('.juke-item').length`);
-  if (items !== 19) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 10 songs and 9 pieces of the score`);
-  if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 10 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 9) failures.push(`${name}: the Jukebox doesn't mark the 10 Gemini songs and the 9 music box pieces`);
+  if (items !== 27) failures.push(`${name}: the Jukebox lists ${items} tracks, expected 18 songs and 9 pieces of the score`);
+  if ((await jb(`o.querySelectorAll('.juke-tag.rec').length`)) !== 18 || (await jb(`o.querySelectorAll('.juke-tag.box').length`)) !== 9) failures.push(`${name}: the Jukebox doesn't mark the 18 Gemini songs and the 9 music box pieces`);
   if (!(await jb(`!!o.querySelector('.juke-item.cur [data-key="title"][aria-pressed="true"]')`))) failures.push(`${name}: the Jukebox doesn't show the title song playing`);
   // open from the start: four title songs (It Went Dark on My Watch too, since v0.36.0; Harbour Bells at Dawn waits for
   // the Heart since v0.40.0) and the score's title tune
   const locked = await jb(`[...o.querySelectorAll('.juke-item.locked .juke-row')].filter((b) => b.disabled).length`);
-  if (locked !== 14) failures.push(`${name}: ${locked} tracks are locked, expected all but four title songs and the Keeper's Song`);
+  if (locked !== 22) failures.push(`${name}: ${locked} tracks are locked, expected all but four title songs and the Keeper's Song`);
+  // a locked track names no creature and no level the player may not have met (the Dreads' songs and the Divers', v0.45.0)
+  const lockedText = await jb(`[...o.querySelectorAll('.juke-item.locked')].map((r) => r.textContent).join(' | ')`);
+  if (/Strider|Oarfish|Yearling|Cantor|Dark Watch|Diver|Belfry|Dark Water/.test(lockedText)) failures.push(`${name}: a locked track names a creature or a level (${lockedText})`);
   if (!(await jb(`[...o.querySelectorAll('.juke-item:not(.locked) .juke-row')].some((b) => /It Went Dark/.test(b.getAttribute('aria-label')))`))) failures.push(`${name}: It Went Dark on My Watch should be open from the start`);
   if (!(await jb(`o.querySelector('[data-act="jukedepth"][data-depth="0"]') && !o.querySelector('[data-act="jukedepth"][data-depth="1"]')`))) failures.push(`${name}: the Jukebox's depths beyond the Shallows aren't locked`);
   // the song playing has a Words button: its words on a page of their own, and Back returns to the Jukebox, the song still playing
@@ -1596,7 +1599,7 @@ async function audioScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="close"]');
   await page.eval(`(() => { const B = window.Brinelight; B.meta.record.runs = 1; B.meta.record.hearts = 1; B.meta.reached = 2; B.meta.heard.push('cue:dread'); })()`);
   await page.click('.title-third [data-act="jukebox"]');
-  if ((await jb(`o.querySelectorAll('.juke-item.locked').length`)) !== 11) failures.push(`${name}: hearing a Dread and bringing the Heart home didn't open 2 more tracks`);
+  if ((await jb(`o.querySelectorAll('.juke-item.locked').length`)) !== 19) failures.push(`${name}: hearing a Dread and bringing the Heart home didn't open 2 more tracks`);
   await clickIf(page, '#overlay [data-act="jukeplay"][data-key="departure"]');
   await expect('the Jukebox: High Tide Departure', { playing: false, song: 'departure' });
   await plays('High Tide Departure');
@@ -1731,24 +1734,55 @@ async function audioScenario(page, base, name, size) {
   await page.eval('(() => { const B = window.Brinelight; B.run.level = 1; B.render(); })()');
   await expect('Dark Water', { depth: 1, intensity: 1, ambience: 'dark/1' });
   // a pin has no place sounds, and its own cue for each phase; then the end screens
-  await set(`B.E.startCombat(B.run, 'elite')`);
-  await expect('a Dread', { target: 'dread', ambience: 'dark/0.5' });
-  await set(`B.E.startCombat(B.run, 'boss')`);
-  // the Buoy has its own piece of the score since v0.36.0, for the whole fight (before, Tide Swings Its Tongue, Wren's song)
-  await expect('the Tolling Buoy', { playing: true, target: 'buoy', song: null, ambience: '' });
+  await set(`B.E.startCombat(B.run, 'elite', ['gulper']); B.fightSong()`);
+  await expect('a Dread', { target: 'dread', ambience: 'dark/0.5', song: null });
+  // the Garden Strider has two songs (v0.45.0): the sung one first, then they take turns, a fight each; a Dread's song
+  // carries on from where it stopped
+  await set(`B.E.startCombat(B.run, 'elite', ['strider']); B.fightSong()`);
+  await expect('the Garden Strider', { playing: false, song: 'gardener', ambience: 'dark/0.5' });
+  await plays('The Gardener');
+  await set(`B.E.startCombat(B.run, 'elite', ['strider']); B.fightSong()`);
+  await expect('the Garden Strider again', { playing: false, song: 'putback' });
+  await plays('Put It Back');
+  await set(`B.E.startCombat(B.run, 'elite', ['strider']); B.fightSong()`);
+  await expect('the Garden Strider a third time', { playing: false, song: 'gardener' });
+  if (!((await audio()).songAt > 1)) failures.push(`${name}: The Gardener started again from the top; a Dread's song should carry on from where it stopped`);
+  // the Tolling Buoy (v0.45.0): its singer's two songs, then its music-box piece (since v0.36.0), one for each whole fight
+  await set(`B.E.startCombat(B.run, 'boss'); B.fightSong()`);
+  await expect('the Tolling Buoy', { playing: false, song: 'hush', ambience: '' });
+  await plays('What the Bell Is Saying');
   await set('B.run.combat.phase2 = true');
-  await expect("the Buoy's second phase", { playing: true, target: 'buoy', song: null });
+  await expect("the Buoy's second phase", { playing: false, song: 'hush' });
+  await set(`B.E.startCombat(B.run, 'boss'); B.fightSong()`);
+  await expect('the Tolling Buoy again', { playing: false, song: 'chain' });
+  await plays('Down on the Chain');
+  await set(`B.meta.heard = B.meta.heard.filter((k) => k !== 'cue:buoy'); B.E.startCombat(B.run, 'boss'); B.fightSong()`);
+  await expect('the Tolling Buoy a third time', { playing: true, target: 'buoy', song: null });
+  await set('B.run.combat.phase2 = true');
+  await expect("the Buoy's second phase, the music box", { playing: true, target: 'buoy', song: null });
   // the Bellwether has its song, in both its forms
   await set(`B.run.level = 2; B.E.startCombat(B.run, 'boss')`);
   await expect('the Drowned Bellwether', { playing: false, song: 'bell', ambience: '' });
   await plays("the Bellwether's song");
   await set(`B.run.combat.enemies.forEach((e) => { if (e.id === 'bell') e.id = 'bellthing'; }); B.run.combat.phase2 = true`);
   await expect('the Thing in the Bell', { playing: false, song: 'bell' });
-  // once the Heart is home the Belfry's last pin is another, with no song: the score's pin cue, and its own for the second phase
+  // the Belfry's Dreads with songs (v0.45.0)
+  await set(`B.E.startCombat(B.run, 'elite', ['oarfish', 'spawn']); B.fightSong()`);
+  await expect('the Crowned Oarfish', { playing: false, song: 'herring' });
+  await plays('King of the Herrings');
+  await set(`B.run.heartHome = true; B.E.startCombat(B.run, 'elite', ['yearling', 'listener']); B.fightSong()`);
+  await expect('the Bell Yearling', { playing: false, song: 'eye' });
+  await plays('Remember the Eye');
+  await set(`B.E.startCombat(B.run, 'elite', ['cantor']); B.fightSong()`);
+  await expect('the Drowned Cantor', { playing: false, song: 'cantor' });
+  await plays('Ring It Once Again');
+  // once the Heart is home the Belfry's last pin is the Dark Watch, with the score's pin cue until its call
   await set(`B.run.heartHome = true; B.E.startCombat(B.run, 'boss')`);
   await expect('a pin', { playing: true, target: 'pin', ambience: '', song: null });
+  // the Dark Watch calls Nobody Comes Home, a Hollow Diver: the Divers' song from then on (v0.45.0; the score's pin2 before)
   await set('B.run.combat.phase2 = true');
-  await expect("a pin's second phase", { target: 'pin2' });
+  await expect("the Dark Watch's call", { playing: false, song: 'nobody' });
+  await plays('Nobody in the Dress');
   await set(`B.run.screen = 'victory'`);
   await expect('the win screen', { target: 'home', depth: 2, intensity: 2, ambience: '' });
   await set(`B.run.screen = 'defeat'`);

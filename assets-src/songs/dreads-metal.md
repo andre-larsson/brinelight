@@ -1,5 +1,10 @@
 # Metal songs for the Dreads and the Drowned Cantor (requests for Gemini, 2026-11-16)
 
+**In the game since v0.45.0 (2026-11-17):** the Gardener twice (the mostly sung take as "The Gardener", the half-spoken
+fa665f4 take as "Put It Back"), Nobody in the Dress (2 or 2b; the Hollow Divers now appear only when the Dark Watch calls
+them, so it plays from that call), Bigger Bell as "Remember the Eye", King of the Herrings, and Ring It Once Again. What
+Gemini sang differently is in GAME_NOTES.md, "Songs for the Buoy, the Dreads and the Dark Watch".
+
 The user asked for prompts "for other areas in the game, in the style of Korn/Slipknot/Mudvayne, and Iron Maiden". No
 files yet. Each song is for a fight that plays only the score now: three Dreads, the Hollow Divers and the Drowned
 Cantor, the one final with no song. Dark Water and the Belfry are the darker levels, so the heavy songs go there; the

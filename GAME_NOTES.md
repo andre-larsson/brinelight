@@ -1743,6 +1743,38 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Songs for the Buoy, the Dreads and the Dark Watch (v0.45.0, 2026-11-17)
+
+- **The user's calls:** eight new Gemini songs in Downloads, "I think the lyrics might be off on some places compared to sent script": transcribe them, find duplicates, suggest where they go; then names "based on lyrics, style of song and game lore", ignoring Gemini's file names. Then: "Use both Gardeners"; the Buoy A fix (trial 2) "is good"; the Cantor sings "But we were told to stay"; the Divers' song from the Dark Watch's call; a Dread's song carries on from where it stopped ("Yes, do this").
+- **Which file is which.** Gemini names each file itself; none is a copy of another (a chroma comparison found no shared passages).
+
+  | Gemini's file | Prompt (`assets-src/songs/`) | The game's name | Plays |
+  |---|---|---|---|
+  | Lantern Down the Stair | Buoy A, sea waltz | What the Bell Is Saying | The Tolling Buoy, first meeting |
+  | Lantern on the Stair | Buoy D, djent | Down on the Chain | The Tolling Buoy, second meeting |
+  | Leeches in the Rows Alt | Gardener, mostly sung (02d609e) | The Gardener | The Garden Strider, taking turns |
+  | Leeches in the Rows | Gardener, half-spoken (fa665f4) | Put It Back | The Garden Strider, taking turns |
+  | Crowned in Red | 4, King of the Herrings | King of the Herrings | The Crowned Oarfish |
+  | The Diver's Dress | 3, Bigger Bell (the user's words) | Remember the Eye | The Bell Yearling |
+  | The Tower's Toll | 5, Ring It Once Again | Ring It Once Again | The Drowned Cantor |
+  | Boots Full of Lead | 2 or 2b, Nobody in the Dress | Nobody in the Dress | The Dark Watch, from its call |
+
+  The names (the agent's): the singer "sings what the bell rings" (WORLD.md); the Buoy's fight is all chain (Haul the Chain, The Chain Snaps!); the Gardener is the keepers' name for the Strider and Put It Back the half-spoken take's hook; Remember the Eye is the Yearling's note and its fight (The Eye Opens, then Glare), and the list had three "Bell" titles already; King of the Herrings is what Saltmere's sailors called the oarfish. Not "Ring for the Rocks" (beside Ring for the Deep) or "The Tower's Toll" (three Tolls already).
+- **How the words were checked.** whisper.cpp (large-v3-turbo, `-mc 0`) on each song, and again on its voice alone, split off with Hybrid Demucs (torchaudio's `HDEMUCS_HIGH_MUSDB_PLUS`, from ComfyUI's venv, on the GPU, a few seconds a song). A line counts as sung differently only when both passes agree. Over instrumental parts whisper writes "Thank you.", "We'll see you next time.", "Transcription by CastingWords", or labels like "guitar solo" and "Scatting vocals".
+- **What Gemini sang differently** (the words pages follow it):
+  - Buoy A sang two stage directions as words: "(humming, no words)", alone under `[Intro]`, and the `[Outro]` line "(humming, one last bell, the gentle creak of the chain)", which it sang a cappella after the band had stopped. Its bridge became "the chain is sinking / the tide is falling". **Lesson for prompts:** a direction alone under a section heading can be sung; put it in the style text.
+  - The Gardener (sung take) left out its bridge ("Leave the garden be"); Put It Back left out its breakdown and ends partway through the last chorus.
+  - Ring It Once Again left out its bridge ("Brothers, sisters, come out of the dark") and the outro's first line, and asks "Who told it to stop?" once in the second pre-chorus.
+  - Remember the Eye sings the first chorus's last line twice and "where currents flow" without "dark".
+  - Not changed in the words, worth a listen: "Saltmere" in King of the Herrings comes out as "Southbeard" in both passes (about 0:12); the stutter in Nobody in the Dress sounds like "f-f-f", not "w-w-we".
+- **What the Bell Is Saying's file:** the separated voice is taken out of the mix at 13.8-21.4 s (the band plays on in time under it), and the song ends at 165.5 s with a 3.5 s fade, after "she is nearly there" (taking the voice out of the outro left silence). Then levelled like the others: trimmed, two-pass loudnorm, 128 kbit/s; all eight at -16.4 LUFS. The built site grows by 22 MB.
+- **How they play** (`FIGHT_SONGS`, `fightSong` in `js/ui.js`, which replaced `pinSong`): a fight's song is chosen as it starts and saved as `run.combat.song`. The first song of a creature's list not yet heard plays first; once all are heard, one at random that didn't play last time (`lastFightSong`, per page load), so the Strider's two take turns. The Buoy's list is What the Bell Is Saying, Down on the Chain, then the music box's The Rocking Toll (`'box'`, heard as `cue:buoy`); a player who had heard The Rocking Toll already gets the two songs and then any of the three. A Dread's song `resume`s; the Buoy's and the Divers' start again each fight, like the other pins'. The Dark Watch plays the score's pin cue until Nobody Comes Home, then Nobody in the Dress, where the score used to change to `pin2`.
+- **The Bell Cracks** (`pin2`) now plays in no fight: the Dark Watch was the only pin left that used it. It stays in the Jukebox as "Only in the Jukebox" and opens with Nobody in the Dress (`JUKE_EARLY['cue:pin2']`), or stays open for anyone who heard it before.
+- **The Jukebox** lists 18 songs and 9 pieces of the score, in the order you meet them. The Dreads' songs and the Divers' open only when heard, and until then their locked rows say "A Dread, deeper down", "A Dread, after the Heart comes home" or "After the Heart comes home" instead of naming the creature (the UI test checks no locked row names one).
+- **Credits:** the song list counts eighteen and says "six more for what you meet deeper down" without naming them; the words of Remember the Eye are credited to the maker.
+- **Not done:** Buoy versions B and C were not generated. The Gardener's "next try" prompt (above, in `dreads-metal.md`) was not written; both takes are used. The Cantor's bridge could come back with a new generation.
+- **Tests:** `music.test.js` counts FIGHT_SONGS as songs that play somewhere. The `--only audio` UI test plays the Strider three times (The Gardener, Put It Back, then The Gardener carrying on from where it stopped), the Buoy three times (its two songs, then the music box), the Oarfish, the Yearling and the Cantor, and the Dark Watch's call.
+
 ### Hester and Bosun in pictures: the first fall, coming home, the Heart's dawn, the Workshop (v0.44.0, 2026-11-17)
 
 - **The user's calls:** Hester looks worried, not smiling, in the opening picture as Wren goes down. Art for the first fall, "a story-slide, but show it again on later defeats as well (but no separate slide)"; the coming-home end screen with Hester in the doorway and Bosun running ahead, instead of the plain dark lighthouse; Hester on the gallery in the Heart's pictures; the Workshop picture with "only Bosun".

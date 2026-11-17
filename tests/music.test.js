@@ -75,7 +75,11 @@ test('the recorded songs: every song ui.js names is in music/songs with its leng
   assert.ok(loop && body.includes('TITLE_LOOP'), 'the title screen plays TITLE_LOOP');
   const shop = /const SHOP_SONGS = \[([^\]]*)\]/.exec(ui); // Barnaby's songs, one each visit
   assert.ok(shop && body.includes('SHOP_SONGS'), "Barnaby's shop plays SHOP_SONGS");
-  const screens = [...body.matchAll(/song = '([a-z]+)'/g)].map((m) => m[1]).concat([...(loop[1] + shop[1]).matchAll(/'([a-z]+)'/g)].map((m) => m[1]));
+  // the songs a fight chooses from as it starts (FIGHT_SONGS, played as c.song); 'box' is the Buoy's music-box piece
+  const fights = /const FIGHT_SONGS = \{([^}]*)\}/.exec(ui);
+  assert.ok(fights && body.includes('song = c.song'), 'a fight plays the song fightSong chose (FIGHT_SONGS)');
+  const fightKeys = [...fights[1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]).filter((k) => k !== 'box');
+  const screens = [...body.matchAll(/song = '([a-z]+)'/g)].map((m) => m[1]).concat([...(loop[1] + shop[1]).matchAll(/'([a-z]+)'/g)].map((m) => m[1]), fightKeys);
   screens.forEach((k) => assert.ok(songs.some((t) => t.key === k), `song '${k}' is not in SONGS`));
   assert.deepEqual(songs.filter((t) => !t.jukeOnly && !screens.includes(t.key)).map((t) => t.key), [], 'songs no screen plays');
 });

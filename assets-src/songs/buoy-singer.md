@@ -1,6 +1,11 @@
 # The Tolling Buoy's song: the singer in the cage (request for Gemini, v0.36.0)
 
-Pending: the user generates it. Until it exists, the Buoy's fight plays the music-box cue `buoy` ("The Rocking Toll" in
+**In the game since v0.45.0 (2026-11-17):** A came back as "What the Bell Is Saying" and D as "Down on the Chain"; they
+take turns with "The Rocking Toll", one a fight. Gemini sang A's `[Intro]` and `[Outro]` directions as words, so the
+file has that voice taken out (see GAME_NOTES.md, "Songs for the Buoy, the Dreads and the Dark Watch"). B and C were not
+generated. The text below is the request as it was sent.
+
+Before that: Pending: the user generates it. Until it exists, the Buoy's fight plays the music-box cue `buoy` ("The Rocking Toll" in
 the Jukebox). It is in A minor, 6/8, at 52, so every version here is in the same key and time.
 
 Who sings it: the singer in the cage (WORLD.md, "the singer in the cage"). The light-eaters in the Buoy's cage have

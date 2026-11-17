@@ -185,10 +185,22 @@
       // Wren's own song (her little bell answers the big one). It played against the Tolling Buoy until v0.36.0, when the
       // user heard that it is about Wren: the Buoy has its own music-box cue now ('buoy')
       buoy: { src: 'music/songs/tide-swings-its-tongue.mp3', resume: true, secs: 148, name: 'Tide Swings Its Tongue', where: 'The title screen' },
-      deep: { src: 'music/songs/ring-for-the-deep.mp3', resume: false, secs: 174, name: 'Ring for the Deep', where: 'The Harbour Hermit, from your second meeting' }, // the two bells rap it; one of the Hermit's two songs (pinSong)
+      deep: { src: 'music/songs/ring-for-the-deep.mp3', resume: false, secs: 174, name: 'Ring for the Deep', where: 'The Harbour Hermit, from your second meeting' }, // the two bells rap it; one of the Hermit's two songs (fightSong)
       bell: { src: 'music/songs/the-toll-of-the-sunken-stair.mp3', resume: false, secs: 178, name: 'The Toll of the Sunken Stair', where: 'The Drowned Bellwether' },
       departure: { src: 'music/songs/high-tide-departure.mp3', resume: true, secs: 179, name: 'High Tide Departure', where: 'Only in the Jukebox', jukeOnly: true },
       watch: { src: 'music/songs/it-went-dark-on-my-watch.mp3', resume: true, secs: 158, name: 'It Went Dark on My Watch', where: 'The title screen' }, // its last verse is a fall
+      /* v0.45.0: the Buoy's singer, the Dreads and the Dark Watch's call (FIGHT_SONGS, fightSong). A Dread's song
+         `resume`s, so a fight over in a turn or two still gets further into it each time (the user's call); a pin's
+         starts again. What the Bell Is Saying lost its sung stage directions (see GAME_NOTES, "Songs for the Buoy,
+         the Dreads and the Dark Watch"). */
+      hush: { src: 'music/songs/what-the-bell-is-saying.mp3', resume: false, secs: 164, name: 'What the Bell Is Saying', where: 'The Tolling Buoy' }, // the singer in the cage, a sea waltz
+      chain: { src: 'music/songs/down-on-the-chain.mp3', resume: false, secs: 178, name: 'Down on the Chain', where: 'The Tolling Buoy' }, // the singer in the cage, djent
+      gardener: { src: 'music/songs/the-gardener.mp3', resume: true, secs: 179, name: 'The Gardener', where: 'The Garden Strider' }, // the Strider sings, mostly sung
+      putback: { src: 'music/songs/put-it-back.mp3', resume: true, secs: 168, name: 'Put It Back', where: 'The Garden Strider' }, // the same song, half-spoken, other verses
+      herring: { src: 'music/songs/king-of-the-herrings.mp3', resume: true, secs: 179, name: 'King of the Herrings', where: 'The Crowned Oarfish' },
+      eye: { src: 'music/songs/remember-the-eye.mp3', resume: true, secs: 176, name: 'Remember the Eye', where: 'The Bell Yearling' }, // the user's words
+      cantor: { src: 'music/songs/ring-it-once-again.mp3', resume: true, secs: 178, name: 'Ring It Once Again', where: 'The Drowned Cantor' },
+      nobody: { src: 'music/songs/nobody-in-the-dress.mp3', resume: false, secs: 161, name: 'Nobody in the Dress', where: 'The Dark Watch, once Nobody Comes Home' }, // the Hollow Divers sing it
     };
     const SONG_LEVEL = 0.2, SONG_FADE = 1.2;
     /* A screen's own song (a pin's, Barnaby's) goes round, the user's call (v0.30.0): it fades out over its last LOOP_OUT
@@ -1161,8 +1173,9 @@
   let shopSong = null, inShop = false; // Barnaby's songs take turns, one each visit, starting on one at random
   let titleFirst = null; // the title song this page load starts on: the keeper's song until it has been heard once
   function updateSound() {
-    /* Recorded songs at Barnaby's, and against the Harbour Hermit and the Bellwether; the Tolling Buoy has a music-box
-       cue of its own. The title screen plays its songs in turn, the ones that are open in the Jukebox (jukeOpen): The
+    /* Recorded songs at Barnaby's, and against the Harbour Hermit, the Tolling Buoy (two songs and a music-box cue of its
+       own, taking turns), the Bellwether, four Dreads (the Garden Strider, the Crowned Oarfish, the Bell Yearling and the
+       Drowned Cantor) and the Dark Watch's second half. The title screen plays its songs in turn, the ones that are open in the Jukebox (jukeOpen): The
        Great Light Turning Slow, the Hermit's song, Tide Swings Its Tongue and It Went Dark on My Watch, all from the
        start (what they hint at is foreshadowing), and Harbour Bells at Dawn once the Heart is home (it plays then). Each time the page loads it starts on one of them
        at random (titleFirst) and goes on in order. */
@@ -1179,11 +1192,16 @@
       else if (run.screen === 'defeat') cue = 'fallen';
       else if (c) {
         cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
-        // the Hermit has two songs, and one plays for the whole fight (pinSong chooses it when the fight starts)
+        // the Hermit has two songs, and one plays for the whole fight (fightSong chooses it when the fight starts)
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'harbour')) song = 'hermit';
         if (song === 'hermit' && c.song === 'deep') song = 'deep';
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'buoy')) cue = 'buoy'; // its own music-box piece (v0.36.0; Tide Swings Its Tongue before)
+        // a fight with songs of its own (FIGHT_SONGS) plays the one fightSong chose; the Buoy's 'box' is its music-box piece
+        if (c.song && Sound.juke.SONGS[c.song]) song = c.song;
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bell' || e.id === 'bellthing')) song = 'bell'; // its second phase is the Thing in the Bell
+        // the Dark Watch plays the score's pin cue until it calls Nobody Comes Home, a Hollow Diver; then the Divers' song
+        // (v0.45.0, the user's call: the music changed there already, from the pin cue to its second phase)
+        if (c.kind === 'boss' && c.phase2 && c.enemies.some((e) => e.id === 'darkwatch')) song = 'nobody';
       } else {
         cue = 'reach'; density = 1;
         if (run.screen === 'shop') {
@@ -1195,16 +1213,33 @@
     inShop = !!run && run.screen === 'shop';
     Sound.scene(cue, depth, band, density, song);
   }
-  /* The Harbour Hermit's song, chosen as its fight starts and kept for the whole fight (run.combat.song, saved with the
-     run). The first meeting plays The Hermit's Heavy Toll. The second plays Ring for the Deep, and after that it is one
-     of the two at random. Until v0.33.0 Ring for the Deep took over mid-fight, when the Hermit or the Buoy turned; the
-     user found it didn't work straight after the first song, and wanted the Buoy to keep its own. Call it before save():
-     saving notes the Hermit in the story marks, which is how a later meeting is told from the first. */
-  function pinSong() {
+  /* The songs a fight chooses from as it starts (fightSong), by the id of the creature they are for (v0.45.0): the
+     Tolling Buoy's singer, with the music box's The Rocking Toll as a third ('box'), and the Dreads with songs of their
+     own. Another Dread plays the score's Dread cue. */
+  const FIGHT_SONGS = { buoy: ['hush', 'chain', 'box'], strider: ['gardener', 'putback'], oarfish: ['herring'], yearling: ['eye'], cantor: ['cantor'] };
+  const lastFightSong = {}; // this page load's last choice for each creature, so that, once all are heard, none comes twice running
+  /* A fight's song, chosen as it starts and kept for the whole fight (run.combat.song, saved with the run).
+     The Harbour Hermit: the first meeting plays The Hermit's Heavy Toll, the second Ring for the Deep, and after that
+     one of the two at random. Until v0.33.0 Ring for the Deep took over mid-fight, when the Hermit or the Buoy turned;
+     the user found it didn't work straight after the first song, and wanted the Buoy to keep its own. Call it before
+     save(): saving notes the Hermit in the story marks, which is how a later meeting is told from the first.
+     FIGHT_SONGS: the first one not yet heard, in the list's order (the Buoy: What the Bell Is Saying, Down on the Chain,
+     then The Rocking Toll), and once all are heard one at random that didn't play last time, so the Strider's two take
+     turns. */
+  function fightSong() {
     const c = run && run.combat;
-    if (!c || c.kind !== 'boss' || c.song || !c.enemies.some((e) => e.id === 'harbour')) return;
-    const metBefore = storyMarks().indexOf('en:harbour') >= 0;
-    c.song = !metBefore ? 'hermit' : meta.heard.indexOf('song:deep') < 0 ? 'deep' : Math.random() < 0.5 ? 'deep' : 'hermit';
+    if (!c || c.song || (c.kind !== 'boss' && c.kind !== 'elite')) return;
+    if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'harbour')) {
+      const metBefore = storyMarks().indexOf('en:harbour') >= 0;
+      c.song = !metBefore ? 'hermit' : meta.heard.indexOf('song:deep') < 0 ? 'deep' : Math.random() < 0.5 ? 'deep' : 'hermit';
+      return;
+    }
+    const id = Object.keys(FIGHT_SONGS).find((k) => c.enemies.some((e) => e.id === k));
+    if (!id) return;
+    const list = FIGHT_SONGS[id], heard = (k) => meta.heard.indexOf(k === 'box' ? 'cue:' + id : 'song:' + k) >= 0;
+    const others = list.filter((k) => k !== lastFightSong[id]);
+    c.song = list.find((k) => !heard(k)) || others[Math.floor(Math.random() * others.length)];
+    lastFightSong[id] = c.song;
   }
   function renderScreen() {
     hideTip();
@@ -1390,13 +1425,21 @@
     ['cue', 'dread', 'Dread', 'Dreads'],
     ['song', 'hermit'],
     ['song', 'buoy'],
+    ['song', 'gardener'],
+    ['song', 'putback'],
     ['cue', 'buoy', 'The Rocking Toll', 'The Tolling Buoy'],
+    ['song', 'hush'],
+    ['song', 'chain'],
     ['song', 'deep'],
+    ['song', 'herring'],
     ['song', 'bell'],
     ['cue', 'pin', 'The Bell', 'A pin without a song of its own'],
-    ['cue', 'pin2', 'The Bell Cracks', "That pin's second phase"],
+    ['cue', 'pin2', 'The Bell Cracks', 'Only in the Jukebox'], // the Dark Watch's second half until v0.45.0, when Nobody in the Dress took it
     ['cue', 'home', 'Dawn', 'Bringing the Heart home'],
     ['song', 'departure'],
+    ['song', 'eye'],
+    ['song', 'cantor'],
+    ['song', 'nobody'],
     ['cue', 'fallen', 'The Ember', 'When the tide takes you'],
     ['song', 'watch'],
   ];
@@ -1440,6 +1483,15 @@
     'song:buoy': { open: () => true },
     'song:departure': { open: () => E.heartIsHome(meta), how: 'Bring the Heart home to hear it' },
     'song:watch': { open: () => true }, // it tells of a fall; open from the start since v0.36.0 (the user's call), after a finished descent before
+    // the Dreads' songs and the Divers' open only when heard, and until then their rows name no creature and no level
+    'song:gardener': { open: () => false, how: 'A Dread, deeper down · not heard yet' },
+    'song:putback': { open: () => false, how: 'A Dread, deeper down · not heard yet' },
+    'song:herring': { open: () => false, how: 'A Dread, deeper down · not heard yet' },
+    'song:eye': { open: () => false, how: 'A Dread, after the Heart comes home · not heard yet' },
+    'song:cantor': { open: () => false, how: 'A Dread, after the Heart comes home · not heard yet' },
+    'song:nobody': { open: () => false, how: 'After the Heart comes home · not heard yet' },
+    // the Dark Watch's second half played it until Nobody in the Dress took its place (v0.45.0): it opens with that song
+    'cue:pin2': { open: () => meta.heard.indexOf('song:nobody') >= 0, how: 'After the Heart comes home · not heard yet' },
   };
   const jukeOpen = (kind, key) => {
     const k = kind + ':' + key, early = JUKE_EARLY[k];
@@ -1943,7 +1995,7 @@
     if (!node) return;
     sfx('step');
     E.enterNode(run, node);
-    pinSong();
+    fightSong();
     if (run.screen === 'shop') setTimeout(() => sfx('shopbell'), 280); // the bell over Barnaby's door
     ui.mapFocus = 0;
     save();
@@ -4293,5 +4345,5 @@
     juke: JUKE, jukeDepths: JUKE_DEPTHS, save, saveMeta, toast, sfx, modal, openOverlay, closeOverlay, onVictory, onDefeat,
     story, saveStory, showStory, showOpening, showLazaret,
     // for the UI test: what a backup holds, and loading one without the file picker; what the music and sound are doing
-    backupData, askRestore, audio: () => Sound.state(), songToEnd: (secs) => Sound.toEnd(secs) };
+    backupData, askRestore, audio: () => Sound.state(), songToEnd: (secs) => Sound.toEnd(secs), fightSong };
 })();
