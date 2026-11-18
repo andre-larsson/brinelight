@@ -63,10 +63,12 @@
     if (cost != null && c && d.costDown === 'crests') cost = Math.max(0, cost - (c.turnCrests || 0));
     return cost;
   };
-  E.cardName = (card) => {
+  E.cardName = (card, run) => {
     const d = BL.CARDS[card.id];
+    if (card.id === 'jab' && E.keeperId(run) === 'mateo') return card.up === 2 ? 'Guarded Strike' : 'Mallet Strike' + (card.up ? '+' : '');
     return card.up === 2 && d.refit ? d.refit.name : d.name + (card.up ? '+' : '');
   };
+  E.cardArt = (card, run) => (card.id === 'jab' && E.keeper(run).strikeArt) || E.def(card).art;
   E.canUpgrade = (card) => {
     const d = BL.CARDS[card.id];
     return !card.up && d.type !== 'status' && d.type !== 'curse' && Object.keys(d.up).length > 0;
@@ -96,8 +98,15 @@
      worn, helmet and all, from the first landing (since v0.26.1; before, she carried it rolled up until the Belfry).
      `under`: below the water (the Belfry), where she shows in the plain diving dress if she has no dress on (only a
      debug run gets there without one). */
-  E.keeperArt = function (kit, under) {
+  E.keeperId = (state) => state && Object.hasOwn(BL.KEEPERS, state.keeper) ? state.keeper : 'wren';
+  E.keeper = (state) => BL.KEEPERS[E.keeperId(state)];
+  E.keeperArt = function (kit, under, keeper, combat = false) {
     const id = kit && kit.coat, g = id ? BL.KIT[id] : null;
+    if (keeper === 'mateo') {
+      const K = BL.KEEPERS.mateo;
+      if (under || id === 'suit' || g?.as === 'suit') return K.suit;
+      return combat ? K.guard : K.portrait;
+    }
     if (under && !(g && (id === 'suit' || g.as === 'suit'))) return 'keeper_suit';
     return (g && g.look) || 'keeper';
   };
@@ -196,12 +205,13 @@
      `heartHome`: the Heart came home on an earlier expedition, so the Bellwether is silent and the Belfry's last
      landing is one of its finals (BL.BANDS.belfry.enc.finals). `deepest`: the deepest level reached on any earlier
      expedition (meta.reached), which sets the Hold. `holdUp`: the Hold bought at the Workshop (E.holdUpOf(meta)). */
-  E.newRun = function (seed, level, kit, bring, currents, heartHome, deepest, holdUp) {
+  E.newRun = function (seed, level, kit, bring, currents, heartHome, deepest, holdUp, profile = {}) {
     if (seed == null) seed = (Math.random() * 4294967296) >>> 0;
     const run = {
       version: E.RUN_VERSION,
       level: level || 0,
       heartHome: !!heartHome,
+      keeper: heartHome ? E.keeperId(profile) : 'wren',
       currents: (currents || []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i),
       cleared: [], // the levels whose pin is broken on this expedition
       hold: E.holdAt(Math.max(deepest || 0, level || 0)) + (holdUp || 0),
@@ -215,6 +225,8 @@
       stats: { fights: 0, elites: 0, cardsPlayed: 0, dmgDealt: 0, dmgTaken: 0, crests: 0, lows: 0, maxChain: 0, maxLowChain: 0, kills: 0, bonuses: 0, declined: 0, declineScore: 0, elapsed: 0, lastTick: Date.now() },
       log: [],
     };
+    if (heartHome && profile.stranger !== run.keeper && BL.KEEPERS[profile.stranger]?.dread) run.stranger = profile.stranger;
+    if (heartHome && run.keeper === 'wren' && profile.firstRing) run.firstRing = true;
     BL.STARTER_DECK.forEach((id) => run.deck.push(E.newCard(run, id)));
     run.map = genMap(run);
     E.applyKit(run, kit); // after the map, so the same seed gives the same map with any kit
@@ -355,6 +367,18 @@
     ensure('rest', 1, 2, 4);
     ensure('event', 2, 1, MAP_ROWS - 2);
 
+    const stranger = BL.KEEPERS[run.stranger];
+    if (stranger && stranger.level === run.level) {
+      const dreads = all.filter((n) => n.type === 'elite');
+      const atFork = (n) => parentsOf(n).some((p) => p.next.length > 1);
+      const node = dreads.find(atFork) || dreads[0] || all.find((n) => n.row > 0 && n.type === 'fight');
+      if (node) {
+        node.type = 'elite';
+        node.stranger = run.stranger;
+        node.enc = [stranger.dread];
+      }
+    }
+
     grid.forEach((row) => row.forEach((n) => {
       if (!n) return;
       n.x = (n.col + 0.5) / MAP_COLS + (R.next() - 0.5) * 0.09;
@@ -393,13 +417,20 @@
   };
   E.hesterJobAhead = function (run) {
     const job = run.hesterJob;
-    if (!job || job.recovered || run.level) return false;
+    return !!(job && !job.recovered && !run.level && nodeAhead(run, job));
+  };
+  function nodeAhead(run, goal) {
     let nodes = E.availableNodes(run);
-    while (nodes.length && nodes[0].row < job.row) {
+    while (nodes.length && nodes[0].row < goal.row) {
       const row = run.map.grid[nodes[0].row + 1];
       nodes = [...new Set(nodes.flatMap((n) => n.next))].map((col) => row[col]);
     }
-    return nodes.some((n) => E.hesterStop(run, n));
+    return nodes.some((n) => n.row === goal.row && n.col === goal.col);
+  }
+  E.strangerAhead = function (run) {
+    if (!run.stranger || run.metKeeper || run.level !== BL.KEEPERS[run.stranger]?.level) return null;
+    const node = run.map.grid.flat().find((n) => n?.stranger === run.stranger);
+    return node && nodeAhead(run, node) ? node : null;
   };
 
   /* Show one Dread at a fork. Predict the same seeded pick that entering it will make. Nothing a player can do on
@@ -407,7 +438,7 @@
   E.bosunClue = function (run) {
     if (run.tutorial || E.isDive(run.level)) return null;
     const nodes = E.availableNodes(run);
-    const node = nodes.length > 1 && nodes.find((n) => n.type === 'elite');
+    const node = nodes.length > 1 && (nodes.find((n) => n.stranger) || nodes.find((n) => n.type === 'elite'));
     if (!node) return null;
     const enc = node.enc || makeR({ rng: run.rng }).pick(encounterOptions(run, 'elite'));
     const name = enc.length > 1 && enc.every((id) => id === enc[0]) ? E.plural(enc[0]) : enc.map((id) => BL.ENEMIES[id].name).join(' and ');
@@ -909,8 +940,8 @@
   function encounterOptions(run, kind, other) {
     const tables = E.band(run).enc;
     // once the Heart is home the Bellwether stays silent: the last landing of the last level is one of its finals
-    const pool = kind === 'boss' && run.heartHome && tables.finals ? tables.finals : tables[kind];
-    const choices = other && pool.length > 1 ? pool.filter((enc) => enc !== other) : pool;
+    const pool = kind === 'boss' && run.heartHome && tables.finals ? [[E.keeper(run).final]] : tables[kind];
+    const choices = other && pool.length > 1 ? pool.filter((enc) => enc.join('+') !== other.join('+')) : pool;
     const fresh = choices.filter((enc) => run.lastEnc.indexOf(enc.join('+')) < 0);
     return fresh.length ? fresh : choices;
   }
@@ -1234,6 +1265,11 @@
   };
   E.bellDraw = (bell, kind, chain) => { const g = E.bellGain(bell, kind, chain); return (g && g.draw) || 0; };
   function onTideTurn(run, c, kind) {
+    if (E.hasKit(run, 'sparehoop') && !c.spareHoopUsed) {
+      c.spareHoopUsed = true;
+      fx(c, { t: 'kit', k: 'ditty' });
+      gainWard(c, c.player, BL.KIT.sparehoop.firstTideWard);
+    }
     const g = E.bellGain(E.bell(run), kind, c.turnCrests + c.turnLows);
     if (!g) return;
     fx(c, { t: 'kit', k: 'bell' });
@@ -1372,10 +1408,16 @@
      is on purpose: Strands are the harder end to reach. The tutorial teaches Bail on its third turn. */
   E.SWELL_ACTS = { bail: { name: 'Bail', ebb: 1 }, stir: { name: 'Stir', surge: 1 } };
   E.SWELL_ACT_COST = 1;
+  E.swellActCost = (run) => run.firstRing && !run.combat?.firstRingUsed ? 0 : E.SWELL_ACT_COST;
+  E.SHIELD_BASH = { ward: 4, dmg: 6 };
   /* Bails and Stirs a turn: once, or twice with the Bailer in your Ditty Bag. */
   E.swellActsPerTurn = (run) => (E.hasKit(run, 'bailer') ? 2 : 1);
   /* Bails and Stirs used this turn (a fight saved before v0.22.0 kept only the turn). */
   E.swellActsUsed = (c) => (c.swellActTurn === c.turn ? c.swellActN || 1 : 0);
+  function useSwellAct(c) {
+    c.swellActN = E.swellActsUsed(c) + 1;
+    c.swellActTurn = c.turn;
+  }
   /* A Bail that makes a Strand which gives Light back (the turn's first, or any with the Glimmer Bulb) is free: it can be
      made with no Light at all (v0.41.0; before, it needed the 1 Light up front, though the words called it free). */
   E.freeBail = (run, c) => c.tide <= E.SWELL_ACTS.bail.ebb && E.strandLight(run, c.turnLows + 1) >= E.SWELL_ACT_COST;
@@ -1385,8 +1427,8 @@
     if (!c) return { ok: false, reason: 'Not in a fight' };
     if (c.phase !== 'player' || c.won || c.lost) return { ok: false, reason: 'Not your turn' };
     const per = E.swellActsPerTurn(run);
-    if (E.swellActsUsed(c) >= per) return { ok: false, reason: per > 1 ? 'Twice a turn with the Bailer: you have already Bailed or Stirred twice' : 'Once a turn: you have already Bailed or Stirred' };
-    if (c.light < E.SWELL_ACT_COST && !(kind === 'bail' && E.freeBail(run, c))) return { ok: false, reason: 'Not enough Light' };
+    if (E.swellActsUsed(c) >= per) return { ok: false, reason: per > 1 ? 'Both Bail and Stir actions are used this turn' : 'Once a turn: your Bail or Stir action is used' };
+    if (c.light < E.swellActCost(run) && !(kind === 'bail' && E.freeBail(run, c))) return { ok: false, reason: 'Not enough Light' };
     return { ok: true };
   };
   E.swellAct = function (run, kind) {
@@ -1394,15 +1436,34 @@
     if (!act || !E.canSwellAct(run, kind).ok) return false;
     const c = run.combat;
     // a free Bail with no Light: its Strand's Light pays for it (so it is spent, not added)
-    const owed = c.light < E.SWELL_ACT_COST;
-    if (!owed) c.light -= E.SWELL_ACT_COST;
-    c.swellActN = E.swellActsUsed(c) + 1;
-    c.swellActTurn = c.turn;
+    const cost = E.swellActCost(run), owed = c.light < cost;
+    if (!owed) c.light -= cost;
+    if (!cost) c.firstRingUsed = true;
+    useSwellAct(c);
     run.stats[kind === 'bail' ? 'bails' : 'stirs'] = (run.stats[kind === 'bail' ? 'bails' : 'stirs'] || 0) + 1;
     fx(c, { t: 'swellact', kind });
     if (act.ebb) ebb(run, c, act.ebb);
     else surge(run, c, act.surge);
-    if (owed) c.light = Math.max(0, c.light - E.SWELL_ACT_COST);
+    if (owed) c.light = Math.max(0, c.light - cost);
+    return true;
+  };
+  E.canBash = function (run) {
+    const c = run.combat;
+    if (E.keeperId(run) !== 'mateo' || !c || c.phase !== 'player' || c.won || c.lost) return { ok: false, reason: 'Shield Bash is unavailable' };
+    if (c.bashTurn === c.turn) return { ok: false, reason: 'You have already used Shield Bash this turn' };
+    if (E.swellActsUsed(c) >= E.swellActsPerTurn(run)) return { ok: false, reason: 'Your Bail or Stir actions are used this turn' };
+    if (c.player.ward < E.SHIELD_BASH.ward) return { ok: false, reason: 'Shield Bash needs 4 Ward' };
+    if (!E.targets(c).length) return { ok: false, reason: 'No enemy is in reach' };
+    return { ok: true };
+  };
+  E.bash = function (run, target) {
+    if (!E.canBash(run).ok) return false;
+    const c = run.combat, t = E.targetByUid(c, target);
+    if (!t) return false;
+    c.player.ward -= E.SHIELD_BASH.ward;
+    c.bashTurn = c.turn;
+    useSwellAct(c);
+    api(run, c).hit(t, E.SHIELD_BASH.dmg);
     return true;
   };
 
@@ -1731,7 +1792,7 @@
           const card = c.discard.splice(i, 1)[0];
           e.mem.swallowed = (e.mem.swallowed || []).concat([card]);
           e.st.swallowed = e.mem.swallowed.length;
-          fx(c, { t: 'swallow', who: e.uid, name: E.cardName(card) });
+          fx(c, { t: 'swallow', who: e.uid, name: E.cardName(card, run) });
         }
       }
       if (m.buff) Object.keys(m.buff).forEach((k) => applyStatus(run, c, e, k, m.buff[k], false));
@@ -1892,6 +1953,7 @@
     run.ksFights = run.ksFights || {};
     run.keepsakes.forEach((k) => { run.ksFights[k] = (run.ksFights[k] || 0) + 1; });
     if (c.kind === 'elite') run.stats.elites++;
+    if (c.kind === 'elite' && !run.cheated && run.stranger && c.enc.includes(BL.KEEPERS[run.stranger]?.dread)) run.metKeeper = run.stranger;
     if (!c.flags.hpLost) run.stats.flawless = (run.stats.flawless || 0) + 1;
     if (c.kind === 'elite' && run.deck.length <= 12) run.stats.leanDread = true;
     if (run.hp <= 5) run.stats.closeCall = true;
@@ -1937,6 +1999,7 @@
     const opening = !elite && !run.tutorial && !run.level && run.normalFights === 1;
     const cards = (opening ? openingCards(run, rolled) : rolled).map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
     const rw = { pearls, bonuses, roilPay, roilSteps: c.roilSteps || 0, cards, opening, elite, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
+    if (run.metKeeper && c.enc.includes(BL.KEEPERS[run.metKeeper].dread)) rw.stranger = run.metKeeper;
     if (!elite && R.chance(0.4)) rw.tonic = E.randomTonic(run);
     if (elite) { rw.oneOf = true; rw.keepsakeChoices = E.keepsakeChoices(run, E.DREAD_KEEPSAKES); }
     run.rewards = rw;
@@ -2071,7 +2134,7 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: false });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: false, keepers: [], keeper: 'wren', mateoQuiets: 0 });
   /* What opens at the lighthouse as the player gets on, in the order it opens: the Workshop (the first Salvage), the
      Lazaret (the first time home), the Diving Dress (carried home) and currents (the Heart home). `meta.told` lists the
      ones the player has been shown: the UI tells each once, in a window that has to be acknowledged (v0.33.0, the user:
@@ -2107,6 +2170,7 @@
     const known = new Set((marks || []).concat(active ? E.storyMarks(active) : []));
     const record = meta.record || E.newRecord(), c = active && active.combat;
     const enemies = [...known].filter((m) => m.startsWith('en:')).map((m) => m.slice(3));
+    const wrenQuieted = record.quiets > (meta.mateoQuiets || 0);
     let changed = false;
     const add = (id) => { if (meta.heard.indexOf(id) < 0) { meta.heard.push(id); changed = true; } };
     const heart = record.hearts > 0 || known.has('heart');
@@ -2118,7 +2182,7 @@
     if ((c && c.kind === 'elite') || enemies.some((id) => BL.ENEMIES[id] && BL.ENEMIES[id].elite)) add('cue:dread');
     if ((c && c.kind === 'boss') || known.has('boss') || [...known].some((m) => m.startsWith('won:')) || enemies.some((id) => BL.ENEMIES[id] && BL.ENEMIES[id].boss) || heart) add('cue:pin');
     if ((c && c.kind === 'boss' && c.phase2) || known.has('en:bellthing') || known.has('quiet') || record.quiets > 0 || heart) add('cue:pin2');
-    if ((c && c.enemies.some((e) => e.id === 'darkwatch')) || enemies.indexOf('darkwatch') >= 0 || known.has('quiet') || record.quiets > 0) add('cue:watch');
+    if ((c && c.enemies.some((e) => e.id === 'darkwatch')) || enemies.indexOf('darkwatch') >= 0 || known.has('quiet') || wrenQuieted) add('cue:watch');
     const earlyWin = active && active.screen === 'victory' ? !active.heart && !active.quieted : (known.has('home') && !heart && !known.has('quiet') && !(record.quiets > 0));
     if (earlyWin || record.wins > (record.hearts || 0) + (record.quiets || 0)) add('cue:haul');
     if (known.has('home') || record.wins > 0) add('cue:home');
@@ -2129,7 +2193,7 @@
       if (c.song === 'box') { if (c.enemies.some((e) => e.id === 'buoy')) add('cue:buoy'); }
       else if (/^[a-z]+$/.test(c.song)) add('song:' + c.song);
     }
-    if ((c && c.phase2 && c.enemies.some((e) => e.id === 'darkwatch')) || known.has('quiet') || record.quiets > 0) add('song:nobody');
+    if ((c && c.phase2 && c.enemies.some((e) => e.id === 'darkwatch')) || known.has('quiet') || wrenQuieted) add('song:nobody');
     if (heart) { add('song:bells'); add('song:bell'); }
     return changed;
   };
@@ -2160,7 +2224,10 @@
     r.runs++;
     if (won) r.wins++;
     if (won && run.heart) r.hearts = (r.hearts || 0) + 1;
-    if (won && run.quieted) r.quiets = (r.quiets || 0) + 1;
+    if (won && run.quieted) {
+      r.quiets = (r.quiets || 0) + 1;
+      if (E.keeperId(run) === 'mateo') meta.mateoQuiets = (meta.mateoQuiets || 0) + 1;
+    }
     const lv = run.level || 0, fl = run.floor || 0;
     if (!r.deep || lv > r.deep.level || (lv === r.deep.level && fl > r.deep.floor)) r.deep = { level: lv, floor: fl };
     E.noteReached(meta, run);
@@ -2168,6 +2235,19 @@
   };
   /* Has the Heart come home? Then later expeditions meet the Belfry's finals, and currents are open. */
   E.heartIsHome = (meta) => (meta.record.hearts || 0) > 0;
+  E.keeperOpen = (meta, id) => id === 'wren' || (Object.hasOwn(BL.KEEPERS, id) && E.heartIsHome(meta) && !!meta.keepers?.includes(id));
+  E.keeperProfile = function (meta) {
+    const keeper = E.keeperOpen(meta, meta.keeper) ? meta.keeper : 'wren';
+    const mateo = E.keeperOpen(meta, 'mateo');
+    return { keeper, firstRing: mateo && keeper === 'wren', stranger: E.heartIsHome(meta) && !mateo ? 'mateo' : null };
+  };
+  E.welcomeKeeper = function (meta, run) {
+    const id = run.metKeeper;
+    if (!id || !BL.KEEPERS[id]?.dread || !run.heartHome || !E.heartIsHome(meta) || E.keeperOpen(meta, id) || run.tutorial || run.cheated || run.screen !== 'victory' || !run.cleared.includes(BL.KEEPERS[id].level)) return null;
+    (meta.keepers || (meta.keepers = [])).push(id);
+    run.welcomedKeeper = id;
+    return id;
+  };
   /* Currents open once the Heart has come home. The ones chosen are remembered for the next expedition. */
   E.currentsOpen = (meta) => E.heartIsHome(meta);
   E.toggleCurrent = function (meta, k) {
@@ -2237,6 +2317,9 @@
     if (old.quiets > 0) rec.quiets = Math.min(rec.wins, Math.floor(old.quiets));
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
+    m.keepers = Array.isArray(m.keepers) && E.heartIsHome(m) ? [...new Set(m.keepers.filter((id) => id !== 'wren' && Object.hasOwn(BL.KEEPERS, id)))] : [];
+    m.keeper = E.keeperOpen(m, m.keeper) ? m.keeper : 'wren';
+    m.mateoQuiets = Math.max(0, Math.min(rec.quiets, Math.floor(m.mateoQuiets) || 0));
     m.currents = uniq2(m.currents);
     // Music unlocked through progress (called "heard" in old saves): 'song:<key>' and 'cue:<cue>', one of each.
     // 'depth:<n>' opens a depth
@@ -2391,12 +2474,14 @@
     if (run.screen === 'rest') m.push('cove');
     if (run.screen === 'treasure') m.push('wreck');
     if (run.screen === 'toll') m.push('toll');
-    if (run.screen === 'defeat') m.push('fell');
+    if (run.screen === 'defeat' && E.keeperId(run) === 'wren') m.push('fell');
     (run.cleared || []).forEach((lv) => m.push('won:' + lv));
     if (run.level) m.push('in:' + run.level); // down in a level below the Shallows (v0.40.0: 'in:2' opens Into the Belfry)
     if (run.screen === 'victory') m.push('home');
     if (run.screen === 'victory' && run.heart) m.push('heart');
-    if (run.screen === 'victory' && run.quieted) m.push('quiet');
+    if (run.metKeeper) m.push('dread:' + run.metKeeper);
+    if (run.screen === 'victory' && run.welcomedKeeper) m.push('keeper:' + run.welcomedKeeper);
+    if (run.screen === 'victory' && run.quieted) m.push(E.keeperId(run) === 'wren' ? 'quiet' : 'quiet:' + E.keeperId(run));
     if (run.combat) {
       if (run.combat.kind === 'boss') m.push('boss');
       run.combat.enemies.forEach((e) => { if (m.indexOf('en:' + e.id) < 0) m.push('en:' + e.id); });

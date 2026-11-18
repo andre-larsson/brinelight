@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.52.0';
+  BL.VERSION = '0.53.0';
   BL.CHANGELOG = [
+    { v: '0.53.0', date: '2026-11-18', items: [
+      'After the Heart comes home, follow the knocking in Dark Water to meet Mateo, a second playable keeper.',
+      'Choose a keeper when you pack. Mateo spends Ward on Shield Bash, and once he joins, Wren’s first Bail or Stir in each fight is free.',
+      'Mateo has his own Belfry final, a piece of kit to unlock, and two lighthouse scenes with Wren.',
+    ] },
     { v: '0.52.0', date: '2026-11-18', items: [
       'The first Skirmish in the Shallows offers a Surge card, an Ebb card and a wildcard.',
       'Bosun warns you what waits at one reachable Dread when you have another path to choose.',

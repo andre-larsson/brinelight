@@ -15,9 +15,10 @@
   const toastEl = $('#toast');
 
   let run = null;
+  const cardName = (card) => E.cardName(card, run);
   let Teach = null; // tutorial and first-time hints (js/tutorial.js), created at boot
   const ui = {
-    sel: null, target: null, hover: null, busy: false, tonicSel: null, drag: null,
+    sel: null, target: null, hover: null, busy: false, tonicSel: null, bashAim: false, drag: null,
     mapFocus: 0, lastPointer: (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 'touch' : 'mouse', combatRef: null, cw: 140, overlayOnClose: null, overlayLocked: false, tipFor: null,
     kitFrom: 'workshop', kitSlot: null, kitScroll: 0, // the kit screens: which one is open, its chosen slot, its scroll while buying
   };
@@ -34,8 +35,9 @@
   try {
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
     const raw = { salvage: 0, earned: 0, owned: [], ach: [] };
-    ['salvage', 'earned'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
-    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    ['salvage', 'earned', 'mateoQuiets', 'holdUp'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
+    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told', 'keepers'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    raw.keeper = m.keeper;
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
@@ -607,7 +609,7 @@
     const s = BL.STATUSES[key];
     if (!s) return '';
     const n = o.st[key] > 1 || (s.kind !== 'rite' && NO_COUNT.indexOf(key) < 0) ? o.st[key] : '';
-    const held = key === 'swallowed' && o.mem && o.mem.swallowed ? `<div class="tip-row">Inside it: ${o.mem.swallowed.map((x) => `<b>${E.cardName(x)}</b>`).join(', ')}.</div>` : '';
+    const held = key === 'swallowed' && o.mem && o.mem.swallowed ? `<div class="tip-row">Inside it: ${o.mem.swallowed.map((x) => `<b>${cardName(x)}</b>`).join(', ')}.</div>` : '';
     return `<b>${s.name} ${n}</b><br>${s.desc(o.st[key])}${held}`;
   }
   function tipContent(key) {
@@ -633,6 +635,7 @@
       }
       case 'light': return `<b>Light: ${c ? c.light : 0}</b><br>${BL.KEYWORDS.Light}`;
       case 'tide': return `<b>Swell: ${c ? c.tide : 3}</b><br>${BL.KEYWORDS.Swell}<div class="tip-row"><b>Crest</b> (at 6): ${BL.KEYWORDS.Crest.split(': ')[1] || BL.KEYWORDS.Crest}</div><div class="tip-row"><b>Strand</b> (at 0): ${BL.KEYWORDS.Strand.split(': ')[1] || BL.KEYWORDS.Strand}</div>`;
+      case 'bash': return `<b>Shield Bash</b><br>${BL.KEEPERS.mateo.desc}<div class="tip-row">Press H or choose Bash, then aim at an enemy.</div>`;
       case 'kw': return `<b>${parts[1]}</b><br>${BL.KEYWORDS[parts[1]]}`;
       case 'st': {
         const o = parts[1] === 'p' ? c.player : E.enemyByUid(c, parts[1]);
@@ -723,8 +726,8 @@
     const text = markKeywords(d.text(v, inCombat ? combatFmt(target, v.dmg > E.vals(card).dmg) : plainFmt));
     const baseCost = d.cost;
     const long = text.replace(/<[^>]+>/g, '').length > 58;
-    const name = E.cardName(card);
-    return `<div class="frame"><div class="c-art" style="background-image:url(img/cards/${d.art}.webp)"></div>` +
+    const name = cardName(card);
+    return `<div class="frame"><div class="c-art" style="background-image:url(img/cards/${E.cardArt(card, run)}.webp)"></div>` +
       `<div class="c-name${name.length >= 14 ? ' long' : ''}"><span>${name}</span></div><div class="c-type">${TYPE_LABEL[d.type]}</div>` +
       `<div class="c-text${long ? ' long' : ''}"><div>${text}</div></div></div>` +
       `<div class="c-cost${cost == null ? ' none' : ''}${cost != null && cost < baseCost ? ' changed' : ''}">${cost == null ? '' : cost}</div>`;
@@ -737,7 +740,7 @@
     const d = BL.CARDS[card.id];
     const cost = E.cost(card);
     const t = d.text(E.vals(card), plainFmt).replace(/<[^>]+>/g, '');
-    return `${E.cardName(card)}, ${TYPE_LABEL[d.type]}${cost != null ? ', costs ' + cost : ''}. ${t}`;
+    return `${cardName(card)}, ${TYPE_LABEL[d.type]}${cost != null ? ', costs ' + cost : ''}. ${t}`;
   }
   function staticCard(card, extra, attrs) {
     return `<div class="${cardClass(card)} static ${extra || ''}" ${attrs || ''} data-kws="${keywordsOf(card).join('|')}" aria-label="${cardLabel(card).replace(/"/g, '&quot;')}">${cardInner(card, false)}</div>`;
@@ -761,19 +764,19 @@
   function pickLegend(scope, card) {
     const kws = card ? keywordsOf(card) : [];
     const inner = !card ? PICK_HINT : kws.length
-      ? `<dl class="kw-legend" aria-label="Keywords on ${E.cardName(card)}">${kws.map((k) => `<div data-kw="${k}"><dt class="kw ${kwClass(k)}">${k}</dt><dd>${BL.KEYWORDS[k]}</dd></div>`).join('')}</dl>`
-      : `<p class="kw-hint">${E.cardName(card)} has no special words.</p>`;
+      ? `<dl class="kw-legend" aria-label="Keywords on ${cardName(card)}">${kws.map((k) => `<div data-kw="${k}"><dt class="kw ${kwClass(k)}">${k}</dt><dd>${BL.KEYWORDS[k]}</dd></div>`).join('')}</dl>`
+      : `<p class="kw-hint">${cardName(card)} has no special words.</p>`;
     return `<div class="pick-legend" data-scope="${scope}" aria-live="polite">${inner}</div>`;
   }
   // the label of the button that takes the pick: before a pick it says what to do, after it what will be taken
   const PICK_OK = {
-    'rw-card': (key) => (key == null ? 'Choose a card' : `Take ${E.cardName(pseudo(run.rewards.cards[+key].id, run.rewards.cards[+key].up))}`),
+    'rw-card': (key) => (key == null ? 'Choose a card' : `Take ${cardName(pseudo(run.rewards.cards[+key].id, run.rewards.cards[+key].up))}`),
     'rw-ks': (key) => (key == null ? 'Choose a keepsake' : `Take the ${BL.KEEPSAKES[key].name}`),
     // a Dread's one pick (v0.40.0): a card's index or the keepsake's id
     'rw-one': (key) => (key == null ? 'Choose a card or the keepsake' : /^\d+$/.test(key) ? PICK_OK['rw-card'](key) : PICK_OK['rw-ks'](key)),
     'tr-ks': (key) => (key == null ? 'Choose a keepsake' : `Take the ${BL.KEEPSAKES[key].name}`),
     'fall-ks': (key) => (key == null ? 'Choose one to keep' : `Keep the ${BL.KEEPSAKES[key].name}`),
-    choice: (key) => (key == null ? 'Choose a card' : `Take ${E.cardName(pseudo(key))}`),
+    choice: (key) => (key == null ? 'Choose a card' : `Take ${cardName(pseudo(key))}`),
   };
   const pickOkBtn = (scope, key, cls) => `<button class="btn primary${cls ? ' ' + cls : ''}" data-act="pickok" data-scope="${scope}"${key == null ? ' disabled' : ''}>${PICK_OK[scope](key)}</button>`;
   // mark `el` as the pick, without drawing the screen again (the cards' rise would play again)
@@ -886,12 +889,12 @@
   function showRefits(card, choosing) {
     const options = E.refits(card).map((up) => {
       const refit = { ...card, up };
-      const button = choosing ? `<button class="btn primary" data-act="deckconfirm" data-up="${up}" aria-label="Refit to ${E.cardName(refit)}">Refit</button>` : '';
+      const button = choosing ? `<button class="btn primary" data-act="deckconfirm" data-up="${up}" aria-label="Refit to ${cardName(refit)}">Refit</button>` : '';
       return `<div class="refit-option">${staticCard(refit)}${button}</div>`;
     }).join('');
     const current = E.def(card).text(E.vals(card), plainFmt);
     const body = `<p class="refit-current"><b>Current card</b> &middot; ${E.cost(card)} Light<br>${markKeywords(current)}</p><div class="compare refit-options">${options}</div>`;
-    openOverlay(modal(`${choosing ? 'Refit ' : ''}${E.cardName(card)}`, body, '<button class="btn" data-act="deckback">Back</button>', 'narrow'),
+    openOverlay(modal(`${choosing ? 'Refit ' : ''}${cardName(card)}`, body, '<button class="btn" data-act="deckback">Back</button>', 'narrow'),
       { locked: ui.overlayLocked, focus: choosing ? '[data-act="deckconfirm"]' : '[data-act="deckback"]' });
     ui.pending = card.uid;
   }
@@ -903,7 +906,7 @@
     if (!card) return;
     if (m.mode === 'view') {
       if (E.canUpgrade(card)) showRefits(card, false);
-      else openOverlay(modal(E.cardName(card), `<div class="compare">${staticCard(card)}</div>`, '<button class="btn" data-act="deckback">Back</button>', 'narrow'), { locked: ui.overlayLocked });
+      else openOverlay(modal(cardName(card), `<div class="compare">${staticCard(card)}</div>`, '<button class="btn" data-act="deckback">Back</button>', 'narrow'), { locked: ui.overlayLocked });
       return;
     }
     if (m.mode === 'upgrade') {
@@ -918,7 +921,7 @@
     }
     const price = m.mode === 'shopremove' ? ` for ${E.removePrice(run)} Pearls` : '';
     const body = `<div class="compare">${staticCard(card)}</div><p style="text-align:center">This card will be gone from your deck for the rest of the run.</p>`;
-    openOverlay(modal(`Remove ${E.cardName(card)}${price}?`, body, '<button class="btn" data-act="deckback">Back</button><button class="btn primary" data-act="deckconfirm" autofocus>Remove</button>', 'narrow'), { locked: ui.overlayLocked });
+    openOverlay(modal(`Remove ${cardName(card)}${price}?`, body, '<button class="btn" data-act="deckback">Back</button><button class="btn primary" data-act="deckconfirm" autofocus>Remove</button>', 'narrow'), { locked: ui.overlayLocked });
     ui.pending = uid;
   }
 
@@ -956,6 +959,7 @@
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Only the first Strand of a turn gives Light; later ones still strip Ward. Save Surge for one big turn.</li>
         <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes your first Strand of the turn is free, even with no Light left: that Strand's 1 Light pays it back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
+        ${E.keeperOpen(meta, 'mateo') ? `<li><b>Wren’s First Ring:</b> ${BL.KEEPERS.wren.desc} <b>Mateo’s Shield Bash:</b> ${BL.KEEPERS.mateo.desc} Press <kbd>H</kbd> or choose Bash, then choose an enemy.</li>` : ''}
         <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn, or Ward instead of a card.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST&times;2</span> means that card makes two Crests.</li>
       </ul>`;
@@ -1286,7 +1290,7 @@
       <div class="title-corner"><button class="icon-btn" data-act="menu" aria-label="Settings">${ICON.menu}</button></div>
       <div class="title-now"></div>
       <div class="logo">BRINELIGHT</div>
-      <p class="tagline">${BL.STORY.title}</p>
+      <p class="tagline">${E.keeperOpen(meta, 'mateo') ? 'The Lantern Heart is home. The light turns over Saltmere, and two keepers go down into the Reach.' : BL.STORY.title}</p>
       <div class="title-buttons">
         ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (${LevelName(saved.level)})</button>` : ''}
         <button class="btn ${saved ? '' : 'primary solo'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
@@ -1367,7 +1371,7 @@
       if (!scene) updateSound();
     }
     const beats = ui.opening.beats, b = beats[i], last = i === beats.length - 1;
-    openOverlay(`<div class="opening" role="dialog" aria-modal="true" aria-label="The story, part ${i + 1} of ${beats.length}">
+    openOverlay(`<div class="opening${b.together ? ' opening-together' : ''}" role="dialog" aria-modal="true" aria-label="The story, part ${i + 1} of ${beats.length}">
       <div class="op-art" style="background-image:url(img/${b.art}.webp);--pos:${b.pos};--wpos:${b.wide || b.pos};--wz:${b.zoom || 1}"></div>
       ${b.fig ? `<img class="op-fig" src="img/${b.fig}.webp" alt="">` : ''}
       <div class="op-inner"><p class="op-text">${b.text}</p>
@@ -1712,9 +1716,9 @@
   const kitForSale = (id) => { const g = BL.KIT[id]; return !g.starter && !g.found && !E.ownsKit(meta, id) && E.kitUnlocked(meta, id); };
   const canBuyNow = (id) => kitForSale(id) && meta.salvage >= BL.KIT[id].price;
   const placeOf = (id) => BL.KIT_PLACES.find((pl) => pl.id === id);
-  function kitWrenAlt(kit) {
+  function kitKeeperAlt(kit, keeper) {
     const g = kit.coat ? BL.KIT[kit.coat] : null;
-    return !g ? 'Wren, the Keeper, in her oilskin' : `Wren, the Keeper, wearing the ${g.name}`;
+    return g ? `${keeper.title}, wearing the ${g.name}` : keeper.title;
   }
   /* The chosen slot: the last one chosen, else the first with something to wear (packing) or to buy (the Workshop). */
   function kitSlotFor(where) {
@@ -1754,13 +1758,14 @@
       <div class="kit-list">${ids.map(kitOpt).join('')}</div></section>`;
   }
   function kitDoll(where) {
-    const sel = kitSlotFor(where), look = E.keeperArt(meta.kit);
+    const sel = kitSlotFor(where), keeper = E.keeper(meta);
+    const look = E.keeperArt(meta.kit, false, E.keeperId(meta));
     // each side lists its slots top to bottom by where they point, so the lines don't cross
     const side = (s) => BL.KIT_PLACES.map((pl, i) => [pl, i]).filter(([pl]) => (pl.side || 'right') === s)
       .sort((x, y) => (x[0].at || [0, 0])[1] - (y[0].at || [0, 0])[1]).map(([pl, i]) => kitSlot(pl, where, pl.id === sel, i)).join('');
     return `<div class="doll" data-look="${look}"><svg class="doll-lines" aria-hidden="true"></svg>
       <div class="doll-side left">${side('left')}</div>
-      <div class="doll-wren"><img src="img/units/${look}.webp" alt="${kitWrenAlt(meta.kit)}"></div>
+      <div class="doll-wren"><img src="img/units/${look}.webp" alt="${kitKeeperAlt(meta.kit, keeper)}"></div>
       <div class="doll-side right">${side('right')}</div></div>${kitTray(sel, where)}`;
   }
   /* Lines from the slots to Wren (wide screens only; on a phone the slots stand in a column beside her). */
@@ -1906,7 +1911,9 @@
         return `<div class="shop-tile gear-tile kit-tile current-tile${on ? ' chosen' : ''}" tabindex="0" role="button" aria-pressed="${on}" data-act="current" data-k="${k}"><span class="medal">${ICON.wave}</span><b>${C.name}</b><small>${C.desc}</small><span class="g-state">${on ? 'On' : 'Off'}</span></div>`;
       }).join('')}</div>` : '';
     const parts = [MT.item.toLowerCase(), keeps ? 'keepsakes' : '', curs ? 'currents' : ''].filter(Boolean);
-    const body = `<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
+    const keepers = Object.entries(BL.KEEPERS).filter(([id]) => E.keeperOpen(meta, id));
+    const choice = keepers.length > 1 ? `<section class="keeper-pick" aria-label="Choose a keeper"><h3 class="ws-place">Keeper</h3><div class="keeper-options">${keepers.map(([id, K]) => `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${id === E.keeperId(meta)}"><img src="img/units/${K.portrait}.webp" alt=""><span><b>${K.name}</b><small><strong>${K.skill}.</strong> ${K.desc}</small></span></button>`).join('')}</div></section>` : '';
+    const body = `${choice}<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
       <h3 class="ws-place">${MT.item} <small>One piece in each place.</small></h3>${kitDoll('pack')}${keeps}${curs}`;
     openOverlay(modal('Pack for the expedition', body,
       `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, 'workshop-modal'), { focus });
@@ -1947,7 +1954,7 @@
   function startNewRun(kit) {
     clearSave();
     const m = /[?&]seed=(\d+)/.exec(location.search);
-    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? bringable() : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta), meta.reached, E.holdUpOf(meta));
+    run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? bringable() : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta), meta.reached, E.holdUpOf(meta), E.keeperProfile(meta));
     E.offerHesterJob(meta, run);
     // the keepsakes she brings leave the Lazaret now (v0.36.0): they come back with her, or not at all
     if (E.takeBrought(meta, run).length) saveMeta();
@@ -1979,6 +1986,7 @@
     const avail = E.availableNodes(run);
     const clue = E.bosunClue(run);
     const jobAhead = E.hesterJobAhead(run);
+    const strange = E.strangerAhead(run);
     const availKey = new Set(avail.map((n) => n.row + ',' + n.col));
     const visited = new Set(run.visited || []);
     const cur = run.pos ? run.pos.row + ',' + run.pos.col : null;
@@ -1999,7 +2007,8 @@
       const isAvail = availKey.has(key);
       const bosun = clue && clue.node === n;
       const hester = jobAhead && E.hesterStop(run, n);
-      const note = bosun ? 'Bosun' : hester ? 'Log' : '';
+      const note = n === strange ? 'Knock' : bosun ? 'Bosun' : hester ? 'Log' : '';
+      const desc = n === strange ? 'strange-dread' : bosun ? 'bosun-clue' : hester ? 'hester-job' : '';
       const edge = n.x < 0.16 ? ' lbl-l' : n.x > 0.84 ? ' lbl-r' : '';
       const cls = `node t-${n.type}${visited.has(key) ? ' visited' : ''}${key === cur ? ' current' : ''}${isAvail ? ' avail' + edge : ''}`;
       const style = `left:${n.x * 100}%;top:${yOf(n)}px`;
@@ -2009,7 +2018,7 @@
         const idx = avail.findIndex((a) => a.row === n.row && a.col === n.col);
         // the boss already has its name under it, so it gets no second label
         const lbl = n.type === 'boss' ? '' : `<span class="node-label">${SHORT_NAME[n.type]}</span>`;
-        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}"${note ? ` aria-describedby="${bosun ? 'bosun-clue' : 'hester-job'}"` : ''}>${NODE_ICON[n.type]}${lbl}${marker}</button>`;
+        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}"${desc ? ` aria-describedby="${desc}"` : ''}>${NODE_ICON[n.type]}${lbl}${marker}</button>`;
       }
       return `<div class="${cls}" style="${style}" data-tip="node:${n.type}" aria-hidden="true">${NODE_ICON[n.type]}${marker}</div>`;
     };
@@ -2022,10 +2031,11 @@
     const mapBg = E.band(run).mapBg;
     const job = jobAhead ? `<p id="hester-job"><b>Hester's job</b> &middot; Recover the log at the marked Fog and bring it home for ${E.HESTER_PAY} Salvage.</p>`
       : !run.level && run.hesterJob?.recovered ? `<p id="hester-job"><b>Log recovered</b> &middot; Bring it home for ${E.HESTER_PAY} Salvage.</p>` : '';
-    const warning = clue ? `<p id="bosun-clue"><b>Bosun</b> warns of the ${clue.name} at the marked Dread.</p>` : '';
+    const warning = clue && clue.node !== strange ? `<p id="bosun-clue"><b>Bosun</b> warns of the ${clue.name} at the marked Dread.</p>` : '';
+    const knocking = strange ? `<p id="strange-dread">${clue?.node === strange ? '<b>Bosun</b> warns of the Split Cask.' : '<b>Three knocks</b> echo from a marked Dread.'} Beat it and take the note home.</p>` : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
       ${mapBg ? `<div class="map-bg" style="background-image:url(img/bg/${mapBg}.webp)" aria-hidden="true"></div>` : ''}
-      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2>${warning}${job}</div>
+      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2>${warning}${knocking}${job}</div>
       <div class="map" style="height:${H}px"><svg class="lines" viewBox="0 0 100 ${H}" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>
       <div class="map-legend">${legend}</div></div></div>`;
     ui.mapFocus = Math.min(ui.mapFocus, Math.max(0, avail.length - 1));
@@ -2074,10 +2084,12 @@
           <button class="pile" id="pile-discard" data-act="pile" data-pile="discard" data-tip="pile:discard"></button></div>
       </div></div></div>`;
     ui.combatRef = c;
-    ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null;
+    ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null; ui.bashAim = false;
+    const keeper = E.keeper(run);
+    const look = E.keeperArt(run.tutorial ? null : run.kit, E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial, E.keeperId(run), true);
     $('#pz').innerHTML = `<div class="unit player" data-uid="p" data-tip="unit:p">
-        <div class="sprite"><img src="img/units/${E.keeperArt(run.tutorial ? null : run.kit, E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial)}.webp" alt="Wren, the Keeper"></div>
-        <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">Wren, the Keeper</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
+        <div class="sprite"><img src="img/units/${look}.webp" alt="${keeper.title}"></div>
+        <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">${keeper.title}</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
     bindHand();
     updateCombat(true);
     const names = c.turn === 1 ? (c.kind === 'boss' ? bossName() : c.kind === 'elite' ? 'Dread: ' + c.enemies[0].name : null) : null;
@@ -2207,7 +2219,7 @@
       }
       updateUnitInfo(el, Math.max(0, e.hp), e.maxHp, e.ward, e, e.uid);
       el.classList.toggle('submerged', !e.dead && !E.reachable(e));
-      const targetable = E.reachable(e) && ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null);
+      const targetable = E.reachable(e) && ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null || ui.bashAim);
       el.classList.toggle('targetable', targetable);
       el.classList.toggle('targeted', targetable && ui.target === e.uid);
     });
@@ -2245,7 +2257,7 @@
     const endBtn = $('#btn-end');
     endBtn.disabled = ui.busy || c.phase !== 'player';
     endBtn.textContent = c.phase === 'player' ? 'End Turn' : 'Enemy Turn';
-    const anyPlayable = c.hand.some((card) => E.playable(run, card).ok);
+    const anyPlayable = E.canBash(run).ok || c.hand.some((card) => E.playable(run, card).ok);
     endBtn.classList.toggle('nudge', c.phase === 'player' && !ui.busy && !anyPlayable);
     endBtn.classList.toggle('primary', c.phase === 'player' && !ui.busy && !anyPlayable);
     updateHud();
@@ -2306,16 +2318,21 @@
     // Bail and Stir: once a turn, 1 Light for one step toward Strand or Crest, without a card
     const per = E.swellActsPerTurn(run);
     const used = E.swellActsUsed(c) >= per;
+    const cost = E.swellActCost(run);
     const actBtn = (kind, arrow) => {
       const a = E.SWELL_ACTS[kind];
       const can = E.canSwellAct(run, kind); // a Bail into the turn's first Strand needs no Light
       const off = !can.ok || ui.busy;
       return `<button class="tb-act ${kind}${used ? ' used' : ''}" data-act="swellact" data-kind="${kind}" data-tip="kw:${a.name}"${off ? ' aria-disabled="true"' : ''}
-        aria-label="${a.name}: spend 1 Light to ${a.ebb ? 'Ebb' : 'Surge'} 1. ${per > 1 ? 'Twice a turn with the Bailer' : 'Once a turn'}, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>1</i>${kind === 'stir' ? arrow : ''}</button>`;
+        aria-label="${a.name}: spend ${cost} Light to ${a.ebb ? 'Ebb' : 'Surge'} 1.${cost ? '' : ' First Ring.'} ${per > 1 ? 'Twice a turn with the Bailer' : 'Once a turn'}, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>${cost}</i>${kind === 'stir' ? arrow : ''}</button>`;
     };
+    const mateo = E.keeperId(run) === 'mateo';
+    const can = mateo && E.canBash(run);
+    tb.classList.toggle('has-bash', mateo);
+    const bash = mateo ? `<button class="tb-act bash" data-act="bash" data-tip="bash" aria-pressed="${ui.bashAim}"${can.ok && !ui.busy ? '' : ' aria-disabled="true"'} aria-label="Shield Bash, spend ${E.SHIELD_BASH.ward} Ward to deal ${E.SHIELD_BASH.dmg} damage. Uses a Bail or Stir action.${can.ok ? '' : ' ' + can.reason + '.'}"><b>Bash</b><i>${E.SHIELD_BASH.ward}</i></button>` : '';
     tb.innerHTML = `${actBtn('bail', '<span class="tb-arrow">&#9662;</span>')}<span class="tb-label low" data-tip="kw:Strand">Strand</span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
-      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>${actBtn('stir', '<span class="tb-arrow">&#9652;</span>')}`;
+      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>${actBtn('stir', '<span class="tb-arrow">&#9652;</span>')}${bash}`;
   }
 
   /* ----- Hand ----- */
@@ -2551,7 +2568,8 @@
     if (Teach && Teach.active) return; // the tutorial bubble says it instead
     const c = run.combat;
     let msg = null;
-    if (ui.tonicSel != null) msg = 'Choose an enemy for the tonic';
+    if (ui.bashAim) msg = isTouchUI() ? 'Tap an enemy to bash' : 'Choose an enemy to bash';
+    else if (ui.tonicSel != null) msg = 'Choose an enemy for the tonic';
     else if (ui.sel != null && !(ui.drag && ui.drag.moved)) {
       const card = c.hand.find((x) => x.uid === ui.sel);
       if (card) {
@@ -2571,7 +2589,7 @@
   function select(uid) {
     const c = run.combat;
     if (ui.busy || !c || c.phase !== 'player') return;
-    ui.tonicSel = null;
+    ui.tonicSel = null; ui.bashAim = false;
     ui.sel = uid;
     const card = c.hand.find((x) => x.uid === uid);
     if (card && E.needsTarget(card)) {
@@ -2583,8 +2601,8 @@
     updateCombat();
   }
   function deselect() {
-    if (ui.sel == null && ui.tonicSel == null) return;
-    ui.sel = null; ui.target = null; ui.tonicSel = null;
+    if (ui.sel == null && ui.tonicSel == null && !ui.bashAim) return;
+    ui.sel = null; ui.target = null; ui.tonicSel = null; ui.bashAim = false;
     if (run && run.combat) updateCombat();
   }
 
@@ -2626,7 +2644,7 @@
     if (!E.playCard(run, uid, targetUid)) return;
     ui.busy = true;
     sfx('card', { type: BL.CARDS[cardId] && BL.CARDS[cardId].type });
-    ui.sel = null; ui.target = null; ui.hover = null;
+    ui.sel = null; ui.target = null; ui.hover = null; ui.bashAim = false;
     renderGlossary();
     renderHandHint();
     // drop the selected card's Crest / Strand preview; the Swell itself updates after the wave plays out
@@ -2657,6 +2675,28 @@
     await processFx();
     ui.busy = false;
     if (Teach.active) Teach.onSwellAct(kind);
+    updateCombat();
+    await afterAction();
+  }
+
+  async function shieldBash(target) {
+    if (!run?.combat || ui.busy || E.keeperId(run) !== 'mateo') return;
+    if (!target && ui.bashAim) { deselect(); return; }
+    const can = E.canBash(run);
+    if (!can.ok) { toast(can.reason); return; }
+    const targets = E.targets(run.combat);
+    if (!target && targets.length > 1) {
+      ui.sel = null; ui.tonicSel = null; ui.bashAim = true;
+      ui.target = ui.kbd ? targets[0].uid : null;
+      updateCombat();
+      return;
+    }
+    if (!E.bash(run, target || targets[0].uid)) return;
+    ui.sel = null; ui.tonicSel = null; ui.target = null; ui.bashAim = false;
+    ui.busy = true;
+    sfx('card', { type: 'attack' });
+    await processFx();
+    ui.busy = false;
     updateCombat();
     await afterAction();
   }
@@ -2699,7 +2739,7 @@
       Teach.onEndTurn();
     }
     ui.busy = true;
-    ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null;
+    ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null; ui.bashAim = false;
     E.endTurnStart(run);
     await processFx();
     updateCombat();
@@ -2735,6 +2775,7 @@
     }
     if (ui.busy) return;
     if (Teach.active) { const why = Teach.allows('tonic'); if (!Teach.nudge(why)) toast(why); return; }
+    ui.bashAim = false;
     if (td.target === 'enemy' && !targetUid) {
       const al = E.targets(c);
       if (!al.length) { toast('Nothing in reach'); return; }
@@ -3365,6 +3406,7 @@
       : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner reward-screen">
       <h1>Victory</h1>
+      ${rw.stranger ? '<p class="lead"><b>The knocking stops.</b> Bring your note about the cask to Hester after breaking Dark Water’s pin.</p>' : ''}
       ${summary}
       <div class="dread-pick"><section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>
       ${ks}</div>
@@ -3475,7 +3517,7 @@
     showCardChoice(ids, "The keepers' cache", (cid) => {
       const o = E.stairDo(run, 'cache', cid ? ids.indexOf(cid) : -1);
       if (!o) return;
-      (s.log = s.log || []).push(o.card ? `From the keepers' cache you take ${E.cardName(o.card)}.` : "You leave the keepers' cards in the wall.");
+      (s.log = s.log || []).push(o.card ? `From the keepers' cache you take ${cardName(o.card)}.` : "You leave the keepers' cards in the wall.");
       sfx(o.card ? 'treasure' : 'select');
       save();
       render();
@@ -3490,10 +3532,10 @@
     else if (id === 'flask') done(E.stairDo(run, 'flask'), (o) => `You fill ${o.tonics.length > 1 ? `${o.tonics.length} flasks` : 'a flask'} with brinelight: ${o.tonics.map((t) => BL.TONICS[t].name).join(', ')}.`, 'tonic');
     else if (id === 'refit') {
       ui.allowCancelPick = true;
-      showDeck('upgrade', (uid, up) => done(E.stairDo(run, 'refit', uid, up), (o) => `You refit by lantern light: ${E.cardName(o.card)} is ready.`, 'buff'));
+      showDeck('upgrade', (uid, up) => done(E.stairDo(run, 'refit', uid, up), (o) => `You refit by lantern light: ${cardName(o.card)} is ready.`, 'buff'));
     } else if (id === 'shed') {
       ui.allowCancelPick = true;
-      showDeck('remove', (uid) => done(E.stairDo(run, 'shed', uid), (o) => `You leave ${E.cardName(o.card)} ${run.pocket ? 'under the bell' : 'on the stair'}.`, 'douse'));
+      showDeck('remove', (uid) => done(E.stairDo(run, 'shed', uid), (o) => `You leave ${cardName(o.card)} ${run.pocket ? 'under the bell' : 'on the stair'}.`, 'douse'));
     } else if (id === 'cache') {
       // opening it uses the pick; the three are saved with it, so a reload shows the same choice again
       if (!E.stairCacheOpen(run) && !E.stairDo(run, 'cache')) return;
@@ -3506,7 +3548,7 @@
 
   /* ----- Give one to the sea (v0.35.0; E.giveToSea, and the stair's sixth): choose the keepsake, then the card to
      refit. Back from either costs nothing. `go(k, uid, up)` does it; uid is null when no card can be upgraded. ----- */
-  const seaLine = (o) => `You give the ${BL.KEEPSAKES[o.keepsake].name} to the sea. ${o.healed ? `It gives back ${o.healed} HP` : 'You had no wound for it to mend'}${o.card ? `, and ${E.cardName(o.card)} is ready` : ''}.`;
+  const seaLine = (o) => `You give the ${BL.KEEPSAKES[o.keepsake].name} to the sea. ${o.healed ? `It gives back ${o.healed} HP` : 'You had no wound for it to mend'}${o.card ? `, and ${cardName(o.card)} is ready` : ''}.`;
   function showSea(go) {
     ui.seaGo = go;
     const ch = E.charge(run), h = E.hold(run), now = E.roil(run);
@@ -3558,7 +3600,7 @@
       ${dbgNote}
       <div class="choice-list">
         ${deeper}
-        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here${run.cheated ? '' : ' and keep what you carry'}${homeKeeps}. Each HP you have left adds 5 to the score.</span>${log ? `<span class="pin-job">Hand Hester the log for ${E.HESTER_PAY} Salvage. If you go deeper, a fall loses it.</span>` : ''}</button>
+        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here${run.cheated ? '' : ' and keep what you carry'}${homeKeeps}. Each HP you have left adds 5 to the score.</span>${log ? `<span class="pin-job">Hand Hester the log for ${E.HESTER_PAY} Salvage. If you go deeper, a fall loses it.</span>` : ''}${run.metKeeper && !run.cheated ? '<span class="pin-job">Take your note about the cask home to Hester.</span>' : ''}</button>
       </div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
@@ -3625,7 +3667,7 @@
     const next = st.next;
     // the result screen then says what happened, under the event's own text
     const done = (outcome) => { st.resolved = true; if (outcome) st.outcome = outcome; save(); render(); };
-    const nameOf = (uid) => { const c = run.deck.find((x) => x.uid === uid); return c ? E.cardName(c) : 'The card'; };
+    const nameOf = (uid) => { const c = run.deck.find((x) => x.uid === uid); return c ? cardName(c) : 'The card'; };
     if (next.pick === 'remove') {
       if (!run.deck.length) return done();
       ui.allowCancelPick = false;
@@ -3636,7 +3678,7 @@
     } else if (next.pick === 'upgrade') {
       if (!E.upgradeable(run).length) return done();
       ui.allowCancelPick = false;
-      showDeck('upgrade', (uid, up) => { const n = nameOf(uid); const c = E.upgradeCard(run, uid, up); if (c) done(`${n} is now ${E.cardName(c)}.`); });
+      showDeck('upgrade', (uid, up) => { const n = nameOf(uid); const c = E.upgradeCard(run, uid, up); if (c) done(`${n} is now ${cardName(c)}.`); });
     } else if (next.cards) {
       showCardChoice(next.cards, 'Choose a card', (id) => {
         E.takeEventCard(run, id);
@@ -3772,7 +3814,10 @@
         if (!run.cheated) E.recordRun(meta, run, win); // the logbook
         fin.currents = !curOpen && E.currentsOpen(meta);
         const wasOpen = lazaretOpen();
-        if (win && !run.cheated) fin.laz = E.carryHome(meta, run);
+        if (win && !run.cheated) {
+          fin.laz = E.carryHome(meta, run);
+          fin.keeper = E.welcomeKeeper(meta, run);
+        }
         else if (!win && wasOpen) { fin.lost = E.lostKeepsakes(run); E.storeKeepsakes(meta, run); } // the fall: what was chosen and is gone is no longer chosen
         if (fin.laz) fin.laz.opened = !wasOpen;
         saveMeta();
@@ -3793,16 +3838,19 @@
       ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b>, 1 for every ${E.SALVAGE_PER_SCORE} score (${fin.score} &divide; ${E.SALVAGE_PER_SCORE}, rounded down). Spend it in the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
       ${fin.hesterPay ? `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.hesterPay} Salvage from Hester</b> for bringing the keeper's log home.</span></div>` : !win && run.hesterJob?.recovered ? '<div class="unlock-box">The keeper\'s log is lost. You can look for it again on your next descent.</div>' : ''}
       ${lazaretHTML(fin)}
+      ${fin.keeper ? `<div class="unlock-box"><b>${BL.KEEPERS[fin.keeper].name} has lit his lamp.</b> Choose your keeper when you pack for the next expedition.</div>` : ''}
       ${fin.story && fin.story.length ? `<button class="unlock-box story-new" data-act="story">New in Story so far: ${fin.story.map((t) => `<b>${t}</b>`).join(', ')}. <u>Read it</u></button>` : ''}
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? (run.heart ? 'The Lantern Heart rises' : run.quieted ? 'The Belfry is quiet' : 'Home with your haul') : 'The tide takes you';
     const text = win
-      ? (run.heart ? E.band(run).win : run.quieted ? E.band(run).quiet : `You climb back up the drained stairs with everything you carry, and Bosun runs ahead to tell Hester. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
+      ? (run.heart ? E.band(run).win : run.quieted ? E.keeper(run).quiet || E.band(run).quiet : `You climb back up the drained stairs with everything you carry, and Bosun runs ahead to tell Hester. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
       : `The cold water closes over your lantern, and you go under. Past the bell's reach the sea gives you back, and Bosun hauls you up out of the surf by your collar. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
     /* v0.44.0: Hester and Bosun on the end screens. Bringing the Heart home shows her on the gallery as the light turns;
        coming home shows her in the doorway with Bosun running ahead, the lamp lit once the Heart is home; a fall shows
        Bosun bringing Wren out of the surf (the first fall's story scene). */
-    const endArt = win ? (run.heart ? 'scenes/sc_heart3' : run.heartHome ? 'scenes/end_home_lit' : 'scenes/end_home') : 'scenes/sc_fall';
+    const mateo = E.keeperId(run) === 'mateo';
+    const endArt = mateo ? (win && run.quieted ? 'scenes/sc_mateo_tea' : 'scenes/op_lighthouse')
+      : win ? (run.heart ? 'scenes/sc_heart3' : run.heartHome ? 'scenes/end_home_lit' : 'scenes/end_home') : 'scenes/sc_fall';
     const endPos = { 'scenes/sc_heart3': '45% center', 'scenes/sc_fall': '58% center' }[endArt] || '55% center'; // where the people are, on a phone
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
     screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/${endArt}.webp);background-position:${endPos}"><div class="scene-inner" style="padding-top:8vh">
@@ -3814,7 +3862,12 @@
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
     // coming home with the dress or with the Heart, and the first fall, have a story scene the first time; then what opened is told
-    if (fin.tell) { fin.tell = false; playScene(win && run.heart ? 'heart' : win && run.quieted ? 'quiet' : fin.laz && (fin.laz.found || []).indexOf('suit') >= 0 ? 'dress' : !win ? 'fell' : '', showNews, win ? 'Home' : 'Go on'); }
+    if (fin.tell) {
+      fin.tell = false;
+      const at = fin.keeper ? 'keeper:' + fin.keeper : win && run.heart ? 'heart' : win && run.quieted ? (mateo ? 'quiet:mateo' : 'quiet')
+        : fin.laz?.found.includes('suit') ? 'dress' : !win && !mateo ? 'fell' : '';
+      playScene(at, showNews, win ? 'Home' : 'Go on');
+    }
   }
 
   /* ================================================================== *
@@ -3920,6 +3973,13 @@
         redrawKit(`[data-act="kitwear"][data-g="${t.dataset.g}"]`);
         break;
       case 'dive': closeOverlay(true); startNewRun(meta.kit); break;
+      case 'keeper':
+        if (ui.kitFrom === 'pack' && E.keeperOpen(meta, t.dataset.k)) {
+          meta.keeper = t.dataset.k;
+          saveMeta(); sfx('select');
+          redrawKit(`[data-act="keeper"][data-k="${meta.keeper}"]`);
+        }
+        break;
       case 'current': {
         const k = t.dataset.k;
         if (E.toggleCurrent(meta, k)) { saveMeta(); sfx('select'); }
@@ -4126,6 +4186,7 @@
       case 'node': chooseNode(+t.dataset.row, +t.dataset.col); break;
       case 'endturn': endTurn(); break;
       case 'swellact': swellAct(t.dataset.kind); break;
+      case 'bash': shieldBash(); break;
       case 'enemy': onEnemyClick(t, e); break;
       case 'field': onFieldClick(e); break;
       case 'dock': if (e.target === t || e.target.id === 'hand') deselect(); break;
@@ -4165,7 +4226,7 @@
         showDeck('upgrade', (uid, up) => {
           const c = E.refitAtCove(run, uid, up);
           if (!c) return;
-          run.restMsg = `You work through the night by lantern light. ${E.cardName(c)} is ready.`;
+          run.restMsg = `You work through the night by lantern light. ${cardName(c)} is ready.`;
           sfx('buff');
           save();
           render();
@@ -4231,9 +4292,10 @@
     const uid = t.dataset.uid;
     const en = E.enemyByUid(c, uid);
     if (!en) return;
-    const aiming = ui.tonicSel != null || (ui.sel != null && selNeedsTarget());
+    const aiming = ui.tonicSel != null || ui.bashAim || (ui.sel != null && selNeedsTarget());
     if (aiming && !E.reachable(en)) { toast(`${en.name} is Submerged: only Crests and waves reach it`); return; }
     if (ui.tonicSel != null) { useTonic(ui.tonicSel, uid); return; }
+    if (ui.bashAim) { shieldBash(uid); return; }
     if (ui.sel != null) {
       const card = c.hand.find((x) => x.uid === ui.sel);
       if (card && E.needsTarget(card)) { ui.target = uid; tryPlaySelected(uid); }
@@ -4251,7 +4313,7 @@
       if (c && e.target.closest('.player') && ui.lastPointer !== 'mouse') showTip($('.unit.player .sprite'), tipContent('unit:p'));
       return;
     }
-    if (ui.tonicSel != null) { ui.tonicSel = null; updateCombat(); return; }
+    if (ui.tonicSel != null || ui.bashAim) { deselect(); return; }
     if (ui.sel != null) {
       const card = c.hand.find((x) => x.uid === ui.sel);
       if (card && !E.needsTarget(card)) tryPlaySelected();
@@ -4322,6 +4384,7 @@
     }
     if (k === 'e' || k === 'E') { e.preventDefault(); endTurn(); return; }
     if (k === 'b' || k === 'B' || k === 's' || k === 'S') { e.preventDefault(); swellAct(k.toLowerCase() === 'b' ? 'bail' : 'stir'); return; }
+    if (k.toLowerCase() === 'h' && E.keeperId(run) === 'mateo') { e.preventDefault(); shieldBash(); return; }
     if ('zxcvZXCV'.indexOf(k) >= 0 && k.length === 1) { // V: the fourth slot, with the Spare Flask
       const slot = { z: 0, x: 1, c: 2, v: 3 }[k.toLowerCase()];
       if (run.tonics[slot]) { e.preventDefault(); showTonic(slot); }
@@ -4330,7 +4393,7 @@
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       e.preventDefault();
       const dir = k === 'ArrowLeft' ? -1 : 1;
-      if ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null) {
+      if ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null || ui.bashAim) {
         const al = E.targets(c);
         if (!al.length) return;
         let i = al.findIndex((x) => x.uid === ui.target);
@@ -4348,6 +4411,7 @@
       if (onButton && k !== 'ArrowUp') return;
       e.preventDefault();
       if (ui.tonicSel != null) { if (ui.target) useTonic(ui.tonicSel, ui.target); return; }
+      if (ui.bashAim) { if (ui.target) shieldBash(ui.target); return; }
       if (ui.sel != null) tryPlaySelected();
       else if (k !== 'ArrowUp' && c.hand.length) select(c.hand[0].uid);
     }

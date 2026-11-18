@@ -38,7 +38,7 @@ test('the opening is five pictures, each with its text and art that exists; the 
 
 test('story scenes: one for each pin above the last, one for the dress, one for going down into the Belfry, one for the Heart, one for the first quiet (the Dark Watch) and one for the first fall, each with pictures that exist and a chapter that replays it', () => {
   const at = Object.values(S.scenes).map((sc) => sc.at);
-  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'in:' + (E.LEVELS.length - 1), 'heart', 'quiet', 'fell']).sort());
+  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'in:' + (E.LEVELS.length - 1), 'heart', 'quiet', 'fell', 'keeper:mateo', 'quiet:mateo']).sort());
   Object.keys(S.scenes).forEach((id) => {
     const sc = S.scenes[id];
     assert.ok(sc.beats.length >= 1 && sc.beats.length <= 4, `${id}: a scene is one to four pictures`);
@@ -51,8 +51,8 @@ test('story scenes: one for each pin above the last, one for the dress, one for 
     assert.equal(S.chapters.filter((c) => c.scene === id).length, 1, `${id}: one chapter replays it`);
   });
   // the scene opens with the chapter that replays it: the same mark
-  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1', 'in:2': 'in:2', heart: 'heart', quiet: 'quiet', fell: 'fell' };
-  S.chapters.filter((c) => c.scene).forEach((c) => assert.equal(c.when, mark[S.scenes[c.scene].at], c.id));
+  const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1' };
+  S.chapters.filter((c) => c.scene).forEach((c) => assert.equal(c.when, mark[S.scenes[c.scene].at] || S.scenes[c.scene].at, c.id));
   // the Belfry is named for the first time when Dark Water's pin breaks, and the dress is found there
   assert.match(S.scenes.buoy.beats[1].text, /The keepers called it the Belfry/);
   assert.equal(S.scenes.buoy.beats[2].found, 'suit');
@@ -88,6 +88,7 @@ test('every mark can be earned in the game as it is', () => {
     else if (kind === 'en') assert.ok(BL.ENEMIES[id] && !BL.ENEMIES[id].tutorial, en.when);
     else if (kind === 'won') assert.ok(+id >= 0 && +id < E.LEVELS.length, en.when);
     else if (kind === 'in') assert.ok(+id >= 1 && +id < E.LEVELS.length, en.when);
+    else if (kind === 'keeper' || kind === 'dread' || (kind === 'quiet' && id)) assert.ok(BL.KEEPERS[id]?.dread, en.when);
     else assert.ok(plain.indexOf(en.when) >= 0, en.when);
   });
   // one chapter for each pin broken on the way down, and the Heart's chapters for the last
@@ -95,9 +96,9 @@ test('every mark can be earned in the game as it is', () => {
   assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
-test('there are ten chapters and 41 notes, with a note for every Fog event, a shop, a Cove, a Wreck, a toll bell, Hester, Bosun and each boss', () => {
-  assert.equal(S.chapters.length, 10);
-  assert.equal(S.notes.length, 41);
+test('there are twelve chapters and 43 notes, with a note for every Fog event, a shop, a Cove, a Wreck, a toll bell, Hester, Bosun and each boss', () => {
+  assert.equal(S.chapters.length, 12);
+  assert.equal(S.notes.length, 43);
   assert.deepEqual(['hester', 'bosun'].map((id) => S.notes.find((n) => n.id === id).when), ['home', 'fell']);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));

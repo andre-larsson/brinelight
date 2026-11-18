@@ -68,7 +68,7 @@ The current game (v0.19.0) tells this story in a shorter shape: an expedition of
 - **Agreed:** Carrying a lantern lit from the Heart is what makes a keeper. Wren is the last keeper when the game starts. Later playable characters become keepers when they light their lamps at the Heart, once it is home (2026-11-16; before, Wren was to light them from her lantern). This is how the README's "last lighthouse keeper" and the loss screen's "keepers" fit together.
 - **Agreed:** Each later keeper has something of their own under the same bell.
 - **Superseded (2026-11-16) by "How a new keeper is lit" below:** new keepers unlock new keepers. Wren, the last flame lit from the Heart, lights the first new keeper's lantern from hers; after that a new keeper's lantern is lit by a keeper who already carries one, so each lantern-lighting is a keeper bringing in the next. Open: who lights whom, what it costs the giver (above: lighting a lantern costs the giver something), whether the Heart lights lanterns too once it is home, and what the player does to unlock a keeper (a rules question for the user). A wick lit from the Heart keeps a little of whoever carried it, so every keeper carries a little of the one who lit them. The plan, with a draft of each keeper's own thing under the bell, is in GAME_NOTES.md, "Keepers light keepers, and a theme song each".
-- **Agreed (2026-11-16, the user's call; not built): how a new keeper is lit.**
+- **Agreed (2026-11-16, the user's call; in the game for Mateo since v0.53.0): how a new keeper is lit.**
   - The first win lights the lighthouse again. The Heart is home in the lamp room, and the great light turns. From then on a new keeper lights their lamp at the Heart, not from another keeper's lantern.
   - Each new keeper brings a lamp of their own trade: Josiah's pilot's lamp, a lamp from Abena's forge, Old Lan's ferry lantern. Lit at the Heart, it carries the fire that is the Light they spend on cards. An unlit lamp gives nothing to fight with below.
   - The Heart takes in a lamp only once the deep has shown that person's fear and a keeper has faced it. That is why not everyone in Saltmere can walk up the tower and become a keeper.
@@ -76,6 +76,10 @@ The current game (v0.19.0) tells this story in a shorter shape: an expedition of
   - **The giver feels the fear (a story beat, no rule).** The keeper who beat the stranger's Dread carries a little of that fear for a while: they dream it before they meet it, or after, until the new keeper goes down. A wick keeps a little of whatever it has touched.
   - Any keeper can meet any other keeper's stranger's Dread. Nobody meets their own fear that way: their own fear is their final.
   - Some keepers come another way: the Lamp Engine is found wound down in the deep and carried home, as the diving dress was; Winkle's bell starts answering the great bell, and Barnaby asks a keeper to take them before they go down alone; Gulp grew toward a keeper's light from what that keeper hoped, not feared, and follows the lantern up the stair. These are drafts.
+- **In the game (v0.53.0): Mateo.** He is an adult cooper in Saltmere. He works in a blue jacket, carries a cooper's mallet, and wears a barrel lid strapped to his forearm as a shield. During the flood he was in a rescue boat with a line tied around his waist. His brother held the other end. When the water took his brother, Mateo cut the line before it pulled him out of the boat. He knows they would both have drowned. He still wakes feeling the rope tighten.
+  - After the Heart comes home, Wren can find the Split Cask in Dark Water. Something knocks three times inside it, the brothers' old signal. Beat it and return safely from Dark Water with the note. Mateo recognizes the signal and lights his workshop lamp at the Heart. He wants to hear the knocks for himself.
+  - Mateo's own fear is the Last Hoop in the Belfry. On his first clear he lifts the lid, waits for the signal, and hears only water. He takes the loose end of the rescue line home and tells Hester about his brother for the harbour record.
+  - Wren shows him how to trim a wick when he lights his lamp, and waits on the step with tea after his first full return. The two scenes show their affection through ordinary company.
 - **Open:** Who the later keepers are. The first three ideas were a salvor after the Gilded Gull's cargo, a fisher whose partner is among the Drowned Deckhands, and the Tide-Witch's apprentice, who wants the bell and not the Heart.
 - **Draft (2026-11-14), not agreed:** The user wants keepers who differ in age, gender, build, size and origin, plus a few odd ones. The drafts below have pictures in `assets-src/drafts/keepers/` (GAME_NOTES.md, "Keeper and costume drafts"). The user will choose later which ones to build. Each still needs "something of their own under the same bell".
   - **People of Saltmere's harbour:**
@@ -89,7 +93,7 @@ The current game (v0.19.0) tells this story in a shorter shape: an expedition of
     - Kamala, a lascar sailor off the merchant ships;
     - Dr. Raman, a retired ship's surgeon;
     - Remedios, who rakes the salt pans that gave Saltmere its name;
-    - Mateo, a cooper's apprentice who fights with a barrel lid.
+    - Mateo, the cooper who fights with a barrel lid, is now in the game.
   - **The odd ones:**
     - the Lamp Engine, a clockwork bell-tender the keepers built long ago, walking again with a lantern in its chest;
     - Gulp, a sea monster who wants to be a keeper;

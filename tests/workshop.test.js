@@ -61,13 +61,14 @@ test("Wren's picture follows her rig, and every place has a slot on the kit scre
   assert.equal(E.keeperArt(E.fitKit(['plated']), true), 'keeper_plated');
   // a fight and the kit screens show the same picture for every rig
   const ui = fs.readFileSync(path.join(__dirname, '..', 'js/ui.js'), 'utf8');
-  assert.match(ui, /E\.keeperArt\(meta\.kit\)/, 'the kit screens call E.keeperArt with the kit alone, as a fight on shore does');
+  assert.match(ui, /E\.keeperArt\(meta\.kit, false, E\.keeperId\(meta\)\)/, 'the kit screens call E.keeperArt for the selected keeper');
   // every rig piece has its own picture on the kit screens
   const rigs = Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === 'coat');
   const looks = rigs.map((id) => E.keeperArt(E.fitKit([id])));
   assert.equal(new Set(looks.concat('keeper')).size, rigs.length + 1, 'two rig pieces share a picture: ' + looks.join());
   // a corrected slot point is for a picture the kit screens show
-  Object.keys(BL.WREN_POINTS).forEach((a) => assert.ok(looks.includes(a), a + ' is never on a kit screen'));
+  const kitLooks = looks.concat(E.keeperArt(E.fitKit(), false, 'mateo'), E.keeperArt(E.fitKit(['suit']), false, 'mateo'));
+  Object.keys(BL.WREN_POINTS).forEach((a) => assert.ok(kitLooks.includes(a), a + ' is never on a kit screen'));
   // only a dress opens the Belfry, so every rig that does has its own picture there
   Object.keys(BL.KIT).filter((id) => id === 'suit' || BL.KIT[id].as === 'suit').forEach((id) => assert.equal(E.keeperArt(E.fitKit([id]), true), BL.KIT[id].look, id + ' has no Belfry picture'));
   Object.keys(BL.KIT).forEach((id) => [BL.KIT[id].look].filter(Boolean).forEach((a) => assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/units', a + '.webp')), `${id}: img/units/${a}.webp is missing`)));

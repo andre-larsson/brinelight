@@ -4,7 +4,7 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
-          [--only darkwater|belfry|progress|finds|workshop|audio|music-unlocks|choices] [--workers 4]
+          [--only darkwater|belfry|progress|finds|workshop|audio|music-unlocks|choices|mateo] [--workers 4]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path)
    Each scenario starts from cleared storage, so they run on several headless Chromes at once (--workers, 4 unless
    given; each has its own throwaway profile, so their saves don't meet). --workers 1 plays them one after another. */
@@ -2144,8 +2144,102 @@ async function choicesScenario(page, base, name, size) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+async function mateoScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'keyboard'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  const url = base + '?seed=23';
+  await page.goto(url);
+  await page.eval(`(() => {
+    localStorage.clear();
+    localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true }));
+    localStorage.setItem('brinelight.tutorial.v1', 'done');
+    localStorage.setItem('brinelight.story.v1', ${QUIET_STORY});
+    localStorage.setItem('brinelight.meta.v1', JSON.stringify({ record: { runs: 1, wins: 1, hearts: 1 }, owned: ['suit'], reached: 2, told: ${JSON.stringify(TOLD)}, hesterDone: true }));
+  })()`);
+  await page.goto(url);
+  await inject(page);
+  const evalRun = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; ${js} })()`);
+  const has = (s) => page.eval(`!!document.querySelector(${JSON.stringify(s)})`);
+  const click = async (s) => { if (!await clickIf(page, s)) throw new Error('Missing control: ' + s); };
+  const shot = async (key) => {
+    if (!process.env.BRINELIGHT_MATEO_SHOTS) return;
+    if (key === 'pack') await page.waitFor(`!document.querySelector('#toast .toast-msg')`, 6000, 'clear Pack preview');
+    await sleep(730);
+    const prefix = path.join(process.env.BRINELIGHT_MATEO_SHOTS, size.touch ? 'phone' : 'desktop');
+    await page.screenshot(`${prefix}-${key}.png`);
+  };
+  const win = () => evalRun(`r.combat.won = true; r.combat.enemies.forEach((e) => { e.hp = 0; e.dead = true; }); return B.onVictory();`);
+  const art = () => page.eval(`document.querySelector('.op-art')?.style.backgroundImage || ''`);
+  await click('[data-act="newrun"]');
+  if (await has('[data-act="keeper"]')) throw new Error('Mateo appeared in Pack before the note came home');
+  await click('[data-act="dive"]');
+  if (!await evalRun('return r.keeper === "wren" && r.stranger === "mateo"')) throw new Error('Wren’s next descent should have Mateo’s Dread');
+  await evalRun('r.cleared = [0]; r.screen = "pin"; B.render();');
+  await click('[data-act="godeeper"]');
+  await dismissHints(page);
+  await click('[data-act="tomap"]');
+  await evalRun(`const n = E.strangerAhead(r);
+    if (!n) throw new Error('Missing Split Cask');
+    const p = r.map.grid[n.row - 1].find((x) => x?.next.includes(n.col) && x.next.length > 1) || r.map.grid[n.row - 1].find((x) => x?.next.includes(n.col));
+    r.pos = { row: p.row, col: p.col }; r.floor = p.row + 1; B.save(); B.render();`);
+  await dismissHints(page);
+  await click('.node.avail[aria-describedby="strange-dread"]');
+  if (!await evalRun('return r.combat.enc.includes("splitcask")')) throw new Error('The marked Dark Water Dread must be the Split Cask');
+  await dismissHints(page);
+  await win();
+  if (!await evalRun('return r.metKeeper === "mateo" && !E.keeperOpen(B.meta, "mateo")')) throw new Error('Winning the Dread should only recover the note');
+  await evalRun('r.cleared = [0, 1]; r.screen = "pin"; r.rewards = null; B.render();');
+  await click('[data-act="gohome"]');
+  if (!await has('.op-text') || !await evalRun('return E.keeperOpen(B.meta, "mateo")')) throw new Error('Safe return should open the scene and welcome Mateo');
+  if (!/tied around his waist/i.test(await page.eval('document.querySelector(".op-text").textContent'))) throw new Error('Mateo’s scene should describe the line tied to him in the boat');
+  await click('[data-act="opnext"]');
+  if (!/sc_mateo_lamp/.test(await art())) throw new Error('Missing lamp-room painting');
+  await shot('lamp');
+  await click('[data-act="opnext"]');
+  await click('[data-act="newrun"]');
+  await click('[data-act="keeper"][data-k="mateo"]');
+  if (!await page.eval(`document.querySelector('.doll-wren img').src.endsWith('/mateo.webp')`)) throw new Error('The Pack should show Mateo upright');
+  await checkPage(page, name + ' pack');
+  await shot('pack');
+  await click('[data-act="dive"]');
+  await evalRun('E.startCombat(r, "easy", ["kelp", "crab"]).player.ward = 10; B.render();');
+  await dismissHints(page);
+  if (!await page.eval(`document.querySelector('.tb-seg').getBoundingClientRect().width >= 15`)) throw new Error('Shield Bash squeezed the Swell steps');
+  if (!await page.eval(`document.querySelector('.unit.player .sprite img').src.endsWith('/mateo_guard.webp')`)) throw new Error('Mateo should fight in his wide guard above water');
+  if (!/Mallet Strike/.test(await page.eval('document.querySelector("#hand").textContent'))) throw new Error('Mateo should have Mallet Strike in his opening hand');
+  await shot('bash');
+  const enemy = await evalRun('return { uid: r.combat.enemies[0].uid, hp: r.combat.enemies[0].hp, light: r.combat.light };');
+  if (size.touch) {
+    await click('[data-act="bash"]');
+    await click(`.enemy[data-uid="${enemy.uid}"] .sprite`);
+  } else {
+    await page.key('h');
+    await page.key('Enter');
+  }
+  await waitIdle(page, 'after Shield Bash');
+  if (!await evalRun(`return r.combat.player.ward === 6 && r.combat.enemies[0].hp === ${enemy.hp - 6} && r.combat.light === ${enemy.light} && !E.canSwellAct(r, 'stir').ok;`)) throw new Error('Shield Bash should spend Ward and the Swell action');
+  await page.goto(url);
+  await inject(page);
+  await click('[data-act="continue"]');
+  if (!await evalRun('return r.keeper === "mateo" && B.meta.keeper === "mateo" && !E.canBash(r).ok;')) throw new Error('Reload should keep the selected keeper and used Bash');
+  await evalRun('r.level = 2; r.kit.coat = "suit"; r.map = E.genMap(r); E.startCombat(r, "boss"); B.render();');
+  await dismissHints(page);
+  if (!await has('.enemy[data-id="lasthoop"]') || !await page.eval(`document.querySelector('.unit.player .sprite img').src.endsWith('/mateo_suit.webp')`)) throw new Error('The Last Hoop fight should show Mateo in his dress');
+  await shot('final');
+  await win();
+  await click('[data-act="opnext"]');
+  if (!/sc_mateo_tea/.test(await art())) throw new Error('Missing the tea scene on Mateo’s first clear');
+  await shot('tea');
+  await click('[data-act="opnext"]');
+  if (!await evalRun('return E.kitUnlocked(B.meta, "sparehoop") && !E.kitUnlocked(B.meta, "watchglass") && B.meta.mateoQuiets === 1;')) throw new Error('Mateo’s clear should open only his own kit and count once');
+  if (page.errors.length) throw new Error(page.errors.join('\n'));
+}
+
 const DESK = { w: 1280, h: 800 }, PHONE = { w: 390, h: 844, mobile: true, touch: true };
 const JOBS = [
+  ['mateo', 'Mateo desktop', (p, b) => mateoScenario(p, b, 'Mateo desktop', DESK)],
+  ['mateo', 'Mateo small phone', (p, b) => mateoScenario(p, b, 'Mateo small phone', { ...PHONE, w: 360, h: 640 })],
   ['choices', 'choices desktop', (p, b) => choicesScenario(p, b, 'choices desktop', DESK)],
   ['choices', 'choices small phone', (p, b) => choicesScenario(p, b, 'choices small phone', { ...PHONE, w: 360, h: 640 })],
   ['sea', 'sea desktop', (p, b) => seaScenario(p, b, 'sea desktop', DESK)],

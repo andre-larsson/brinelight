@@ -1752,6 +1752,14 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 - The balance pass used 1,000 matched seeds per row, the Diving Dress and the default reward and route policies. Shallows pin clears were 26.1% on v0.51.1, 24.6% on v0.52.0 with standard refits and 24.0% with alternates forced (`bot: { refit: 2 }`). Mean turns per won Shallows Skirmish were 5.64, 5.58 and 5.58. The bot took no jobs and followed its usual route policy. With 11–12 Hearts per row, the runs give little evidence about Belfry balance. Playtest which drafts and refits actually change decisions.
 - `node tools/opening.js` matched v0.51.1 exactly across 500 seeds for each policy. The first fight took a median of 20 actions with the careful bot and 11 with the aggressive bot.
 
+### Mateo and a second lamp (v0.53.0, 2026-11-18)
+
+- Bring the Heart home, beat the marked Split Cask in Dark Water on a later expedition, and take its note home safely after the Tolling Buoy. The note opens on the fight win. The welcome and Pack choice open on a counted safe return. Old and still-in-progress runs default to Wren.
+- Mateo fights in the wide Harbour Blue stance and wears a fitted diving dress. The upright portrait is for packing. He uses the shared deck and refits. The starter attack has a mallet picture and name for him. Shield Bash spends 4 Ward for 6 base damage and uses one Bail or Stir action, with at most one Bash a turn. Wren gets First Ring once Mateo joins. It pays for her first Bail or Stir each fight.
+- Mateo's brother was on the far end of a line tied around Mateo's waist in the rescue boat. Cutting it kept Mateo from getting pulled under with him. The Split Cask and the Last Hoop echo the brothers' three-knock signal. A Second Lamp and the tea homecoming are replayable in Story so far. The Last Hoop uses retained Ward to strengthen Give Way. Clearing it opens the Spare Hoop, a shared Ditty Bag piece. Mateo's quiets do not open Wren's achievement or music.
+- The user paused theme generation. The planned working title is "Hoop and Stave". The new slides use the existing homecoming cue.
+- The bot uses Bash to finish an enemy or cash in Ward it can spare. On 500 matched post-Heart seeds per row with the Diving Dress and no keepsakes, Shallows pin clears were 25.4% for Wren without First Ring, 31.6% with it, and 31.2% for Mateo with Bash. Mateo with Bash disabled also cleared 25.4%. The four rows had 6–9 full clears each, too few for an endgame balance call.
+
 ### Debug music unlock includes the dawn song (v0.50.2, 2026-11-17)
 
 - The user still saw "Bring the Heart home" after Hear all music. Harbour Bells at Dawn's extra story gate ignored the debug grant. The Jukebox now honors that grant using its existing debug-only `depth:0` marker, so previously saved music unlocks work too. Ordinary legacy listening history still waits for the Heart; story, Logbook records, reached level and Hold are unchanged.

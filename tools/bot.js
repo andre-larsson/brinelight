@@ -87,7 +87,7 @@ function chooseSwellAct(run, endOfTurn, opts = {}) {
   const c = run.combat;
   if (c.tide === 1 && E.canSwellAct(run, 'bail').ok) return 'bail'; // free into the turn's first Strand, even at 0 Light
   if (!E.canSwellAct(run).ok) return null;
-  const reach = Math.min(E.swellActsPerTurn(run) - E.swellActsUsed(c), Math.floor(c.light / E.SWELL_ACT_COST));
+  const reach = Math.min(E.swellActsPerTurn(run) - E.swellActsUsed(c), c.light + (E.swellActCost(run) === 0 ? 1 : 0));
   if (!endOfTurn) {
     if (opts.lateSwellOnly) return null;
     // before the attacks: Stir into a Crest that kills; with two acts left, Bail twice from 2 when the Strand would
@@ -101,6 +101,21 @@ function chooseSwellAct(run, endOfTurn, opts = {}) {
   if (c.tide <= reach) return 'bail';
   if (c.tide <= 2) return 'bail';
   return null;
+}
+
+function chooseBash(run, late) {
+  const { E } = load();
+  if (!E.canBash(run).ok) return null;
+  const c = run.combat;
+  const targets = E.targets(c).sort((a, b) => a.hp + a.ward - b.hp - b.ward);
+  const kill = targets.find((e) => E.attackValue(c.player, e, E.SHIELD_BASH.dmg) >= e.hp + e.ward);
+  if (kill) return kill.uid;
+  if (!late) return null;
+  const incoming = E.alive(c).reduce((sum, e) => {
+    const intent = E.intentInfo(run, e);
+    return sum + (intent ? intent.dmg * intent.hits : 0);
+  }, c.thrash || 0);
+  return c.player.ward >= incoming + E.SHIELD_BASH.ward ? targets[0].uid : null;
 }
 
 /* The stair down (v0.31.0): two of six, in this order of need. A keepsake to the sea when the aether is Roiled (seaChoice; opts.noSea never); rest first below 60% HP; take out a plain starter
@@ -357,10 +372,14 @@ function step(run, opts = {}) {
     if (tn && E.useTonic(run, tn.slot, tn.target)) return 'tonic';
     const sw = opts.noSwellActs ? null : chooseSwellAct(run, false, opts);
     if (sw && E.swellAct(run, sw)) return sw;
+    const bash = opts.noBash ? null : chooseBash(run, false);
+    if (bash && E.bash(run, bash)) return 'bash';
     const a = chooseCombatAction(run);
     if (a && E.playCard(run, a.uid, a.target)) return 'play';
     const late = opts.noSwellActs ? null : chooseSwellAct(run, true, opts);
     if (late && E.swellAct(run, late)) return late;
+    const lateBash = opts.noBash ? null : chooseBash(run, true);
+    if (lateBash && E.bash(run, lateBash)) return 'bash';
     const save = opts.noTonics ? null : chooseTonic(run, true);
     if (save && E.useTonic(run, save.slot, save.target)) return 'tonic';
     E.endTurn(run);

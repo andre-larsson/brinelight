@@ -326,6 +326,14 @@
 
   BL.CARDS = CARDS;
   BL.STARTER_DECK = ['jab', 'jab', 'jab', 'jab', 'brace', 'brace', 'brace', 'brace', 'swell', 'slack'];
+  BL.KEEPERS = {
+    wren: { name: 'Wren', title: 'Wren, the Keeper', portrait: 'keeper', final: 'darkwatch', skill: 'First Ring',
+      desc: 'Your first Bail or Stir each fight costs 0 Light.' },
+    mateo: { name: 'Mateo', title: 'Mateo, the Cooper', portrait: 'mateo', guard: 'mateo_guard', suit: 'mateo_suit', strikeArt: 'c_mallet',
+      dread: 'splitcask', level: 1, final: 'lasthoop', skill: 'Shield Bash',
+      desc: 'Spend 4 Ward to deal 6 damage. Once a turn, using a Bail or Stir action.',
+      quiet: 'The last hoop drops. You lift the lid and wait. Only water comes out. You take the loose end of the line home to tell Hester who held the other end.' },
+  };
   BL.REWARD_POOL = {
     common: Object.values(CARDS).filter((c) => c.rarity === 'common').map((c) => c.id),
     uncommon: Object.values(CARDS).filter((c) => c.rarity === 'uncommon').map((c) => c.id),
@@ -833,6 +841,30 @@
         return seq[(e.mem.step - 1) % seq.length];
       },
     },
+    // The Split Cask keeps its Ward. Splinter and Give Way draw their strength from the Ward still on the cask.
+    splitcask: {
+      name: 'The Split Cask', hp: [62, 66], art: 'splitcask', scale: 1.13, elite: true,
+      init: (e) => { e.st.shell = 1; },
+      moves: {
+        tighten: { name: 'Brace the Staves', ward: 12 },
+        knock: { name: 'Three Knocks', dmg: 5, hits: 3 },
+        split: { name: 'Splinter', dmg: (e) => 12 + Math.min(12, e.ward), tip: 'Hits harder for each Ward it has, up to 12 extra. A Strand strips its Ward.' },
+      },
+      ai: cycleFrom(['tighten', 'knock', 'split']),
+    },
+    lasthoop: {
+      name: 'The Last Hoop', hp: [175, 175], art: 'lasthoop', scale: 1.37, boss: true,
+      init: (e) => { e.st.shell = 1; },
+      moves: {
+        tighten: { name: 'Draw Tight', ward: 18 },
+        knock: { name: 'Three Knocks', dmg: 7, hits: 3 },
+        pull: { name: 'The Line Goes Taut', dmg: 13, debuff: { breathless: 1 } },
+        split: { name: 'Give Way', dmg: (e) => 18 + Math.min(18, e.ward) + 4 * (e.mem.bursts || 0),
+          tip: 'Hits harder for each Ward it has, up to 18 extra. A Strand strips its Ward. Give Way grows 4 stronger each time.',
+          after: (e) => { e.mem.bursts = (e.mem.bursts || 0) + 1; } },
+      },
+      ai: cycleFrom(['tighten', 'knock', 'pull', 'split']),
+    },
     /* The Drowned Cantor: a final from v0.20.0, a Dread of the dives after the Heart since v0.37.0 (160 HP before).
        `leads`: when it falls, the choir it called stops, as a pin's shoal scatters. */
     cantor: {
@@ -1174,7 +1206,10 @@
   /* Per-picture corrections to the slot points above, where her rig moves a point: { picture: { place: [x, y] } }.
      In a diving dress she stands in another pose, with her harpoon raised, her bell lower and no coat pocket. */
   const IN_DRESS = { harpoon: [0.3, 0.335], ditty: [0.47, 0.455], coat: [0.64, 0.34], bell: [0.59, 0.52], pocket: [0.7, 0.55] };
-  BL.WREN_POINTS = { keeper_suit: IN_DRESS, keeper_plated: IN_DRESS };
+  BL.WREN_POINTS = { keeper_suit: IN_DRESS, keeper_plated: IN_DRESS,
+    mateo: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.53, 0.41], pocket: [0.65, 0.49] },
+    mateo_suit: { harpoon: [0.2, 0.35], ditty: [0.31, 0.51], coat: [0.62, 0.35], bell: [0.41, 0.54], pocket: [0.62, 0.56] },
+  };
   /* A rig's `look` is Wren's picture (img/units) wearing it, in fights and on the kit screens (E.keeperArt). Without
      one she shows as plain Wren (keeper, and keeper_suit underwater). */
   BL.KIT = {
@@ -1206,6 +1241,7 @@
     wick: { place: 'ditty', name: 'Spare Wick', art: 'g_wick', price: 12, desc: 'Resting heals 10 more HP.' },
     bailer: { place: 'ditty', name: 'Bailer', art: 'g_bailer', price: 30, unlock: 'bothends', desc: 'You can Bail or Stir twice a turn.' },
     line: { place: 'ditty', name: 'Safety Line', art: 'g_line', price: 35, unlock: 'closecall', hp: 5, desc: 'The first time you would fall on an expedition, the line holds: you are left with 5 HP.' },
+    sparehoop: { place: 'ditty', name: 'Spare Hoop', art: 'g_hoop', price: 35, unlock: 'lasthoop', firstTideWard: 5, desc: 'Your first Crest or Strand each fight gives you 5 Ward.' },
   };
   /* Story so far (title screen and menu): the opening, chapters, the world glossary and the keeper's notes.
      `when` is a mark the player has to earn (E.storyMarks in js/engine.js); an entry without it is always open.
@@ -1285,6 +1321,18 @@
         { art: 'scenes/op_lighthouse', pos: '78% center', wide: 'center top', zoom: 1.08,
           text: 'You climb home. The great light is turning, as it has every night since the Heart came home. In the keeper\'s room you turn the watch glass over, and for the first time since that night you sleep through to morning, with Bosun across the foot of the bed.' },
       ] },
+      mateo: { at: 'keeper:mateo', beats: [
+        { art: 'scenes/end_home_lit', pos: '55% center', wide: 'center 35%',
+          text: 'When Wren gets home, a cooper is waiting by the door. He knows the three knocks. It was the signal he and his brother used. During the flood, Mateo sat in a rescue boat with the line tied around his waist. The water took his brother, and the line began pulling Mateo over the side.' },
+        { art: 'scenes/sc_mateo_lamp', pos: 'center 31%', wide: 'center 32%', together: true,
+          text: '“I cut the line,” Mateo says. “It would have taken us both.” He brings his workshop lamp up to the Heart. Wren shows him how to trim a wick. “Stay while I try again?” he asks. She pulls up a stool.' },
+      ] },
+      hoop: { at: 'quiet:mateo', beats: [
+        { art: 'bg/bg_belfry_boss', pos: 'center', wide: 'center 40%',
+          text: 'The last hoop gives. Mateo lifts the lid and waits for the three knocks. Only water comes out. He coils the loose end of the rescue line and carries it up the stair. This time he’ll tell Hester who was holding the other end.' },
+        { art: 'scenes/sc_mateo_tea', pos: 'center 22%', wide: 'center 37%', together: true,
+          text: 'Wren is sitting on the lighthouse step with two mugs. Mateo sets his lamp between them and sits down. “You waited up,” he says. “Your tea went cold. Twice.” They sit a while before either of them gets up.' },
+      ] },
     },
     chapters: [
       { id: 'night', title: 'The night the light went out', opening: true },
@@ -1328,10 +1376,19 @@
         'Brinelight grows toward the brightest light near it. For a hundred years that was the Heart. Now it is the lantern of whoever goes down, and a wick keeps a little of whoever carries it. What grows below takes its shape from what the keeper brings down: grief, regret, fear. In the Belfry the Dreads are not what they were.',
         'Saltmere still needs a keeper who goes down. Quiet the Belfry, and bring home what you find. The sea is wide awake now, and it can choose its moods: once the Heart is home you can choose currents on shore, for a harder expedition and a higher score.',
       ] },
-      { id: 'watch', title: 'The Dark Watch', when: 'quiet', lock: 'Quiet the Belfry after the Heart comes home.', scene: 'watch', text: [
+      { id: 'watch', title: 'The Dark Watch', when: 'quiet', lock: 'Quiet the Belfry as Wren after the Heart comes home.', scene: 'watch', text: [
         'On the Belfry\'s last landing, under the broken bell, a keeper was waiting for you. She wore your oilskin and your scarf. She carried your harpoon and your hand-bell, and your lantern, unlit.',
         'The light went out on your watch. You have not said it to anyone, not even Hester. Down there it had grown a body, and the body wanted the lighthouse dark again. When it was hurt it called for help, and what came was a diving dress with nobody in it.',
         'It went out like a pinched wick. You do not know if it was ever really there. The deep will grow it back, the way the bell brought back the water. Next time you will know its face. You climbed home, and the great light was turning.',
+      ] },
+      { id: 'mateo', title: 'A Second Lamp', when: 'keeper:mateo', lock: 'Follow the strange knocking in Dark Water after the Heart comes home.', scene: 'mateo', text: [
+        'Mateo was in the rescue boat, with the line tied around his waist. His brother held the far end. When the flood took his brother, the line pulled Mateo against the gunwale. He cut it before it dragged him over. His brother never came back.',
+        'Mateo knows they both would have drowned. He still wakes feeling the rope tighten. When Wren tells him something knocked three times inside the cask, he knows the signal. He wants to hear it himself.',
+        'Mateo brought his workshop lamp to the Heart. Wren stayed while he learned to trim the wick. Now he can go down as a keeper.',
+      ] },
+      { id: 'hoop', title: 'The Last Hoop', when: 'quiet:mateo', lock: 'Quiet the Belfry as Mateo.', scene: 'hoop', text: [
+        'The cask beneath the silent bell was larger than any he had made. Every time he reached for its lid, he heard the three knocks. When it finally opened, only water came out.',
+        'Mateo told Hester about his brother so she could put his name in the harbour record. By then the kettle had boiled twice. Wren was still sitting on the step.',
       ] },
     ],
     world: [
@@ -1436,6 +1493,10 @@
       // the Shallows' pin
       { id: 'harbour', title: 'The Harbour Hermit', when: 'en:harbour', lock: 'Found on the last landing of the Shallows.', art: 'units/harbour',
         text: 'Saltmere\'s harbour bell hung on the harbour wall and rang the boats home in fog, until a winter storm tore it down. A hermit crab grew into it as it would into any shell, and kept growing. Now it answers the Bellwether, and it holds the water over the Shallows\' stair. It pulls into the bell and stays there, and its Ward stays with it. A Crest rings the bell around its ears, and a Strand leaves it stuck on the rock: either one shakes it out.' },
+      { id: 'splitcask', title: 'The Split Cask', when: 'dread:mateo', lock: 'Beat the Dread that knocks in Dark Water.', art: 'units/splitcask',
+        text: 'The cask has a cooper’s stamp on one stave and a warp in the wood where a rope bit into it. You heard three knocks from inside. Hester knows the stamp. Bring the note home to her.' },
+      { id: 'lasthoop', title: 'The Last Hoop', when: 'en:lasthoop', lock: 'Found in the Belfry.', art: 'units/lasthoop',
+        text: 'Left in the held water, the cask swelled until only the last hoop held it. When it gives way, the water it has held rushes out. Strip its Ward with a Strand to ease the blow.' },
       // the Belfry
       { id: 'thing', title: 'The Thing in the Bell', when: 'en:bellthing', lock: 'Found in the Belfry.', art: 'units/bellthing',
         text: 'It has one eye and many arms, and it grew into the Bellwether\'s bronze the way a hermit crab grows into a shell. Nobody knows what it eats. It drinks from a keeper\'s light through its arms, so cut the arms and it drinks less. When its eye opens it can be hurt, and then it glares.' },
@@ -1484,6 +1545,7 @@
     outofbell: { name: 'Out of Its Bell', desc: "Break the Harbour Hermit's bell, the Shallows' pin.", met: (r) => (r.cleared || []).indexOf(0) >= 0 },
     stillwater: { name: 'Still Water', desc: "Silence the Tolling Buoy, Dark Water's pin.", met: (r) => (r.cleared || []).indexOf(1) >= 0 },
     heartlight: { name: 'The Light Returns', desc: 'Bring the Lantern Heart home.', met: (r) => !!r.heart && r.screen === 'victory' },
-    longwatch: { name: 'The Long Watch', desc: 'Once the Heart is home, beat the Dark Watch and quiet the Belfry.', met: (r) => !!r.quieted && r.screen === 'victory' },
+    longwatch: { name: 'The Long Watch', desc: 'Once the Heart is home, beat the Dark Watch and quiet the Belfry.', met: (r) => r.keeper !== 'mateo' && !!r.quieted && r.screen === 'victory' },
+    lasthoop: { name: 'The Last Hoop', desc: 'Quiet the Belfry as Mateo.', met: (r) => r.keeper === 'mateo' && !r.cheated && !!r.quieted && r.screen === 'victory' },
   };
 })();

@@ -1366,14 +1366,14 @@ test('the score counts Strands and the best Strand chain the same as Crests', ()
 });
 
 /* ---------- Content (README counts) ---------- */
-test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 34 enemies; 20 keepsakes (14 anywhere, 3 from Dark Water, 3 from the Belfry); 7 tonics; 13 events', () => {
+test('content: 38 collectible cards (14/16/8), all upgradable; 4 statuses and 1 curse; 36 enemies; 20 keepsakes (14 anywhere, 3 from Dark Water, 3 from the Belfry); 7 tonics; 13 events', () => {
   const cards = Object.values(BL.CARDS);
   const by = (r) => cards.filter((c) => c.rarity === r).length;
   assert.deepEqual([by('common'), by('uncommon'), by('rare')], [14, 16, 8]);
   cards.filter((c) => ['common', 'uncommon', 'rare', 'starter'].includes(c.rarity)).forEach((c) => assert.ok(Object.keys(c.up).length > 0, c.id + ' has an upgrade'));
   assert.equal(cards.filter((c) => c.type === 'status').length, 4);
   assert.equal(cards.filter((c) => c.type === 'curse').length, 1);
-  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 34);
+  assert.equal(Object.values(BL.ENEMIES).filter((e) => !e.tutorial).length, 36);
   assert.equal(Object.keys(BL.KEEPSAKES).length, 20);
   assert.deepEqual([0, 1, 2].map((d) => Object.keys(BL.KEEPSAKES).filter((k) => E.keepsakeDepth(k) === d).length), [14, 3, 3]);
   Object.values(BL.KEEPSAKES).forEach((k) => assert.ok(k.charge > 0, k.name + ' has a Roil'));

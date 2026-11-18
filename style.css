@@ -609,6 +609,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 /* ---------- Toast ---------- */
 #toast { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 700; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 #toast.low { top: auto; bottom: calc(64px + env(safe-area-inset-bottom)); }
+body:has(#overlay:not([hidden]) .opening) #toast { visibility: hidden; }
 .toast-msg { background: rgba(5, 15, 24, .94); border: 1px solid rgba(255, 184, 77, .5); color: #ffe8c2; padding: 7px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; animation: toast 2.2s ease forwards; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
 @keyframes toast { 0% { opacity: 0; transform: translateY(-8px); } 10% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
 
@@ -1131,7 +1132,7 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .map-header p { font-size: 15px; color: #cfe0dc; }
 .node .node-label { position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 800; color: #ffe2a8; white-space: nowrap; text-shadow: 0 1px 3px #000, 0 0 6px #000; pointer-events: none; }
 .node-note { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); padding: 1px 6px; border-radius: 8px; color: #182831; background: #f5d39a; font: 700 12px/1.25 var(--sans); pointer-events: none; }
-.map-header :is(#hester-job, #bosun-clue) { max-width: 36em; margin: 4px auto 0; }
+.map-header :is(#hester-job, #bosun-clue, #strange-dread) { max-width: 36em; margin: 4px auto 0; }
 .map-header b, .choice:not(.card) .pin-job { color: #ffe2a8; }
 .node.avail:hover .node-label, .node.avail:focus-visible .node-label { transform: translateX(-50%) scale(.87); }
 .map-legend { font-size: 13px; gap: 6px 16px; color: #b9d0d2; }
@@ -1213,6 +1214,19 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 /* a picture of the room above the Workshop's and the Lazaret's lists */
 .ws-art { width: 100%; height: clamp(96px, 24vw, 190px); margin: 0 0 12px; border-radius: 10px; background: #0a1d2b center/cover no-repeat; border: 1px solid rgba(201, 162, 74, .35); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
 .ws-lead { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: #d6e3e0; }
+.keeper-pick { margin-bottom: 14px; }
+.keeper-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.keeper-option { display: flex; align-items: center; gap: 10px; min-height: 72px; padding: 8px 10px; text-align: left; color: var(--text); background: #0a2030; border: 1px solid rgba(148, 193, 204, .4); border-radius: 10px; cursor: pointer; }
+.keeper-option img { width: 43px; height: 60px; object-fit: contain; flex-shrink: 0; }
+.keeper-option span, .keeper-option small { display: block; }
+.keeper-option b { color: #f3dfb2; font: 700 17px var(--serif); }
+.keeper-option small { color: #d6e3e0; font-size: 13px; line-height: 1.35; }
+.keeper-option[aria-pressed="true"] { border-color: #efc67b; box-shadow: inset 0 0 0 1px rgba(239, 198, 123, .28); background: #143141; }
+@media (max-width: 480px) {
+  .keeper-options { grid-template-columns: 1fr; }
+  .keeper-option { min-height: 60px; padding: 6px 8px; }
+  .keeper-option img { width: 32px; height: 45px; }
+}
 .ws-bal { display: flex; justify-content: center; margin: 0 0 14px; }
 /* kit is square with a brass corner, so it never reads as a (round) keepsake */
 .medal.gear { border-radius: 10px; border-color: #b8893a; background: radial-gradient(circle at 50% 40%, #3a3322, #14120c 75%); }
@@ -1369,6 +1383,11 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .op-dots { display: flex; gap: 7px; margin-right: auto; }
 .op-dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(212, 236, 232, .3); }
 .op-dots i.on { background: #f2c46b; }
+@media (max-aspect-ratio: 4/5) {
+  .opening-together { justify-content: center; overflow-y: auto; }
+  .opening-together .op-art { position: relative; inset: auto; flex: none; width: 100%; aspect-ratio: 3/2; background-position: center; animation: none; }
+  .opening-together .op-inner { padding: 16px 16px 12px; background: none; }
+}
 @keyframes opIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes opDrift { from { transform: scale(calc(var(--z, 1) * 1.08)); } to { transform: scale(var(--z, 1)); } }
 @media (max-height: 500px) {
@@ -1469,6 +1488,9 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .tb-act .tb-arrow { font-size: 12px; opacity: .85; }
 .tb-act.bail { border-color: rgba(120, 220, 180, .7); }
 .tb-act.stir { border-color: rgba(190, 255, 225, .75); }
+.tb-act.bash { min-height: 34px; border-color: #8acaff; }
+.tb-act.bash i { color: #071b30; background: #9dd6ff; }
+.tb-act.bash[aria-pressed="true"] { background: #23506a; outline: 2px solid #a8ddff; outline-offset: 1px; }
 .tb-act:hover:not([aria-disabled]), .tb-act:focus-visible { background: rgba(24, 74, 100, .98); box-shadow: 0 0 10px rgba(95, 211, 238, .5); }
 .tb-act[aria-disabled] { opacity: .45; cursor: default; }
 .tb-act.used { opacity: .3; }
@@ -1476,6 +1498,14 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
   .tidebar { gap: 5px; padding-left: 6px; padding-right: 6px; }
   .tb-act { padding: 0 5px; gap: 2px; }
   .tb-act .tb-arrow { display: none; }
+  .tidebar.has-bash { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 1px 5px; }
+  .has-bash .tb-label { grid-column: 2; grid-row: 1; justify-self: start; }
+  .has-bash .tb-label.crest { justify-self: end; }
+  .has-bash .tb-track { grid-column: 2; grid-row: 2; }
+  .has-bash .tb-act { grid-row: 1 / span 2; }
+  .has-bash .tb-act.bail { grid-column: 1; }
+  .has-bash .tb-act.stir { grid-column: 3; }
+  .has-bash .tb-act.bash { grid-column: 4; }
 }
 
 /* the menu's Sound effects and Music rows: a switch with a volume slider beside it, or under it when narrow */

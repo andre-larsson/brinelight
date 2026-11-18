@@ -172,6 +172,7 @@ test('at half its health the Dark Watch calls Nobody Comes Home: one Hollow Dive
 test('every creature with a keeper\'s note can still be met: in a band\'s tables, or called by one that is', () => {
   const met = new Set();
   Object.values(BL.BANDS).forEach((b) => Object.values(b.enc).flat(2).forEach((id) => met.add(id)));
+  Object.values(BL.KEEPERS).forEach((k) => [k.dread, k.final].filter(Boolean).forEach((id) => met.add(id)));
   let grew = true;
   while (grew) {
     grew = false;
