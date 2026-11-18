@@ -18,6 +18,7 @@ const path = require('path');
 const { load } = require('./bot');
 
 const { BL, E } = load();
+require('../js/version.js');
 
 /* ---------------- arguments and saving ---------------- */
 const argv = process.argv.slice(2);
@@ -154,17 +155,21 @@ function showMap(run) {
   const av = E.availableNodes(run);
   const rows = E.mapRows(run);
   const lv = run.level || 0;
+  const clue = E.bosunClue(run);
+  const job = E.hesterJobAhead(run);
   say('', `MAP: ${E.LEVELS[lv].name}. ${bossName(run)} waits on landing ${rows + 1}, the last.${!E.lastLevel(run) && E.deepestReachable(run) === lv ? ' Below it the stair runs under the sea, and you have nothing to dive in: this pin is as deep as this expedition can go.' : ''}`);
+  if (job) say(`Hester asks you to recover the log at the marked Fog and bring it home for ${E.HESTER_PAY} Salvage.`);
+  if (run.hesterJob?.recovered) say(`You carry the keeper's log. Hester pays ${E.HESTER_PAY} Salvage on a safe return.`);
   for (let r = rows - 1; r >= 0; r--) {
     const nodes = run.map.grid[r].filter(Boolean).map((n) => {
       const here = run.pos && run.pos.row === r && run.pos.col === n.col ? ' (YOU WERE HERE)' : '';
       const nx = r < rows - 1 && n.next.length ? ` -> ${n.next.map((c2) => 'col ' + c2).join(', ')}` : '';
-      return `col ${n.col}: ${NODE_NAME[n.type]}${here}${nx}`;
+      return `col ${n.col}: ${NODE_NAME[n.type]}${job && E.hesterStop(run, n) ? " (Hester's log)" : ''}${here}${nx}`;
     });
     say(`  Landing ${r + 1}: ${nodes.join(' | ')}`);
   }
   say('', av.length ? 'You can go to:' : 'Nowhere left to go.');
-  av.forEach((n, i) => say(`  ${i + 1}. ${n.type === 'boss' ? `${bossName(run)} (the pin, a boss)` : NODE_NAME[n.type]}, landing ${n.row + 1}${n.type === 'boss' ? '' : ', col ' + n.col}`));
+  av.forEach((n, i) => say(`  ${i + 1}. ${n.type === 'boss' ? `${bossName(run)} (the pin, a boss)` : NODE_NAME[n.type]}, landing ${n.row + 1}${n.type === 'boss' ? '' : ', col ' + n.col}${clue?.node === n ? `. Bosun warns of the ${clue.name}.` : ''}${job && E.hesterStop(run, n) ? " (Hester's log)" : ''}`));
 }
 
 function showReward(run) {
@@ -188,7 +193,7 @@ function showReward(run) {
     if (rw.cardTaken) say('Card: done.');
     else {
       say(one ? 'Or a card (card <number>):' : `Cards (take 1, or skip for +${E.DECLINE_SCORE.card} score):`);
-      rw.cards.forEach((it, i) => say(`  ${i + 1}. ${cardLine(run, { uid: 0, id: it.id, up: it.up })} (${BL.CARDS[it.id].rarity}${it.up ? ', already upgraded' : ''})`));
+      rw.cards.forEach((it, i) => say(`  ${i + 1}. ${rw.opening ? `${E.OPENING_REWARD_LABELS[i]} · ` : ''}${cardLine(run, { uid: 0, id: it.id, up: it.up })} (${BL.CARDS[it.id].rarity}${it.up ? ', already upgraded' : ''})`));
     }
   }
 }
@@ -226,8 +231,8 @@ function showRest(run) {
   } else {
     say('', `SHELTERED COVE. ${run.restDone ? 'Done here.' : 'Choose one:'}`);
     if (!run.restDone) {
-      say(`  rest: heal ${E.restAmount ? E.restAmount(run) : '30% of max'} HP.`, '  refit <deck number>: upgrade a card.',
-        `  sea <keepsake number> <deck number>: give a keepsake to the sea: heal ${E.SEA_HEAL} HP for each fight you won while carrying it (never more than a Cove's rest, ${E.restAmount(run)}), and upgrade a card. ${seaList(run)}`);
+      say(`  rest: heal ${E.restAmount(run)} HP.`, '  refit <deck number> [1|2]: choose a refit (see deck).',
+        `  sea <keepsake number> <deck number> [1|2]: give a keepsake to the sea: heal ${E.SEA_HEAL} HP for each fight you won while carrying it (never more than a Cove's rest, ${E.restAmount(run)}), and upgrade a card. ${seaList(run)}`);
     }
   }
   if (run.restMsg) say(strip(run.restMsg));
@@ -267,7 +272,7 @@ function showEvent(run) {
   say('', `FOG: ${ev.title}`);
   if (st.stage === 'choose') {
     say(strip(typeof ev.text === 'function' ? ev.text(run) : ev.text));
-    ev.options.forEach((o, i) => {
+    E.eventOptions(run).forEach((o, i) => {
       const ok = E.optionAvailable(run, o);
       say(`  ${i + 1}. ${o.label}: ${strip(o.desc)}${o.decline ? ` +${E.DECLINE_SCORE.event} score.` : ''}${ok === true ? '' : ` -- not available: ${strip(ok)}`}`);
     });
@@ -276,7 +281,7 @@ function showEvent(run) {
     if (st.outcome) say(strip(st.outcome));
     const n = st.next;
     if (n && !st.resolved) {
-      if (n.pick) say(`Now choose a card from your deck to ${n.pick} (pick <deck number>; see 'deck').`);
+      if (n.pick) say(`Now choose a card from your deck to ${n.pick} (pick <deck number>${n.pick === 'upgrade' ? ' [1|2]' : ''}; see 'deck').`);
       else if (n.cards) { say(`Choose a card, or skip for +${E.DECLINE_SCORE.eventCard} score:`); n.cards.forEach((id, i) => say(`  ${i + 1}. ${cardLine(run, pseudo(id))}`)); }
       else if (n.fight) say('A fight is coming (continue).');
     } else say('(continue)');
@@ -290,6 +295,7 @@ function showPin(run) {
   if (E.canGoDeeper(run)) say(`  deeper: go down the stair into ${next.the}, with your deck, keepsakes and HP. The stair down comes first: two of six. Each landing there scores ${next.landing}.${E.deepestReachable(run) === lv + 1 && lv + 1 < E.LEVELS.length - 1 ? ' Below it the stair runs under the sea, and you have nothing to dive in: its pin is as deep as this expedition can go.' : ''}`);
   else if (next) say(`  (You cannot go deeper: ${next.the} needs the ${BL.KIT[next.needs].name}.)`);
   say('  home: end the expedition here and keep what you carry. Each HP you have left adds 5 to the score.');
+  if (run.hesterJob?.recovered) say(`  Bring Hester the keeper's log for ${E.HESTER_PAY} Salvage. If you go deeper, a fall loses it.`);
 }
 
 function showEnd(run) {
@@ -300,6 +306,8 @@ function showEnd(run) {
     sp.parts.forEach((p) => say(`  ${p.label}${p.n != null && p.each ? ` (${p.n} x ${p.each})` : p.n ? ` (${p.n})` : ''}: +${p.pts}`));
     say(`  Score: ${E.score(run, won)}`);
   } catch (e) { /* the score needs nothing more */ }
+  if (run.hesterPay) say(`  +${run.hesterPay} Salvage from Hester for bringing the keeper's log home.`);
+  if (!won && run.hesterJob?.recovered) say("  The keeper's log is lost. You can look for it again on your next descent.");
   say(`Fights ${run.stats.fights}, cards played ${run.stats.cardsPlayed}, damage dealt ${run.stats.dmgDealt}, taken ${run.stats.dmgTaken}, Crests ${run.stats.crests}, Strands ${run.stats.lows}.`);
 }
 
@@ -324,16 +332,17 @@ const HELP = {
   map: ['go <number>: go to one of the stops listed', 'tonic <slot>: drink a tonic (only some work outside a fight)', 'drop <keepsake number>: drop a keepsake for good'],
   reward: ['card <number> / skip: take a card, or skip it', 'keepsake <number> / leave: take a keepsake, or leave them', 'tonic: take the tonic', 'continue: back to the map (what you have not taken is left)'],
   shop: ['buy card|keepsake|tonic <number>', 'remove <deck number>: pay to remove a card', 'continue: leave the shop'],
-  rest: ['rest', 'refit <deck number>', 'sea <keepsake number> <deck number>', 'continue: go on'],
-  stair: ['rest', 'refit <deck number>', 'shed <deck number>', 'flask', 'cache (look), then cache <number> (take)', 'sea <keepsake number> <deck number>', 'fog (under a lesser bell only)', 'continue: go on, picks unused or not'],
+  rest: ['rest', 'refit <deck number> [1|2]', 'sea <keepsake number> <deck number> [1|2]', 'continue: go on'],
+  stair: ['rest', 'refit <deck number> [1|2]', 'shed <deck number>', 'flask', 'cache (look), then cache <number> (take)', 'sea <keepsake number> <deck number> [1|2]', 'fog (under a lesser bell only)', 'continue: go on, picks unused or not'],
   treasure: ['open', 'keepsake <number> / leave', 'continue'],
   toll: ['pay hp|pearls|barnacle: pay the toll one way', 'continue (once paid)'],
-  event: ['choose <number>', 'pick <deck number> (when it asks for a card from your deck)', 'card <number> / skip (when it offers cards)', 'continue'],
+  event: ['choose <number>', 'pick <deck number> [1|2] (use a refit number when upgrading)', 'card <number> / skip (when it offers cards)', 'continue'],
   pin: ['deeper (when you can)', 'home'],
 };
 function help(run) {
   const s = run ? (E.stairOpen(run) ? 'stair' : run.screen) : null;
   say('Commands here:', ...(HELP[s] || ['new [seed]: start an expedition']).map((l) => '  ' + l), 'Anywhere:', ...HELP.any.map((l) => '  ' + l));
+  if (['rest', 'stair', 'event'].includes(s)) say("Refit 1 is the standard +. See 'deck' for both refits.");
 }
 
 /* ---------------- lookups ---------------- */
@@ -341,7 +350,11 @@ function info(run, q) {
   const k = q.toLowerCase().trim().replace(/^the /, '');
   const hit = (o) => o && (o.name || '').toLowerCase().replace(/^the /, '') === k;
   const found = [];
-  Object.keys(BL.CARDS).forEach((id) => { if (hit(BL.CARDS[id]) || id === k) { found.push('Card: ' + cardLine(run, pseudo(id)) + ` (${BL.CARDS[id].rarity})`); if (E.canUpgrade(pseudo(id))) found.push('  Upgraded: ' + cardLine(run, { uid: 0, id, up: 1 })); } });
+  Object.keys(BL.CARDS).forEach((id) => {
+    const base = pseudo(id);
+    if (!hit(BL.CARDS[id]) && id !== k && !hit(BL.CARDS[id].refit)) return;
+    found.push('Card: ' + cardLine(run, base) + ` (${BL.CARDS[id].rarity})`, ...refitLines(run, base));
+  });
   Object.keys(BL.KEEPSAKES).forEach((id) => { if (hit(BL.KEEPSAKES[id])) found.push(`Keepsake: ${BL.KEEPSAKES[id].name} (Roil ${BL.KEEPSAKES[id].charge}): ${strip(BL.KEEPSAKES[id].desc)}`); });
   Object.keys(BL.TONICS).forEach((id) => { if (hit(BL.TONICS[id])) found.push(`Tonic: ${BL.TONICS[id].name}: ${strip(BL.TONICS[id].desc)}`); });
   Object.keys(BL.STATUSES).forEach((id) => { const st = BL.STATUSES[id]; if (hit(st) && st.kind !== 'rite') found.push(`Status: ${st.name}: ${strip(st.desc('N'))}`); });
@@ -355,9 +368,11 @@ function info(run, q) {
   say(found.length ? found.join('\n') : `Nothing called "${q}".`);
 }
 
+const refitLines = (run, card) => E.refits(card).map((up) => `      Refit ${up}: ${cardLine(run, { ...card, up })}`);
 function deckList(run) {
   say(`Your deck (${run.deck.length}):`);
-  run.deck.forEach((card, i) => say(`  ${i + 1}. ${cardLine(run, card)}${card.up ? '' : E.canUpgrade(card) ? '' : ' (cannot upgrade)'}`));
+  const choosing = run.screen === 'rest' || (run.screen === 'event' && run.event.next?.pick === 'upgrade');
+  run.deck.forEach((card, i) => say(`  ${i + 1}. ${cardLine(run, card)}${card.up || E.canUpgrade(card) ? '' : ' (cannot upgrade)'}`, ...(choosing ? refitLines(run, card) : [])));
 }
 function piles(run) {
   const c = run.combat;
@@ -370,7 +385,8 @@ function piles(run) {
 async function rules(tab) {
   const file = path.join(dir, 'rules.json');
   let tabs;
-  try { tabs = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) {
+  try { tabs = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { /* first run */ }
+  if (tabs?.version !== BL.VERSION) {
     const { serve } = require('./serve');
     const { launch } = require('./cdp');
     const port = 8890 + Math.floor(Math.random() * 90);
@@ -380,7 +396,7 @@ async function rules(tab) {
       await page.viewport(1280, 800);
       await page.goto(`http://127.0.0.1:${port}/`);
       await page.waitFor(`!!window.Brinelight`);
-      tabs = {};
+      tabs = { version: BL.VERSION };
       for (const id of ['basics', 'tide', 'keywords', 'map', 'controls']) {
         tabs[id] = await page.eval(`(async () => {
           const B = window.Brinelight;
@@ -398,7 +414,7 @@ async function rules(tab) {
     }
     fs.writeFileSync(file, JSON.stringify(tabs, null, 1));
   }
-  const ids = tab ? [tab] : Object.keys(tabs);
+  const ids = tab ? [tab] : Object.keys(tabs).filter((id) => id !== 'version');
   ids.forEach((id) => say(`== ${id} ==`, tabs[id] || '(no such tab)', ''));
 }
 
@@ -406,6 +422,7 @@ const seaWords = (o) => `The ${BL.KEEPSAKES[o.keepsake].name} goes into the sea.
 
 /* ---------------- commands ---------------- */
 const num = (s) => { const n = parseInt(s, 10); return Number.isFinite(n) ? n - 1 : -1; };
+const refitNo = (s) => s == null ? 1 : Number(s);
 function deckUid(run, s) { const c = run.deck[num(s)]; return c ? c.uid : null; }
 function enemyUid(run, s) {
   const tg = E.targets(run.combat);
@@ -486,18 +503,34 @@ function act(run, cmd, args) {
     if (cmd === 'continue' || cmd === 'leave') { E.backToMap(run); return true; }
   }
   if (s === 'rest') {
+    if (cmd === 'sea') {
+      const k = run.keepsakes[num(args[0])];
+      const uid = deckUid(run, args[1]), up = refitNo(args[2]);
+      if (!k) return no('which keepsake?');
+      if (args[1] != null && !uid) return no('which card?');
+      const o = E.stairOpen(run) ? E.stairDo(run, 'sea', { k, uid }, up) : E.giveToSea(run, k, uid, up);
+      if (!o) return no('the sea cannot take that now, or the refit is unavailable.');
+      run.restMsg = seaWords(o);
+      say(run.restMsg);
+      return true;
+    }
     if (E.stairOpen(run)) {
       if (['rest', 'flask', 'fog'].includes(cmd)) { const o = E.stairDo(run, cmd); if (!o) return no(E.stairWhy(run, cmd) || 'not here.'); if (o.healed) say(`Healed ${o.healed}.`); if (run.screen === 'event') say('You swim out into the dark.'); return true; }
-      if (cmd === 'refit' || cmd === 'shed') { const uid = deckUid(run, args[0]); if (!uid) return no('say which card (see deck).'); const o = E.stairDo(run, cmd, uid); if (!o) return no(E.stairWhy(run, cmd) || 'not that card.'); say(cmd === 'refit' ? `${E.cardName(o.card)} is upgraded.` : `${E.cardName(o.card)} is gone from your deck.`); return true; }
+      if (cmd === 'refit' || cmd === 'shed') { const uid = deckUid(run, args[0]); if (!uid) return no('say which card (see deck).'); const o = E.stairDo(run, cmd, uid, refitNo(args[1])); if (!o) return no(E.stairWhy(run, cmd) || 'that card or refit is unavailable.'); say(cmd === 'refit' ? `${E.cardName(o.card)} is upgraded.` : `${E.cardName(o.card)} is gone from your deck.`); return true; }
       if (cmd === 'cache') {
         if (args[0] == null) { E.stairCache(run); return true; }
         const o = E.stairDo(run, 'cache', num(args[0])); if (!o) return no(E.stairWhy(run, 'cache') || 'no such card.'); say(`${E.cardName(o.card)} joins your deck.`); return true;
       }
-      if (cmd === 'sea') { const k = run.keepsakes[num(args[0])]; const uid = deckUid(run, args[1]); if (!k) return no('which keepsake?'); const o = E.stairDo(run, 'sea', { k, uid }); if (!o) return no(E.stairWhy(run, 'sea') || 'not that card.'); say(seaWords(o)); return true; }
     } else {
       if (cmd === 'rest') { if (run.restDone) return no('done already.'); const h = E.rest(run); run.restMsg = `You sleep beside the lantern and wake mended. Healed ${h} HP.`; return true; }
-      if (cmd === 'refit') { if (run.restDone) return no('done already.'); const uid = deckUid(run, args[0]); const card = run.deck.find((x) => x.uid === uid); if (!card || !E.canUpgrade(card) || card.up) return no('cannot upgrade that card.'); E.upgradeCard(run, uid); run.restDone = true; run.restMsg = `${E.cardName(card)} is ready.`; say(run.restMsg); return true; }
-      if (cmd === 'sea') { const k = run.keepsakes[num(args[0])]; const uid = deckUid(run, args[1]); if (!k) return no('which keepsake?'); const o = E.giveToSea(run, k, uid); if (!o) return no('not now (or that card cannot be upgraded).'); run.restMsg = seaWords(o); return true; }
+      if (cmd === 'refit') {
+        if (run.restDone) return no('done already.');
+        const card = E.refitAtCove(run, deckUid(run, args[0]), refitNo(args[1]));
+        if (!card) return no('that card or refit is unavailable.');
+        run.restMsg = `${E.cardName(card)} is ready.`;
+        say(run.restMsg);
+        return true;
+      }
     }
     if (cmd === 'continue' || cmd === 'leave') { run.restMsg = null; E.backToMap(run); return true; }
   }
@@ -514,7 +547,7 @@ function act(run, cmd, args) {
   }
   if (s === 'event') {
     const st = run.event;
-    if (cmd === 'choose' && st.stage === 'choose') { if (!E.eventDef(run).options[num(args[0])] || !E.chooseEventOption(run, num(args[0]))) return no('that option is not available.'); return true; }
+    if (cmd === 'choose' && st.stage === 'choose') { if (!E.chooseEventOption(run, num(args[0]))) return no('that option is not available.'); return true; }
     const n = st.next;
     if (cmd === 'pick' && n && n.pick && !st.resolved) {
       const uid = deckUid(run, args[0]);
@@ -522,7 +555,7 @@ function act(run, cmd, args) {
       if (!card) return no('say which card (see deck).');
       if (n.pick === 'remove') { E.removeCard(run, uid); st.outcome = `${E.cardName(card)} is gone from your deck.`; }
       if (n.pick === 'duplicate') { E.duplicateCard(run, uid); st.outcome = `A second ${E.cardName(card)} joins your deck.`; }
-      if (n.pick === 'upgrade') { if (!E.canUpgrade(card) || card.up) return no('cannot upgrade that one.'); E.upgradeCard(run, uid); st.outcome = `${E.cardName(card)} is upgraded.`; }
+      if (n.pick === 'upgrade') { if (!E.upgradeCard(run, uid, refitNo(args[1]))) return no('that refit is unavailable.'); st.outcome = `${E.cardName(card)} is upgraded.`; }
       st.resolved = true; return true;
     }
     if ((cmd === 'card' || cmd === 'skip') && n && n.cards && !st.resolved) {
@@ -553,7 +586,10 @@ async function main() {
   let run = readRun();
   const raw = argv.join(' ') || 'look';
   if (cmd === 'new') {
+    const hesterDone = !!(run?.hesterDone || run?.hesterPay);
     run = E.newRun(args[0] != null ? +args[0] >>> 0 : undefined, 0);
+    if (hesterDone) run.hesterDone = true;
+    E.offerHesterJob({ hesterDone }, run);
     say(...BL.STORY.opening.map((o) => strip(o.text)), '', `(Seed ${run.seed}. Type 'help' for commands, 'rules' for How to Play.)`, '');
     show(run);
   } else if (cmd === 'rules') {
@@ -580,7 +616,10 @@ async function main() {
       if (steps[i][0] === 'end') listedHand = listedTargets = null; // a new turn deals a new hand: number from the hand as it is now
       if (run.screen !== screen && i < steps.length - 1) { say(`(The screen changed to ${run.screen}; ${steps.length - 1 - i} more not done.)`); break; }
     }
-    if (ok) { say(''); show(run); }
+    if (ok) {
+      if (run.screen === 'victory') run.hesterPay = E.deliverHesterJob({ ...E.newMeta(), hesterDone: run.hesterDone }, run);
+      say(''); show(run);
+    }
   }
   if (run) writeRun(run);
   const text = out.join('\n');

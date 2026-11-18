@@ -630,6 +630,19 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; }
 .compare { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; padding: 8px 0; }
 .compare .arrow { font-size: 30px; color: var(--amber); }
 .compare .card.static { --cw: min(170px, 38vw); }
+.refit-current { margin: 0 0 12px; text-align: center; color: #d6e3e0; line-height: 1.5; }
+.refit-options { flex-wrap: nowrap; align-items: flex-start; gap: 10px; }
+.refit-options .card.static { --cw: min(170px, calc((100vw - 68px) / 2)); }
+.refit-option { display: flex; flex-direction: column; gap: 10px; }
+.refit-option .btn { min-height: 44px; padding-inline: 8px; }
+@media (max-height: 500px) {
+  .refit-current { margin-bottom: 4px; font-size: 14px; }
+  .refit-options { padding: 4px 0; }
+  .refit-option { gap: 6px; }
+  .refit-options .card.static { --card-text: 14px; --card-text-long: 13px; height: 100px; touch-action: pan-y; }
+  .refit-options .c-art, .refit-options .c-type { display: none; }
+  .refit-options .c-text { top: 2.65em; }
+}
 .help h3 { color: #f3dfb2; font-size: 17px; margin: 16px 0 6px; }
 .help h3:first-child { margin-top: 0; }
 .help p, .help li { line-height: 1.5; color: #d6e3e0; font-size: 14.5px; margin: 4px 0; }
@@ -1117,6 +1130,9 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .map-header h2 { font-size: 22px; }
 .map-header p { font-size: 15px; color: #cfe0dc; }
 .node .node-label { position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 800; color: #ffe2a8; white-space: nowrap; text-shadow: 0 1px 3px #000, 0 0 6px #000; pointer-events: none; }
+.node-note { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); padding: 1px 6px; border-radius: 8px; color: #182831; background: #f5d39a; font: 700 12px/1.25 var(--sans); pointer-events: none; }
+.map-header :is(#hester-job, #bosun-clue) { max-width: 36em; margin: 4px auto 0; }
+.map-header b, .choice:not(.card) .pin-job { color: #ffe2a8; }
 .node.avail:hover .node-label, .node.avail:focus-visible .node-label { transform: translateX(-50%) scale(.87); }
 .map-legend { font-size: 13px; gap: 6px 16px; color: #b9d0d2; }
 .map-legend svg { width: 18px; height: 18px; }
@@ -1134,6 +1150,7 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .reward-main h2 { font-size: 22px; color: #ffe6b0; }
 .reward-main .card-row .card.static { --cw: clamp(128px, 28vw, 172px); }
 .reward-main .card-row { padding-top: 8px; } /* room for a focused or chosen card's lift below the heading */
+.opening-option { display: grid; justify-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #d6e3e0; }
 .reward-item b { font-size: 16px; }
 .reward-item small { font-size: 14px; }
 .btn.wide { min-width: min(280px, 100%); }
@@ -1152,6 +1169,17 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
   .card-row .card.static { --cw: clamp(104px, 29vw, 150px); }
   .reward-main .card-row .card.static { --cw: clamp(136px, 41vw, 160px); }
   .reward-main .card-row { gap: 10px; }
+  .opening-draft .card-row { display: grid; width: 100%; }
+  .opening-draft .opening-option { justify-items: stretch; text-align: left; gap: 3px; }
+  .opening-draft .opening-option > span { padding-left: 4px; }
+  .reward-main.opening-draft .card-row .card.static { --cw: 100%; --coin: 13px; height: auto; font-size: 14px; touch-action: pan-y; }
+  .opening-draft .card .frame { position: relative; display: grid; grid-template-columns: 58px minmax(0, 1fr); grid-template-rows: auto auto; gap: 2px 10px; padding: 6px; }
+  .opening-draft .c-art { position: static; grid-row: span 2; align-self: stretch; min-height: 48px; height: auto; }
+  .opening-draft .c-name, .opening-draft .c-text { position: static; justify-content: flex-start; height: auto; text-align: left; }
+  .opening-draft .c-name { align-self: end; font-size: 15px; white-space: normal; }
+  .opening-draft .c-text, .opening-draft .c-text.long { align-self: start; font-size: 14px; }
+  .opening-draft .c-type { display: none; }
+  .opening-draft .card.static:is(.picked, :hover, :focus-visible) { transform: none; }
 }
 
 /* rest, events, end */

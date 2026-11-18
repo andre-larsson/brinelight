@@ -39,6 +39,7 @@
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
+    raw.hesterDone = m.hesterDone === true;
     if (m.record && typeof m.record === 'object') raw.record = m.record;
     meta = E.migrateMeta(raw); // gear from before v0.10.0 becomes kit
   } catch (e) { /* ignore */ }
@@ -798,7 +799,7 @@
   }
   document.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') lightLegend(e.target.closest('.card.static[data-kws]')); });
   document.addEventListener('focusin', (e) => { if (e.target.closest) lightLegend(e.target.closest('.card.static[data-kws]')); });
-  const pseudo = (id, up) => ({ uid: -1, id, up: up ? 1 : 0 });
+  const pseudo = (id, up = 0) => ({ uid: -1, id, up });
   function sortDeck(cards) {
     const order = { attack: 0, skill: 1, rite: 2, status: 3, curse: 4 };
     return cards.slice().sort((a, b) => {
@@ -872,14 +873,27 @@
     let cards = sortDeck(run.deck);
     if (mode === 'upgrade') cards = cards.filter(E.canUpgrade);
     if (mode === 'duplicate') cards = cards.filter((c) => BL.CARDS[c.id].type !== 'curse');
-    const titles = { view: `Your Deck (${run.deck.length})`, upgrade: 'Choose a card to upgrade', remove: 'Choose a card to remove', shopremove: 'Choose a card to remove', duplicate: 'Choose a card to duplicate' };
+    const titles = { view: `Your Deck (${run.deck.length})`, upgrade: 'Choose a card to refit', remove: 'Choose a card to remove', shopremove: 'Choose a card to remove', duplicate: 'Choose a card to duplicate' };
     const gcw = gridCardW();
     const grid = `<div class="card-grid" style="--gcw:${gcw}px">` + cards.map((c, i) =>
       staticCard(c, mode === 'view' ? '' : 'choice', `tabindex="0" role="button" data-act="deckpick" data-uid="${c.uid}" data-i="${i}"`)).join('') + '</div>';
-    const hint = mode === 'view' ? '<p class="muted" style="margin:0 0 12px">Starting deck plus everything you have collected. Click a card to see its upgrade.</p>' : '';
+    const hint = mode === 'view' ? '<p class="muted" style="margin:0 0 12px">Choose a card to see its refits.</p>' : '';
     const locked = mode === 'remove' || mode === 'upgrade' || mode === 'duplicate';
     openOverlay(modal(titles[mode], hint + (cards.length ? grid : '<p>No cards.</p>'), locked ? null : '<button class="btn" data-act="close">Close</button>'), { locked: locked && !!onPick && !ui.allowCancelPick });
     ui.deckMode = { mode, onPick };
+  }
+
+  function showRefits(card, choosing) {
+    const options = E.refits(card).map((up) => {
+      const refit = { ...card, up };
+      const button = choosing ? `<button class="btn primary" data-act="deckconfirm" data-up="${up}" aria-label="Refit to ${E.cardName(refit)}">Refit</button>` : '';
+      return `<div class="refit-option">${staticCard(refit)}${button}</div>`;
+    }).join('');
+    const current = E.def(card).text(E.vals(card), plainFmt);
+    const body = `<p class="refit-current"><b>Current card</b> &middot; ${E.cost(card)} Light<br>${markKeywords(current)}</p><div class="compare refit-options">${options}</div>`;
+    openOverlay(modal(`${choosing ? 'Refit ' : ''}${E.cardName(card)}`, body, '<button class="btn" data-act="deckback">Back</button>', 'narrow'),
+      { locked: ui.overlayLocked, focus: choosing ? '[data-act="deckconfirm"]' : '[data-act="deckback"]' });
+    ui.pending = card.uid;
   }
 
   function deckPick(uid) {
@@ -888,17 +902,12 @@
     const card = run.deck.find((c) => c.uid === uid);
     if (!card) return;
     if (m.mode === 'view') {
-      const body = E.canUpgrade(card)
-        ? `<div class="compare">${staticCard(card)}<div class="arrow">&#10140;</div>${staticCard(Object.assign({}, card, { up: 1 }))}</div>`
-        : `<div class="compare">${staticCard(card)}</div>`;
-      const locked = ui.overlayLocked;
-      openOverlay(modal(E.cardName(card), body, '<button class="btn" data-act="deckback">Back</button>', 'narrow'), { locked });
+      if (E.canUpgrade(card)) showRefits(card, false);
+      else openOverlay(modal(E.cardName(card), `<div class="compare">${staticCard(card)}</div>`, '<button class="btn" data-act="deckback">Back</button>', 'narrow'), { locked: ui.overlayLocked });
       return;
     }
     if (m.mode === 'upgrade') {
-      const body = `<div class="compare">${staticCard(card)}<div class="arrow">&#10140;</div>${staticCard(Object.assign({}, card, { up: 1 }))}</div>`;
-      openOverlay(modal('Upgrade this card?', body, '<button class="btn" data-act="deckback">Back</button><button class="btn primary" data-act="deckconfirm" autofocus>Upgrade</button>', 'narrow'), { locked: ui.overlayLocked });
-      ui.pending = uid;
+      if (E.canUpgrade(card)) showRefits(card, true);
       return;
     }
     if (m.mode === 'duplicate') {
@@ -972,6 +981,10 @@
         [`${NODE_ICON.toll} Toll`, `Right after the Wreck, on every route: a bell across the way. Pay to pass: ${tollText(0)}${levelKnown(1) ? ` (in Dark Water ${tollText(1, true)})` : ''}.`],
       ]))}<ul class="help-list">
         <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
+        <li>The first Skirmish in the Shallows offers a <b>Surge</b> card, an <b>Ebb</b> card and a <b>wildcard</b> from the usual reward pool.</li>
+        <li>At a fork, Bosun may tell you which creatures wait at one reachable Dread.</li>
+        <li>When you refit a card by choice, compare its two versions and pick one. Each copy can be refitted once. Cards you find already upgraded and random upgrades use the standard + version.</li>
+        <li>Hester asks you to recover a log from a marked Fog stop in the Shallows. Bring it home after breaking a pin for a one-time payment of ${E.HESTER_PAY} Salvage.</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
         <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''}${workshopOpen() ? ` In the ${MT.shop}, a steadier lantern adds ${E.HOLD_UP.step} to your Hold for each of its ${E.HOLD_UP.prices.length} steps.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you ${SEA_PAYS} and upgrade a card.</li>
         <li><b>Deeper finds are stronger.</b> Some keepsakes are found only ${levelKnown(2) ? 'in Dark Water and deeper, or only in the Belfry' : levelKnown(1) ? 'in Dark Water and deeper' : 'below the Shallows'}, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
@@ -1935,6 +1948,7 @@
     clearSave();
     const m = /[?&]seed=(\d+)/.exec(location.search);
     run = E.newRun(m ? +m[1] : undefined, 0, kit, lazaretOpen() ? bringable() : [], E.currentsOpen(meta) ? meta.currents : [], E.heartIsHome(meta), meta.reached, E.holdUpOf(meta));
+    E.offerHesterJob(meta, run);
     // the keepsakes she brings leave the Lazaret now (v0.36.0): they come back with her, or not at all
     if (E.takeBrought(meta, run).length) saveMeta();
     save();
@@ -1963,6 +1977,8 @@
     const H = bossY + 140; // the boss's name under it, then room above the legend
     const yOf = (n) => (n.type === 'boss' ? bossY : pad + n.row * rowH + rowH / 2 + n.jy * rowH * 0.4);
     const avail = E.availableNodes(run);
+    const clue = E.bosunClue(run);
+    const jobAhead = E.hesterJobAhead(run);
     const availKey = new Set(avail.map((n) => n.row + ',' + n.col));
     const visited = new Set(run.visited || []);
     const cur = run.pos ? run.pos.row + ',' + run.pos.col : null;
@@ -1981,17 +1997,21 @@
     const nodeHTML = (n) => {
       const key = n.row + ',' + n.col;
       const isAvail = availKey.has(key);
+      const bosun = clue && clue.node === n;
+      const hester = jobAhead && E.hesterStop(run, n);
+      const note = bosun ? 'Bosun' : hester ? 'Log' : '';
       const edge = n.x < 0.16 ? ' lbl-l' : n.x > 0.84 ? ' lbl-r' : '';
       const cls = `node t-${n.type}${visited.has(key) ? ' visited' : ''}${key === cur ? ' current' : ''}${isAvail ? ' avail' + edge : ''}`;
       const style = `left:${n.x * 100}%;top:${yOf(n)}px`;
       const label = n.type === 'boss' ? bossName() : NODE_NAME[n.type];
+      const marker = note ? `<span class="node-note" aria-hidden="true">${note}</span>` : '';
       if (isAvail) {
         const idx = avail.findIndex((a) => a.row === n.row && a.col === n.col);
         // the boss already has its name under it, so it gets no second label
         const lbl = n.type === 'boss' ? '' : `<span class="node-label">${SHORT_NAME[n.type]}</span>`;
-        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}">${NODE_ICON[n.type]}${lbl}</button>`;
+        return `<button class="${cls}" style="${style}" data-act="node" data-row="${n.row}" data-col="${n.col}" data-idx="${idx}" data-tip="node:${n.type}" aria-label="Go to ${label}"${note ? ` aria-describedby="${bosun ? 'bosun-clue' : 'hester-job'}"` : ''}>${NODE_ICON[n.type]}${lbl}${marker}</button>`;
       }
-      return `<div class="${cls}" style="${style}" data-tip="node:${n.type}" aria-hidden="true">${NODE_ICON[n.type]}</div>`;
+      return `<div class="${cls}" style="${style}" data-tip="node:${n.type}" aria-hidden="true">${NODE_ICON[n.type]}${marker}</div>`;
     };
     all.forEach((n) => { nodes += nodeHTML(n); });
     nodes += nodeHTML(m.boss);
@@ -2000,9 +2020,12 @@
     // each level's own picture behind the map, dimmed (v0.40.0, the user: "cool background art? If it does not become too
     // busy"). The line under the level's name is gone too (the user: "not needed"; it explained the Belfry's dive)
     const mapBg = E.band(run).mapBg;
+    const job = jobAhead ? `<p id="hester-job"><b>Hester's job</b> &middot; Recover the log at the marked Fog and bring it home for ${E.HESTER_PAY} Salvage.</p>`
+      : !run.level && run.hesterJob?.recovered ? `<p id="hester-job"><b>Log recovered</b> &middot; Bring it home for ${E.HESTER_PAY} Salvage.</p>` : '';
+    const warning = clue ? `<p id="bosun-clue"><b>Bosun</b> warns of the ${clue.name} at the marked Dread.</p>` : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
       ${mapBg ? `<div class="map-bg" style="background-image:url(img/bg/${mapBg}.webp)" aria-hidden="true"></div>` : ''}
-      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2></div>
+      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2>${warning}${job}</div>
       <div class="map" style="height:${H}px"><svg class="lines" viewBox="0 0 100 ${H}" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>
       <div class="map-legend">${legend}</div></div></div>`;
     ui.mapFocus = Math.min(ui.mapFocus, Math.max(0, avail.length - 1));
@@ -3298,9 +3321,13 @@
     const ksPanel = ksChoices ? `<div class="panel"><h3>${rw.keepsake ? 'Keepsake taken' : rw.keepsakeLeft ? 'Keepsakes left behind' : 'Take a keepsake?'}</h3><div class="shop-row">${ksTiles(ksChoices, rw.keepsake, 'rw-ks', rw.keepsakeLeft, ksPick)}</div>${ksOpen ? `<div class="ks-actions">${leaveKsBtn()}${pickOkBtn('rw-ks', ksPick, 'small')}</div>` : ''}</div>` : '';
     // a card is marked first (a tap, or 1 to 3) and taken with the button below it (v0.36.0)
     const cPick = rw.cardTaken ? null : pickOf('rw-card', rw);
-    const cards = rw.cards.map((rc, i) => staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : String(i) === cPick ? ' picked' : ''}`,
-      (rw.cardTaken ? '' : `tabindex="0" role="button" aria-pressed="${String(i) === cPick}" data-act="pick" data-scope="rw-card" data-key="${i}"`) + ` style="animation-delay:${i * 0.12}s"`)).join('');
-    const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : 'Choose a card for your deck';
+    const cards = rw.cards.map((rc, i) => {
+      const role = rw.opening ? E.OPENING_REWARD_LABELS[i] : '';
+      const attrs = rw.cardTaken ? '' : `tabindex="0" role="button" aria-pressed="${String(i) === cPick}" data-act="pick" data-scope="rw-card" data-key="${i}"${role ? ` aria-describedby="draft-role-${i}"` : ''}`;
+      const card = staticCard(pseudo(rc.id, rc.up), `choice reveal${BL.CARDS[rc.id].rarity === 'rare' ? ' shine' : ''}${rc.up ? ' shine-up' : ''}${rw.cardTaken ? (rw.cardTakenIdx === i ? ' chosen' : ' dim') : String(i) === cPick ? ' picked' : ''}`, attrs + ` style="animation-delay:${i * 0.12}s"`);
+      return role ? `<div class="opening-option"><span id="draft-role-${i}">${role}</span>${card}</div>` : card;
+    }).join('');
+    const cardTitle = rw.cardTaken ? (rw.cardTakenIdx >= 0 ? 'Added to your deck' : 'Card skipped') : rw.opening ? 'How will you fight?' : 'Choose a card for your deck';
     const legend = rw.cardTaken ? '' : pickLegend('rw-card', cPick == null ? null : pseudo(rw.cards[+cPick].id, rw.cards[+cPick].up));
     // a keepsake on offer is taken or left before moving on; taking the card goes on to the map when nothing else waits
     const buttons = !rw.cardTaken
@@ -3312,7 +3339,7 @@
       <h1>Victory</h1>
       ${summary}
       ${ksPanel}
-      ${rw.cards.length ? `<section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>` : ''}
+      ${rw.cards.length ? `<section class="reward-main${rw.opening ? ' opening-draft' : ''}"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>` : ''}
       ${extras.length ? `<div class="reward-list">${extras.join('')}</div>` : ''}
       <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
@@ -3463,7 +3490,7 @@
     else if (id === 'flask') done(E.stairDo(run, 'flask'), (o) => `You fill ${o.tonics.length > 1 ? `${o.tonics.length} flasks` : 'a flask'} with brinelight: ${o.tonics.map((t) => BL.TONICS[t].name).join(', ')}.`, 'tonic');
     else if (id === 'refit') {
       ui.allowCancelPick = true;
-      showDeck('upgrade', (uid) => done(E.stairDo(run, 'refit', uid), (o) => `You refit by lantern light: ${E.cardName(o.card)} is ready.`, 'buff'));
+      showDeck('upgrade', (uid, up) => done(E.stairDo(run, 'refit', uid, up), (o) => `You refit by lantern light: ${E.cardName(o.card)} is ready.`, 'buff'));
     } else if (id === 'shed') {
       ui.allowCancelPick = true;
       showDeck('remove', (uid) => done(E.stairDo(run, 'shed', uid), (o) => `You leave ${E.cardName(o.card)} ${run.pocket ? 'under the bell' : 'on the stair'}.`, 'douse'));
@@ -3473,12 +3500,12 @@
       save();
       render(); // the stair shows the pick used, and then the choice opens over it
     } else if (id === 'sea') {
-      showSea((k, uid) => done(E.stairDo(run, 'sea', { k, uid }), seaLine, 'douse'));
+      showSea((k, uid, up) => done(E.stairDo(run, 'sea', { k, uid }, up), seaLine, 'douse'));
     }
   }
 
   /* ----- Give one to the sea (v0.35.0; E.giveToSea, and the stair's sixth): choose the keepsake, then the card to
-     refit. Back from either costs nothing. `go(k, uid)` does it; uid is null when no card can be upgraded. ----- */
+     refit. Back from either costs nothing. `go(k, uid, up)` does it; uid is null when no card can be upgraded. ----- */
   const seaLine = (o) => `You give the ${BL.KEEPSAKES[o.keepsake].name} to the sea. ${o.healed ? `It gives back ${o.healed} HP` : 'You had no wound for it to mend'}${o.card ? `, and ${E.cardName(o.card)} is ready` : ''}.`;
   function showSea(go) {
     ui.seaGo = go;
@@ -3502,7 +3529,7 @@
     if (!go || !E.has(run, k)) return;
     if (!E.upgradeable(run).length) { go(k, null); return; }
     ui.allowCancelPick = true;
-    showDeck('upgrade', (uid) => go(k, uid));
+    showDeck('upgrade', (uid, up) => go(k, uid, up));
   }
 
   /* ----- After a pin: go home or go deeper ----- */
@@ -3520,6 +3547,7 @@
     const dbgNote = run.cheated && (newKit || found.length)
       ? `<p class="lead dbg-note"><b>Debug run:</b> a run that used a cheat carries nothing home, ${newKit ? 'not even the dress' : 'not even its keepsakes'}. To keep what you find, turn on <b>Cheats count as real runs</b> in the debug panel before you set out, or use <b>Own all kit</b>.</p>` : '';
     const homeKeeps = run.cheated ? '' : extra.length ? `, ${extra.join(', ')} too` : '';
+    const log = run.hesterJob?.recovered && !meta.hesterDone && !run.cheated;
     const deeper = can
       ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. The stair down comes first: two of six, stronger than a Cove. Each landing there scores ${next.landing}.${E.deepestReachable(run) === lv + 1 && lv + 1 < E.LEVELS.length - 1 ? ` Below it the stair runs under the sea, and you have nothing to dive in: its pin is as deep as this expedition can go.` : ''}${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
       : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
@@ -3530,7 +3558,7 @@
       ${dbgNote}
       <div class="choice-list">
         ${deeper}
-        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here${run.cheated ? '' : ' and keep what you carry'}${homeKeeps}. Each HP you have left adds 5 to the score.</span></button>
+        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here${run.cheated ? '' : ' and keep what you carry'}${homeKeeps}. Each HP you have left adds 5 to the score.</span>${log ? `<span class="pin-job">Hand Hester the log for ${E.HESTER_PAY} Salvage. If you go deeper, a fall loses it.</span>` : ''}</button>
       </div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
@@ -3572,10 +3600,12 @@
     const st = run.event;
     let body;
     if (st.stage === 'choose') {
-      body = `<div class="choice-list">${ev.options.map((o, i) => {
+      const choices = E.eventOptions(run).map((o, i) => {
         const ok = E.optionAvailable(run, o);
         return `<button class="choice" data-act="evopt" data-i="${i}" ${ok === true ? '' : 'disabled'}><b>${o.label}</b><span>${o.desc}${o.decline ? ` +${E.DECLINE_SCORE.event} score.` : ''}</span>${ok === true ? '' : `<span class="reason">${ok}</span>`}</button>`;
-      }).join('')}</div>`;
+      });
+      if (E.hesterStop(run, run.pos)) choices.unshift(choices.pop());
+      body = `<div class="choice-list">${choices.join('')}</div>`;
     } else {
       body = `<p class="lead">${st.text}</p>${st.outcome ? `<p class="lead outcome">${st.outcome}</p>` : ''}<button class="btn primary" data-act="evcontinue" autofocus>Continue</button>`;
     }
@@ -3606,7 +3636,7 @@
     } else if (next.pick === 'upgrade') {
       if (!E.upgradeable(run).length) return done();
       ui.allowCancelPick = false;
-      showDeck('upgrade', (uid) => { const n = nameOf(uid); E.upgradeCard(run, uid); done(`${n} is now ${nameOf(uid)}.`); });
+      showDeck('upgrade', (uid, up) => { const n = nameOf(uid); const c = E.upgradeCard(run, uid, up); if (c) done(`${n} is now ${E.cardName(c)}.`); });
     } else if (next.cards) {
       showCardChoice(next.cards, 'Choose a card', (id) => {
         E.takeEventCard(run, id);
@@ -3736,6 +3766,7 @@
       if (!run.tutorial) {
         checkUnlocks(true);
         fin.salvage = E.earnSalvage(meta, score);
+        fin.hesterPay = E.deliverHesterJob(meta, run);
         // the Lazaret: coming home keeps what Wren carries, a fall loses it (a debug-cheated run keeps nothing)
         const curOpen = E.currentsOpen(meta);
         if (!run.cheated) E.recordRun(meta, run, win); // the logbook
@@ -3760,6 +3791,7 @@
       ${scorePartsHTML(fin)}</div>
       ${fin.currents ? `<div class="unlock-box"><b>Currents are open.</b> Choose them on shore before your next expedition: each makes it harder and raises your score.</div>` : ''}
       ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b>, 1 for every ${E.SALVAGE_PER_SCORE} score (${fin.score} &divide; ${E.SALVAGE_PER_SCORE}, rounded down). Spend it in the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
+      ${fin.hesterPay ? `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.hesterPay} Salvage from Hester</b> for bringing the keeper's log home.</span></div>` : !win && run.hesterJob?.recovered ? '<div class="unlock-box">The keeper\'s log is lost. You can look for it again on your next descent.</div>' : ''}
       ${lazaretHTML(fin)}
       ${fin.story && fin.story.length ? `<button class="unlock-box story-new" data-act="story">New in Story so far: ${fin.story.map((t) => `<b>${t}</b>`).join(', ')}. <u>Read it</u></button>` : ''}
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
@@ -4021,7 +4053,7 @@
           closeOverlay(true); save(); renderKeepScroll();
         } else {
           closeOverlay(true);
-          if (m.onPick) m.onPick(uid);
+          if (m.onPick) m.onPick(uid, +t.dataset.up || undefined);
         }
         ui.deckMode = null;
         ui.pending = null;
@@ -4118,7 +4150,7 @@
         break;
       }
       case 'stairdo': stairDo(t.dataset.id); break;
-      case 'sea': showSea((k, uid) => { const o = E.giveToSea(run, k, uid); if (!o) return; run.restMsg = seaLine(o); sfx('douse'); save(); render(); }); break;
+      case 'sea': showSea((k, uid, up) => { const o = E.giveToSea(run, k, uid, up); if (!o) return; run.restMsg = seaLine(o); sfx('douse'); save(); render(); }); break;
       case 'seapick': seaPicked(t.dataset.k); break;
       case 'rest': {
         const h = E.rest(run);
@@ -4130,11 +4162,10 @@
       }
       case 'refit':
         ui.allowCancelPick = true;
-        showDeck('upgrade', (uid) => {
-          E.upgradeCard(run, uid);
-          const c = run.deck.find((x) => x.uid === uid);
-          run.restDone = true;
-          run.restMsg = `You work through the night by lantern light. ${c ? E.cardName(c) : 'Your card'} is ready.`;
+        showDeck('upgrade', (uid, up) => {
+          const c = E.refitAtCove(run, uid, up);
+          if (!c) return;
+          run.restMsg = `You work through the night by lantern light. ${E.cardName(c)} is ready.`;
           sfx('buff');
           save();
           render();

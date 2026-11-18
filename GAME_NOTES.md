@@ -1743,6 +1743,15 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Opening draft, Bosun's warning, refits and Hester's job (v0.52.0, 2026-11-18)
+
+- The first Shallows Skirmish offers a common Surge card, a common Ebb card and a distinct wildcard from the normal reward roll. The directional cards use a separate seeded roll. Later rewards keep their usual pools.
+- At a fork in the Shallows or Dark Water, Bosun names one reachable Dread. The same encounter appears if Wren takes that route. If the fork has two Dreads, the other draws a different encounter. The advice helps route and tonic choices. Its effect on human difficulty is open.
+- Every refittable card has two versions. The current + refit remains the standard for automatic upgrades, rewards and older saves. The alternate changes how the card plays. Rising Swell+ focuses on damage. High Swell Crests from the starting Swell. See both at the Cove, stair, lesser bell, sea offering or Fog refit.
+- Hester marks an existing Shallows Fog, preferably at an early fork. Taking the log uses that stop's choice. The one-time payment is 8 Salvage, the Coin Purse's price. The log can go deeper and pays on any safe return. A fall costs the log and allows another attempt next run. The offer starts with new descents.
+- The balance pass used 1,000 matched seeds per row, the Diving Dress and the default reward and route policies. Shallows pin clears were 26.1% on v0.51.1, 24.6% on v0.52.0 with standard refits and 24.0% with alternates forced (`bot: { refit: 2 }`). Mean turns per won Shallows Skirmish were 5.64, 5.58 and 5.58. The bot took no jobs and followed its usual route policy. With 11–12 Hearts per row, the runs give little evidence about Belfry balance. Playtest which drafts and refits actually change decisions.
+- `node tools/opening.js` matched v0.51.1 exactly across 500 seeds for each policy. The first fight took a median of 20 actions with the careful bot and 11 with the aggressive bot.
+
 ### Debug music unlock includes the dawn song (v0.50.2, 2026-11-17)
 
 - The user still saw "Bring the Heart home" after Hear all music. Harbour Bells at Dawn's extra story gate ignored the debug grant. The Jukebox now honors that grant using its existing debug-only `depth:0` marker, so previously saved music unlocks work too. Ordinary legacy listening history still waits for the Heart; story, Logbook records, reached level and Hold are unchanged.

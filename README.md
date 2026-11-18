@@ -102,7 +102,7 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 
 **Between fights.** Choose your route on the map:
 - **Skirmishes:** normal fights. Their creatures have 15% more HP than the same creatures elsewhere.
-- **Dreads:** elites. They're harder. They pay Pearls, and you choose one: a card from three (more often uncommon or rare than after a skirmish), or the Dread's one keepsake. Taking one leaves the other. A Dread offers no tonic.
+- **Dreads:** elites. They're harder. They pay Pearls, and you choose one: a card from three (more often uncommon or rare than after a skirmish), or the Dread's one keepsake. Taking one leaves the other. A Dread offers no tonic. At a fork in the Shallows or Dark Water with a Dread ahead, Bosun identifies the creatures on one reachable Dread path.
 - **Fog:** events with choices, some of them gambles.
 - **Barnaby's shop:** buy cards (60 to 72 Pearls for a common, 95 to 112 for an uncommon, 180 to 205 for a rare, and one of the five at half price), keepsakes (150 to 185) and tonics (50 to 65), or pay to remove a card (75, then 25 more each time, up to 100). You set out with no Pearls, so the Shallows have no shop on their first two landings.
 - **Sheltered Coves:** rest to heal 30% of your HP, or upgrade a card, or **give a keepsake to the sea**. The keepsake is gone for the rest of the expedition, with its Roil. The sea pays for it: you heal 3 HP for each fight you won while carrying it, never more than a Cove's rest (21 HP at 70 Max HP), and you upgrade a card. A keepsake taken and thrown straight back pays only the upgrade. One you brought from the Lazaret is gone from there too.
@@ -130,6 +130,10 @@ The menu (top right) has the tutorial, How to Play, Story so far, sound effects 
 
 After each Skirmish you get Pearls, maybe a tonic, and a choice of 3 cards. Reward cards are sometimes already upgraded (7.5% of them, and 1% more each landing), and rares shimmer. You can skip the cards; a lean deck draws its best cards more often.
 
+The first Skirmish in the Shallows offers a common **Surge** card, a common **Ebb** card and a **wildcard** from the usual reward pool. You can take one or skip.
+
+When you refit a card by choice, you see two versions side by side. Each copy can be refitted once. For example, **Rising Swell+** deals 8 damage and Surges 2. **High Swell** deals 5 damage and Surges 3, enough to Crest from the starting Swell. Random upgrades and cards found already upgraded use the standard + version.
+
 Turning down a reward adds to your final score:
 - **+50** for skipping a card (after a fight or in an event), or choosing an event's Leave or Decline.
 - **+80** for leaving the keepsakes after a Dread or at a Wreck.
@@ -144,6 +148,7 @@ Fights also pay bonus Pearls for:
 Both are announced the moment you earn them. The score counts Crests and Strands, and the best chain of each, the same way.
 
 **Expeditions and score.** Every expedition starts on the shore, in the Shallows. The top bar counts the landings you have reached in the level you are in.
+- **Hester's job.** Recover the keeper's log at the marked Fog stop in the Shallows. You can search for it or take one of the Fog's usual options. Bring the log home after breaking any pin to earn **8 Salvage** on top of your score, enough for the Coin Purse. You can carry the log deeper. A fall loses it, and Hester offers the job again until you bring it home.
 - Each level has 8 landings: 7 rows of stops, then its pin. Every route passes a Wreck on the 4th landing and a toll bell on the 5th. The 7th is Coves, and on most maps one of them is Barnaby's shop instead, where every route still has a Cove to choose.
 - The Shallows, Dark Water and the Belfry each have their own creatures, Dreads, pin and Fog events. The Shallows' pin is the Harbour Hermit, Dark Water's is the Tolling Buoy, and the Belfry's is the Drowned Bellwether.
 - **The Belfry is under the sea.** To go down into it you must wear the **Diving Dress** in your Rig place, over your oilskin. The first time you break Dark Water's pin without one, it hangs above the stair: go home, and it is yours in the Workshop. It can't be bought, it does nothing in a fight, and it takes the place of the Cork Vest or the Shell Gorget. Once the Heart has come home, the Workshop sells the **Plated Dress**, which opens the Belfry too and gives 3 Ward at the start of each fight.
@@ -179,7 +184,7 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 - **Hero:** Wren, the keeper. 70 HP, 3 Light, no Pearls (she gathers them on the way down), and a 10-card starting deck: 4 Harpoon Jab, 4 Brace, Rising Swell, Slack Water.
 - **38 collectible cards:**
   - 14 common, 16 uncommon, 8 rare.
-  - Every card has an upgraded version.
+  - Every refittable card has two upgrade choices.
   - There are also 4 status cards: 3 that enemies add to your deck, and Seep. And 1 curse (Barnacle Growth: unplayable, and it stays in your deck until you remove it).
   - The cards support several builds:
     - Crest chaining (Storm Surge, Siren's Echo, Toppled Tower, Maelstrom, Spindrift).

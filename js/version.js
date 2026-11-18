@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.51.1';
+  BL.VERSION = '0.52.0';
   BL.CHANGELOG = [
+    { v: '0.52.0', date: '2026-11-18', items: [
+      'The first Skirmish in the Shallows offers a Surge card, an Ebb card and a wildcard.',
+      'Bosun warns you what waits at one reachable Dread when you have another path to choose.',
+      'Every refittable card has two upgrades to choose from. Compare them before you refit.',
+      "Hester asks you to find a keeper's log in the Shallows. Bring it home for 8 Salvage, enough for a Coin Purse.",
+    ] },
     { v: '0.51.1', date: '2026-11-17', items: [
       'Song lyrics: every line now starts with a capital letter.',
       'Pop the Shell\'s lyrics now include the Hook it sings straight after the Intro.',

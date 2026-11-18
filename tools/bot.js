@@ -11,7 +11,7 @@
    when nothing else is left to play. { noShop, noTonics, lateSwellOnly } together play exactly like the bot before
    2026-11-14, which never shopped, never drank a tonic and never Stirred mid-turn. shopOrder and removeId change the
    shopping (see shop()); skipCards, keepsake(run, choices), route(run, nodes), toll(run) (how to pay a toll bell), home (go home after
-   that level's pin). */
+   that level's pin). refit: 2 forces alternate refits for a balance comparison; the default is the original +. */
 'use strict';
 const path = require('path');
 
@@ -122,7 +122,7 @@ function stair(run, opts) {
   want.push(['flask'], ['rest']);
   for (const [id, arg] of want) {
     if (E.stairState(run).picks.length >= (E.stairPicks ? E.stairPicks(run) : E.STAIR_PICKS)) break;
-    E.stairDo(run, id, arg);
+    E.stairDo(run, id, arg, opts && opts.refit);
   }
 }
 
@@ -386,9 +386,9 @@ function step(run, opts = {}) {
   if (s === 'rest') {
     if (E.stairOpen && E.stairOpen(run) && !opts.noStair) { stair(run, opts); E.backToMap(run); return 'stair'; }
     const sea = opts.noSea ? null : seaChoice(run, opts);
-    if (sea && E.giveToSea(run, sea.k, sea.uid)) { E.backToMap(run); return 'sea'; }
+    if (sea && E.giveToSea(run, sea.k, sea.uid, opts.refit)) { E.backToMap(run); return 'sea'; }
     const up = opts.alwaysRest || opts.classic ? null : coveRefit(run);
-    if (up) { E.upgradeCard(run, up.uid); run.restDone = true; E.backToMap(run); return 'refit'; }
+    if (up && E.refitAtCove(run, up.uid, opts.refit)) { E.backToMap(run); return 'refit'; }
     E.rest(run); E.backToMap(run); return 'rest';
   }
   // after a pin: go on down, unless told to go home after this level (opts.home) or the next level needs kit it lacks
@@ -420,13 +420,13 @@ function step(run, opts = {}) {
   if (s === 'event') {
     const ev = E.eventDef(run);
     // the first option it can take, unless opts.event(run, ev, open) chooses (open: the indexes it can take)
-    const open = ev.options.map((o, j) => (E.optionAvailable(run, o) === true ? j : -1)).filter((j) => j >= 0);
+    const open = E.eventOptions(run).map((o, j) => (E.optionAvailable(run, o) === true ? j : -1)).filter((j) => j >= 0);
     const i = opts.event ? opts.event(run, ev, open) : open.length ? open[0] : -1;
     const res = E.chooseEventOption(run, i) || {};
     const next = res.next;
     if (next && next.fight) { run.event = null; E.startCombat(run, next.fight, null, { bonusPearls: next.bonusPearls || 0 }); return 'event-fight'; }
     if (next && next.pick === 'remove' && run.deck.length) E.removeCard(run, run.deck[0].uid);
-    if (next && next.pick === 'upgrade' && E.upgradeable(run).length) E.upgradeCard(run, E.upgradeable(run)[0].uid);
+    if (next && next.pick === 'upgrade' && E.upgradeable(run).length) E.upgradeCard(run, E.upgradeable(run)[0].uid, opts.refit);
     if (next && next.pick === 'duplicate') E.duplicateCard(run, run.deck[0].uid);
     if (next && next.cards && next.cards.length) E.addCard(run, next.cards[0]);
     E.backToMap(run);

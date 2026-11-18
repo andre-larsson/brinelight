@@ -4,7 +4,7 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
-          [--only darkwater|belfry|progress|finds|workshop|audio|music-unlocks] [--workers 4]
+          [--only darkwater|belfry|progress|finds|workshop|audio|music-unlocks|choices] [--workers 4]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path)
    Each scenario starts from cleared storage, so they run on several headless Chromes at once (--workers, 4 unless
    given; each has its own throwaway profile, so their saves don't meet). --workers 1 plays them one after another. */
@@ -2074,8 +2074,80 @@ async function seaScenario(page, base, name, size) {
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
+async function choicesScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse+keyboard'}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  const url = base + '?seed=2';
+  await page.goto(url);
+  await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', ${QUIET_STORY}); ${QUIET_META} })()`);
+  await page.goto(url);
+  await inject(page);
+  const R = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; return ${js}; })()`);
+  await page.click('[data-act="newrun"]');
+  await dismissHints(page);
+  if (!/8 Salvage/.test(await page.eval(`document.querySelector('#hester-job')?.textContent || ''`))) throw new Error('Hester should brief the player on the Shallows map');
+  const parent = await R('E.availableNodes(r).find((n) => n.next.includes(r.hesterJob.col)).col');
+  await clickIf(page, `.node.avail[data-col="${parent}"]`);
+  await dismissHints(page);
+  await page.eval(`(() => { const B = window.Brinelight; const c = B.run.combat; c.won = true; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); return B.onVictory(); })()`);
+  await dismissHints(page);
+  const roles = await page.eval(`[...document.querySelectorAll('.opening-option > span')].map((el) => el.textContent).join(',')`);
+  if (roles !== 'Surge,Ebb,Wildcard') throw new Error('Wrong opening choices: ' + roles);
+  if (size.touch) await clickIf(page, '.card[data-scope="rw-card"][data-key="1"]');
+  else await page.key('2');
+  await clickIf(page, '[data-act="pickok"][data-scope="rw-card"]');
+  if ((await R('r.screen')) === 'reward') await clickIf(page, '[data-act="tomap"]');
+  if (!(await R('E.vals(r.deck.at(-1)).ebb > 0'))) throw new Error('Taking the Ebb option should add its card to the deck');
+  await clickIf(page, '.node.avail[aria-describedby="hester-job"]');
+  await dismissHints(page);
+  const recover = await R('E.eventOptions(r).length - 1');
+  await clickIf(page, `[data-act="evopt"][data-i="${recover}"]`);
+  await clickIf(page, '[data-act="evcontinue"]');
+  if (!(await R('r.hesterJob.recovered'))) throw new Error('The Fog choice should recover the log');
+
+  const enc = await R('E.bosunClue(r).enc.join(",")');
+  const warning = await page.eval(`document.querySelector('#bosun-clue').textContent`);
+  await page.goto(url);
+  await inject(page);
+  await page.click('[data-act="continue"]');
+  await dismissHints(page);
+  if (await page.eval(`document.querySelector('#bosun-clue').textContent`) !== warning) throw new Error('The warning changed on reload');
+  await checkPage(page, name + ' fork');
+  await clickIf(page, '.node.avail[aria-describedby="bosun-clue"]');
+  if ((await R('r.combat.enc.join(",")')) !== enc) throw new Error('The Dread should match Bosun’s warning');
+  await dismissHints(page);
+
+  await page.eval(`(() => { const B = window.Brinelight; B.E.backToMap(B.run); B.run.screen = 'rest'; B.run.restDone = false; B.render(); })()`);
+  await dismissHints(page);
+  await clickIf(page, '[data-act="refit"]');
+  const swell = await R('r.deck.find((card) => card.id === "swell").uid');
+  const pick = `#overlay [data-act="deckpick"][data-uid="${swell}"]`;
+  await clickIf(page, pick);
+  const refits = await page.eval(`[...document.querySelectorAll('.refit-option .c-name')].map((n) => n.textContent).join(',')`);
+  if (refits !== 'Rising Swell+,High Swell') throw new Error('Wrong refit options: ' + refits);
+  await checkPage(page, name + ' refit');
+  await clickIf(page, '#overlay [data-act="deckback"]');
+  if (await R(`r.restDone || r.deck.find((c) => c.uid === ${swell}).up`)) throw new Error('Backing out spent the refit');
+  await clickIf(page, pick);
+  await clickIf(page, '#overlay [data-act="deckconfirm"][data-up="2"]');
+  if (!(await R(`r.restDone && E.cardName(r.deck.find((c) => c.uid === ${swell})) === 'High Swell'`))) throw new Error('Choosing the second refit should spend one Cove action');
+
+  await page.eval(`(() => { const B = window.Brinelight; B.run.cleared = [0]; B.run.floor = 8; B.run.screen = 'pin'; B.render(); })()`);
+  if (!/8 Salvage/.test(await page.eval(`document.querySelector('[data-act="gohome"]').textContent`))) throw new Error('The pin should show the job payout');
+  await clickIf(page, '[data-act="gohome"]');
+  if (!(await R('B.meta.hesterDone && r.final.hesterPay === E.HESTER_PAY && B.meta.salvage === r.final.salvage + E.HESTER_PAY'))) throw new Error('The job should pay separately from score Salvage');
+  await page.goto(url);
+  await inject(page);
+  await page.click('[data-act="newrun"]');
+  if (!(await R('B.meta.hesterDone && !r.hesterJob'))) throw new Error('The completed job should stay completed after reload');
+  if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
+}
+
 const DESK = { w: 1280, h: 800 }, PHONE = { w: 390, h: 844, mobile: true, touch: true };
 const JOBS = [
+  ['choices', 'choices desktop', (p, b) => choicesScenario(p, b, 'choices desktop', DESK)],
+  ['choices', 'choices small phone', (p, b) => choicesScenario(p, b, 'choices small phone', { ...PHONE, w: 360, h: 640 })],
   ['sea', 'sea desktop', (p, b) => seaScenario(p, b, 'sea desktop', DESK)],
   ['sea', 'sea phone', (p, b) => seaScenario(p, b, 'sea phone', PHONE)],
   ['darkwater', 'dark water phone', (p, b) => darkwaterScenario(p, b, 'dark water phone', PHONE, { seed: 5555 })],

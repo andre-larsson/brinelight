@@ -50,22 +50,29 @@
 
   /* ---------------- Cards ---------------- */
   E.def = (card) => BL.CARDS[card.id];
+  // Saved + cards keep their original refit (1). A chosen alternate is 2.
+  const refitOf = (card, d) => (card.up === 2 && d.refit) || d.up;
   E.vals = (card) => {
     const d = BL.CARDS[card.id];
-    return card.up ? Object.assign({}, d.v, d.up) : d.v;
+    return card.up ? Object.assign({}, d.v, refitOf(card, d)) : d.v;
   };
   E.cost = (card, c) => {
     const d = BL.CARDS[card.id];
-    let cost = card.up && d.up.cost != null ? d.up.cost : d.cost;
+    const refit = card.up ? refitOf(card, d) : {};
+    let cost = refit.cost != null ? refit.cost : d.cost;
     if (cost != null && c && d.costDown === 'crests') cost = Math.max(0, cost - (c.turnCrests || 0));
     return cost;
   };
-  E.cardName = (card) => BL.CARDS[card.id].name + (card.up ? '+' : '');
+  E.cardName = (card) => {
+    const d = BL.CARDS[card.id];
+    return card.up === 2 && d.refit ? d.refit.name : d.name + (card.up ? '+' : '');
+  };
   E.canUpgrade = (card) => {
     const d = BL.CARDS[card.id];
     return !card.up && d.type !== 'status' && d.type !== 'curse' && Object.keys(d.up).length > 0;
   };
-  E.newCard = (run, id, up) => ({ uid: run.nextUid++, id, up: up ? 1 : 0 });
+  E.refits = (card) => card && E.canUpgrade(card) ? (E.def(card).refit ? [1, 2] : [1]) : [];
+  E.newCard = (run, id, up) => ({ uid: run.nextUid++, id, up: up === 2 ? 2 : up ? 1 : 0 });
   E.has = (run, k) => run.keepsakes.indexOf(k) >= 0;
 
   /* ---------------- Kit: mundane gear in five places (BL.KIT_PLACES), one item each ---------------- */
@@ -371,7 +378,44 @@
     return n.next.map((c) => run.map.grid[run.pos.row + 1][c]);
   };
 
+  /* Hester marks an existing Shallows Fog. Prefer a fork in the first three landings, then the earliest Fog. */
+  E.HESTER_PAY = BL.KIT.purse.price;
+  E.offerHesterJob = function (meta, run) {
+    if (meta.hesterDone || run.tutorial || run.level || run.pos || run.hesterJob) return;
+    const fog = run.map.grid.flat().filter((n) => n && n.type === 'event');
+    const node = fog.find((n) => n.row < E.WRECK_ROW &&
+      run.map.grid[n.row - 1].some((p) => p && p.next.length > 1 && p.next.includes(n.col))) || fog[0];
+    if (node) run.hesterJob = { row: node.row, col: node.col, recovered: false };
+  };
+  E.hesterStop = function (run, node) {
+    const job = run.hesterJob;
+    return !!(job && !run.level && !job.recovered && node && job.row === node.row && job.col === node.col);
+  };
+  E.hesterJobAhead = function (run) {
+    const job = run.hesterJob;
+    if (!job || job.recovered || run.level) return false;
+    let nodes = E.availableNodes(run);
+    while (nodes.length && nodes[0].row < job.row) {
+      const row = run.map.grid[nodes[0].row + 1];
+      nodes = [...new Set(nodes.flatMap((n) => n.next))].map((col) => row[col]);
+    }
+    return nodes.some((n) => E.hesterStop(run, n));
+  };
+
+  /* Show one Dread at a fork. Predict the same seeded pick that entering it will make. Nothing a player can do on
+     the map draws from the run's RNG, so reading the clue, using a tonic and saving or reloading cannot change it. */
+  E.bosunClue = function (run) {
+    if (run.tutorial || E.isDive(run.level)) return null;
+    const nodes = E.availableNodes(run);
+    const node = nodes.length > 1 && nodes.find((n) => n.type === 'elite');
+    if (!node) return null;
+    const enc = node.enc || makeR({ rng: run.rng }).pick(encounterOptions(run, 'elite'));
+    const name = enc.length > 1 && enc.every((id) => id === enc[0]) ? E.plural(enc[0]) : enc.map((id) => BL.ENEMIES[id].name).join(' and ');
+    return { node, enc, name };
+  };
+
   E.enterNode = function (run, node) {
+    const clue = node.type === 'elite' && !node.enc ? E.bosunClue(run) : null;
     run.pos = { row: node.row, col: node.col };
     run.floor = node.row + 1;
     run.landed = E.landed(run);
@@ -379,7 +423,12 @@
     run.visited.push(node.row + ',' + node.col);
     switch (node.type) {
       case 'fight': E.startCombat(run, run.normalFights < 3 ? 'easy' : 'hard'); break;
-      case 'elite': E.startCombat(run, 'elite', node.enc ? node.enc.slice() : null); break;
+      case 'elite': {
+        // Another Dread at the same fork is a different fight. Unmarked Dreads still roll on entry.
+        const other = clue && clue.node.col !== node.col ? clue.enc : null;
+        E.startCombat(run, 'elite', node.enc || pickEncounter(run, 'elite', other));
+        break;
+      }
       case 'boss': E.startCombat(run, 'boss'); break;
       case 'rest': run.screen = 'rest'; run.restDone = false; break;
       // a lesser bell in the Belfry: one of the stair's six (E.stairDo)
@@ -422,6 +471,15 @@
     }
     return out;
   };
+  const openingSurge = BL.REWARD_POOL.common.filter((id) => BL.CARDS[id].v.surge > 0);
+  const openingEbb = BL.REWARD_POOL.common.filter((id) => BL.CARDS[id].v.ebb > 0);
+  E.OPENING_REWARD_LABELS = ['Surge', 'Ebb', 'Wildcard'];
+  function openingCards(run, rolled) {
+    // Keep the normal reward roll for the wildcard, and leave the upgrade and tonic rolls on their usual stream.
+    const R = makeR({ rng: ~run.rng });
+    const surge = R.pick(openingSurge), ebb = R.pick(openingEbb);
+    return [surge, ebb, rolled.find((id) => id !== surge && id !== ebb)];
+  }
   E.randomCards = function (run, rarity, n) {
     const R = makeR(run);
     return R.shuffle(BL.REWARD_POOL[rarity].slice()).slice(0, n);
@@ -500,9 +558,17 @@
     const i = run.deck.findIndex((c) => c.uid === uid);
     if (i >= 0) run.deck.splice(i, 1);
   };
-  E.upgradeCard = function (run, uid) {
+  E.upgradeCard = function (run, uid, up = 1) {
     const c = run.deck.find((x) => x.uid === uid);
-    if (c && E.canUpgrade(c)) c.up = 1;
+    if (!E.refits(c).includes(up)) return null;
+    c.up = up;
+    return c;
+  };
+  E.refitAtCove = function (run, uid, up) {
+    if (run.screen !== 'rest' || run.passage || run.pocket || run.restDone) return null;
+    const card = E.upgradeCard(run, uid, up);
+    if (card) run.restDone = true;
+    return card;
   };
   E.upgradeable = (run) => run.deck.filter(E.canUpgrade);
   E.duplicateCard = function (run, uid) {
@@ -553,21 +619,21 @@
      none, so every keepsake counts the expedition's fights). */
   E.carried = (run, k) => (run.ksFights ? run.ksFights[k] || 0 : (run.stats && run.stats.fights) || 0);
   E.seaHeal = (run, k) => Math.min(E.carried(run, k) * E.SEA_HEAL, E.restAmount(run));
-  function seaGive(run, k, uid) {
+  function seaGive(run, k, uid, up) {
     if (!E.has(run, k)) return null;
     const card = uid != null ? run.deck.find((x) => x.uid === uid) : null;
-    if (uid != null && (!card || !E.canUpgrade(card))) return null;
+    if (uid != null && !E.refits(card).includes(up)) return null;
     const pay = E.seaHeal(run, k); // before the drop: the drop forgets how long she carried it
     if (!E.dropKeepsake(run, k)) return null; // a keepsake that gave Max HP takes it along, before the heal
     const out = { keepsake: k, healed: E.heal(run, pay), card: null };
-    if (card) { card.up = 1; out.card = Object.assign({}, card); }
+    if (card) { card.up = up; out.card = Object.assign({}, card); }
     run.stats.given = (run.stats.given || 0) + 1;
     return out;
   }
   /* At a Cove inside a level: it is the Cove's one thing. Returns what happened, or null. (On the stair: E.stairDo(run, 'sea', { k, uid }).) */
-  E.giveToSea = function (run, k, uid) {
+  E.giveToSea = function (run, k, uid, up = 1) {
     if (run.screen !== 'rest' || run.passage || run.pocket || run.restDone) return null;
-    const out = seaGive(run, k, uid);
+    const out = seaGive(run, k, uid, up);
     if (out) run.restDone = true;
     return out;
   };
@@ -630,7 +696,7 @@
   /* Do one of the six: `arg` is a card uid (refit, shed) or the cache's index. Returns what happened, or null.
      The cache in two steps: with no `arg` it opens (the pick is used, `out.open`, `out.cards`); then an index takes that
      card, and -1 takes none. An index while it is shut opens it and takes at once. */
-  E.stairDo = function (run, id, arg) {
+  E.stairDo = function (run, id, arg, up = 1) {
     if (!E.stairOpen(run) || E.stairOptions(run).indexOf(id) < 0 || E.stairWhy(run, id)) return null;
     const out = { id };
     if (id === 'fog') {
@@ -654,18 +720,22 @@
       return out;
     }
     if (id === 'rest') out.healed = E.heal(run, E.stairRestAmount(run));
-    else if (id === 'refit' || id === 'shed') {
+    else if (id === 'refit') {
+      const c = E.upgradeCard(run, arg, up);
+      if (!c) return null;
+      out.card = Object.assign({}, c);
+    } else if (id === 'shed') {
       const c = run.deck.find((x) => x.uid === arg);
-      if (!c || (id === 'refit' && !E.canUpgrade(c))) return null;
-      out.card = Object.assign({}, c, id === 'refit' ? { up: 1 } : {});
-      if (id === 'refit') c.up = 1; else E.removeCard(run, arg);
+      if (!c) return null;
+      out.card = Object.assign({}, c);
+      E.removeCard(run, arg);
     } else if (id === 'flask') {
       const pool = makeR(run).shuffle(Object.keys(BL.TONICS));
       out.tonics = [];
       while (run.tonics.indexOf(null) >= 0 && pool.length && out.tonics.length < E.STAIR_FLASKS) { const t = pool.shift(); E.gainTonic(run, t); out.tonics.push(t); }
     }
     else if (id === 'sea') {
-      const g = seaGive(run, arg && arg.k, arg && arg.uid);
+      const g = seaGive(run, arg && arg.k, arg && arg.uid, up);
       if (!g) return null;
       Object.assign(out, g);
     }
@@ -803,14 +873,26 @@
     run.screen = 'event';
   };
   E.eventDef = (run) => BL.EVENTS.find((e) => e.id === run.event.id);
+  const takeLog = {
+    label: "Recover the keeper's log",
+    desc: `Bring the log to Hester after breaking a pin for ${E.HESTER_PAY} Salvage.`,
+    act: (run) => {
+      run.hesterJob.recovered = true;
+      return { text: 'Behind a loose stone you find an oilskin wrap tied with cord. The log inside is still dry. Hester will be waiting for it.' };
+    },
+  };
+  E.eventOptions = function (run) {
+    const opts = E.eventDef(run).options;
+    return E.hesterStop(run, run.pos) ? [...opts, takeLog] : opts;
+  };
   E.optionAvailable = function (run, opt) {
     if (!opt.cond) return true;
     return opt.cond(run, E);
   };
   E.chooseEventOption = function (run, i) {
-    const ev = E.eventDef(run);
-    const opt = ev.options[i];
-    if (E.optionAvailable(run, opt) !== true) return null;
+    if (!run.event || run.event.stage !== 'choose') return null;
+    const opt = E.eventOptions(run)[i];
+    if (!opt || E.optionAvailable(run, opt) !== true) return null;
     const res = opt.act(run, E) || {};
     if (opt.decline) E.decline(run, 'event');
     run.event.stage = 'result';
@@ -824,14 +906,16 @@
   /* Creatures in a Skirmish (an easy or hard fight, also one a Fog event starts) have this much more HP. v0.38.0: the
      user and a playtest found Skirmishes trivial, ended in 1 to 3 turns without a scratch. 1 until then. */
   E.SKIRMISH_HP = 1.15;
-  function pickEncounter(run, kind) {
-    const R = makeR(run);
+  function encounterOptions(run, kind, other) {
     const tables = E.band(run).enc;
     // once the Heart is home the Bellwether stays silent: the last landing of the last level is one of its finals
     const pool = kind === 'boss' && run.heartHome && tables.finals ? tables.finals : tables[kind];
-    let cands = pool.filter((enc) => run.lastEnc.indexOf(enc.join('+')) < 0);
-    if (!cands.length) cands = pool;
-    const enc = R.pick(cands);
+    const choices = other && pool.length > 1 ? pool.filter((enc) => enc !== other) : pool;
+    const fresh = choices.filter((enc) => run.lastEnc.indexOf(enc.join('+')) < 0);
+    return fresh.length ? fresh : choices;
+  }
+  function pickEncounter(run, kind, other) {
+    const enc = makeR(run).pick(encounterOptions(run, kind, other));
     run.lastEnc.push(enc.join('+'));
     if (run.lastEnc.length > 4) run.lastEnc.shift();
     return enc;
@@ -1849,8 +1933,10 @@
        until v0.16.0 a card, the keepsakes and often a tonic. A save from before v0.40.0 has no `oneOf` and plays as then. */
     // half as often since v0.41.0 (0.15 + 0.02 a landing before: up to 31% of reward cards came upgraded)
     const upChance = E.REWARD_UP[0] + E.REWARD_UP[1] * run.floor;
-    const cards = E.rewardCards(run, elite ? 'elite' : 'normal').map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
-    const rw = { pearls, bonuses, roilPay, roilSteps: c.roilSteps || 0, cards, elite, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
+    const rolled = E.rewardCards(run, elite ? 'elite' : 'normal');
+    const opening = !elite && !run.tutorial && !run.level && run.normalFights === 1;
+    const cards = (opening ? openingCards(run, rolled) : rolled).map((id) => ({ id, up: R.chance(upChance) ? 1 : 0 }));
+    const rw = { pearls, bonuses, roilPay, roilSteps: c.roilSteps || 0, cards, opening, elite, cardTaken: false, tonic: null, tonicTaken: false, keepsake: null, keepsakeChoices: [] };
     if (!elite && R.chance(0.4)) rw.tonic = E.randomTonic(run);
     if (elite) { rw.oneOf = true; rw.keepsakeChoices = E.keepsakeChoices(run, E.DREAD_KEEPSAKES); }
     run.rewards = rw;
@@ -1985,7 +2071,7 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [] });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: false });
   /* What opens at the lighthouse as the player gets on, in the order it opens: the Workshop (the first Salvage), the
      Lazaret (the first time home), the Diving Dress (carried home) and currents (the Heart home). `meta.told` lists the
      ones the player has been shown: the UI tells each once, in a window that has to be acknowledged (v0.33.0, the user:
@@ -2184,6 +2270,13 @@
     meta.salvage += n;
     meta.earned += n;
     return n;
+  };
+  E.deliverHesterJob = function (meta, run) {
+    if (meta.hesterDone || run.tutorial || run.cheated || run.screen !== 'victory' || !run.hesterJob?.recovered || !run.cleared.length) return 0;
+    meta.hesterDone = true;
+    meta.salvage += E.HESTER_PAY;
+    meta.earned += E.HESTER_PAY;
+    return E.HESTER_PAY;
   };
 
   /* ---------------- The Lazaret: keepsakes kept between runs ----------------

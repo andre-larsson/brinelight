@@ -9,6 +9,7 @@
    *    k.d(n)   -> attack damage as shown in combat (Might / Chilled / Soaked applied)
    *    k.tide   -> current Swell in combat (the code calls it tide), or null outside combat
    *  play(A, v, target): A = combat API (see engine.js)
+   *  up preserves the original + refit. refit holds the alternate's name and overrides to the base card.
    * ------------------------------------------------------------------ */
   const CARDS = {};
   function card(id, o) {
@@ -20,25 +21,25 @@
   // ---------- Starter ----------
   card('jab', {
     name: 'Harpoon Jab', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy',
-    v: { dmg: 6 }, up: { dmg: 9 }, art: 'c_jab',
-    text: (v, k) => `Deal ${k.d(v.dmg)} damage.`,
-    play: (A, v, t) => A.hit(t, v.dmg),
+    v: { dmg: 6 }, up: { dmg: 9 }, refit: { name: 'Guarded Jab', ward: 3 }, art: 'c_jab',
+    text: (v, k) => `Deal ${k.d(v.dmg)} damage.${v.ward ? ` Gain ${v.ward} Ward.` : ''}`,
+    play: (A, v, t) => { A.hit(t, v.dmg); if (v.ward) A.ward(v.ward); },
   });
   card('brace', {
     name: 'Brace', type: 'skill', rarity: 'starter', cost: 1, target: 'none',
-    v: { ward: 5 }, up: { ward: 8 }, art: 'c_brace',
-    text: (v) => `Gain ${v.ward} Ward.`,
-    play: (A, v) => A.ward(v.ward),
+    v: { ward: 5 }, up: { ward: 8 }, refit: { name: 'Ready Brace', draw: 1 }, art: 'c_brace',
+    text: (v) => `Gain ${v.ward} Ward.${v.draw ? ' Draw a card.' : ''}`,
+    play: (A, v) => { A.ward(v.ward); if (v.draw) A.draw(v.draw); },
   });
   card('swell', {
     name: 'Rising Swell', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy',
-    v: { dmg: 5, surge: 2 }, up: { dmg: 8 }, art: 'c_swell',
+    v: { dmg: 5, surge: 2 }, up: { dmg: 8 }, refit: { name: 'High Swell', surge: 3 }, art: 'c_swell',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Surge ${v.surge}.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.surge(v.surge); },
   });
   card('slack', {
     name: 'Slack Water', type: 'skill', rarity: 'starter', cost: 1, target: 'none',
-    v: { ward: 4, ebb: 2 }, up: { ward: 7 }, art: 'c_slack',
+    v: { ward: 4, ebb: 2 }, up: { ward: 7 }, refit: { name: 'Deep Ebb', ebb: 3 }, art: 'c_slack',
     text: (v) => `Gain ${v.ward} Ward. Ebb ${v.ebb}.`,
     play: (A, v) => { A.ward(v.ward); A.ebb(v.ebb); },
   });
@@ -46,61 +47,61 @@
   // ---------- Common ----------
   card('breaker', {
     name: 'Breaker', type: 'attack', rarity: 'common', cost: 2, target: 'enemy',
-    v: { dmg: 12, surge: 1 }, up: { dmg: 16 }, art: 'c_breaker',
+    v: { dmg: 12, surge: 1 }, up: { dmg: 16 }, refit: { name: 'Rising Breaker', surge: 2 }, art: 'c_breaker',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Surge ${v.surge}.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.surge(v.surge); },
   });
   card('spraylash', {
     name: 'Spray Lash', type: 'attack', rarity: 'common', cost: 1, target: 'all',
-    v: { dmg: 4, surge: 1 }, up: { dmg: 6 }, art: 'c_spraylash',
+    v: { dmg: 4, surge: 1 }, up: { dmg: 6 }, refit: { name: 'Rising Spray', surge: 2 }, art: 'c_spraylash',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage to ALL enemies. Surge ${v.surge}.`,
     play: (A, v) => { A.hitAll(v.dmg); A.surge(v.surge); },
   });
   card('gaff', {
     name: 'Gaff Hook', type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
-    v: { dmg: 5, soak: 1, surge: 1 }, up: { dmg: 7, soak: 2 }, art: 'c_gaff',
+    v: { dmg: 5, soak: 1, surge: 1 }, up: { dmg: 7, soak: 2 }, refit: { name: 'Rising Gaff', surge: 2 }, art: 'c_gaff',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Apply ${v.soak} Soaked. Surge ${v.surge}.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.apply(t, 'soaked', v.soak); A.surge(v.surge); },
   });
   card('riptide', {
     name: 'Riptide Cut', type: 'attack', rarity: 'common', cost: 0, target: 'enemy',
-    v: { dmg: 3, ebb: 2 }, up: { dmg: 5 }, art: 'c_riptide',
-    text: (v, k) => `Deal ${k.d(v.dmg)} damage. Ebb ${v.ebb}. Draw 1 card.`,
-    play: (A, v, t) => { A.hit(t, v.dmg); A.ebb(v.ebb); A.draw(1); },
+    v: { dmg: 3, ebb: 2 }, up: { dmg: 5 }, refit: { name: 'Riptide Slip', ward: 3 }, art: 'c_riptide',
+    text: (v, k) => `Deal ${k.d(v.dmg)} damage. Ebb ${v.ebb}. Draw 1 card.${v.ward ? ` Gain ${v.ward} Ward.` : ''}`,
+    play: (A, v, t) => { A.hit(t, v.dmg); A.ebb(v.ebb); A.draw(1); if (v.ward) A.ward(v.ward); },
   });
   card('pearldiver', {
     name: 'Pearl Diver', type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
-    v: { dmg: 8, pearls: 10 }, up: { dmg: 11, pearls: 15 }, art: 'c_pearldiver',
+    v: { dmg: 8, pearls: 10 }, up: { dmg: 11, pearls: 15 }, refit: { name: 'Pearl Hunter', pearls: 22 }, art: 'c_pearldiver',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. If this kills, gain ${v.pearls} Pearls.`,
     play: (A, v, t) => { A.hit(t, v.dmg); if (t && t.dead) A.pearls(v.pearls); },
   });
   card('shellup', {
     name: 'Shell Up', type: 'skill', rarity: 'common', cost: 1, target: 'none',
-    v: { ward: 7, surge: 1 }, up: { ward: 10 }, art: 'c_shellup',
+    v: { ward: 7, surge: 1 }, up: { ward: 10 }, refit: { name: 'Rising Shell', surge: 2 }, art: 'c_shellup',
     text: (v) => `Gain ${v.ward} Ward. Surge ${v.surge}.`,
     play: (A, v) => { A.ward(v.ward); A.surge(v.surge); },
   });
   card('kelpsnare', {
     name: 'Kelp Snare', type: 'skill', rarity: 'common', cost: 1, target: 'enemy',
-    v: { ward: 5, chill: 1 }, up: { ward: 7, chill: 2 }, art: 'c_kelpsnare',
+    v: { ward: 5, chill: 1 }, up: { ward: 7, chill: 2 }, refit: { name: 'Kelp Loop', ward: 9 }, art: 'c_kelpsnare',
     text: (v) => `Gain ${v.ward} Ward. Apply ${v.chill} Chilled.`,
     play: (A, v, t) => { A.ward(v.ward); A.apply(t, 'chilled', v.chill); },
   });
   card('tidereading', {
     name: 'Tide Reading', type: 'skill', rarity: 'common', cost: 0, target: 'none',
-    v: { draw: 1, surge: 1 }, up: { draw: 2 }, art: 'c_tidereading',
+    v: { draw: 1, surge: 1 }, up: { draw: 2 }, refit: { name: 'Read the Flood', surge: 2 }, art: 'c_tidereading',
     text: (v) => `Draw ${v.draw} card${v.draw > 1 ? 's' : ''}. Surge ${v.surge}.`,
     play: (A, v) => { A.draw(v.draw); A.surge(v.surge); },
   });
   card('saltspray', {
     name: 'Saltspray', type: 'skill', rarity: 'common', cost: 1, target: 'enemy',
-    v: { brine: 5, ebb: 2 }, up: { brine: 7 }, art: 'c_saltspray',
+    v: { brine: 5, ebb: 2 }, up: { brine: 7 }, refit: { name: 'Salt Ebb', ebb: 3 }, art: 'c_saltspray',
     text: (v) => `Apply ${v.brine} Brine. Ebb ${v.ebb}.`,
     play: (A, v, t) => { A.apply(t, 'brine', v.brine); A.ebb(v.ebb); },
   });
   card('undercurrent', {
     name: 'Undercurrent', type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
-    v: { base: 3, per: 2 }, up: { base: 4, per: 3 }, art: 'c_undercurrent',
+    v: { base: 3, per: 2 }, up: { base: 4, per: 3 }, refit: { name: 'Crosscurrent', base: 10, per: 1 }, art: 'c_undercurrent',
     text: (v, k) => {
       const now = k.tide == null ? '' : ` <span class="calc">(${k.d(v.base + v.per * k.tide)})</span>`;
       return `Deal ${v.base} damage, +${v.per} for each Swell.${now}`;
@@ -109,19 +110,19 @@
   });
   card('deepguard', {
     name: 'Deep Guard', type: 'skill', rarity: 'common', cost: 1, target: 'none',
-    v: { ward: 6, bonus: 5 }, up: { ward: 8, bonus: 7 }, art: 'c_deepguard',
+    v: { ward: 6, bonus: 5 }, up: { ward: 8, bonus: 7 }, refit: { name: 'Steady Guard', ward: 10, bonus: 3 }, art: 'c_deepguard',
     text: (v) => `Gain ${v.ward} Ward. If the Swell is 2 or lower, gain ${v.bonus} more.`,
     play: (A, v) => A.ward(v.ward + (A.tide() <= 2 ? v.bonus : 0)),
   });
   card('oarflurry', {
     name: 'Oar Flurry', type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
-    v: { dmg: 3, hits: 3 }, up: { dmg: 4 }, art: 'c_oarflurry',
+    v: { dmg: 3, hits: 3 }, up: { dmg: 4 }, refit: { name: 'Quick Oars', hits: 4 }, art: 'c_oarflurry',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage ${v.hits} times.`,
     play: (A, v, t) => A.hit(t, v.dmg, v.hits),
   });
   card('bilgepump', {
     name: 'Bilge Pump', type: 'skill', rarity: 'common', cost: 1, target: 'none',
-    v: { ebb: 2, draw: 2 }, up: { draw: 3 }, art: 'c_bilgepump',
+    v: { ebb: 2, draw: 2 }, up: { draw: 3 }, refit: { name: 'Deep Pump', ebb: 3 }, art: 'c_bilgepump',
     text: (v) => `Ebb ${v.ebb}. Draw ${v.draw} cards.`,
     play: (A, v) => { A.ebb(v.ebb); A.draw(v.draw); },
   });
@@ -129,107 +130,107 @@
   // ---------- Uncommon ----------
   card('roguewave', {
     name: 'Rogue Wave', type: 'attack', rarity: 'uncommon', cost: 2, target: 'all',
-    v: { dmg: 9, surge: 2 }, up: { dmg: 12 }, art: 'c_roguewave',
+    v: { dmg: 9, surge: 2 }, up: { dmg: 12 }, refit: { name: 'Rogue Crest', surge: 3 }, art: 'c_roguewave',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage to ALL enemies. Surge ${v.surge}.`,
     play: (A, v) => { A.hitAll(v.dmg); A.surge(v.surge); },
   });
   card('ebbflow', {
     name: 'Ebb and Flow', type: 'skill', rarity: 'uncommon', cost: 0, target: 'none',
-    v: { shift: 2, draw: 1 }, up: { shift: 3 }, art: 'c_ebbflow',
-    text: (v) => `If the Swell is 3 or higher, Surge ${v.shift}. Otherwise, Ebb ${v.shift}. Draw ${v.draw} card.`,
+    v: { shift: 2, draw: 1 }, up: { shift: 3 }, refit: { name: 'Reading Tides', draw: 2 }, art: 'c_ebbflow',
+    text: (v) => `If the Swell is 3 or higher, Surge ${v.shift}. Otherwise, Ebb ${v.shift}. Draw ${v.draw} card${v.draw > 1 ? 's' : ''}.`,
     play: (A, v) => { if (A.tide() >= 3) A.surge(v.shift); else A.ebb(v.shift); A.draw(v.draw); },
   });
   card('moonpull', {
     name: 'Moon Pull', type: 'rite', rarity: 'uncommon', cost: 1, target: 'none',
-    v: { n: 1 }, up: { cost: 0 }, art: 'c_moonpull',
-    text: () => `At the start of each of your turns, Surge 1.`,
-    play: (A, v) => A.rite('r_moonpull', v.n),
+    v: { n: 1 }, up: { cost: 0 }, refit: { name: 'Rising Moon', surge: 2 }, art: 'c_moonpull',
+    text: (v) => `${v.surge ? `Surge ${v.surge}. ` : ''}At the start of each of your turns, Surge 1.`,
+    play: (A, v) => { if (v.surge) A.surge(v.surge); A.rite('r_moonpull', v.n); },
   });
   card('seawall', {
     name: 'Sea Wall', type: 'skill', rarity: 'uncommon', cost: 2, target: 'none',
-    v: { ward: 15, ebb: 2 }, up: { ward: 20 }, art: 'c_seawall',
+    v: { ward: 15, ebb: 2 }, up: { ward: 20 }, refit: { name: 'Low Sea Wall', ebb: 3 }, art: 'c_seawall',
     text: (v) => `Gain ${v.ward} Ward. Ebb ${v.ebb}.`,
     play: (A, v) => { A.ward(v.ward); A.ebb(v.ebb); },
   });
   card('brinespear', {
     name: 'Brine Spear', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
-    v: { dmg: 6, brine: 3 }, up: { dmg: 7, brine: 4 }, art: 'c_brinespear', // Brine 4 / 6 until v0.38.0 (a playtest: Brine too strong)
+    v: { dmg: 6, brine: 3 }, up: { dmg: 7, brine: 4 }, refit: { name: 'Piercing Brine', dmg: 10 }, art: 'c_brinespear',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Apply ${v.brine} Brine.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.apply(t, 'brine', v.brine); },
   });
   card('tidalmemory', {
     name: 'Tidal Memory', type: 'rite', rarity: 'uncommon', cost: 2, target: 'none',
-    v: { n: 1 }, up: { cost: 1 }, art: 'c_tidalmemory',
-    text: () => `Whenever you Crest, gain 1 Light.`,
-    play: (A, v) => A.rite('r_tidalmemory', v.n),
+    v: { n: 1 }, up: { cost: 1 }, refit: { name: 'Tidal Shelter', ward: 7 }, art: 'c_tidalmemory',
+    text: (v) => `${v.ward ? `Gain ${v.ward} Ward. ` : ''}Whenever you Crest, gain 1 Light.`,
+    play: (A, v) => { if (v.ward) A.ward(v.ward); A.rite('r_tidalmemory', v.n); },
   });
   card('volley', {
     name: 'Harpoon Volley', type: 'attack', rarity: 'uncommon', cost: 1, target: 'random',
-    v: { dmg: 3, hits: 4 }, up: { hits: 5 }, art: 'c_volley',
+    v: { dmg: 3, hits: 4 }, up: { hits: 5 }, refit: { name: 'Heavy Volley', dmg: 6, hits: 3 }, art: 'c_volley',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage to a random enemy ${v.hits} times.`,
     play: (A, v) => A.hitRandom(v.dmg, v.hits),
   });
   card('spindrift', {
     name: 'Spindrift', type: 'rite', rarity: 'uncommon', cost: 1, target: 'none',
-    v: { n: 3 }, up: { n: 5 }, art: 'c_spindrift',
+    v: { n: 3 }, up: { n: 5 }, refit: { name: 'Light Spindrift', cost: 0 }, art: 'c_spindrift',
     text: (v) => `Each time you Surge (by any amount), deal ${v.n} damage to a random enemy.`,
     play: (A, v) => A.rite('r_spindrift', v.n),
   });
   card('sirensecho', {
     name: "Siren's Echo", type: 'skill', rarity: 'uncommon', cost: 1, target: 'none', givesEcho: true,
     // upgraded: draw a card first (cost 0 until v0.39.0: a 0-cost doubler was in all three winning decks of the playtests)
-    v: { draw: 0 }, up: { draw: 1 }, art: 'c_sirensecho',
-    text: (v) => (v.draw ? `Draw ${v.draw} card. Your next card is played twice.` : `Your next card is played twice.`),
-    play: (A, v) => { if (v.draw) A.draw(v.draw); A.echo(1); },
+    v: { draw: 0 }, up: { draw: 1 }, refit: { name: 'Sheltered Echo', ward: 6 }, art: 'c_sirensecho',
+    text: (v) => `${v.draw ? 'Draw 1 card. ' : ''}${v.ward ? `Gain ${v.ward} Ward. ` : ''}Your next card is played twice.`,
+    play: (A, v) => { if (v.draw) A.draw(v.draw); if (v.ward) A.ward(v.ward); A.echo(1); },
   });
   // Sink since v0.40.0: played again and again, the doubling grew without end (the user, of two Blooms with a Salted Hook)
   card('brinebloom', {
     name: 'Brine Bloom', type: 'skill', rarity: 'uncommon', cost: 1, target: 'enemy', sink: true,
-    v: { add: 0 }, up: { add: 3 }, art: 'c_brinebloom',
-    text: (v) => (v.add ? `Apply ${v.add} Brine, then double the target's Brine. Sink.` : `Double the target's Brine. Sink.`),
-    play: (A, v, t) => { if (v.add) A.apply(t, 'brine', v.add); if (t && t.st.brine) A.apply(t, 'brine', t.st.brine); },
+    v: { add: 0 }, up: { add: 3 }, refit: { name: 'Brine Bulwark', ward: 7 }, art: 'c_brinebloom',
+    text: (v) => `${v.ward ? `Gain ${v.ward} Ward. ` : ''}${v.add ? `Apply ${v.add} Brine, then double` : 'Double'} the target's Brine. Sink.`,
+    play: (A, v, t) => { if (v.ward) A.ward(v.ward); if (v.add) A.apply(t, 'brine', v.add); if (t && t.st.brine) A.apply(t, 'brine', t.st.brine); },
   });
   card('abyssalpull', {
     name: 'Abyssal Pull', type: 'rite', rarity: 'uncommon', cost: 1, target: 'none',
-    v: { n: 5 }, up: { n: 8 }, art: 'c_abyssalpull',
+    v: { n: 5 }, up: { n: 8 }, refit: { name: 'Deep Pull', ebb: 2 }, art: 'c_abyssalpull',
     // copies don't add up since v0.40.0 (the user: "Multiple Abyssal pull ... combo maybe too powerful"): the strongest
     // played counts, so an upgraded one still raises a plain one to 8. Before, two Pull+ dealt 16 on every Strand.
-    text: (v) => `Whenever you Strand, deal ${v.n} damage to ALL enemies. More copies don't add to it.`,
-    play: (A, v) => A.riteMax('r_abyss', v.n),
+    text: (v) => `Whenever you Strand, deal ${v.n} damage to ALL enemies. More copies don't add to it.${v.ebb ? ` Ebb ${v.ebb} now.` : ''}`,
+    play: (A, v) => { A.riteMax('r_abyss', v.n); if (v.ebb) A.ebb(v.ebb); },
   });
   card('depthcharge', {
     name: 'Depth Charge', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy',
-    v: { dmg: 18, ebb: 3 }, up: { dmg: 24 }, art: 'c_depthcharge',
+    v: { dmg: 18, ebb: 3 }, up: { dmg: 24 }, refit: { name: 'Deep Charge', dmg: 19, ebb: 4 }, art: 'c_depthcharge',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Ebb ${v.ebb}.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.ebb(v.ebb); },
   });
   card('stormglass', {
     name: 'Storm Glass', type: 'skill', rarity: 'uncommon', cost: 0, target: 'none', sink: true,
-    v: { light: 2, surge: 2 }, up: { light: 3 }, art: 'c_stormglass',
+    v: { light: 2, surge: 2 }, up: { light: 3 }, refit: { name: 'Flood Glass', surge: 3 }, art: 'c_stormglass',
     text: (v) => `Gain ${v.light} Light. Surge ${v.surge}. Sink.`,
     play: (A, v) => { A.light(v.light); A.surge(v.surge); },
   });
   card('saltward', {
     name: 'Salt Ward', type: 'skill', rarity: 'uncommon', cost: 1, target: 'none',
-    v: { ward: 6, brine: 2 }, up: { ward: 8, brine: 3 }, art: 'c_saltward',
+    v: { ward: 6, brine: 2 }, up: { ward: 8, brine: 3 }, refit: { name: 'Salt Shield', ward: 11 }, art: 'c_saltward',
     text: (v) => `Gain ${v.ward} Ward. Apply ${v.brine} Brine to ALL enemies.`,
     play: (A, v) => { A.ward(v.ward); A.applyAll('brine', v.brine); },
   });
   card('breakwater', {
     name: 'Breakwater', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
-    v: {}, up: { cost: 0 }, art: 'c_breakwater',
-    text: (v, k) => `Deal damage equal to your Ward.${k.ward == null ? '' : ` <span class="calc">(${k.d(k.ward)})</span>`}`,
-    play: (A, v, t) => A.hit(t, A.wardNow()),
+    v: {}, up: { cost: 0 }, refit: { name: 'Braced Breakwater', ward: 4 }, art: 'c_breakwater',
+    text: (v, k) => `${v.ward ? `Gain ${v.ward} Ward. ` : ''}Deal damage equal to your Ward.${k.ward == null ? '' : ` <span class="calc">(${k.d(k.ward + (v.ward || 0))})</span>`}`,
+    play: (A, v, t) => { if (v.ward) A.ward(v.ward); A.hit(t, A.wardNow()); },
   });
   card('driftwood', {
     name: 'Driftwood', type: 'skill', rarity: 'common', cost: 1, target: 'none', float: true,
-    v: { ward: 9 }, up: { ward: 12 }, art: 'c_driftwood',
-    text: (v) => `Float. Gain ${v.ward} Ward.`,
-    play: (A, v) => A.ward(v.ward),
+    v: { ward: 9 }, up: { ward: 12 }, refit: { name: 'Drifting Shield', ebb: 1 }, art: 'c_driftwood',
+    text: (v) => `Float. Gain ${v.ward} Ward.${v.ebb ? ` Ebb ${v.ebb}.` : ''}`,
+    play: (A, v) => { A.ward(v.ward); if (v.ebb) A.ebb(v.ebb); },
   });
   card('whirlpool', {
     name: 'Whirlpool', type: 'skill', rarity: 'uncommon', cost: 1, target: 'all', sink: true,
-    v: { soak: 2, chill: 1, ebb: 2 }, up: { soak: 3, chill: 2 }, art: 'c_whirlpool',
+    v: { soak: 2, chill: 1, ebb: 2 }, up: { soak: 3, chill: 2 }, refit: { name: 'Deep Whirlpool', ebb: 4 }, art: 'c_whirlpool',
     text: (v) => `Apply ${v.soak} Soaked and ${v.chill} Chilled to ALL enemies. Ebb ${v.ebb}. Sink.`,
     play: (A, v) => { A.applyAll('soaked', v.soak); A.applyAll('chilled', v.chill); A.ebb(v.ebb); },
   });
@@ -237,54 +238,59 @@
   // ---------- Rare ----------
   card('leviathan', {
     name: "Leviathan's Call", type: 'attack', rarity: 'rare', cost: 3, target: 'enemy',
-    v: { dmg: 28, surge: 3 }, up: { dmg: 36 }, art: 'c_leviathan',
+    v: { dmg: 28, surge: 3 }, up: { dmg: 36 }, refit: { name: "Leviathan's Wake", surge: 5 }, art: 'c_leviathan',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Surge ${v.surge}.`,
     play: (A, v, t) => { A.hit(t, v.dmg); A.surge(v.surge); },
   });
   card('maelstrom', {
     name: 'Maelstrom', type: 'rite', rarity: 'rare', cost: 2, target: 'none',
-    v: { n: 1 }, up: { cost: 1 }, art: 'c_maelstrom',
-    text: () => `Your Crests deal double damage (not the extra a chained Crest adds).`,
-    play: (A, v) => A.rite('r_maelstrom', v.n),
+    v: { n: 1 }, up: { cost: 1 }, refit: { name: "Maelstrom's Eye", surge: 2 }, art: 'c_maelstrom',
+    text: (v) => `Your Crests deal double damage (not the extra a chained Crest adds).${v.surge ? ` Surge ${v.surge} now.` : ''}`,
+    play: (A, v) => { A.rite('r_maelstrom', v.n); if (v.surge) A.surge(v.surge); },
   });
   card('beam', {
     name: 'Lighthouse Beam', type: 'rite', rarity: 'rare', cost: 2, target: 'none',
-    v: { per: 2 }, up: { per: 3 }, art: 'c_beam',
+    v: { per: 2 }, up: { per: 3 }, refit: { name: 'Quick Beam', cost: 1 }, art: 'c_beam',
     text: (v) => `At the end of your turn, deal ${v.per} damage for each Swell to a random enemy.`,
     play: (A, v) => A.rite('r_beam', v.per),
   });
   card('tsunami', {
     name: 'Tsunami', type: 'attack', rarity: 'rare', cost: 2, target: 'all',
-    v: { per: 3 }, up: { per: 4 }, art: 'c_tsunami',
+    v: { per: 3 }, up: { per: 4 }, refit: { name: 'Raking Tsunami', strandFirst: true }, art: 'c_tsunami',
     text: (v, k) => {
       const now = k.tide == null ? '' : ` <span class="calc">(${v.per * k.tide} each)</span>`;
-      return `Deal ${v.per} damage to ALL enemies for each Swell, then Strand.${now}`;
+      return v.strandFirst ? `Strand, then deal ${v.per} damage to ALL enemies for each Swell you had.${now}` : `Deal ${v.per} damage to ALL enemies for each Swell, then Strand.${now}`;
     },
-    play: (A, v) => { A.wave(v.per * A.tide()); A.drain(); },
+    play: (A, v) => {
+      const damage = v.per * A.tide();
+      if (v.strandFirst) A.drain();
+      A.wave(damage);
+      if (!v.strandFirst) A.drain();
+    },
   });
   card('galeheart', {
     name: 'Gale Heart', type: 'rite', rarity: 'rare', cost: 1, target: 'none',
-    v: { might: 2 }, up: { might: 3 }, art: 'c_galeheart',
+    v: { might: 2 }, up: { might: 3 }, refit: { name: 'Tailwind Heart', cost: 0 }, art: 'c_galeheart',
     text: (v) => `Gain ${v.might} Might.`,
     play: (A, v) => A.buff('might', v.might),
   });
   card('toppledtower', {
     name: 'Toppled Tower', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', costDown: 'crests',
-    v: { dmg: 18 }, up: { dmg: 25 }, art: 'c_toppledtower',
+    v: { dmg: 18 }, up: { dmg: 25 }, refit: { name: 'Falling Tower', cost: 2 }, art: 'c_toppledtower',
     text: (v, k) => `Deal ${k.d(v.dmg)} damage. Costs 1 less for each Crest you made this turn.`,
     play: (A, v, t) => A.hit(t, v.dmg),
   });
   card('stormsurge', {
     name: 'Storm Surge', type: 'skill', rarity: 'rare', cost: 1, target: 'none', sink: true,
-    v: { surge: 6 }, up: { cost: 0 }, art: 'c_stormsurge',
+    v: { surge: 6 }, up: { cost: 0 }, refit: { name: 'Storm Break', surge: 7 }, art: 'c_stormsurge',
     text: (v) => `Surge ${v.surge}. Sink.`,
     play: (A, v) => A.surge(v.surge),
   });
   card('springtide', {
     name: 'Spring Tide', type: 'skill', rarity: 'rare', cost: 1, target: 'none', sink: true,
-    v: {}, up: { cost: 0 }, art: 'c_springtide',
-    text: () => `Strand, then Crest. Sink.`,
-    play: (A) => { A.lowWater(); A.crest(); },
+    v: {}, up: { cost: 0 }, refit: { name: 'Spring Flood', surge: 2 }, art: 'c_springtide',
+    text: (v) => `Strand, then Crest.${v.surge ? ` Surge ${v.surge}.` : ''} Sink.`,
+    play: (A, v) => { A.lowWater(); A.crest(); if (v.surge) A.surge(v.surge); },
   });
 
   // ---------- Status & curse ----------
