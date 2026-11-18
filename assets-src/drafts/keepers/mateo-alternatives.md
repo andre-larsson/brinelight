@@ -33,3 +33,17 @@ Costume and pose: faded brick-red canvas vest over matching rolled cream shirt s
 ```text
 Costume and pose: pale unbleached collarless work shirt with dark moss shoulder braces and equal elbow-high sleeves, a muted honey-ochre oilskin half apron tied at the waist, charcoal trousers and worn boots. A taller walking stance, shifting weight onto the forward boot, the shield angled out to his left and the mallet held upright at chest height ready to work. His shield and mallet stay separated in the outline. The waist apron provides the warm color accent; pale shirt dominates the upper body.
 ```
+
+## Harbour blue guard
+
+Harbour blue supplied the outfit and face. Brick red supplied the stance reference. [Guard sprite](mateo-harbour-blue-guard.webp)
+
+```text
+Use case: identity-preserve. Create a wide-stance combat sprite for Brinelight. Image 1 is the edit target, Mateo in Harbour Blue. Image 2 is a pose reference only, for the width of the stance and readiness of the hands.
+
+Keep the man and outfit from Image 1. Preserve Mateo's recognizable face, short dark curls, mustache, warm complexion, wiry build, storm-blue waxed short jacket, cream shirt and rolled cuffs, russet neckerchief, charcoal trousers, worn boots, and lit brass belt lantern. Keep the same short wooden cooper's mallet and the same round barrel-lid shield. Match the textured, naturalistic hand-painted finish and palette of Image 1.
+
+Change the pose to a deliberate, grounded guard facing three-quarter toward screen right. Set his boots wide, one a little forward, both planted, knees slightly bent and shoulders turned toward the enemy. Bring the barrel-lid shield up and a little forward on his left forearm, with its rim clear of his face. Keep one practical forearm strap and one hand grip visible, and the wooden lid entirely outside his arm. His right hand holds the short mallet ready at shoulder height, with the mallet head clear of his hair. Both arms have matching natural muscle mass and length. Keep the shield arm at about the same depth as the mallet arm so neither is enlarged by foreshortening. The blue jacket and both cream cuffs should still read at phone size. Keep his face focused and recognizable.
+
+One full-body vertical 2:3 game sprite, head and soles visible, with padding on every side around the boots, shield and mallet. Genuine alpha transparency everywhere outside the figure and its items. No ground, cast shadow, scenery, drawn checkerboard or text.
+```
