@@ -11,7 +11,8 @@
    when nothing else is left to play. { noShop, noTonics, lateSwellOnly } together play exactly like the bot before
    2026-11-14, which never shopped, never drank a tonic and never Stirred mid-turn. shopOrder and removeId change the
    shopping (see shop()); skipCards, keepsake(run, choices), route(run, nodes), toll(run) (how to pay a toll bell), home (go home after
-   that level's pin). refit: 2 forces alternate refits for a balance comparison; the default is the original +. */
+   that level's pin). refit: 2 forces alternate refits for a balance comparison; the default is the original +.
+   finalRetry takes the Belfry rematch on a fall. The default stops at the first loss. */
 'use strict';
 const path = require('path');
 
@@ -48,7 +49,7 @@ function chooseCombatAction(run) {
     }
   }
   // 2. block if the enemies would get damage through
-  let incoming = 0;
+  let incoming = c.thrash || 0;
   E.alive(c).forEach((e) => { const info = E.intentInfo(run, e); if (info && info.dmg) incoming += info.dmg * info.hits; });
   const unblocked = incoming - c.player.ward;
   const wardOf = (card) => { const v = E.vals(card); return v.ward || 0; };
@@ -161,11 +162,11 @@ function tonicPreview(run, slot, target) {
   c.enemies.forEach((e, i) => { const e2 = c2.enemies[i]; if (e2 && e2.dead && !e.dead) kills++; });
   return { won: c2.won, kills };
 }
-/* Damage the enemies' intents would get through this turn's Ward. */
+/* Damage the enemies and Thrash would get through this turn's Ward. */
 function unblocked(run) {
   const { E } = load();
   const c = run.combat;
-  let incoming = 0;
+  let incoming = c.thrash || 0;
   E.alive(c).forEach((e) => { const info = E.intentInfo(run, e); if (info && info.dmg) incoming += info.dmg * info.hits; });
   return incoming - c.player.ward;
 }
@@ -366,7 +367,11 @@ function step(run, opts = {}) {
   }
   if (s === 'combat') {
     const c = run.combat;
-    if (c.lost) { run.screen = 'defeat'; return 'defeat'; }
+    if (c.lost) {
+      if (opts.finalRetry && E.canRetryFinal(run)) { run.screen = 'lastchance'; E.retryFinal(run); return 'retry'; }
+      run.screen = 'defeat';
+      return 'defeat';
+    }
     if (c.won) { E.finishCombat(run); return 'won'; }
     const tn = opts.noTonics ? null : chooseTonic(run, false);
     if (tn && E.useTonic(run, tn.slot, tn.target)) return 'tonic';

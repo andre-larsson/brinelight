@@ -326,12 +326,27 @@
 
   BL.CARDS = CARDS;
   BL.STARTER_DECK = ['jab', 'jab', 'jab', 'jab', 'brace', 'brace', 'brace', 'brace', 'swell', 'slack'];
+  BL.HESTER_JOBS = [
+    { id: 'log', name: 'Keeper’s log', marker: 'Log', pay: 8, stop: 'event',
+      brief: 'Hester shows you where the old keeper hid a log in an oilskin wrap. Search the marked Fog landing in the Shallows.',
+      found: 'Behind a loose stone you find an oilskin wrap tied with cord. The log inside is still dry.',
+      home: 'Hester opens the log and recognizes the old keeper’s hand. She sets it beside the harbour record.' },
+    { id: 'plate', name: 'Buoy’s nameplate', marker: 'Nameplate', pay: 12, stop: 'event',
+      brief: 'Hester used to hear the old buoy on foggy nights. Look for its brass nameplate at the marked Fog landing in Dark Water.',
+      found: 'You work the plate loose from a tangle of broken chain. Under the salt you can still read the letters that spelled Saltmere.',
+      home: 'Hester rubs the last of the salt out of the letters. She remembers polishing them as a young keeper.' },
+    { id: 'tag', name: 'Lamplighter’s tag', marker: 'Tag', pay: 16, stop: 'pocket',
+      brief: 'The last lamplighter carried a brass tally stamped with his name. Hester asks you to search under the first lesser bell in the Belfry.',
+      found: 'Your glove catches a small brass tag on a hook inside the bell. There is a name under the green tarnish.',
+      home: 'Hester reads the name out loud and adds it to the harbour record. Now the town knows who tended the bell last.' },
+  ];
+  BL.CASK_NOTE = 'If you reach the boat in the fog, knock three times on the gunwale. If the line pulls you over, cut it. One of us has to get home.';
   BL.KEEPERS = {
     wren: { name: 'Wren', title: 'Wren, the Keeper', portrait: 'keeper', final: 'darkwatch', skill: 'First Ring',
       desc: 'Your first Bail or Stir each fight costs 0 Light.' },
     mateo: { name: 'Mateo', title: 'Mateo, the Cooper', portrait: 'mateo', guard: 'mateo_guard', suit: 'mateo_suit', strikeArt: 'c_mallet',
       dread: 'splitcask', level: 1, final: 'lasthoop', skill: 'Shield Bash',
-      desc: 'Spend 4 Ward to deal 6 damage. Once a turn, using a Bail or Stir action.',
+      desc: 'Spend 4 Ward to deal 6 damage. Bash costs 0 Light and uses one of your Bail or Stir actions. Once per turn.',
       quiet: 'The last hoop drops. You lift the lid and wait. Only water comes out. You take the loose end of the line home to tell Hester who held the other end.' },
   };
   BL.REWARD_POOL = {
@@ -366,7 +381,7 @@
     // Hold and Roiled read the engine's numbers: js/engine.js defines them again as getters once its constants exist
     Hold: 'How much Roil the aether around you holds while it stays Calm. The lantern in the Workshop raises it for good.',
     Seep: 'Seawater shed by a Roiled aether: an unplayable card shuffled into your draw pile at the start of each fight. It is gone after the fight.',
-    Thrash: 'A Roiled aether thrashes, and it strikes you through a fight. Thrash 1: at the start of each of your turns, take 1 damage. Ward you still have from the turn before stops it.',
+    Thrash: 'A Roiled aether strikes after the enemies act. Thrash 1 deals 1 damage. Any Ward left from your turn can block it.',
     Doused: 'Something drank from your lantern: you start each turn with that much less Light, until you Crest or Strand.',
     Submerged: 'Sunk out of reach until it next acts. You cannot target it, and attacks cannot reach it, but Crests and other waves still hit it. A Strand brings it up.',
     Shell: 'Its Ward does not wash away from turn to turn. A Strand still strips it.',
@@ -953,7 +968,7 @@
       pocketArt: 'pocket', // under a lesser bell (v0.37.0)
       pocket: 'A lesser bell hangs here from a beam of the old tower, and air is caught under it. You come up into the dark inside the bronze, open your helmet and breathe.',
       stair: 'Below Dark Water the stair goes on down into the sea. On the last dry step you check the seams of the diving dress, light its sealed lamp, and rest a while before you go under.',
-      win: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. The thing that grew into the bell lets go of the Heart and sinks away into the dark under the floor. You carry the Heart up three levels of stairs, and by dawn the great light of Saltmere is turning again. Hester watches it from the gallery.',
+      win: 'The thing that grew into the Bellwether lets go of the Lantern Heart and sinks below the Belfry floor. You carry the Heart up three levels of stairs. By dawn the great light is turning again, and Hester and Bosun watch the boats go out.',
       quiet: 'The keeper in your coat goes out like a pinched wick, and the Belfry goes quiet. The broken bell hangs still over the place where the Heart lay, and a faint light stays behind there, as it always does. You climb home, and the great light is still turning.',
       /* The Belfry is a dive (v0.37.0, E.DIVE): two Dreads, each guarded, a lesser bell after each, then the pin. Before
          v0.37.0 it was a map like the others, with easy and hard fights of its own creatures. */
@@ -1304,15 +1319,19 @@
         { art: 'scenes/sc_fall', pos: '58% center', wide: 'center 35%', zoom: 1.04, // v0.46.0's picture: Bosun on the shore side
           text: 'The cold water closed over your lantern, and the sea gave you back. Bosun went in after you and hauled you up out of the surf by your collar, barking until Hester came down the rock with a lantern and a blanket. In your lantern an ember was still alight.' },
       ] },
+      unbound: { at: 'rise:bell', beats: [
+        { art: 'scenes/sc_heart1', pos: 'center', wide: 'center 35%', cue: 'pin2',
+          text: 'The Bellwether’s bronze breaks. Something with one eye and many arms pulls itself from the wreck. The Heart’s light reaches your lantern. It mends you and gives you one more Light each turn.' },
+      ] },
       heart: { at: 'heart', beats: [
-        { art: 'scenes/sc_heart1', pos: 'center', wide: 'center 35%', zoom: 1.04, sfx: 'bell',
-          text: 'The Bellwether\'s bronze breaks, and the Lantern Heart\'s light pours out through the water. Something lets go of it: a thing with one eye and many arms, which grew into the bell in the hundred years nobody came down. It sinks away into the dark under the floor. You do not know if you killed it.' },
+        { art: 'scenes/sc_heart1', pos: 'center', wide: 'center 35%', zoom: 1.04, cue: 'home',
+          text: 'The Thing lets go of the Lantern Heart and sinks into the dark under the Belfry floor. All the little bells go still. For the first time since you came down, you can hear your own breath.' },
         { art: 'scenes/sc_heart2', pos: '68% center', wide: 'center 25%', zoom: 1.04,
-          text: 'You carry the Heart up three levels of stairs. The water runs away in front of it.' },
-        { art: 'scenes/sc_heart3', pos: '45% center', wide: 'center 20%', zoom: 1.04,
-          text: 'By dawn the great light of Saltmere is turning again. Hester is out on the gallery to see it, and Bosun will not stop barking. The sea has stopped rising, and the boats go out past the rocks.' },
-        { art: 'scenes/ev_heartglow', pos: 'center', wide: 'center 60%', zoom: 1.04,
-          text: 'The Bellwether is silent. But in the Belfry a faint light stayed behind where the Heart lay, and things still grow toward it. Saltmere will need a keeper who goes down.' },
+          cue: 'home', text: 'You carry the Heart up three levels of stairs. The water runs away in front of it.' },
+        { art: 'scenes/ev_heartglow', pos: 'center', wide: 'center 60%', zoom: 1.04, cue: 'home',
+          text: 'A faint light stays behind where the Heart lay. Things still grow toward it. Saltmere will need a keeper who goes down.' },
+        { art: 'scenes/sc_heart3', pos: 'center', framed: true, song: 'bells',
+          text: 'By dawn the great light of Saltmere is turning again. Hester and Bosun watch from the path below the tower. The sea has stopped rising, and the boats go out past the rocks.' },
       ] },
       // the first time Wren beats her own fear (v0.37.0)
       watch: { at: 'quiet', beats: [
@@ -1321,15 +1340,35 @@
         { art: 'scenes/op_lighthouse', pos: '78% center', wide: 'center top', zoom: 1.08,
           text: 'You climb home. The great light is turning, as it has every night since the Heart came home. In the keeper\'s room you turn the watch glass over, and for the first time since that night you sleep through to morning, with Bosun across the foot of the bed.' },
       ] },
+      knocking: { at: 'lead:mateo', beats: [
+        { art: 'scenes/end_home_lit', pos: '55% center', wide: 'center 35%', cue: 'haul',
+          text: 'The great light has been turning for days. Last night Wren dreamed she heard three knocks from inside a cask. This morning, Bosun stopped at the stair to Dark Water and listened. Something knocked back. Look for the marked Dread in Dark Water, and bring home whatever you find.' },
+      ] },
+      cask: { at: 'dread:mateo', beats: [
+        { art: 'bg/bg_dark_boss', pos: 'center', cue: 'fog',
+          text: 'The last stave splits. An oilskin packet slips out with a note inside. Break the Tolling Buoy, then take the note home to Hester.', quote: BL.CASK_NOTE },
+      ] },
       mateo: { at: 'keeper:mateo', beats: [
-        { art: 'scenes/end_home_lit', pos: '55% center', wide: 'center 35%',
-          text: 'When Wren gets home, a cooper is waiting by the door. He knows the three knocks. It was the signal he and his brother used. During the flood, Mateo sat in a rescue boat with the line tied around his waist. The water took his brother, and the line began pulling Mateo over the side.' },
-        { art: 'scenes/sc_mateo_lamp', pos: 'center 31%', wide: 'center 32%', together: true,
-          text: '“I cut the line,” Mateo says. “It would have taken us both.” He brings his workshop lamp up to the Heart. Wren shows him how to trim a wick. “Stay while I try again?” he asks. She pulls up a stool.' },
+        { art: 'scenes/workshop', pos: 'center', cue: 'haul', quote: BL.CASK_NOTE,
+          text: 'Wren reads the note aloud and hands it to Hester. Neither can place the handwriting or say who the signal was meant for.' },
+        { art: 'scenes/end_home_lit', pos: 'center', cue: 'reach', night: true, next: 'Wait until morning',
+          text: 'They leave the note on the table. Hester puts out the kitchen lamp, and the great light keeps its watch.' },
+        { cue: 'reach', sfx: 'knock', next: 'Open the door',
+          text: 'At first light there are three knocks at the lighthouse door.' },
+        { art: 'scenes/sc_mateo_door', pos: '65% center', wide: 'center 24%', together: true, cue: 'haul',
+          text: 'A cooper named Mateo stands on the step. “I’ve been dreaming about a cask,” he says. Wren shows him the note. He knows the signal. Hester asks him in and pulls a chair up to the table.' },
+        { art: 'scenes/sc_mateo_memory', pos: '52% center', wide: 'center 29%', cue: 'reach',
+          text: '“My brother and I used three knocks when we couldn’t see each other. During the flood I stayed in the rescue boat. The line was tied around my waist. He held the other end.”' },
+        { art: 'scenes/sc_mateo_memory', pos: 'center 70%', wide: 'center 60%', cue: 'reach',
+          text: '“The water took him. It pulled me hard against the side and I cut the line. I know we’d both have drowned. Some nights I still wake up feeling it go tight.”' },
+        { art: 'scenes/op_lighthouse', pos: '74% center', wide: 'center top', cue: 'haul',
+          text: 'Mateo lights his workshop lamp at the Heart. There’s no spare room in the lighthouse, so he takes one at the Saltmere inn. At the next low tide he’ll come back to go all the way to the Belfry. He wants to hear those knocks himself.' },
       ] },
       hoop: { at: 'quiet:mateo', beats: [
         { art: 'bg/bg_belfry_boss', pos: 'center', wide: 'center 40%',
           text: 'The last hoop gives. Mateo lifts the lid and waits for the three knocks. Only water comes out. He coils the loose end of the rescue line and carries it up the stair. This time he’ll tell Hester who was holding the other end.' },
+        { art: 'scenes/sc_mateo_lamp', pos: 'center 31%', wide: 'center 32%', together: true,
+          text: 'After Mateo gives Hester his brother’s name for the harbour record, Wren takes him up to the lamp room. She shows him how to trim the wick he took down. “Stay while I try again?” he asks. She pulls up a stool.' },
         { art: 'scenes/sc_mateo_tea', pos: 'center 22%', wide: 'center 37%', together: true,
           text: 'Wren is sitting on the lighthouse step with two mugs. Mateo sets his lamp between them and sits down. “You waited up,” he says. “Your tea went cold. Twice.” They sit a while before either of them gets up.' },
       ] },
@@ -1364,7 +1403,7 @@
       { id: 'heart', title: 'The Heart comes home', when: 'heart', lock: 'Bring the Heart home.', scene: 'heart', text: [
         'The Bellwether hung in the Belfry over the Lantern Heart, and it rang with no hand on its rope. When its bronze broke, the Heart\'s light poured out through the water, and something came out of the bell with it: a thing with one eye and many arms, which had grown into the bronze in the hundred years nobody came down.',
         'You do not know if you killed it. When it let go of the Heart, it sank away into the dark under the floor.',
-        'You carried the Heart up three levels of stairs. By dawn the great light of Saltmere was turning again, and the water stopped rising. Hester was out on the gallery to see it.',
+        'You carried the Heart up three levels of stairs. By dawn the great light of Saltmere was turning again, and the water stopped rising. Hester and Bosun watched from the path below the tower.',
       ] },
       { id: 'followed', title: 'Why the fire followed', when: 'heart', lock: 'Bring the Heart home.', text: [
         'Every keeper\'s hand-bell is tuned to the Bellwether, and every keeper\'s lantern is lit from the Lantern Heart. The great bell leads and the small ones follow. That is what a bellwether is: the sheep that wears the bell, and the flock walks behind it.',
@@ -1382,9 +1421,9 @@
         'It went out like a pinched wick. You do not know if it was ever really there. The deep will grow it back, the way the bell brought back the water. Next time you will know its face. You climbed home, and the great light was turning.',
       ] },
       { id: 'mateo', title: 'A Second Lamp', when: 'keeper:mateo', lock: 'Follow the strange knocking in Dark Water after the Heart comes home.', scene: 'mateo', text: [
+        'Wren brought a note home from the Split Cask. She and Hester puzzled over it until dark. At first light Mateo knocked at the lighthouse door. He had been dreaming about a cask, and the three knocks in the note were a signal he and his brother used.',
         'Mateo was in the rescue boat, with the line tied around his waist. His brother held the far end. When the flood took his brother, the line pulled Mateo against the gunwale. He cut it before it dragged him over. His brother never came back.',
-        'Mateo knows they both would have drowned. He still wakes feeling the rope tighten. When Wren tells him something knocked three times inside the cask, he knows the signal. He wants to hear it himself.',
-        'Mateo brought his workshop lamp to the Heart. Wren stayed while he learned to trim the wick. Now he can go down as a keeper.',
+        'Mateo lit his workshop lamp at the Heart and took a room at the inn in Saltmere. He means to go all the way down to the Belfry and hear the knocks himself.',
       ] },
       { id: 'hoop', title: 'The Last Hoop', when: 'quiet:mateo', lock: 'Quiet the Belfry as Mateo.', scene: 'hoop', text: [
         'The cask beneath the silent bell was larger than any he had made. Every time he reached for its lid, he heard the three knocks. When it finally opened, only water came out.',
@@ -1450,7 +1489,7 @@
       { id: 'seep', title: 'A Roiled aether', when: 'roiled', lock: 'Carry more Roil than your Hold.', art: 'cards/c_seep',
         text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether thrashes like a hooked fish. It has no aim. It strikes whoever stands nearest, again and again, and each blow takes a little of you unless you are still braced for it. That is Thrash. Further still, and the noise carries. The Bellwether listens for it, and sends a Bell Minnow to find what is calling. A thrashing aether also shakes Pearls loose from the rock and from whatever you fight in it, so a keeper who can stand it comes home richer. To calm it, drop a keepsake, give one to the sea at a Cove, or bring fewer from home.' },
       { id: 'lazaret', title: 'A night in the Lazaret', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/lazaret',
-        text: 'A lazaret is a ship\'s store locker, and also a house where the sick are kept apart. The keepers\' Lazaret is a little of both. A keepsake fresh from the Reach still answers the Bellwether, and the bell calls it back if its finder falls. One night shut in the Lazaret breaks that pull. After that the keepsake answers its keeper, and it turns up in the Lazaret again even if she leaves it behind in the caves. Hester keeps the key.' },
+        text: 'A lazaret is a ship’s store locker, and also a house where the sick are kept apart. The keepers’ Lazaret is a little of both. Hester locks the keepsakes inside to shut in their Roil. If you take one down again, the sea can claim it. Every keepsake you bring back goes into the store.' },
       { id: 'hester', title: 'Hester', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/op_home',
         text: 'Hester kept the light for forty years. She taught you to trim a wick, to read the tide-board and to ring a hand-bell so the water listens. When her knees gave out on the tower stairs she gave you her lantern, and the keeping with it, so she is not a keeper any more. Like every keeper since the Lost Lamplighter, she never went down the stair. What she knows of the Reach is in the keepers\' book, which she keeps and you read. When you come home, the kettle is on.' },
       { id: 'bosun', title: 'Bosun', when: 'fell', lock: 'Fall in the Reach.', art: 'scenes/sc_fall',
@@ -1494,7 +1533,7 @@
       { id: 'harbour', title: 'The Harbour Hermit', when: 'en:harbour', lock: 'Found on the last landing of the Shallows.', art: 'units/harbour',
         text: 'Saltmere\'s harbour bell hung on the harbour wall and rang the boats home in fog, until a winter storm tore it down. A hermit crab grew into it as it would into any shell, and kept growing. Now it answers the Bellwether, and it holds the water over the Shallows\' stair. It pulls into the bell and stays there, and its Ward stays with it. A Crest rings the bell around its ears, and a Strand leaves it stuck on the rock: either one shakes it out.' },
       { id: 'splitcask', title: 'The Split Cask', when: 'dread:mateo', lock: 'Beat the Dread that knocks in Dark Water.', art: 'units/splitcask',
-        text: 'The cask has a cooper’s stamp on one stave and a warp in the wood where a rope bit into it. You heard three knocks from inside. Hester knows the stamp. Bring the note home to her.' },
+        text: 'The cask has a cooper’s stamp on one stave and a warp in the wood where a rope bit into it. You heard three knocks from inside. An oilskin packet fell out when the staves split. Bring the note inside it home to Hester.' },
       { id: 'lasthoop', title: 'The Last Hoop', when: 'en:lasthoop', lock: 'Found in the Belfry.', art: 'units/lasthoop',
         text: 'Left in the held water, the cask swelled until only the last hoop held it. When it gives way, the water it has held rushes out. Strip its Ward with a Strand to ease the blow.' },
       // the Belfry

@@ -5,8 +5,16 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.53.0';
+  BL.VERSION = '0.54.0';
   BL.CHANGELOG = [
+    { v: '0.54.0', date: '2026-11-19', items: [
+      'Hester marks a job at each depth. You see what to look for before setting out and bring the finds home for Salvage.',
+      'Follow the knocking after bringing the Heart home. Find the Split Cask’s note, return it to Hester and see who comes to the lighthouse. Mateo learns about Shield Bash on his first descent.',
+      'A fall at the Belfry’s pin offers one rematch at 85% health, at the cost of your carried keepsakes, tonics and expedition score.',
+      'Thrash hits after the enemies act. Roil Minnows arrive with half their health, and the Tolling Buoy’s two special attacks have separate Swell symbols.',
+      'Tonics appear above card rewards. The Stair confirms Take none, Go deeper is shorter, and More below follows the Lazaret and Pack scroll.',
+      'The Thing in the Bell has an entrance scene and a change of music. Harbour Bells at Dawn starts at the repainted lighthouse finale, and the Crowned Oarfish song fades in more gently.',
+    ] },
     { v: '0.53.0', date: '2026-11-18', items: [
       'After the Heart comes home, follow the knocking in Dark Water to meet Mateo, a second playable keeper.',
       'Choose a keeper when you pack. Mateo spends Ward on Shield Bash, and once he joins, Wren’s first Bail or Stir in each fight is free.',

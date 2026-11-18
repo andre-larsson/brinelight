@@ -41,7 +41,8 @@
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
-    raw.hesterDone = m.hesterDone === true;
+    raw.hesterDone = m.hesterDone;
+    raw.keeperNote = m.keeperNote;
     if (m.record && typeof m.record === 'object') raw.record = m.record;
     meta = E.migrateMeta(raw); // gear from before v0.10.0 becomes kit
   } catch (e) { /* ignore */ }
@@ -56,7 +57,7 @@
     story.opening = !!st.opening;
   } catch (e) { /* ignore */ }
   const saveStory = () => { try { localStorage.setItem(STORY_KEY, JSON.stringify(story)); } catch (e) { /* ignore */ } };
-  const storyMarks = () => story.marks.slice();
+  const storyMarks = () => story.marks.concat(Object.keys(BL.KEEPERS).filter((id) => id !== 'wren' && E.keeperOpen(meta, id)).map((id) => 'keeper:' + id));
   const storyUnread = () => { const marks = storyMarks(); return E.storyEntries().filter((en) => en.when && E.storyOpen(en, marks) && story.read.indexOf(en.id) < 0); };
 
   /* A level has a name once Wren knows of it: the Shallows always, and a deeper one once she has been there or has
@@ -126,6 +127,8 @@
     /* empty kit slots, one per place (BL.KIT_PLACES); a new place falls back to the pack */
     slot_harpoon: svg('<path d="M5 19 17.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M20.5 3.5 13 6.6l1.6.8.9 1.6.8 1.6z"/><path d="M4 16.5c1.4.2 2.6 1.4 2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.6"/>'),
     slot_bell: svg('<path d="M12 3.5a1.4 1.4 0 0 1 1.4 1.4v.5a5.6 5.6 0 0 1 4.2 5.4v4.4l2 2.8H4.4l2-2.8v-4.4a5.6 5.6 0 0 1 4.2-5.4v-.5A1.4 1.4 0 0 1 12 3.5z"/><circle cx="12" cy="20" r="1.8"/>'),
+    swell_mid: svg('<path d="m3 7 4 5-4 5m18-10-4 5 4 5M11 5h2m-1 0v14m-1 0h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
+    swell_ends: svg('<path d="m7 7-4 5 4 5m10-10 4 5-4 5M3 12h6m6 0h6m-11 1 3-6v4h2l-3 6v-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
     slot_coat: svg('<path d="M9 3.5 12 6l3-2.5 5 2.3-1.6 6.2-2.2-.7V20.5H7.8V11.3l-2.2.7L4 5.8z"/><path d="M12 6v14.5" stroke="#0b1f2c" stroke-width="1.2" fill="none"/>'),
     slot_pocket: svg('<path d="M6 6.5h12v6.8a6 6 0 0 1-12 0z"/><path d="M6 9.5h12" stroke="#0b1f2c" stroke-width="1.4" fill="none"/><circle cx="12" cy="9.5" r="1.4" fill="#0b1f2c"/>'),
     slot_ditty: svg('<path d="M9.5 6.2c-.6-1.6.4-2.7 2.5-2.7s3.1 1.1 2.5 2.7"  fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 6.5h6.8c2.6 2.4 4.1 5.6 4.1 9a5 5 0 0 1-5 5H9.5a5 5 0 0 1-5-5c0-3.4 1.5-6.6 4.1-9z"/><path d="M8.4 9h7.2" stroke="#0b1f2c" stroke-width="1.4" fill="none"/>'),
@@ -200,7 +203,7 @@
       chain: { src: 'music/songs/down-on-the-chain.mp3', resume: false, secs: 178, name: 'Down on the Chain', where: 'The Tolling Buoy' }, // the singer in the cage, djent
       gardener: { src: 'music/songs/the-gardener.mp3', resume: true, secs: 179, name: 'The Gardener', where: 'The Garden Strider' }, // the Strider sings, mostly sung
       putback: { src: 'music/songs/put-it-back.mp3', resume: true, secs: 168, name: 'Put It Back', where: 'The Garden Strider' }, // the same song, half-spoken, other verses
-      herring: { src: 'music/songs/king-of-the-herrings.mp3', resume: true, secs: 179, name: 'King of the Herrings', where: 'The Crowned Oarfish' },
+      herring: { src: 'music/songs/king-of-the-herrings.mp3', resume: true, secs: 179, fadeIn: 3, name: 'King of the Herrings', where: 'The Crowned Oarfish' },
       eye: { src: 'music/songs/remember-the-eye.mp3', resume: true, secs: 176, name: 'Remember the Eye', where: 'The Bell Yearling' }, // the user's words
       cantor: { src: 'music/songs/ring-it-once-again.mp3', resume: true, secs: 178, name: 'Ring It Once Again', where: 'The Drowned Cantor' },
       nobody: { src: 'music/songs/nobody-in-the-dress.mp3', resume: false, secs: 161, name: 'Nobody in the Dress', where: 'The Dark Watch, once Nobody Comes Home' }, // the Hollow Divers sing it
@@ -294,7 +297,11 @@
         }
       });
       s.el.addEventListener('error', () => { s.broken = true; songFailed(key); });
-      s.el.addEventListener('playing', () => heard('song:' + key));
+      s.el.addEventListener('playing', () => {
+        if (s.fadeIn && !s.out) fadeSong(s, SONG_LEVEL, s.fadeIn, 0);
+        s.fadeIn = 0;
+        heard('song:' + key);
+      });
       s.el.src = SONGS[key].src;
       return s;
     }
@@ -313,9 +320,17 @@
       const s = loadSong(key);
       clearTimeout(s.timer);
       // sync() runs on every render: a song already playing keeps its fade, a slow one in or out too
-      if (!s.out && !s.el.paused && (s.to === SONG_LEVEL || s.tail)) return;
+      if (!s.out && !s.el.paused && (s.to === SONG_LEVEL || s.tail || s.fadeIn)) return;
       s.out = false;
-      fadeSong(s, SONG_LEVEL, secs || SONG_FADE, from);
+      const fade = secs || SONGS[key].fadeIn || SONG_FADE;
+      // Wait for the first audible frame before fading in. A slow media load must start at the same level as a cached one.
+      if (s.amp && s.el.paused) {
+        fadeSong(s, 0, 0, 0);
+        s.fadeIn = fade;
+      } else {
+        s.fadeIn = 0;
+        fadeSong(s, SONG_LEVEL, fade, from);
+      }
       if (!s.el.paused) return;
       const p = s.el.play();
       // refused (no click yet) or unplayable; a pause while it starts is fine
@@ -326,6 +341,7 @@
       if (!s) return;
       clearTimeout(s.timer);
       s.out = true; // fading out
+      s.fadeIn = 0;
       s.tail = false;
       fadeSong(s, 0, secs);
       s.timer = setTimeout(() => { s.el.pause(); if (!SONGS[key].resume) s.el.currentTime = 0; }, s.amp ? secs * 1000 + 50 : 0);
@@ -489,7 +505,7 @@
     if (!run || run.tutorial) return; // the tutorial is never saved
     if (run.screen === 'victory' || run.screen === 'defeat') { clearSave(); return; } // the end screen lists its own story entries
     noteStory().forEach((en) => toast(`New in Story so far: ${en.title}`, 3500));
-    if (run.combat && (run.combat.phase !== 'player' || run.combat.won || run.combat.lost)) return;
+    if (run.screen !== 'lastchance' && run.combat && (run.combat.phase !== 'player' || run.combat.won || run.combat.lost)) return;
     try {
       E.tick(run);
       localStorage.setItem(SAVE_KEY, JSON.stringify(run, (k, v) => (k === 'fx' ? [] : v)));
@@ -616,7 +632,7 @@
     const parts = key.split(':');
     const c = run && run.combat;
     switch (parts[0]) {
-      case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. If it reaches 0, the run is over.`;
+      case 'hp': return `<b>Health</b><br>${run.hp} of ${run.maxHp}. Reach 0 and the tide takes you.`;
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
       case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.mapRows(run) + 1}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? (E.deepestReachable(run) === (run.level || 0) ? ' Below it the stair runs under the sea, and you have nothing to dive in: this pin is as deep as this expedition can go.' : ' Break it, then go home or go deeper.') : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}${k.deep ? `<div class="tip-row muted">${foundIn(parts[1])}</div>` : ''}`; }
@@ -644,7 +660,7 @@
       case 'spent': { const sp = c && spentNow(c).find((x) => x[0] === parts[1]); return sp ? spentTip(sp[0], sp[1]) : ''; }
       case 'ward': return `<b>Ward</b><br>${BL.KEYWORDS.Ward}`;
       case 'echo': return `<b>Echo ${c ? c.echo : ''}</b><br>Your next card is played twice.`;
-      case 'incoming': return `<b>Incoming damage</b><br>What the enemies intend to hit you for this turn${c && c.thrash ? `, and Thrash ${c.thrash} at the start of your next turn,` : ','} after your current Ward.`;
+      case 'incoming': return `<b>Incoming damage</b><br>What the enemies intend to hit you for this turn${c && c.thrash ? `, plus Thrash ${c.thrash} after they act,` : ','} after your current Ward.`;
       case 'intent': {
         const e = E.enemyByUid(c, parts[1]);
         if (!e) return '';
@@ -821,6 +837,8 @@
     overlayEl.hidden = false;
     ui.overlayOnClose = opts.onClose || null;
     ui.overlayLocked = !!opts.locked;
+    const scroll = $('.workshop-modal .modal-body', overlayEl);
+    if (scroll) updateScrollCue(scroll);
     const f = (opts.focus && overlayEl.querySelector(opts.focus)) || overlayEl.querySelector('[autofocus]') || overlayEl.querySelector('button, [tabindex="0"]');
     if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
   }
@@ -939,11 +957,12 @@
   }
 
   /* A choice of cards in a window (an event's, the keepers' cache): mark one, then Take it; the other button skips or goes back. */
-  function showCardChoice(ids, title, onDone, back) {
+  function showCardChoice(ids, title, onDone, cache = false) {
     const body = `<div class="card-row">${ids.map((id, i) => staticCard(pseudo(id), 'choice', `tabindex="0" role="button" aria-pressed="false" data-act="pick" data-scope="choice" data-key="${id}" data-i="${i}"`)).join('')}</div>${pickLegend('choice', null)}`;
     ui.cardChoiceDone = onDone;
     if (ui.picks) delete ui.picks.choice;
-    openOverlay(modal(title, body, `<button class="btn" data-act="choosecard" data-id="">${back || `Skip (+${E.DECLINE_SCORE.eventCard} score)`}</button>${pickOkBtn('choice', null)}`, '', true), { locked: true });
+    const skip = cache ? '<button class="btn danger" data-act="cacheleave">Take none</button>' : `<button class="btn" data-act="choosecard">Skip (+${E.DECLINE_SCORE.eventCard} score)</button>`;
+    openOverlay(modal(title, body, skip + pickOkBtn('choice', null), '', true), { locked: true });
   }
 
   /* How to Play: a short reference in tabs. The tutorial teaches; this is for looking things up. */
@@ -971,7 +990,8 @@
         <li>On the last landing of each level waits its <b>pin</b>, a boss that holds the water over the stair down. Break it, then choose: <b>go home</b> with everything you carry, or <b>go deeper</b>. On the stair down you choose <b>two</b> of six: rest deeply, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, open the keepers' cache or give a keepsake to the sea. Break the last pin to bring the Lantern Heart home.</li>
         ${levelKnown(1) && !levelKnown(2) ? `<li>Below ${levelName(1)} the stair runs under the sea. Until you have something to dive in, ${levelName(1)}'s pin is as deep as an expedition can go.</li>` : ''}
         ${levelKnown(2) ? `<li><b>The Belfry</b> is under the sea. To go down into it you must wear the <b>${BL.KIT.suit.name}</b>. It hangs above the stair the first time you break Dark Water's pin: carry it home, and from then on you can wear it in your Rig place, over your oilskin. It does nothing in a fight. Once the Heart is home, the ${MT.shop} can make you the <b>${BL.KIT.plated.name}</b>, which opens the Belfry too.</li>
-        <li><b>The Belfry is a dive</b>: no branches, no shops, no Coves. Two Dreads, each with a <b>lesser bell</b> after it, then the Bellwether. Under a lesser bell there is air: choose <b>one</b> of six there: rest, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, give a keepsake to the sea, or swim out into the dark (a Fog event).</li>
+        <li><b>The Belfry is a dive</b> with two Dreads and a <b>lesser bell</b> after each. At each bell, choose <b>one</b> action. Rest, refit, shed a card, fill up to ${E.STAIR_FLASKS} flasks, give a keepsake to the sea, or swim out into the dark (a Fog event). Recovering an item for Hester uses the action at a marked bell.</li>
+        <li>If you fall at the last pin, you can <b>face the boss again</b> once. The fight starts over at ${E.FINAL_RETRY_HP * 100}% health. You give up every carried keepsake and tonic, your score and the Salvage it would pay. A win advances the story.</li>
         <li>Once the Heart is home, the deep grows toward your own lantern. The Belfry's Dreads change, and its last landing holds your own fear. Beat it to quiet the Belfry and come home.</li>` : ''}
         <li>Each landing scores more deeper down: ${E.LEVELS.map((L, i) => i).filter(levelKnown).map((i) => `${E.LEVELS[i].landing} in ${levelName(i)}`).join(', ')}${allLevelsKnown() ? '' : ', and more below'}. Coming home adds 5 for each HP you have left. Bringing the Heart home${levelKnown(2) ? ', or quieting the Belfry,' : ''} adds ${E.FINAL_SCORE}.</li>
       </ul>${dl([
@@ -984,11 +1004,11 @@
         [`${NODE_ICON.treasure} Wreck`, `Pearls, and you may take 1 of ${E.WRECK_KEEPSAKES} keepsakes.`],
         [`${NODE_ICON.toll} Toll`, `Right after the Wreck, on every route: a bell across the way. Pay to pass: ${tollText(0)}${levelKnown(1) ? ` (in Dark Water ${tollText(1, true)})` : ''}.`],
       ]))}<ul class="help-list">
-        <li>After a Skirmish: Pearls, sometimes a tonic, and 1 of 3 cards (or skip: a small deck draws its best cards more often).</li>
+        <li>After a Skirmish, you earn Pearls and can choose one of three cards. If a tonic drops, take it above the cards while you have an empty slot.</li>
         <li>The first Skirmish in the Shallows offers a <b>Surge</b> card, an <b>Ebb</b> card and a <b>wildcard</b> from the usual reward pool.</li>
-        <li>At a fork, Bosun may tell you which creatures wait at one reachable Dread.</li>
+        <li>At a fork, Bosun names the creatures on one marked Dread route. Use the warning to choose a path or ready a tonic.</li>
         <li>When you refit a card by choice, compare its two versions and pick one. Each copy can be refitted once. Cards you find already upgraded and random upgrades use the standard + version.</li>
-        <li>Hester asks you to recover a log from a marked Fog stop in the Shallows. Bring it home after breaking a pin for a one-time payment of ${E.HESTER_PAY} Salvage.</li>
+        <li>Hester marks a recovery job at each depth. At the marked landing, you can spend the stop’s choice on her find. Clear that depth and bring it home for Salvage. A fall loses the find and you can try again.</li>
         <li>Bonus Pearls for <b>Flawless</b> (no HP lost), <b>Swift</b> (3 turns or less, 4 for Dreads), <b>Tidal Fury</b> (2+ Crests in a turn) and <b>High and Dry</b> (2+ Strands in a turn).</li>
         <li><b>Keepsakes</b> last the whole expedition, and each stirs the aether around you: its <b>Roil</b>. The aether around you holds ${E.HOLD} Roil: your <b>Hold</b>.${E.HOLD_STEP ? ` The first time you reach Dark Water, and again the first time you reach the Belfry, your Hold grows by ${E.HOLD_STEP} for good.` : ''}${workshopOpen() ? ` In the ${MT.shop}, a steadier lantern adds ${E.HOLD_UP.step} to your Hold for each of its ${E.HOLD_UP.prices.length} steps.` : ''} Up to your Hold the aether is <b>Calm</b>. Past it the aether is <b>Roiled</b>. ${ROIL_LADDER}. There are never more than ${E.MAX_ROIL_MINNOWS} Bell Minnows. ${ROIL_PAYS}. You can drop a keepsake between fights, or give one to the sea at a Cove or on the stair: you ${SEA_PAYS} and upgrade a card.</li>
         <li><b>Deeper finds are stronger.</b> Some keepsakes are found only ${levelKnown(2) ? 'in Dark Water and deeper, or only in the Belfry' : levelKnown(1) ? 'in Dark Water and deeper' : 'below the Shallows'}, and they carry more Roil. There, the first keepsake in every Wreck, Dread's pick and shop is one of the level's own, while any are left.</li>
@@ -1058,7 +1078,7 @@
     if (short) return parts.join(', ');
     return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts.join('');
   }
-  const ROIL_LADDER = `Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step, and each step adds one thing to every fight: first a <b>Seep</b> (an unplayable card), then <b>Thrash</b> (1 damage at the start of each turn, unless you kept Ward for it), then a <b>Bell Minnow</b> (an extra enemy, at half health), then a second Seep, and so on round`;
+  const ROIL_LADDER = `Every ${E.SEEP_STEP} Roil over (or part of ${E.SEEP_STEP}) is one step. Each step adds one thing to every fight. First a <b>Seep</b> (an unplayable card), then <b>Thrash</b> (1 damage after the enemies act, blockable with leftover Ward), then a <b>Bell Minnow</b> (an extra enemy, at half health). The ladder then repeats`;
   const SEA_PAYS = `heal ${E.SEA_HEAL} HP for each fight you won while carrying it (never more than a Cove's rest)`;
   const ROIL_PAYS = `A Roiled aether also pays: <b>${E.ROIL_PAY} more Pearls</b> after each fight for each step`;
   /* What a Roiled aether pays after each fight: "+16 Pearls". */
@@ -1164,25 +1184,25 @@
         art.style.height = Math.max(min, Math.floor(h - over - 2)) + 'px';
       }
     }
-    if (!sc._cue) { sc._cue = true; sc.addEventListener('scroll', () => updateScrollCue(sc), { passive: true }); }
     updateScrollCue(sc);
   }
   function updateScrollCue(sc) {
     const body = sc.parentElement;
     if (!body) return;
-    let cue = $('.scroll-cue', body);
-    const more = sc.scrollHeight - sc.clientHeight - sc.scrollTop > 16;
+    if (!sc._cue) { sc._cue = true; sc.addEventListener('scroll', () => updateScrollCue(sc), { passive: true }); }
+    let cue = $(':scope > .scroll-cue', body);
+    const more = sc.scrollHeight - sc.clientHeight - Math.max(0, sc.scrollTop) > 2;
     if (!cue && more) {
       cue = document.createElement('button');
       cue.type = 'button';
       cue.className = 'scroll-cue';
-      cue.tabIndex = -1;
-      cue.setAttribute('aria-hidden', 'true');
       cue.innerHTML = `More below ${ICON.chevron}`;
-      cue.addEventListener('click', () => sc.scrollBy({ top: sc.clientHeight * 0.7, behavior: 'smooth' }));
+      cue.addEventListener('click', () => sc.scrollBy({ top: sc.clientHeight * 0.7, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
       body.appendChild(cue);
     }
-    if (cue) cue.hidden = !more;
+    if (!cue) return;
+    cue.hidden = !more;
+    if (more && sc.classList.contains('modal-body')) cue.style.bottom = `${body.getBoundingClientRect().bottom - sc.getBoundingClientRect().bottom + 8}px`;
   }
   /* The music and the place's own sounds follow the screen: the score has a cue for each kind of screen
      (see music/brinelight.scrim), and its intensity is the depth, as is the echo on the sound effects. */
@@ -1208,8 +1228,8 @@
       band = E.bandId(run);
       depth = Math.max(0, ['shallows', 'dark', 'belfry'].indexOf(band));
       const c = run.screen === 'combat' && run.combat;
-      if (run.screen === 'victory') { cue = run.heart || run.quieted ? 'home' : 'haul'; if (run.heart) song = 'bells'; } // the Heart home: Harbour Bells at Dawn; an early return: Home with Your Haul
-      else if (run.screen === 'defeat') cue = 'fallen';
+      if (run.screen === 'victory') { cue = run.heart || run.quieted ? 'home' : 'haul'; if (run.heart && story.scenes.includes('heart')) song = 'bells'; }
+      else if (run.screen === 'defeat' || run.screen === 'lastchance') cue = 'fallen';
       else if (c) {
         cue = c.kind === 'boss' ? (c.phase2 ? 'pin2' : 'pin') : c.kind === 'elite' ? 'dread' : band === 'dark' ? 'murk' : 'fight'; density = c.kind === 'boss' ? 0 : 0.5;
         // the Hermit has two songs, and one plays for the whole fight (fightSong chooses it when the fight starts)
@@ -1218,7 +1238,8 @@
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'buoy')) cue = 'buoy'; // its own music-box piece (v0.36.0; Tide Swings Its Tongue before)
         // a fight with songs of its own (FIGHT_SONGS) plays the one fightSong chose; the Buoy's 'box' is its music-box piece
         if (c.song && Sound.juke.SONGS[c.song]) song = c.song;
-        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bell' || e.id === 'bellthing')) song = 'bell'; // its second phase is the Thing in the Bell
+        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bell')) song = 'bell';
+        if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'bellthing')) cue = 'pin2';
         // the Dark Watch plays Her Own Bell (watch) until it calls Nobody Comes Home, a Hollow Diver; then the Divers' song
         if (c.kind === 'boss' && c.enemies.some((e) => e.id === 'darkwatch')) { if (c.phase2) song = 'nobody'; else cue = 'watch'; }
       } else {
@@ -1229,6 +1250,10 @@
           song = shopSong;
         }
       }
+    }
+    const beat = ui.opening?.beat;
+    if (beat?.cue || beat?.song) {
+      cue = beat.cue || 'home'; song = beat.song || null; density = 0;
     }
     inShop = !!run && run.screen === 'shop';
     if (E.noteMusicProgress(meta, run, story.marks)) saveMeta();
@@ -1279,10 +1304,13 @@
       case 'toll': return renderToll();
       case 'victory': return renderEnd(true);
       case 'defeat': return renderEnd(false);
+      case 'lastchance': return renderLastChance();
     }
   }
 
   /* ----- Title ----- */
+  const knockingLead = () => E.heartIsHome(meta) && !E.keeperOpen(meta, 'mateo');
+  const newDescentLabel = () => meta.keeperNote ? 'Someone at the door' : knockingLead() ? 'Follow the knocking' : 'New Descent';
   function renderTitle() {
     const saved = loadSave();
     // once the Heart is home the lighthouse on the title screen is lit (v0.37.0, the user's idea)
@@ -1290,10 +1318,10 @@
       <div class="title-corner"><button class="icon-btn" data-act="menu" aria-label="Settings">${ICON.menu}</button></div>
       <div class="title-now"></div>
       <div class="logo">BRINELIGHT</div>
-      <p class="tagline">${E.keeperOpen(meta, 'mateo') ? 'The Lantern Heart is home. The light turns over Saltmere, and two keepers go down into the Reach.' : BL.STORY.title}</p>
+      <p class="tagline">${knockingLead() ? (meta.keeperNote ? 'The note lies on Hester’s table. Someone has come to the lighthouse.' : 'The Lantern Heart is home. Something in Dark Water is knocking back.') : E.heartIsHome(meta) ? 'The Lantern Heart is home. The light turns over Saltmere, and two keepers go down into the Reach.' : BL.STORY.title}</p>
       <div class="title-buttons">
         ${saved ? `<button class="btn primary" data-act="continue" autofocus>Continue (${LevelName(saved.level)})</button>` : ''}
-        <button class="btn ${saved ? '' : 'primary solo'}" data-act="newrun" ${saved ? '' : 'autofocus'}>New Descent</button>
+        <button class="btn ${saved ? '' : 'primary solo'}${meta.keeperNote || (knockingLead() && !story.scenes.includes('knocking')) ? ' story-lead' : ''}" data-act="newrun" ${saved ? '' : 'autofocus'}>${newDescentLabel()}</button>
         ${workshopOpen() ? `<button class="btn ghost second ws-btn${lazaretOpen() ? '' : ' span'}" data-act="workshop" aria-label="${MT.shop}: ${meta.salvage} ${MT.currency}">${ICON.salvage}${MT.shop} <small>${meta.salvage}</small></button>` : ''}
         ${lazaretOpen() ? `<button class="btn ghost second${workshopOpen() ? '' : ' span'}" data-act="lazaret" aria-label="Lazaret: ${E.lazKinds(meta).length} of ${KS_TOTAL} kinds of keepsake">Lazaret <small class="btn-count">${E.lazKinds(meta).length}/${KS_TOTAL}</small></button>` : ''}
         <div class="title-third">
@@ -1367,18 +1395,20 @@
     if (i === 0 && !paging) { // paging: Back to the first picture keeps the scene that is playing
       const all = scene ? BL.STORY.scenes[scene].beats.filter((x) => !x.found || replay || (run && run.found === x.found)) : BL.STORY.opening;
       ui.opening = { done: done || null, replay: !!replay, scene: scene || null, beats: all, go: go || (scene ? 'Go on' : 'Go down') };
-      all.forEach((x) => { new Image().src = `img/${x.art}.webp`; });
-      if (!scene) updateSound();
+      all.forEach((x) => { if (x.art) new Image().src = `img/${x.art}.webp`; });
     }
     const beats = ui.opening.beats, b = beats[i], last = i === beats.length - 1;
-    openOverlay(`<div class="opening${b.together ? ' opening-together' : ''}" role="dialog" aria-modal="true" aria-label="The story, part ${i + 1} of ${beats.length}">
-      <div class="op-art" style="background-image:url(img/${b.art}.webp);--pos:${b.pos};--wpos:${b.wide || b.pos};--wz:${b.zoom || 1}"></div>
+    ui.opening.beat = b;
+    updateSound();
+    openOverlay(`<div class="opening${b.framed ? ' opening-framed' : b.together ? ' opening-together' : ''}${b.night ? ' opening-night' : ''}" role="dialog" aria-modal="true" aria-label="The story, part ${i + 1} of ${beats.length}">
+      ${b.art ? `<div class="op-art" style="background-image:url(img/${b.art}.webp);--pos:${b.pos};--wpos:${b.wide || b.pos};--wz:${b.zoom || 1}"></div>` : ''}
       ${b.fig ? `<img class="op-fig" src="img/${b.fig}.webp" alt="">` : ''}
       <div class="op-inner"><p class="op-text">${b.text}</p>
+        ${b.quote ? `<blockquote class="cask-note">${b.quote}</blockquote>` : ''}
         <div class="op-foot"><span class="op-dots" aria-hidden="true">${beats.map((x, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</span>
           ${i > 0 ? `<button class="btn ghost" data-act="opback" data-i="${i}">Back</button>` : ''}
           ${last ? '' : '<button class="btn ghost" data-act="opskip">Skip</button>'}
-          <button class="btn primary" data-act="opnext" data-i="${i}" autofocus>${!last ? 'Next' : ui.opening.replay ? 'Back to the story' : ui.opening.go}</button></div>
+          <button class="btn primary" data-act="opnext" data-i="${i}" autofocus>${!last ? b.next || 'Next' : ui.opening.replay ? 'Back to the story' : ui.opening.go}</button></div>
       </div></div>`, { locked: true });
     if (b.sfx) sfx(b.sfx);
   }
@@ -1388,7 +1418,7 @@
     if (!o.scene && !story.opening) { story.opening = true; saveStory(); }
     closeOverlay(true);
     if (o.done) o.done();
-    if (!o.scene) updateSound();
+    updateSound();
     // a scene covered the screen while it drew, so its main button never got the focus: give it now
     if (o.scene && overlayEl.hidden) { const f = document.querySelector('[autofocus]'); if (f) f.focus({ preventScroll: true }); }
   }
@@ -1965,6 +1995,19 @@
 
   /* New Descent: the first time, the opening plays, then the guided fight is offered. */
   function beginNewRun() {
+    if (meta.keeperNote) {
+      return showOpening(0, () => {
+        const welcomed = E.welcomeKeeper(meta);
+        if (welcomed) { saveMeta(); render(); }
+      }, false, meta.keeperNote, 'Back to the lighthouse');
+    }
+    if (knockingLead() && !story.scenes.includes('knocking')) {
+      return showOpening(0, () => {
+        story.scenes.push('knocking');
+        saveStory();
+        prepareDive();
+      }, false, 'knocking', 'Pack for Dark Water');
+    }
     if (!story.opening) return showOpening(0, beginNewRun);
     if (!Teach.status()) {
       openOverlay(modal('First descent?', '<p class="lead-sm">A short guided fight teaches the basics: health, Ward, Light, and the Swell. About 2 minutes.</p>',
@@ -1975,6 +2018,20 @@
   }
 
   /* ----- Map ----- */
+  const hesterReturn = (job) => `${E.lastLevel(run) ? 'Clear the Belfry' : `Beat the boss in ${levelName(run.level)}`} and bring the ${job.name.toLowerCase()} home for ${job.pay} Salvage.`;
+  function showHesterBrief() {
+    const job = E.hesterJob(run);
+    if (!job || job.briefed || !overlayEl.hidden) return;
+    const item = BL.HESTER_JOBS[run.level || 0];
+    openOverlay(modal('A job from Hester', `<div class="ws-art" style="background-image:url(img/scenes/op_home.webp)"></div><h3>${item.name}</h3><p>${item.brief}</p><p><b>${hesterReturn(item)}</b></p>`,
+      '<button class="btn primary" data-act="hesterbrief" autofocus>Mark my map</button>', 'narrow quest-modal', true), { locked: true });
+  }
+  function showDescentBrief() {
+    if (E.keeperId(run) === 'mateo' && !story.scenes.includes('bash') && overlayEl.hidden) {
+      openOverlay(modal('Mateo’s Shield Bash', `<p>${BL.KEEPERS.mateo.desc}</p><p>Build Ward, then choose <b>Bash</b> beside the Swell or press <kbd>H</kbd> and aim it at an enemy. Every point of Ward you spend is Ward you can’t block with.</p>`,
+        '<button class="btn primary" data-act="bashbrief" autofocus>Set out as Mateo</button>', 'narrow quest-modal', true), { locked: true });
+    } else showHesterBrief();
+  }
   function renderMap() {
     const m = run.map;
     // the descent runs downward: the first stops are at the top and the boss is at the bottom
@@ -1986,6 +2043,7 @@
     const avail = E.availableNodes(run);
     const clue = E.bosunClue(run);
     const jobAhead = E.hesterJobAhead(run);
+    const item = BL.HESTER_JOBS[run.level || 0];
     const strange = E.strangerAhead(run);
     const availKey = new Set(avail.map((n) => n.row + ',' + n.col));
     const visited = new Set(run.visited || []);
@@ -2007,7 +2065,7 @@
       const isAvail = availKey.has(key);
       const bosun = clue && clue.node === n;
       const hester = jobAhead && E.hesterStop(run, n);
-      const note = n === strange ? 'Knock' : bosun ? 'Bosun' : hester ? 'Log' : '';
+      const note = n === strange ? 'Knock' : bosun ? 'Bosun' : hester ? item.marker : '';
       const desc = n === strange ? 'strange-dread' : bosun ? 'bosun-clue' : hester ? 'hester-job' : '';
       const edge = n.x < 0.16 ? ' lbl-l' : n.x > 0.84 ? ' lbl-r' : '';
       const cls = `node t-${n.type}${visited.has(key) ? ' visited' : ''}${key === cur ? ' current' : ''}${isAvail ? ' avail' + edge : ''}`;
@@ -2029,17 +2087,18 @@
     // each level's own picture behind the map, dimmed (v0.40.0, the user: "cool background art? If it does not become too
     // busy"). The line under the level's name is gone too (the user: "not needed"; it explained the Belfry's dive)
     const mapBg = E.band(run).mapBg;
-    const job = jobAhead ? `<p id="hester-job"><b>Hester's job</b> &middot; Recover the log at the marked Fog and bring it home for ${E.HESTER_PAY} Salvage.</p>`
-      : !run.level && run.hesterJob?.recovered ? `<p id="hester-job"><b>Log recovered</b> &middot; Bring it home for ${E.HESTER_PAY} Salvage.</p>` : '';
-    const warning = clue && clue.node !== strange ? `<p id="bosun-clue"><b>Bosun</b> warns of the ${clue.name} at the marked Dread.</p>` : '';
-    const knocking = strange ? `<p id="strange-dread">${clue?.node === strange ? '<b>Bosun</b> warns of the Split Cask.' : '<b>Three knocks</b> echo from a marked Dread.'} Beat it and take the note home.</p>` : '';
+    const job = jobAhead ? `<p id="hester-job"><b>Hester’s job</b> &middot; Find the ${item.name.toLowerCase()} at the marked landing for ${item.pay} Salvage.</p>` : '';
+    const cargo = E.hesterCargo(run);
+    const carried = cargo.length ? `<p><b>For Hester</b> &middot; ${cargo.map((j) => j.name).join(', ')}</p>` : '';
+    const warning = clue && clue.node !== strange ? `<p class="map-clue" id="bosun-clue">${ICON.elite}<span><b>Bosun’s warning</b> &middot; ${clue.name} at the marked Dread.</span></p>` : '';
+    const knocking = strange ? `<p class="map-clue" id="strange-dread"><b>Three knocks</b> &middot; Follow the marked Dread and bring home what you find.</p>` : run.metKeeper ? '<p><b>Note from the cask</b> &middot; Carry it home to Hester.</p>' : '';
     screenEl.innerHTML = `<div class="run-screen map-screen">${hudHTML()}<div class="run-body">
       ${mapBg ? `<div class="map-bg" style="background-image:url(img/bg/${mapBg}.webp)" aria-hidden="true"></div>` : ''}
-      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2>${warning}${knocking}${job}</div>
+      <div class="map-scroll" id="mapscroll"><div class="map-header"><h2>${LevelName(run.level)}</h2>${warning}${knocking}${job}${carried}</div>
       <div class="map" style="height:${H}px"><svg class="lines" viewBox="0 0 100 ${H}" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>
       <div class="map-legend">${legend}</div></div></div>`;
     ui.mapFocus = Math.min(ui.mapFocus, Math.max(0, avail.length - 1));
-    if (!run.pos) playScene('in:' + run.level); // the first time down into the Belfry, its story scene (v0.40.0)
+    if (!run.pos) playScene('in:' + run.level, showDescentBrief);
     const sc = $('#mapscroll');
     const focusRow = avail.length ? avail[0] : run.pos ? E.nodeAt(run, run.pos) : null;
     if (sc && focusRow) {
@@ -2049,7 +2108,7 @@
       sc.style.scrollBehavior = '';
     }
     const first = $('.node.avail', screenEl);
-    if (first && ui.lastPointer !== 'touch') first.focus({ preventScroll: true });
+    if (first && overlayEl.hidden && ui.lastPointer !== 'touch') first.focus({ preventScroll: true });
   }
 
   function chooseNode(row, col) {
@@ -2147,12 +2206,12 @@
     let parts = '';
     // an attack that follows the Swell (the Tolling Buoy's) shows a bell in place of the blade, with a wave beside its number
     // one that grows with each card played (the Listener's) shows what a card adds after its number
-    if (k.indexOf('attack') >= 0) parts += `${info.swell ? ICON.slot_bell : ICON.attack}<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>${info.swell ? `<i class="i-swell">${ICON.wave}</i>` : ''}${info.heard ? `<i class="i-heard" aria-label="${info.heard} more for each card you play">+${info.heard}${ICON.deck || ''}</i>` : ''}`;
+    if (k.indexOf('attack') >= 0) parts += `${info.swell ? ICON.slot_bell : ICON.attack}<span>${info.dmg}${info.hits > 1 ? '&times;' + info.hits : ''}</span>${info.swell ? `<i class="i-swell">${ICON['swell_' + info.swell]}</i>` : ''}${info.heard ? `<i class="i-heard" aria-label="${info.heard} more for each card you play">+${info.heard}${ICON.deck || ''}</i>` : ''}`;
     if (k.indexOf('defend') >= 0) parts += `<i class="i-ward">${ICON.defend}${info.ward ? `<span>${info.ward}</span>` : ''}</i>`;
     if (k.indexOf('buff') >= 0) parts += ICON.buff;
     if (k.indexOf('debuff') >= 0) parts += ICON.debuff;
     if (k.indexOf('summon') >= 0) parts += ICON.summon;
-    return `<div class="intent ${main}${info.swell ? ' swell' : ''}${info.heard ? ' heard' : ''}" data-tip="intent:${e.uid}">${parts}</div>`;
+    return `<div class="intent ${main}${info.swell ? ` swell swell-${info.swell}` : ''}${info.heard ? ' heard' : ''}" data-tip="intent:${e.uid}">${parts}</div>`;
   }
 
   function updateUnitInfo(el, hp, max, ward, o, who) {
@@ -2230,7 +2289,7 @@
       const info = E.intentInfo(run, e);
       if (info && info.dmg) incoming += info.dmg * info.hits;
     });
-    if (c.thrash) incoming += c.thrash; // Thrash lands after the enemies, on whatever Ward is left
+    if (c.thrash) incoming += c.thrash;
     const unblocked = Math.max(0, incoming - c.player.ward);
     const inc = $('.incoming', pel);
     if (inc) {
@@ -2310,9 +2369,9 @@
       }
     }
     if (!hint && swellHit && c.phase === 'player') {
-      hint = `<div class="tb-hint note">${ICON.slot_bell}<span>${swellHit.swell === 'mid'
-        ? (swellHit.dmg > swellHit.calm ? `${swellHit.name} <b>${swellHit.dmg}</b>: only <b>${swellHit.calm}</b> at Swell 3` : `${swellHit.name} <b>${swellHit.dmg}</b>: weakest here, at Swell 3`)
-        : `${swellHit.name} <b>${swellHit.dmg}</b>: &minus;${BL.PEAL.step} a step off 3, &minus;${BL.PEAL.quiet} a Crest/Strand`}</span></div>`;
+      hint = `<div class="tb-hint note">${ICON['swell_' + swellHit.swell]}<span>${swellHit.swell === 'mid'
+        ? `${swellHit.name} <b>${swellHit.dmg}</b> &middot; Aim for Swell 3 (${swellHit.calm} damage)`
+        : `${swellHit.name} <b>${swellHit.dmg}</b> &middot; Head toward 0 or 6. Each Crest or Strand: &minus;${BL.PEAL.quiet}.`}</span></div>`;
     }
     tb.setAttribute('aria-label', `Swell ${c.tide} of 6`);
     // Bail and Stir: once a turn, 1 Light for one step toward Strand or Crest, without a card
@@ -2329,7 +2388,7 @@
     const mateo = E.keeperId(run) === 'mateo';
     const can = mateo && E.canBash(run);
     tb.classList.toggle('has-bash', mateo);
-    const bash = mateo ? `<button class="tb-act bash" data-act="bash" data-tip="bash" aria-pressed="${ui.bashAim}"${can.ok && !ui.busy ? '' : ' aria-disabled="true"'} aria-label="Shield Bash, spend ${E.SHIELD_BASH.ward} Ward to deal ${E.SHIELD_BASH.dmg} damage. Uses a Bail or Stir action.${can.ok ? '' : ' ' + can.reason + '.'}"><b>Bash</b><i>${E.SHIELD_BASH.ward}</i></button>` : '';
+    const bash = mateo ? `<button class="tb-act bash" data-act="bash" data-tip="bash" aria-pressed="${ui.bashAim}"${can.ok && !ui.busy ? '' : ' aria-disabled="true"'} aria-label="Shield Bash. ${BL.KEEPERS.mateo.desc}${can.ok ? '' : ' ' + can.reason + '.'}"><b>Bash</b><i>${E.SHIELD_BASH.ward}</i></button>` : '';
     tb.innerHTML = `${actBtn('bail', '<span class="tb-arrow">&#9662;</span>')}<span class="tb-label low" data-tip="kw:Strand">Strand</span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
       <span class="tb-label crest" data-tip="kw:Crest">Crest</span>${actBtn('stir', '<span class="tb-arrow">&#9652;</span>')}${bash}`;
@@ -2722,11 +2781,12 @@
   }
   async function onDefeat() {
     ui.busy = true;
+    const retry = E.canRetryFinal(run);
+    if (retry) { run.screen = 'lastchance'; save(); }
     sfx('defeat');
     await wait(1100);
     ui.busy = false;
-    run.screen = 'defeat';
-    clearSave();
+    if (!retry) { run.screen = 'defeat'; clearSave(); }
     render();
   }
 
@@ -2756,10 +2816,10 @@
     if (c.lost) { ui.busy = false; return onDefeat(); }
     if (c.won) { ui.busy = false; return onVictory(); }
     E.endTurnFinish(run);
-    ui.busy = false;
-    if (c.lost) return onDefeat();
     await processFx();
+    ui.busy = false;
     updateCombat();
+    if (c.lost) return onDefeat();
     if (c.won) return onVictory();
     save();
   }
@@ -3148,11 +3208,14 @@
           } else sfx('die');
           if (el) burstAt(el);
           await wait(300);
+          let played = false;
+          if (big) await new Promise((resolve) => { played = playScene('rise:bell', resolve, 'Face the Thing'); });
           if (unit) { setUnitForm(unit, run.combat.enemies.find((x) => x.uid === f.who)); anim(unit, 'reborn', 1000); }
           if (field) { field.classList.add('phase2'); anim(field, 'impact', 600); }
           c.phase2 = true;
-          if (big) bossCard(FINAL_CARD.bellthing[0], FINAL_CARD.bellthing[1], f.text);
-          else { banner(f.text, 'enemy big'); sfx('phase'); }
+          if (big) {
+            if (!played) bossCard(FINAL_CARD.bellthing[0], FINAL_CARD.bellthing[1], f.text);
+          } else { banner(f.text, 'enemy big'); sfx('phase'); }
           updateSound();
           await wait(big ? 1700 : 1000);
           break;
@@ -3339,6 +3402,7 @@
 
   function renderReward() {
     const rw = run.rewards;
+    const canTakeTonic = rw.tonic && !rw.tonicTaken && run.tonics.includes(null);
     // the Pearl total already includes the bonuses, so they read as part of it rather than on top of it
     const bonusChips = (rw.bonuses || []).map((b) => `<span class="chip bonus" title="${b.desc}">&#9733; ${b.name} +${b.pearls}</span>`).join('')
       + (rw.roilPay ? `<span class="chip bonus roil" title="The aether was Roiled, ${rw.roilSteps} step${rw.roilSteps > 1 ? 's' : ''} over your Hold: ${E.ROIL_PAY} Pearls a step">${ICON.charge} Roiled +${rw.roilPay}</span>` : '');
@@ -3352,8 +3416,8 @@
     if (rw.tonic) {
       const tn = BL.TONICS[rw.tonic];
       const full = run.tonics.indexOf(null) < 0;
-      extras.push(`<div class="reward-item${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>Tonic: ${tn.name}</b><small>${tn.desc}${!rw.tonicTaken && !full ? ` <span class="muted">Leave it for +${E.DECLINE_SCORE.tonic} score.</span>` : ''}</small></div>
-        ${rw.tonicTaken ? '<span class="muted">Taken</span>' : `<button class="btn small" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : ''}>${full ? 'Slots full' : 'Take'}</button>`}</div>`);
+      extras.unshift(`<div class="reward-item tonic-reward${rw.tonicTaken ? ' done' : ''}"><span class="medal"><img src="img/icons/${tn.art}.webp" alt=""></span><div class="grow"><b>${tn.name}</b><small>${tn.desc}</small></div>
+        ${rw.tonicTaken ? '<span class="muted">Packed</span>' : `<button class="btn small primary" data-act="taketonic" ${full ? 'disabled title="Tonic slots full"' : rw.cardTaken ? 'autofocus' : ''}>${full ? 'Slots full' : 'Take tonic'}</button>`}</div>`);
     }
     if (rw.oneOf) return renderDreadReward(rw, summary);
     // the panel stays after the pick (chosen tile lit, the other dimmed) so nothing below it jumps up under the pointer
@@ -3375,13 +3439,14 @@
       ? `<button class="btn ghost" data-act="rewardcard" data-i="">Skip the card (+${E.DECLINE_SCORE[E.skipCardKind(rw)]} score)</button>${pickOkBtn('rw-card', cPick, 'wide')}`
       : ksOpen
         ? '<button class="btn primary wide" disabled>Take a keepsake or leave them</button>'
-        : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
+        : canTakeTonic ? `<button class="btn ghost wide" data-act="tomap">Leave tonic (+${E.DECLINE_SCORE.tonic} score) and continue</button>`
+          : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner reward-screen">
       <h1>Victory</h1>
       ${summary}
       ${ksPanel}
-      ${rw.cards.length ? `<section class="reward-main${rw.opening ? ' opening-draft' : ''}"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>` : ''}
       ${extras.length ? `<div class="reward-list">${extras.join('')}</div>` : ''}
+      ${rw.cards.length ? `<section class="reward-main${rw.opening ? ' opening-draft' : ''}"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>` : ''}
       <div class="row-buttons">${buttons}</div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl) || $('.picked', screenEl) || (rw.cardTaken && $('.ks-pick', screenEl)) || $('.card.choice', screenEl);
@@ -3406,7 +3471,7 @@
       : '<button class="btn primary wide" data-act="tomap" autofocus>Continue</button>';
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${E.band(run).bg}.webp)"><div class="scene-inner reward-screen">
       <h1>Victory</h1>
-      ${rw.stranger ? '<p class="lead"><b>The knocking stops.</b> Bring your note about the cask to Hester after breaking Dark Water’s pin.</p>' : ''}
+      ${rw.stranger ? '<div class="quest-found"><b>Note from the Split Cask recovered</b><span>Break the Tolling Buoy and take the note home to Hester.</span></div>' : ''}
       ${summary}
       <div class="dread-pick"><section class="reward-main"><h2>${cardTitle}</h2><div class="card-row reward-cards">${cards}</div>${legend}</section>
       ${ks}</div>
@@ -3414,6 +3479,9 @@
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl) || $('.picked', screenEl) || $('.card.choice', screenEl);
     if (f && ui.lastPointer !== 'touch') f.focus({ preventScroll: true });
+    if (rw.stranger && !rw.noteSeen && overlayEl.hidden) {
+      showOpening(0, () => { rw.noteSeen = true; save(); }, false, 'cask', 'Take the note');
+    }
   }
 
   /* ----- Rest ----- */
@@ -3477,12 +3545,14 @@
     const lv = run.level || 0, s = E.stairState(run), picks = E.stairPicks(run), left = picks - s.picks.length;
     let first = true;
     const cards = E.stairOptions(run).map((id, i) => {
-      const why = E.stairWhy(run, id), done = why === 'done', [name, desc, extra] = STAIR_TEXT[id](done);
+      const why = E.stairWhy(run, id), done = why === 'done';
+      const job = id === 'hester' ? BL.HESTER_JOBS[lv] : null;
+      const [name, desc, extra] = job ? [job.name, done ? 'Packed for Hester.' : hesterReturn(job)] : STAIR_TEXT[id](done);
       const note = done ? '<em class="st-done">Done</em>' : why && why !== 'full' ? `<em class="reason">${why}</em>` : '';
       const focus = !why && first ? ' autofocus' : '';
       if (!why) first = false;
       return `<button class="stair-opt${done ? ' done' : ''}" data-act="stairdo" data-id="${id}" style="--i:${i}"${why ? ' disabled' : ''}${focus}>
-        <span class="so-ic">${done ? STAIR_ICON.done : STAIR_ICON[id]}</span><b>${name}</b><span class="so-desc">${desc}</span>${extra || ''}${note}</button>`;
+        <span class="so-ic">${done ? STAIR_ICON.done : job ? ICON.pack : STAIR_ICON[id]}</span><b>${name}</b><span class="so-desc">${desc}</span>${extra || ''}${note}</button>`;
     }).join('');
     const log = (s.log || []).map((l) => `<li>${l}</li>`).join('');
     const B = E.band(run);
@@ -3510,6 +3580,11 @@
     if (f) f.focus({ preventScroll: true });
     // the keepers' cache was opened and nothing taken (a reload in between): its choice comes back, with no way out
     if (E.stairCacheOpen(run) && overlayEl.hidden) showCache();
+    const job = E.hesterJob(run), item = BL.HESTER_JOBS[lv];
+    if (pocket && run.pos?.row === job?.row && job?.recovered && !job.recoverySeen && overlayEl.hidden) {
+      openOverlay(modal(`${item.name} recovered`, `<p>${item.found}</p><p><b>${hesterReturn(item)}</b></p>`,
+        '<button class="btn primary" data-act="hesterfound" autofocus>Pack it for Hester</button>', 'narrow quest-modal', true), { locked: true });
+    }
   }
   /* The keepers' cache's choice: three cards, or none. It is opened already, so there is no Back (v0.40.0). */
   function showCache() {
@@ -3521,13 +3596,14 @@
       sfx(o.card ? 'treasure' : 'select');
       save();
       render();
-    }, 'Take none');
+    }, true);
   }
   // one of the stair's six: refit and shed pick a card first (Back from that picker costs nothing; the cache has none)
   function stairDo(id) {
     const s = E.stairState(run);
     const done = (o, line, sound) => { if (!o) return; (s.log = s.log || []).push(line(o)); sfx(sound); save(); render(); };
     if (id === 'rest') done(E.stairDo(run, 'rest'), (o) => `You sleep deep beside the lantern and wake mended: ${o.healed} HP.`, 'buff');
+    else if (id === 'hester') done(E.stairDo(run, id), (o) => `You pack the ${o.job.name.toLowerCase()} for Hester.`, 'treasure');
     else if (id === 'fog') { if (E.stairDo(run, 'fog')) { sfx('step'); save(); render(); } }
     else if (id === 'flask') done(E.stairDo(run, 'flask'), (o) => `You fill ${o.tonics.length > 1 ? `${o.tonics.length} flasks` : 'a flask'} with brinelight: ${o.tonics.map((t) => BL.TONICS[t].name).join(', ')}.`, 'tonic');
     else if (id === 'refit') {
@@ -3559,9 +3635,9 @@
         <span class="medal"><img src="img/icons/${K.art}.webp" alt=""></span><b>${K.name}</b><span class="k-charge">Roil ${K.charge}</span><small>${K.desc}</small>
         <span class="k-after sea-pay">Carried ${n} fight${n === 1 ? '' : 's'}: heal ${pay}${heal < pay ? ` (${heal} now)` : ''} HP, refit a card</span>
         <span class="k-after">Then ${ch - K.charge}/${h}${after.steps ? `: ${roilWords(after, true)}` : now.steps ? ': Calm' : ''}</span>
-        ${E.wasBrought(run, k) ? `<span class="k-deep">${run.takenOut ? 'From the Lazaret: gone from there too' : 'Stays in the Lazaret'}</span>` : ''}</div>`;
+        ${!E.inLazaret(meta, k) ? '<small class="last-keepsake">Your only copy</small>' : ''}</div>`;
     }).join('');
-    const body = `<p class="buy-left">Choose a keepsake to throw into the water. It is gone for this expedition, and what it did for you goes with it. The sea pays back the brinelight it soaked up while you carried it: <b>${E.SEA_HEAL} HP for each fight you won</b> with it (never more than a Cove's rest, ${E.restAmount(run)} HP), and you <b>refit a card</b>.${now.steps ? ` You carry ${ch} of your Hold of ${h}.` : ''}</p>
+    const body = `<p class="buy-left">The sea keeps whatever you give. In return you <b>refit a card</b> and heal <b>${E.SEA_HEAL} HP for each fight you won</b> while carrying the keepsake, up to ${E.restAmount(run)} HP.${now.steps ? ` You carry ${ch} of your Hold of ${h}.` : ''}</p>
       <div class="shop-row sea-row">${tiles}</div>`;
     openOverlay(modal('Give one to the sea', body, '<button class="btn primary" data-act="close" autofocus>Keep them all</button>', 'sea-modal'));
   }
@@ -3584,15 +3660,15 @@
     const shut = can ? '' : newKit
       ? `<p class="lead found-kit">${gearArt(kit)}<span>On the wall above the stair hangs an old keeper's diving dress, with a sealed lamp on its helmet. Its seams have rotted and its lamp is dry. Carry it home and mend it, and you can wear it down next time.</span></p>`
       : `<p class="lead">Your ${kit.name} is at home on its hook. Without it you cannot go down into ${levelName(lv + 1)}.</p>`;
-    const extra = (newKit ? [`the <b>${kit.name}</b>`] : []).concat(found.map((k) => `<b>${BL.KEEPSAKES[k].name}</b>`));
     // a debug-cheated run carries nothing home (no dress, no keepsakes for the Lazaret): say so here, not only after
     const dbgNote = run.cheated && (newKit || found.length)
       ? `<p class="lead dbg-note"><b>Debug run:</b> a run that used a cheat carries nothing home, ${newKit ? 'not even the dress' : 'not even its keepsakes'}. To keep what you find, turn on <b>Cheats count as real runs</b> in the debug panel before you set out, or use <b>Own all kit</b>.</p>` : '';
-    const homeKeeps = run.cheated ? '' : extra.length ? `, ${extra.join(', ')} too` : '';
-    const log = run.hesterJob?.recovered && !meta.hesterDone && !run.cheated;
+    const homeKeeps = run.cheated ? '' : newKit ? ` Bank your keepsakes and mend the ${kit.name}.` : ' Bank all carried keepsakes.';
+    const cargo = run.cheated ? [] : E.hesterCargo(run);
+    const jobPay = cargo.reduce((n, job) => n + job.pay, 0);
     const deeper = can
-      ? `<button class="choice" data-act="godeeper" autofocus><b>Go deeper</b><span>Down the stair into ${levelName(lv + 1)}, with your deck, keepsakes and HP. The stair down comes first: two of six, stronger than a Cove. Each landing there scores ${next.landing}.${E.deepestReachable(run) === lv + 1 && lv + 1 < E.LEVELS.length - 1 ? ` Below it the stair runs under the sea, and you have nothing to dive in: its pin is as deep as this expedition can go.` : ''}${E.holdAt(lv + 1) > E.hold(run) ? ` The first time you reach it, your Hold grows to ${E.holdAt(lv + 1)}, for good.` : ''}</span></button>`
-      : `<button class="choice" disabled><b>Go deeper</b><span>${levelName(lv + 1).replace(/^t/, 'T')} is under the sea. Wear the ${kit.name} (${BL.KIT_PLACES.find((pl) => pl.id === kit.place).name} place) to go down.</span></button>`;
+      ? `<button class="choice pin-choice pin-deeper" data-act="godeeper" autofocus>${ICON.chevron}<b>Go deeper</b><span>${LevelName(lv + 1)} &middot; Two actions on the stair${E.deepestReachable(run) === lv + 1 && !E.isDive(lv + 1) ? '. Next pin is your limit today.' : '.'}</span></button>`
+      : `<button class="choice pin-choice pin-deeper" disabled>${ICON.chevron}<b>Go deeper</b><span>Requires the ${kit.name}.</span></button>`;
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner">
       <h1>The pin is broken</h1>
       <p class="lead">${B.pin}</p>
@@ -3600,7 +3676,7 @@
       ${dbgNote}
       <div class="choice-list">
         ${deeper}
-        <button class="choice" data-act="gohome"${can ? '' : ' autofocus'}><b>Go home</b><span>End the expedition here${run.cheated ? '' : ' and keep what you carry'}${homeKeeps}. Each HP you have left adds 5 to the score.</span>${log ? `<span class="pin-job">Hand Hester the log for ${E.HESTER_PAY} Salvage. If you go deeper, a fall loses it.</span>` : ''}${run.metKeeper && !run.cheated ? '<span class="pin-job">Take your note about the cask home to Hester.</span>' : ''}</button>
+        <button class="choice pin-choice pin-home" data-act="gohome"${can ? '' : ' autofocus'}>${ICON.beam}<b>Go home</b><span>End this expedition.${homeKeeps}</span>${jobPay ? `<span class="pin-job">Hester pays ${jobPay} Salvage for what you found.</span>` : ''}${run.metKeeper && !run.cheated ? '<span class="pin-job">Return the note from the Split Cask.</span>' : ''}</button>
       </div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
@@ -3640,6 +3716,7 @@
   function renderEvent() {
     const ev = E.eventDef(run);
     const st = run.event;
+    const job = BL.HESTER_JOBS.find((j) => j.id === st.job);
     let body;
     if (st.stage === 'choose') {
       const choices = E.eventOptions(run).map((o, i) => {
@@ -3649,11 +3726,11 @@
       if (E.hesterStop(run, run.pos)) choices.unshift(choices.pop());
       body = `<div class="choice-list">${choices.join('')}</div>`;
     } else {
-      body = `<p class="lead">${st.text}</p>${st.outcome ? `<p class="lead outcome">${st.outcome}</p>` : ''}<button class="btn primary" data-act="evcontinue" autofocus>Continue</button>`;
+      body = `<p class="lead">${st.text}</p>${job ? `<p class="lead"><b>${hesterReturn(job)}</b></p>` : ''}${st.outcome ? `<p class="lead outcome">${st.outcome}</p>` : ''}<button class="btn primary" data-act="evcontinue" autofocus>${job ? 'Pack it for Hester' : 'Continue'}</button>`;
     }
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene"><div class="scene-inner">
       <div class="event-art" style="background-image:url(img/scenes/${ev.art}.webp)"></div>
-      <h1>${ev.title}</h1>
+      <h1>${job ? `${job.name} recovered` : ev.title}</h1>
       ${st.stage === 'choose' ? `<p class="lead">${typeof ev.text === 'function' ? ev.text(run) : ev.text}</p>` : ''}
       ${body}
     </div></div></div></div>`;
@@ -3755,6 +3832,28 @@
   }
 
   /* ----- End screens ----- */
+  function renderLastChance() {
+    const B = E.band(run);
+    screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner last-chance">
+      <h1>One last breath</h1><p class="lead">You catch on the Belfry stair. You can let the sea take you up, or turn and fight again.</p>
+      <div class="choice-list">
+        <button class="choice danger" data-act="retryfinal"><b>Face the boss again</b><span>Start the entire fight again at ${E.FINAL_RETRY_HP * 100}% health. Give up every keepsake and tonic you’re carrying, all score and the Salvage it would pay. A win still counts in the story.</span></button>
+        <button class="choice" data-act="acceptfall" autofocus><b>Let the tide take you</b><span>End the expedition as a fall. Keep the score you earned${lazaretOpen() && E.lostKeepsakes(run).length ? ' and save one keepsake' : ''}.</span></button>
+      </div></div></div></div></div>`;
+    $('[autofocus]', screenEl)?.focus({ preventScroll: true });
+  }
+
+  function readCaskNote() {
+    openOverlay(modal('Note from the Split Cask', `<blockquote class="cask-note">${BL.CASK_NOTE}</blockquote>`,
+      '<button class="btn primary" data-act="close" autofocus>Done</button>', 'narrow'));
+  }
+
+  function showHesterHandoff(jobs) {
+    if (!jobs.length) { showNews(); return; }
+    openOverlay(modal('Hester was waiting', jobs.map((job) => `<p><b>${job.name} returned &middot; +${job.pay} Salvage</b></p><p>${job.home}</p>`).join(''),
+      '<button class="btn primary" data-act="hesterhome" autofocus>Continue</button>', 'narrow quest-modal', true), { locked: true });
+  }
+
   function fmtTime(ms) {
     const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
     return `${m}:${String(s).padStart(2, '0')}`;
@@ -3775,7 +3874,7 @@
     if (z) {
       const parts = [];
       if (z.opened) parts.push('<b>Hester gives you the key to the Lazaret.</b> It is the locked store room at the lighthouse, on the title screen. Keepsakes kept there are yours until you take them down again, and you choose which to bring on each descent.');
-      if ((z.added || []).length) parts.push(`Into the Lazaret: ${ksNames(z.added)}.${z.kept.length && z.kept.length < z.added.length ? ` New there: ${ksNames(z.kept)}.` : ''}`);
+      if ((z.added || []).length) parts.push(`<b>${z.added.length} keepsake${z.added.length === 1 ? '' : 's'} stored in the Lazaret.</b> ${ksNames(z.added)}.`);
       // kit found on the expedition (the diving dress) is mended at home and joins the Workshop
       const kit = (z.found || []).map((id) => `<div class="unlock-box found-kit">${gearArt(BL.KIT[id])}<span><b>You carried home the ${BL.KIT[id].name}.</b> You mend it at the lighthouse. Wear it in your ${BL.KIT_PLACES.find((pl) => pl.id === BL.KIT[id].place).name} place, and the stair below Dark Water is open.</span></div>`).join('');
       return kit + (parts.length ? `<button class="unlock-box lz-box" data-act="lazaret">${parts.join(' ')}</button>` : '');
@@ -3808,7 +3907,7 @@
       if (!run.tutorial) {
         checkUnlocks(true);
         fin.salvage = E.earnSalvage(meta, score);
-        fin.hesterPay = E.deliverHesterJob(meta, run);
+        fin.hesterJobs = E.deliverHesterJobs(meta, run);
         // the Lazaret: coming home keeps what Wren carries, a fall loses it (a debug-cheated run keeps nothing)
         const curOpen = E.currentsOpen(meta);
         if (!run.cheated) E.recordRun(meta, run, win); // the logbook
@@ -3816,7 +3915,7 @@
         const wasOpen = lazaretOpen();
         if (win && !run.cheated) {
           fin.laz = E.carryHome(meta, run);
-          fin.keeper = E.welcomeKeeper(meta, run);
+          fin.note = E.returnKeeperNote(meta, run);
         }
         else if (!win && wasOpen) { fin.lost = E.lostKeepsakes(run); E.storeKeepsakes(meta, run); } // the fall: what was chosen and is gone is no longer chosen
         if (fin.laz) fin.laz.opened = !wasOpen;
@@ -3827,6 +3926,7 @@
       fin.tell = !run.tutorial; // what just opened is told in a window, once this screen is drawn
     }
     const fin = run.final;
+    const lostJobs = !win && E.hesterCargo(run);
     // the score's own lines are in the breakdown; these are the rest of the run
     const stats = [
       ['Landings', E.landed(run).reduce((a, n) => a + (n || 0), 0)], ['Fights won', st.fights], ['Damage dealt', st.dmgDealt], ['Deck size', run.deck.length], ['Time', fmtTime(st.elapsed)],
@@ -3835,10 +3935,11 @@
     const scoreHTML = `<div class="score-row"><div class="score-box"><span>Score</span><b>${fin.score}</b>${fin.newBest ? '<em>New best!</em>' : fin.best ? `<small>Best ${fin.best}</small>` : ''}${run.cheated ? '<small>Debug run: no best score, and nothing carried home</small>' : ''}</div>
       ${scorePartsHTML(fin)}</div>
       ${fin.currents ? `<div class="unlock-box"><b>Currents are open.</b> Choose them on shore before your next expedition: each makes it harder and raises your score.</div>` : ''}
-      ${run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b>, 1 for every ${E.SALVAGE_PER_SCORE} score (${fin.score} &divide; ${E.SALVAGE_PER_SCORE}, rounded down). Spend it in the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
-      ${fin.hesterPay ? `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.hesterPay} Salvage from Hester</b> for bringing the keeper's log home.</span></div>` : !win && run.hesterJob?.recovered ? '<div class="unlock-box">The keeper\'s log is lost. You can look for it again on your next descent.</div>' : ''}
+      ${run.retryLost ? '<div class="unlock-box"><b>Belfry rematch</b> &middot; You gave up your carried keepsakes, tonics, expedition score and its Salvage for a second chance.</div>' : run.tutorial ? '' : `<div class="salvage-box">${ICON.salvage}<span><b>+${fin.salvage} ${MT.currency}</b>, 1 for every ${E.SALVAGE_PER_SCORE} score (${fin.score} &divide; ${E.SALVAGE_PER_SCORE}, rounded down). Spend it in the ${MT.shop} on the title screen. You have ${meta.salvage}.</span></div>`}
+      ${(fin.hesterJobs || []).map((job) => `<div class="salvage-box">${ICON.salvage}<span><b>+${job.pay} Salvage from Hester</b> &middot; ${job.name} returned.</span></div>`).join('')}
+      ${lostJobs?.length ? `<div class="unlock-box"><b>Lost below</b> &middot; ${lostJobs.map((job) => job.name).join(', ')}. Hester will mark the way again.</div>` : ''}
+      ${!win && run.metKeeper ? '<div class="unlock-box"><b>Note lost below.</b> Follow the knocking again to recover it.</div>' : ''}
       ${lazaretHTML(fin)}
-      ${fin.keeper ? `<div class="unlock-box"><b>${BL.KEEPERS[fin.keeper].name} has lit his lamp.</b> Choose your keeper when you pack for the next expedition.</div>` : ''}
       ${fin.story && fin.story.length ? `<button class="unlock-box story-new" data-act="story">New in Story so far: ${fin.story.map((t) => `<b>${t}</b>`).join(', ')}. <u>Read it</u></button>` : ''}
       ${run.unlocks && run.unlocks.length ? `<div class="unlock-box">Unlocked in the ${MT.shop}: ${run.unlocks.map((a) => E.kitFor(a).map((id) => `<b>${BL.KIT[id].name}</b>`).join(', ')).join(', ')}.</div>` : ''}`;
     const title = win ? (run.heart ? 'The Lantern Heart rises' : run.quieted ? 'The Belfry is quiet' : 'Home with your haul') : 'The tide takes you';
@@ -3851,22 +3952,23 @@
     const mateo = E.keeperId(run) === 'mateo';
     const endArt = mateo ? (win && run.quieted ? 'scenes/sc_mateo_tea' : 'scenes/op_lighthouse')
       : win ? (run.heart ? 'scenes/sc_heart3' : run.heartHome ? 'scenes/end_home_lit' : 'scenes/end_home') : 'scenes/sc_fall';
-    const endPos = { 'scenes/sc_heart3': '45% center', 'scenes/sc_fall': '58% center' }[endArt] || '55% center'; // where the people are, on a phone
+    const endPos = { 'scenes/sc_heart3': 'center', 'scenes/sc_fall': '58% center' }[endArt] || '55% center';
     // no HUD on the end screens, so the dimming layer starts at the very top (--hud-h: 0)
     screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/${endArt}.webp);background-position:${endPos}"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
+      ${fin.note ? '<div class="quest-found note-returned"><b>Note found and returned</b><span>You brought the Split Cask’s note home to Hester.</span><button class="btn" data-act="readcask">Read the note</button></div>' : ''}
       ${scoreHTML}
       <div class="stats end-stats">${stats}</div>
-      <div class="row-buttons"><button class="btn primary" data-act="newrun" autofocus>${win ? 'Go down again' : 'Try again'}</button><button class="btn" data-act="totitle">Title screen</button></div>
+      <div class="row-buttons">${fin.note ? '<button class="btn primary" data-act="totitle" autofocus>Back to the lighthouse</button>' : `<button class="btn primary" data-act="newrun" autofocus>${run.heart ? 'Follow the knocking' : win ? 'Go down again' : 'Try again'}</button><button class="btn" data-act="totitle">Title screen</button>`}</div>
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
     // coming home with the dress or with the Heart, and the first fall, have a story scene the first time; then what opened is told
     if (fin.tell) {
       fin.tell = false;
-      const at = fin.keeper ? 'keeper:' + fin.keeper : win && run.heart ? 'heart' : win && run.quieted ? (mateo ? 'quiet:mateo' : 'quiet')
+      const at = win && run.heart ? 'heart' : win && run.quieted ? (mateo ? 'quiet:mateo' : 'quiet')
         : fin.laz?.found.includes('suit') ? 'dress' : !win && !mateo ? 'fell' : '';
-      playScene(at, showNews, win ? 'Home' : 'Go on');
+      playScene(at, () => showHesterHandoff(fin.hesterJobs || []), win ? 'Home' : 'Go on');
     }
   }
 
@@ -3903,7 +4005,8 @@
       case 'tutstart': closeOverlay(true); Teach.endTutorial(true); run = null; render(); handleAct('newrun', t, e); break;
       case 'hintok': Teach.closeHint(); Teach.checkHints(); break;
       case 'newrun':
-        if (run && loadSave() && run.screen !== 'victory' && run.screen !== 'defeat') {
+        if (meta.keeperNote) beginNewRun();
+        else if (run && loadSave() && run.screen !== 'victory' && run.screen !== 'defeat') {
           openOverlay(modal('Start a new descent?', `<p>Your current run will be lost.${broughtLoss(run)}</p>`, '<button class="btn" data-act="close">Keep playing</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
         } else if (!run && loadSave()) {
           openOverlay(modal('Start a new descent?', `<p>You have a run in progress. Starting over will erase it.${broughtLoss(loadSave())}</p>`, '<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="confirmnew">Start over</button>', 'narrow'));
@@ -3989,12 +4092,20 @@
       case 'gohome': if (E.goHome(run)) { sfx('victory'); clearSave(); render(); } break;
       case 'godeeper': if (E.goDeeper(run)) {
         sfx('bell');
+        E.offerHesterJob(meta, run);
         // reaching a level for the first time counts for good (the Hold), even if Wren falls or turns back
         if (E.noteReached(meta, run)) saveMeta();
         save(); render();
         // after save(): its Story so far toasts would push this one out of the stack of three (no growth while E.HOLD_STEP is 0)
         if (run.holdRose) toast(`You stand in deeper aether, and it steadies around you: your Hold grows from ${run.holdRose.from} to ${run.holdRose.to}, for good.`, 5200);
       } break;
+      case 'hesterbrief': E.hesterJob(run).briefed = true; closeOverlay(true); save(); render(); break;
+      case 'hesterfound': E.hesterJob(run).recoverySeen = true; closeOverlay(true); save(); render(); break;
+      case 'hesterhome': closeOverlay(true); showNews(); break;
+      case 'bashbrief': story.scenes.push('bash'); saveStory(); closeOverlay(true); render(); break;
+      case 'readcask': readCaskNote(); break;
+      case 'retryfinal': if (E.retryFinal(run)) { fightSong(); save(); render(); } break;
+      case 'acceptfall': if (run?.screen === 'lastchance') { run.screen = 'defeat'; clearSave(); render(); } break;
       case 'lazaret': showLazaret(); break;
       case 'ksbreak': {
         const k = t.dataset.k, n = E.breakDown(meta, k);
@@ -4174,6 +4285,11 @@
         render();
         break;
       }
+      case 'cacheleave':
+        openOverlay(modal('Leave the cache empty-handed?', '<p>You already spent an action opening it. Leave without taking a card?</p>',
+          '<button class="btn" data-act="cacheback" autofocus>Back to the cards</button><button class="btn danger" data-act="choosecard">Take none</button>', 'narrow', true), { locked: true });
+        break;
+      case 'cacheback': showCache(); break;
       case 'choosecard': {
         const id = t.dataset.id;
         const cb = ui.cardChoiceDone;
@@ -4440,6 +4556,8 @@
     if (run && run.screen === 'map') renderMap();
     if (run && run.combat) renderGlossary();
     fitScene();
+    const scroll = $('.workshop-modal .modal-body', overlayEl);
+    if (scroll) updateScrollCue(scroll);
     drawDollLines();
   });
   window.addEventListener('beforeunload', () => save());

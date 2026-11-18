@@ -157,19 +157,21 @@ function showMap(run) {
   const lv = run.level || 0;
   const clue = E.bosunClue(run);
   const job = E.hesterJobAhead(run);
+  const item = BL.HESTER_JOBS[lv];
   say('', `MAP: ${E.LEVELS[lv].name}. ${bossName(run)} waits on landing ${rows + 1}, the last.${!E.lastLevel(run) && E.deepestReachable(run) === lv ? ' Below it the stair runs under the sea, and you have nothing to dive in: this pin is as deep as this expedition can go.' : ''}`);
-  if (job) say(`Hester asks you to recover the log at the marked Fog and bring it home for ${E.HESTER_PAY} Salvage.`);
-  if (run.hesterJob?.recovered) say(`You carry the keeper's log. Hester pays ${E.HESTER_PAY} Salvage on a safe return.`);
+  if (job) say(item.brief, `Bring the find home after clearing this depth for ${item.pay} Salvage.`);
+  E.hesterCargo(run).forEach((j) => say(`For Hester: ${j.name} (${j.pay} Salvage on a safe return).`));
+  const marker = (n) => job && E.hesterStop(run, n) ? ` (Hester: ${item.marker})` : '';
   for (let r = rows - 1; r >= 0; r--) {
     const nodes = run.map.grid[r].filter(Boolean).map((n) => {
       const here = run.pos && run.pos.row === r && run.pos.col === n.col ? ' (YOU WERE HERE)' : '';
       const nx = r < rows - 1 && n.next.length ? ` -> ${n.next.map((c2) => 'col ' + c2).join(', ')}` : '';
-      return `col ${n.col}: ${NODE_NAME[n.type]}${job && E.hesterStop(run, n) ? " (Hester's log)" : ''}${here}${nx}`;
+      return `col ${n.col}: ${NODE_NAME[n.type]}${marker(n)}${here}${nx}`;
     });
     say(`  Landing ${r + 1}: ${nodes.join(' | ')}`);
   }
   say('', av.length ? 'You can go to:' : 'Nowhere left to go.');
-  av.forEach((n, i) => say(`  ${i + 1}. ${n.type === 'boss' ? `${bossName(run)} (the pin, a boss)` : NODE_NAME[n.type]}, landing ${n.row + 1}${n.type === 'boss' ? '' : ', col ' + n.col}${clue?.node === n ? `. Bosun warns of the ${clue.name}.` : ''}${job && E.hesterStop(run, n) ? " (Hester's log)" : ''}`));
+  av.forEach((n, i) => say(`  ${i + 1}. ${n.type === 'boss' ? `${bossName(run)} (the pin, a boss)` : NODE_NAME[n.type]}, landing ${n.row + 1}${n.type === 'boss' ? '' : ', col ' + n.col}${clue?.node === n ? `. Bosun warns of the ${clue.name}.` : ''}${marker(n)}`));
 }
 
 function showReward(run) {
@@ -225,6 +227,7 @@ function showRest(run) {
       rest: `Rest deeply: heal ${E.stairRestAmount(run)} HP.`, refit: 'Refit: upgrade a card.', shed: 'Shed: remove a card, free.',
       flask: `Fill flasks: a random tonic into up to ${E.STAIR_FLASKS} empty slots.`, cache: "The keepers' cache: 1 of 3 cards, uncommon or rare.",
       sea: `Give a keepsake to the sea: heal ${E.SEA_HEAL} HP for each fight you won while carrying it (never more than a Cove's rest), and upgrade a card. ${seaList(run)}`, fog: 'Swim out into the dark (a Fog event).',
+      hester: 'Recover the lamplighter’s tag for Hester.',
     };
     E.stairOptions(run).forEach((id) => { const why = E.stairWhy(run, id); say(`  ${id}: ${words[id]}${why ? ` -- ${why === 'done' ? 'done' : why === 'full' ? 'no picks left' : why}` : ''}`); });
     if (E.stairState(run).cache) say(`  Cache cards: ${E.stairState(run).cache.map((id, i) => `${i + 1}. ${cardLine(run, pseudo(id))}`).join(' | ')}`);
@@ -295,7 +298,7 @@ function showPin(run) {
   if (E.canGoDeeper(run)) say(`  deeper: go down the stair into ${next.the}, with your deck, keepsakes and HP. The stair down comes first: two of six. Each landing there scores ${next.landing}.${E.deepestReachable(run) === lv + 1 && lv + 1 < E.LEVELS.length - 1 ? ' Below it the stair runs under the sea, and you have nothing to dive in: its pin is as deep as this expedition can go.' : ''}`);
   else if (next) say(`  (You cannot go deeper: ${next.the} needs the ${BL.KIT[next.needs].name}.)`);
   say('  home: end the expedition here and keep what you carry. Each HP you have left adds 5 to the score.');
-  if (run.hesterJob?.recovered) say(`  Bring Hester the keeper's log for ${E.HESTER_PAY} Salvage. If you go deeper, a fall loses it.`);
+  E.hesterCargo(run).forEach((j) => say(`  Bring Hester the ${j.name.toLowerCase()} for ${j.pay} Salvage. A fall loses it.`));
 }
 
 function showEnd(run) {
@@ -306,8 +309,9 @@ function showEnd(run) {
     sp.parts.forEach((p) => say(`  ${p.label}${p.n != null && p.each ? ` (${p.n} x ${p.each})` : p.n ? ` (${p.n})` : ''}: +${p.pts}`));
     say(`  Score: ${E.score(run, won)}`);
   } catch (e) { /* the score needs nothing more */ }
-  if (run.hesterPay) say(`  +${run.hesterPay} Salvage from Hester for bringing the keeper's log home.`);
-  if (!won && run.hesterJob?.recovered) say("  The keeper's log is lost. You can look for it again on your next descent.");
+  if (run.retryLost) say('  The rematch cost your carried keepsakes, tonics, score and its Salvage.');
+  (run.hesterPaid || []).forEach((j) => say(`  ${j.name} returned: +${j.pay} Salvage from Hester.`));
+  if (!won) E.hesterCargo(run).forEach((j) => say(`  ${j.name} lost below. Hester will mark the way again.`));
   say(`Fights ${run.stats.fights}, cards played ${run.stats.cardsPlayed}, damage dealt ${run.stats.dmgDealt}, taken ${run.stats.dmgTaken}, Crests ${run.stats.crests}, Strands ${run.stats.lows}.`);
 }
 
@@ -322,6 +326,7 @@ function show(run) {
     case 'toll': return showToll(run);
     case 'event': return showEvent(run);
     case 'pin': return showPin(run);
+    case 'lastchance': return say(`ONE LAST BREATH. 'retry' starts the boss again at ${E.FINAL_RETRY_HP * 100}% HP and costs your keepsakes, tonics and score. 'fall' ends the expedition.`);
     default: return showEnd(run);
   }
 }
@@ -333,11 +338,12 @@ const HELP = {
   reward: ['card <number> / skip: take a card, or skip it', 'keepsake <number> / leave: take a keepsake, or leave them', 'tonic: take the tonic', 'continue: back to the map (what you have not taken is left)'],
   shop: ['buy card|keepsake|tonic <number>', 'remove <deck number>: pay to remove a card', 'continue: leave the shop'],
   rest: ['rest', 'refit <deck number> [1|2]', 'sea <keepsake number> <deck number> [1|2]', 'continue: go on'],
-  stair: ['rest', 'refit <deck number> [1|2]', 'shed <deck number>', 'flask', 'cache (look), then cache <number> (take)', 'sea <keepsake number> <deck number> [1|2]', 'fog (under a lesser bell only)', 'continue: go on, picks unused or not'],
+  stair: ['rest', 'refit <deck number> [1|2]', 'shed <deck number>', 'flask', 'cache (look), then cache <number> (take)', 'sea <keepsake number> <deck number> [1|2]', 'fog (under a lesser bell)', 'hester (at the marked lesser bell)', 'continue: go on'],
   treasure: ['open', 'keepsake <number> / leave', 'continue'],
   toll: ['pay hp|pearls|barnacle: pay the toll one way', 'continue (once paid)'],
   event: ['choose <number>', 'pick <deck number> [1|2] (use a refit number when upgrading)', 'card <number> / skip (when it offers cards)', 'continue'],
   pin: ['deeper (when you can)', 'home'],
+  lastchance: ['retry', 'fall'],
 };
 function help(run) {
   const s = run ? (E.stairOpen(run) ? 'stair' : run.screen) : null;
@@ -437,12 +443,16 @@ function afterCombatStep(run) {
   const c = run.combat;
   say(...fxLines(run));
   if (c.won) { E.finishCombat(run); say('', 'You win the fight.'); }
-  else if (c.lost || run.hp <= 0) { run.screen = 'defeat'; }
+  else if (c.lost || run.hp <= 0) { run.screen = E.canRetryFinal(run) ? 'lastchance' : 'defeat'; }
 }
 
 function act(run, cmd, args) {
   const s = run.screen;
   const no = (why) => { say(`Can't: ${why}`); return false; };
+  if (s === 'lastchance') {
+    if (cmd === 'retry') return E.retryFinal(run);
+    if (cmd === 'fall') { run.screen = 'defeat'; return true; }
+  }
   if (s === 'combat') {
     const c = run.combat;
     if (cmd === 'play') {
@@ -515,6 +525,7 @@ function act(run, cmd, args) {
       return true;
     }
     if (E.stairOpen(run)) {
+      if (cmd === 'hester') { const o = E.stairDo(run, cmd); if (!o) return no('nothing to recover here.'); say(o.job.found); return true; }
       if (['rest', 'flask', 'fog'].includes(cmd)) { const o = E.stairDo(run, cmd); if (!o) return no(E.stairWhy(run, cmd) || 'not here.'); if (o.healed) say(`Healed ${o.healed}.`); if (run.screen === 'event') say('You swim out into the dark.'); return true; }
       if (cmd === 'refit' || cmd === 'shed') { const uid = deckUid(run, args[0]); if (!uid) return no('say which card (see deck).'); const o = E.stairDo(run, cmd, uid, refitNo(args[1])); if (!o) return no(E.stairWhy(run, cmd) || 'that card or refit is unavailable.'); say(cmd === 'refit' ? `${E.cardName(o.card)} is upgraded.` : `${E.cardName(o.card)} is gone from your deck.`); return true; }
       if (cmd === 'cache') {
@@ -572,7 +583,7 @@ function act(run, cmd, args) {
     }
   }
   if (s === 'pin') {
-    if (cmd === 'deeper') { if (!E.goDeeper(run)) return no('you cannot go deeper.'); return true; }
+    if (cmd === 'deeper') { if (!E.goDeeper(run)) return no('you cannot go deeper.'); E.offerHesterJob(run, run); return true; }
     if (cmd === 'home') { E.goHome(run); return true; }
   }
   return no(`'${[cmd].concat(args).join(' ')}' does nothing here. Try 'help'.`);
@@ -586,10 +597,10 @@ async function main() {
   let run = readRun();
   const raw = argv.join(' ') || 'look';
   if (cmd === 'new') {
-    const hesterDone = !!(run?.hesterDone || run?.hesterPay);
+    const hesterDone = run?.hesterDone || !!run?.hesterPay;
     run = E.newRun(args[0] != null ? +args[0] >>> 0 : undefined, 0);
-    if (hesterDone) run.hesterDone = true;
-    E.offerHesterJob({ hesterDone }, run);
+    run.hesterDone = E.migrateMeta({ hesterDone }).hesterDone;
+    E.offerHesterJob(run, run);
     say(...BL.STORY.opening.map((o) => strip(o.text)), '', `(Seed ${run.seed}. Type 'help' for commands, 'rules' for How to Play.)`, '');
     show(run);
   } else if (cmd === 'rules') {
@@ -617,7 +628,11 @@ async function main() {
       if (run.screen !== screen && i < steps.length - 1) { say(`(The screen changed to ${run.screen}; ${steps.length - 1 - i} more not done.)`); break; }
     }
     if (ok) {
-      if (run.screen === 'victory') run.hesterPay = E.deliverHesterJob({ ...E.newMeta(), hesterDone: run.hesterDone }, run);
+      if (run.screen === 'victory') {
+        const meta = { ...E.newMeta(), hesterDone: run.hesterDone };
+        run.hesterPaid = E.deliverHesterJobs(meta, run);
+        run.hesterDone = meta.hesterDone;
+      }
       say(''); show(run);
     }
   }

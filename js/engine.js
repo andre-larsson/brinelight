@@ -121,8 +121,7 @@
      (the Hold, more at deeper depths) and stay Calm. Past it the aether is Roiled, one step for every
      12 Roil over (or part of 12). The steps climb a ladder of three, round and round:
        step 1, 4, 7...: one more Seep, an unplayable card in the draw pile of each fight;
-       step 2, 5, 8...: one more Thrash, damage at the start of each of your turns, which Ward left from the turn
-                        before stops;
+       step 2, 5, 8...: one more Thrash, damage after the enemies act, which any Ward left that turn can stop;
        step 3, 6:       one more Bell Minnow joins each fight at half health, drawn by the noise (2 at most). */
   /* The Hold: the Roil the aether holds before it is Roiled. It is HOLD, and grows by HOLD_STEP, for good, the first
      time Wren reaches each deeper level. HOLD_STEP is 0 since v0.31.0 (the user: "I think hold should be constant for
@@ -402,23 +401,34 @@
     return n.next.map((c) => run.map.grid[run.pos.row + 1][c]);
   };
 
-  /* Hester marks an existing Shallows Fog. Prefer a fork in the first three landings, then the earliest Fog. */
-  E.HESTER_PAY = BL.KIT.purse.price;
+  /* Hester uses an existing landing. Prefer an early Fog at a fork, or the first lesser bell on a dive. */
+  const hesterJobs = (run) => run.hesterJobs || (run.hesterJob ? { 0: run.hesterJob } : {}); // v0.52–53 saves
+  E.hesterJob = (run) => hesterJobs(run)[run.level || 0];
+  E.hesterCargo = (run) => BL.HESTER_JOBS.filter((_, i) => hesterJobs(run)[i]?.recovered);
+  const hesterDone = (completed) => completed === true ? ['log'] : Array.isArray(completed) ? completed : [];
   E.offerHesterJob = function (meta, run) {
-    if (meta.hesterDone || run.tutorial || run.level || run.pos || run.hesterJob) return;
-    const fog = run.map.grid.flat().filter((n) => n && n.type === 'event');
-    const node = fog.find((n) => n.row < E.WRECK_ROW &&
-      run.map.grid[n.row - 1].some((p) => p && p.next.length > 1 && p.next.includes(n.col))) || fog[0];
-    if (node) run.hesterJob = { row: node.row, col: node.col, recovered: false };
+    const lv = run.level || 0, job = BL.HESTER_JOBS[lv];
+    if (!job || run.tutorial || run.cheated || run.pos || E.hesterJob(run) || hesterDone(meta.hesterDone).includes(job.id)) return;
+    const stops = run.map.grid.flat().filter((n) => n?.type === job.stop);
+    const node = job.stop === 'pocket' ? stops[0] : stops.find((n) => n.row > 0 && n.row < E.WRECK_ROW &&
+      run.map.grid[n.row - 1].some((p) => p && p.next.length > 1 && p.next.includes(n.col))) || stops[0];
+    if (!node) return;
+    run.hesterJobs = hesterJobs(run);
+    delete run.hesterJob;
+    run.hesterJobs[lv] = { row: node.row, col: node.col, recovered: false };
   };
   E.hesterStop = function (run, node) {
-    const job = run.hesterJob;
-    return !!(job && !run.level && !job.recovered && node && job.row === node.row && job.col === node.col);
+    const job = E.hesterJob(run);
+    return !!(job && !job.recovered && node && job.row === node.row && job.col === node.col);
   };
   E.hesterJobAhead = function (run) {
-    const job = run.hesterJob;
-    return !!(job && !job.recovered && !run.level && nodeAhead(run, job));
+    const job = E.hesterJob(run);
+    return !!(job && !job.recovered && nodeAhead(run, job));
   };
+  function recoverHesterItem(run) {
+    E.hesterJob(run).recovered = true;
+    return BL.HESTER_JOBS[run.level || 0];
+  }
   function nodeAhead(run, goal) {
     let nodes = E.availableNodes(run);
     while (nodes.length && nodes[0].row < goal.row) {
@@ -636,8 +646,8 @@
   /* ---------------- Give one to the sea (v0.35.0) ----------------
      The user found that keepsakes and the Hold "need to do something more interesting", and one thought was to make
      them "possible to sacrifice". At a Cove (in place of resting or refitting) or on the stair (one of its two picks)
-     Wren can throw a keepsake she carries into the water. It is gone for this expedition, with its Roil; one brought
-     from the Lazaret is still kept there. The sea pays for it: SEA_HEAL HP for each fight she won while carrying it
+     Wren can throw a keepsake she carries into the water. It is gone, with its Roil. The sea pays for it:
+     SEA_HEAL HP for each fight she won while carrying it
      (E.carried), up to a Cove's rest, and a refit of one card (`uid`; none if nothing can be upgraded, or if she
      chooses none). So a keepsake is something to spend, and carrying one too many for a few fights (which pays:
      E.ROIL_PAY) and giving it up at a later Cove is a plan.
@@ -692,7 +702,10 @@
   /* Under a lesser bell (v0.37.0): one of six. No keepers' cache down here; `fog` swims out into the dark to one of
      the Belfry's Fog events (E.startEvent). */
   E.POCKET_OPTIONS = ['rest', 'refit', 'shed', 'flask', 'sea', 'fog'];
-  E.stairOptions = (run) => (run && run.pocket ? E.POCKET_OPTIONS : E.STAIR_OPTIONS);
+  E.stairOptions = function (run) {
+    if (!run?.pocket) return E.STAIR_OPTIONS;
+    return E.hesterStop(run, run.pos) || run.stair?.picks.includes('hester') ? ['hester', ...E.POCKET_OPTIONS] : E.POCKET_OPTIONS;
+  };
   E.stairRestAmount = (run) => Math.floor(run.maxHp * E.STAIR_REST * (E.mods(run).rest / E.COVE_REST)) + (E.hasKit(run, 'wick') ? 10 : 0);
   E.stairOpen = (run) => !!run && run.screen === 'rest' && !!(run.passage || run.pocket);
   E.stairState = (run) => run.stair || (run.stair = { picks: [], cache: null });
@@ -750,7 +763,8 @@
       out.card = arg === -1 ? null : E.addCard(run, cards[arg]);
       return out;
     }
-    if (id === 'rest') out.healed = E.heal(run, E.stairRestAmount(run));
+    if (id === 'hester') out.job = recoverHesterItem(run);
+    else if (id === 'rest') out.healed = E.heal(run, E.stairRestAmount(run));
     else if (id === 'refit') {
       const c = E.upgradeCard(run, arg, up);
       if (!c) return null;
@@ -904,17 +918,15 @@
     run.screen = 'event';
   };
   E.eventDef = (run) => BL.EVENTS.find((e) => e.id === run.event.id);
-  const takeLog = {
-    label: "Recover the keeper's log",
-    desc: `Bring the log to Hester after breaking a pin for ${E.HESTER_PAY} Salvage.`,
-    act: (run) => {
-      run.hesterJob.recovered = true;
-      return { text: 'Behind a loose stone you find an oilskin wrap tied with cord. The log inside is still dry. Hester will be waiting for it.' };
-    },
-  };
+  const takeHesterItem = (job) => ({
+    label: `Recover the ${job.name.toLowerCase()}`,
+    desc: `Break this pin and take it home to Hester for ${job.pay} Salvage.`,
+    act: (run) => { recoverHesterItem(run); return { text: job.found, job: job.id }; },
+  });
   E.eventOptions = function (run) {
     const opts = E.eventDef(run).options;
-    return E.hesterStop(run, run.pos) ? [...opts, takeLog] : opts;
+    const job = BL.HESTER_JOBS[run.level || 0];
+    return job?.stop === 'event' && E.hesterStop(run, run.pos) ? [...opts, takeHesterItem(job)] : opts;
   };
   E.optionAvailable = function (run, opt) {
     if (!opt.cond) return true;
@@ -929,6 +941,7 @@
     run.event.stage = 'result';
     run.event.text = res.text || '';
     run.event.next = res.next || null;
+    if (res.job) run.event.job = res.job;
     run.event.choice = i;
     return res;
   };
@@ -1013,7 +1026,7 @@
     for (let i = 0; i < roil.minnows; i++) {
       const e = spawnEnemy(run, c, 'minnow', enc.length + i);
       e.roil = true;
-      e.hp = e.maxHp = Math.max(1, Math.ceil(e.maxHp * E.ROIL_MINNOW_HP));
+      e.hp = Math.max(1, Math.ceil(e.maxHp * E.ROIL_MINNOW_HP));
     }
     if (roil.minnows) c.roilMinnows = roil.minnows;
     if (E.has(run, 'whaletooth')) c.player.st.might = (c.player.st.might || 0) + 1;
@@ -1024,7 +1037,7 @@
     c.roilSteps = roil.steps; // what the aether was when the fight began: it pays by this (E.ROIL_PAY)
     if (roil.steps) fx(c, { t: 'roil', seep, thrash: roil.thrash, minnows: roil.minnows });
     if (kind === 'easy' || kind === 'hard') run.normalFights++;
-    // before the first turn, so a coat's Ward (the Shell Gorget, the Plated Dress) stands against a first Thrash
+    // A coat's starting Ward lasts through the first enemy turn.
     E.kitIds(run).forEach((id) => { if (BL.KIT[id].ward) gainWard(c, c.player, BL.KIT[id].ward); });
     startPlayerTurn(run);
     return c;
@@ -1532,12 +1545,6 @@
     c.turnCards = 0; // cards played this turn: a Listener hears each one
     c.lastPlayed = null;
     const P = c.player;
-    // Thrash lands before last turn's Ward washes away, so Ward left over after the enemies stops it
-    if (c.thrash) {
-      fx(c, { t: 'thrash', n: c.thrash });
-      dealDamage(run, c, P, c.thrash, null, false);
-      if (c.lost) return;
-    }
     // on the first turn the only Ward is the coat's, which lasts the turn. The Hollow Whelk keeps it (its `keep` share).
     if (c.turn > 1) {
       const kept = E.has(run, 'whelk') ? Math.floor(P.ward * BL.KEEPSAKES.whelk.keep) : 0;
@@ -1847,6 +1854,11 @@
     const c = run.combat;
     if (c.won || c.lost) return;
     const P = c.player;
+    if (c.thrash) {
+      fx(c, { t: 'thrash', n: c.thrash });
+      dealDamage(run, c, P, c.thrash, null, false);
+      if (c.lost) return;
+    }
     (c.pDecay || []).forEach((k) => { if (P.st[k] > 0) P.st[k]--; });
     Object.keys(P.st).forEach((k) => { if (!P.st[k]) delete P.st[k]; });
     c.pDecay = null;
@@ -2014,6 +2026,19 @@
     run.screen = 'victory';
     return true;
   };
+  E.FINAL_RETRY_HP = 0.85;
+  E.canRetryFinal = (run) => !!(run && !run.tutorial && !run.cheated && !run.retryLost && E.lastLevel(run) &&
+    (run.screen === 'combat' || run.screen === 'lastchance') && run.combat?.kind === 'boss' && run.combat.lost);
+  E.retryFinal = function (run) {
+    if (run?.screen !== 'lastchance' || !E.canRetryFinal(run)) return false;
+    const enc = run.combat.enc;
+    run.retryLost = { keepsakes: run.keepsakes.slice(), tonics: run.tonics.filter(Boolean) };
+    run.retryLost.keepsakes.forEach((k) => E.dropKeepsake(run, k));
+    run.tonics.fill(null);
+    run.hp = Math.ceil(run.maxHp * E.FINAL_RETRY_HP);
+    E.startCombat(run, 'boss', enc);
+    return true;
+  };
   /* Can Wren go on down from this pin? Not past the last level, and not into a level she lacks the kit for. */
   E.canGoDeeper = function (run) {
     if (run.screen !== 'pin' || E.lastLevel(run)) return false;
@@ -2099,6 +2124,7 @@
      `won` means Wren came home: after any pin, or with the Heart. */
   E.FINAL_SCORE = 600; // the Heart brought home, or the Belfry quieted after it
   E.scoreParts = function (run, won) {
+    if (run.retryLost) return { parts: [], sum: 0, mult: 1, total: 0 };
     const st = run.stats, landed = E.landed(run);
     const lines = E.LEVELS.map((L, i) => [`Landings in ${L.the}`, landed[i] || 0, L.landing]).concat([
       ['Creatures defeated', st.kills || 0, 12],
@@ -2134,7 +2160,7 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: false, keepers: [], keeper: 'wren', mateoQuiets: 0 });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', mateoQuiets: 0 });
   /* What opens at the lighthouse as the player gets on, in the order it opens: the Workshop (the first Salvage), the
      Lazaret (the first time home), the Diving Dress (carried home) and currents (the Heart home). `meta.told` lists the
      ones the player has been shown: the UI tells each once, in a window that has to be acknowledged (v0.33.0, the user:
@@ -2239,13 +2265,19 @@
   E.keeperProfile = function (meta) {
     const keeper = E.keeperOpen(meta, meta.keeper) ? meta.keeper : 'wren';
     const mateo = E.keeperOpen(meta, 'mateo');
-    return { keeper, firstRing: mateo && keeper === 'wren', stranger: E.heartIsHome(meta) && !mateo ? 'mateo' : null };
+    return { keeper, firstRing: mateo && keeper === 'wren', stranger: E.heartIsHome(meta) && !mateo && !meta.keeperNote ? 'mateo' : null };
   };
-  E.welcomeKeeper = function (meta, run) {
+  E.returnKeeperNote = function (meta, run) {
     const id = run.metKeeper;
-    if (!id || !BL.KEEPERS[id]?.dread || !run.heartHome || !E.heartIsHome(meta) || E.keeperOpen(meta, id) || run.tutorial || run.cheated || run.screen !== 'victory' || !run.cleared.includes(BL.KEEPERS[id].level)) return null;
+    if (!id || !BL.KEEPERS[id]?.dread || !run.heartHome || !E.heartIsHome(meta) || meta.keeperNote || E.keeperOpen(meta, id) || run.tutorial || run.cheated || run.screen !== 'victory' || !run.cleared.includes(BL.KEEPERS[id].level)) return null;
+    meta.keeperNote = id;
+    return id;
+  };
+  E.welcomeKeeper = function (meta) {
+    const id = meta.keeperNote;
+    if (!BL.KEEPERS[id]?.dread || !E.heartIsHome(meta) || E.keeperOpen(meta, id)) return null;
+    meta.keeperNote = null;
     (meta.keepers || (meta.keepers = [])).push(id);
-    run.welcomedKeeper = id;
     return id;
   };
   /* Currents open once the Heart has come home. The ones chosen are remembered for the next expedition. */
@@ -2317,7 +2349,9 @@
     if (old.quiets > 0) rec.quiets = Math.min(rec.wins, Math.floor(old.quiets));
     if (old.deep && E.LEVELS[old.deep.level] && old.deep.floor >= 0) rec.deep = { level: old.deep.level, floor: Math.floor(old.deep.floor) };
     m.record = rec;
+    m.hesterDone = [...new Set(hesterDone(m.hesterDone).filter((id) => BL.HESTER_JOBS.some((job) => job.id === id)))];
     m.keepers = Array.isArray(m.keepers) && E.heartIsHome(m) ? [...new Set(m.keepers.filter((id) => id !== 'wren' && Object.hasOwn(BL.KEEPERS, id)))] : [];
+    m.keeperNote = E.heartIsHome(m) && BL.KEEPERS[m.keeperNote]?.dread && !E.keeperOpen(m, m.keeperNote) ? m.keeperNote : null;
     m.keeper = E.keeperOpen(m, m.keeper) ? m.keeper : 'wren';
     m.mateoQuiets = Math.max(0, Math.min(rec.quiets, Math.floor(m.mateoQuiets) || 0));
     m.currents = uniq2(m.currents);
@@ -2354,12 +2388,15 @@
     meta.earned += n;
     return n;
   };
-  E.deliverHesterJob = function (meta, run) {
-    if (meta.hesterDone || run.tutorial || run.cheated || run.screen !== 'victory' || !run.hesterJob?.recovered || !run.cleared.length) return 0;
-    meta.hesterDone = true;
-    meta.salvage += E.HESTER_PAY;
-    meta.earned += E.HESTER_PAY;
-    return E.HESTER_PAY;
+  E.deliverHesterJobs = function (meta, run) {
+    if (run.tutorial || run.cheated || run.screen !== 'victory') return [];
+    const done = hesterDone(meta.hesterDone), cargo = E.hesterCargo(run);
+    const delivered = BL.HESTER_JOBS.filter((job, lv) => cargo.includes(job) && run.cleared.includes(lv) && !done.includes(job.id));
+    const pay = delivered.reduce((n, job) => n + job.pay, 0);
+    meta.hesterDone = done.concat(delivered.map((job) => job.id));
+    meta.salvage += pay;
+    meta.earned += pay;
+    return delivered;
   };
 
   /* ---------------- The Lazaret: keepsakes kept between runs ----------------
@@ -2480,7 +2517,6 @@
     if (run.screen === 'victory') m.push('home');
     if (run.screen === 'victory' && run.heart) m.push('heart');
     if (run.metKeeper) m.push('dread:' + run.metKeeper);
-    if (run.screen === 'victory' && run.welcomedKeeper) m.push('keeper:' + run.welcomedKeeper);
     if (run.screen === 'victory' && run.quieted) m.push(E.keeperId(run) === 'wren' ? 'quiet' : 'quiet:' + E.keeperId(run));
     if (run.combat) {
       if (run.combat.kind === 'boss') m.push('boss');

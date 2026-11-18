@@ -36,19 +36,21 @@ test('the opening is five pictures, each with its text and art that exists; the 
   assert.match(S.opening[3].text, /Bosun/);
 });
 
-test('story scenes: one for each pin above the last, one for the dress, one for going down into the Belfry, one for the Heart, one for the first quiet (the Dark Watch) and one for the first fall, each with pictures that exist and a chapter that replays it', () => {
+test('story scenes have valid beats and art, and their chapters replay them at the right milestone', () => {
   const at = Object.values(S.scenes).map((sc) => sc.at);
-  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'in:' + (E.LEVELS.length - 1), 'heart', 'quiet', 'fell', 'keeper:mateo', 'quiet:mateo']).sort());
+  assert.deepEqual(at.slice().sort(), E.LEVELS.slice(0, -1).map((L, i) => 'pin:' + i).concat(['dress', 'in:' + (E.LEVELS.length - 1), 'heart', 'quiet', 'fell', 'keeper:mateo', 'quiet:mateo', 'rise:bell', 'lead:mateo', 'dread:mateo']).sort());
   Object.keys(S.scenes).forEach((id) => {
     const sc = S.scenes[id];
-    assert.ok(sc.beats.length >= 1 && sc.beats.length <= 4, `${id}: a scene is one to four pictures`);
+    assert.ok(sc.beats.length >= 1 && sc.beats.length <= 8, `${id}: a scene has a short sequence of beats`);
     sc.beats.forEach((b) => {
       assert.ok(b.text.length > 40 && b.text.split(/\s+/).length <= 60, `${id}: a beat is a few lines`);
-      assert.ok(b.pos && b.wide, `${id}: a beat says where its picture sits`);
-      assert.ok(fs.existsSync(img(b.art)), b.art);
+      if (b.art) {
+        assert.ok(b.pos, `${id}: a beat says where its picture sits`);
+        assert.ok(fs.existsSync(img(b.art)), b.art);
+      } else assert.equal(b.sfx, 'knock', `${id}: a dark beat marks the doorstep knock`);
       if (b.found) assert.ok(BL.KIT[b.found] && BL.KIT[b.found].found, `${id}: ${b.found} is kit that is found`);
     });
-    assert.equal(S.chapters.filter((c) => c.scene === id).length, 1, `${id}: one chapter replays it`);
+    assert.equal(S.chapters.filter((c) => c.scene === id).length, ['unbound', 'knocking', 'cask'].includes(id) ? 0 : 1, id);
   });
   // the scene opens with the chapter that replays it: the same mark
   const mark = { 'pin:0': 'won:0', 'pin:1': 'won:1', dress: 'won:1' };
@@ -64,6 +66,13 @@ test('story scenes: one for each pin above the last, one for the dress, one for 
   assert.match(S.scenes.below.beats[2].text, /young wear broken bronze for shells/);
   const bells = S.world.flatMap((g) => g.items).find((it) => it[0] === 'Why so many bells');
   assert.ok(bells && /harbour bell/.test(bells[1]) && /bell-buoy/.test(bells[1]) && !/bell-buoy|Belfry/.test(bells[2].before));
+  assert.equal(S.scenes.cask.beats[0].quote, BL.CASK_NOTE);
+  assert.equal(S.scenes.mateo.beats[0].quote, BL.CASK_NOTE);
+  assert.ok(S.scenes.mateo.beats.some((b) => /Saltmere inn/.test(b.text)));
+  assert.ok(S.scenes.mateo.beats.every((b) => !/sc_mateo_(lamp|tea)$/.test(b.art || '')));
+  assert.match(S.scenes.hoop.beats.at(-1).art, /sc_mateo_tea/);
+  assert.equal(S.scenes.unbound.beats[0].cue, 'pin2');
+  assert.equal(S.scenes.heart.beats.at(-1).song, 'bells');
 });
 
 test('chapter 1 is the opening and is always open; every other entry is locked behind a mark it names', () => {

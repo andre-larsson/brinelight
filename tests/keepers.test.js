@@ -51,8 +51,8 @@ test('the Split Cask marks one reachable Dread on every eligible Dark Water map 
   assert.equal(E.strangerAhead(newKeeperRun('mateo', 1)), null);
 });
 
-test('the Cask gives a note on victory and unlocks Mateo once on a counted, safe return', () => {
-  const meta = heartMeta();
+test('the Cask note survives a safe return and Mateo unlocks after the welcome', () => {
+  let meta = heartMeta();
   const r = E.newRun(9, 1, null, [], [], true, 2, 0, E.keeperProfile(meta));
   E.enterNode(r, E.strangerAhead(r));
   assert.ok(!E.storyMarks(r).includes('dread:mateo'));
@@ -60,16 +60,22 @@ test('the Cask gives a note on victory and unlocks Mateo once on a counted, safe
   E.finishCombat(r);
   assert.equal(r.rewards.stranger, 'mateo');
   assert.ok(E.storyMarks(r).includes('dread:mateo'));
-  assert.equal(E.welcomeKeeper(meta, { ...r, screen: 'defeat' }), null);
-  assert.equal(E.welcomeKeeper(meta, { ...r, screen: 'victory', cleared: [1], cheated: true }), null);
-  assert.equal(E.welcomeKeeper(meta, { ...r, screen: 'victory' }), null);
+  assert.equal(E.returnKeeperNote(meta, { ...r, screen: 'defeat' }), null);
+  assert.equal(E.returnKeeperNote(meta, { ...r, screen: 'victory', cleared: [1], cheated: true }), null);
+  assert.equal(E.returnKeeperNote(meta, { ...r, screen: 'victory' }), null);
   r.screen = 'pin';
   r.cleared = [0, 1];
   assert.ok(E.goHome(r));
   const saved = saveLoad(r);
-  assert.equal(E.welcomeKeeper(meta, saved), 'mateo');
-  assert.equal(E.welcomeKeeper(meta, saved), null);
-  assert.ok(E.storyMarks(saved).includes('keeper:mateo'));
+  assert.equal(E.returnKeeperNote(meta, saved), 'mateo');
+  assert.equal(E.returnKeeperNote(meta, saved), null);
+  meta = E.migrateMeta(saveLoad(meta));
+  assert.equal(meta.keeperNote, 'mateo');
+  assert.equal(E.keeperOpen(meta, 'mateo'), false);
+  assert.equal(E.keeperProfile(meta).stranger, null);
+  assert.equal(E.welcomeKeeper(meta), 'mateo');
+  assert.equal(E.welcomeKeeper(meta), null);
+  assert.equal(meta.keeperNote, null);
   assert.ok(E.keeperProfile(meta).firstRing);
 });
 

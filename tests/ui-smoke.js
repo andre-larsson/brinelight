@@ -25,7 +25,7 @@ const WORKERS = Math.max(1, Math.floor(+arg('workers', 4)) || 1);
 const failures = [];
 /* v0.33.0: a story scene plays the first time a pin breaks and on the end screen, and a "New at the lighthouse" window
    says what opened. The Belfry and Lazaret scenarios go through them; the others start with them seen and told. */
-const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart', 'fall'], TOLD = ['workshop', 'lazaret', 'suit', 'currents'];
+const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart', 'fall', 'knocking'], TOLD = ['workshop', 'lazaret', 'suit', 'currents'];
 const QUIET_STORY = JSON.stringify(JSON.stringify({ opening: true, scenes: SEEN_SCENES }));
 const QUIET_META = `localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify({ told: TOLD }))});`;
 const log = (...a) => console.log(...a);
@@ -71,6 +71,7 @@ async function waitIdle(page, what) {
 /* Dismiss anything that teaches (first-time hints) so the run can continue. */
 async function dismissHints(page) {
   for (let i = 0; i < 5; i++) {
+    if (await page.center('#overlay [data-act="hesterbrief"]')) { await clickIf(page, '#overlay [data-act="hesterbrief"]'); continue; }
     const has = await page.center('.coachmark:not([hidden]) [data-act="hintok"]');
     if (!has) return;
     await page.click('.coachmark:not([hidden]) [data-act="hintok"]');
@@ -119,7 +120,7 @@ async function fight(page, label, opts) {
     if (st === 'left') return { plays, turns };
     if (st !== 'play') { await sleep(300); continue; }
     // README claims: the keeper shows the damage that will get past Ward, and End Turn lights up when nothing is playable
-    const ui = await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run, c = r.combat; let inc = 0; E.alive(c).forEach((e) => { const i = E.intentInfo(r, e); if (i && i.dmg) inc += i.dmg * i.hits; }); const el = document.querySelector('.unit.player .incoming'); return { inc, unblocked: Math.max(0, inc - c.player.ward), shown: el ? el.innerText.trim() : '', anyPlayable: c.hand.some((x) => E.playable(r, x).ok), endLit: document.getElementById('btn-end').classList.contains('primary') }; })()`);
+    const ui = await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run, c = r.combat; let inc = c.thrash || 0; E.alive(c).forEach((e) => { const i = E.intentInfo(r, e); if (i && i.dmg) inc += i.dmg * i.hits; }); const el = document.querySelector('.unit.player .incoming'); return { inc, unblocked: Math.max(0, inc - c.player.ward), shown: el ? el.innerText.trim() : '', anyPlayable: c.hand.some((x) => E.playable(r, x).ok), endLit: document.getElementById('btn-end').classList.contains('primary') }; })()`);
     const expectShown = ui.inc ? (ui.unblocked ? String(ui.unblocked) : 'Blocked') : '';
     if (ui.shown !== expectShown) failures.push(`${label}: keeper shows incoming "${ui.shown}", expected "${expectShown}"`);
     if (ui.endLit === ui.anyPlayable) failures.push(`${label}: End Turn ${ui.endLit ? 'lit' : 'not lit'} while ${ui.anyPlayable ? 'a card is' : 'nothing is'} playable`);
@@ -145,6 +146,15 @@ async function clickIf(page, sel) {
   await page.click(sel);
   await sleep(150);
   return true;
+}
+
+async function checkModalScrollCue(page, label) {
+  const top = await page.eval(`(() => { const sc = document.querySelector('#overlay .modal-body'); const cue = sc.parentElement.querySelector('.scroll-cue'); return { scrolls: sc.scrollHeight - sc.clientHeight > 2, shown: !!cue && !cue.hidden }; })()`);
+  if (top.scrolls !== top.shown) failures.push(`${label}: More below should match the available scroll`);
+  await page.eval(`(() => { const sc = document.querySelector('#overlay .modal-body'); sc.scrollTop = sc.scrollHeight; })()`);
+  await sleep(150);
+  if (await page.eval(`!!document.querySelector('#overlay .scroll-cue:not([hidden])')`)) failures.push(`${label}: More below stayed visible at the bottom`);
+  await page.eval(`document.querySelector('#overlay .modal-body').scrollTop = 0`);
 }
 
 /* Handle overlays a stop can open (deck picks, card choices, confirmations). */
@@ -318,6 +328,7 @@ async function startRun(page, base, seed) {
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
+  await dismissHints(page);
 }
 
 async function scenario(page, base, name, size, opts) {
@@ -882,6 +893,7 @@ async function lazaretScenario(page, base, name, size) {
   await sleep(200);
   const ksTotal = await page.eval('Object.keys(BL.KEEPSAKES).length');
   if ((await count('#overlay [data-act="ksbring"]')) !== 2 || (await count('#overlay .lz-missing')) !== ksTotal - 2) failures.push(`${name}: the Lazaret should show 2 kept and ${ksTotal - 2} not brought home`);
+  await checkModalScrollCue(page, name + ' Lazaret');
   await checkPage(page, name + ' lazaret');
   await clickIf(page, '#overlay [data-act="ksbring"][data-k="anchor"]');
   await sleep(150);
@@ -902,6 +914,7 @@ async function lazaretScenario(page, base, name, size) {
   // second descent: bring both (they leave the Lazaret), drop one on the way (gone for good), and come home with the
   // other, which goes back, and with the dropped kind found again
   await setOut('the second descent');
+  await checkModalScrollCue(page, name + ' Pack');
   await checkPage(page, name + ' pack');
   await clickIf(page, '#overlay [data-act="ksbring"][data-k="moonshard"]');
   await sleep(150);
@@ -987,6 +1000,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the Shallows map');
+  await dismissHints(page);
   if (!/Shallows/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name the Shallows`);
   // the Shallows' pin is broken: go deeper, down the stair (two of five, v0.31.0), into Dark Water
   await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; r.hp = 10; B.render(); })()`);
@@ -1008,13 +1022,18 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await tapIn('[data-act="stairdo"][data-id="cache"]');
   await page.waitFor(`document.querySelectorAll('.modal [data-act="pick"][data-scope="choice"]').length === 3`, 3000, "the keepers' cache");
   if ((await page.eval('window.Brinelight.run.stair.picks.length')) !== 1) failures.push(`${name}: opening the keepers' cache should use a pick`);
-  if (!/Take none/.test(await page.eval(`document.querySelector('.modal [data-act="choosecard"][data-id=""]').textContent`))) failures.push(`${name}: the keepers' cache should offer Take none, not Back`);
+  if (!/Take none/.test(await page.eval(`document.querySelector('.modal [data-act="cacheleave"].danger')?.textContent || ''`))) failures.push(`${name}: the keepers' cache should offer a red Take none button`);
   const cache0 = await page.eval('JSON.stringify(window.Brinelight.run.stair.cache)');
   await page.eval(`(() => { const o = document.getElementById('overlay'); o.hidden = true; o.innerHTML = ''; window.Brinelight.render(); })()`); // as after a reload
   await sleep(200);
   if ((await page.eval(`document.querySelectorAll('.modal [data-act="pick"][data-scope="choice"]').length`)) !== 3) failures.push(`${name}: the open keepers' cache should show its choice again after a reload`);
   if ((await page.eval('JSON.stringify(window.Brinelight.run.stair.cache)')) !== cache0) failures.push(`${name}: the keepers' cache changed its cards after a reload`);
-  await page.click('.modal [data-act="choosecard"][data-id=""]');
+  await clickIf(page, '.modal [data-act="cacheleave"]');
+  if (!await page.eval('window.Brinelight.E.stairCacheOpen(window.Brinelight.run)')) failures.push(`${name}: that first tap should only open the confirmation`);
+  await clickIf(page, '.modal [data-act="cacheback"]');
+  if (await page.eval('JSON.stringify(window.Brinelight.run.stair.cache)') !== cache0) failures.push(`${name}: returning to the cache changed its cards`);
+  await clickIf(page, '.modal [data-act="cacheleave"]');
+  await clickIf(page, '.modal [data-act="choosecard"].danger');
   await sleep(200);
   if ((await page.eval('window.Brinelight.run.stair.picks.length')) !== 1 || (await page.eval('window.Brinelight.E.stairCacheOpen(window.Brinelight.run)'))) failures.push(`${name}: Take none should close the keepers' cache with its pick used`);
   await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.stair = { picks: [], cache: null }; r.restDone = false; B.render(); })()`);
@@ -1123,6 +1142,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   const intentAt = (tide) => page.eval(`(() => { const B = window.Brinelight; B.run.combat.tide = ${tide}; B.render(); return document.querySelector('.unit.enemy .intent').innerText.replace(/\\s+/g, ''); })()`);
   const at3 = await intentAt(3), at5 = await intentAt(5);
   if (at3 !== '12' || at5 !== '20') failures.push(`${name}: the Rocking Toll intent should read 12 at Swell 3 and 20 at Swell 5 (got ${at3}, ${at5})`);
+  const tollIcon = await page.eval(`document.querySelector('.intent.swell-mid .i-swell').innerHTML`);
   await checkPage(page, name + ' buoy');
   // once it has slipped its chain, the Wild Peal (v0.43.0: 40, 8 less a step from 3, 15 less a Crest or Strand) reads 24 at
   // Swell 1, and 25 after a Bail that Strands (the Swell back at 3)
@@ -1130,6 +1150,8 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await sleep(300);
   const pealText = () => page.eval(`document.querySelector('.unit.enemy .intent').innerText.replace(/\\s+/g, '')`);
   const peal0 = await pealText();
+  const pealIcon = await page.eval(`document.querySelector('.intent.swell-ends .i-swell').innerHTML`);
+  if (tollIcon === pealIcon) failures.push(`${name}: the two Swell attacks should have distinct icons`);
   await dismissHints(page);
   if (!(await page.eval(`(localStorage.getItem('brinelight.hints.v1') || '').includes('"peal"')`))) failures.push(`${name}: no first-time hint for the Wild Peal`);
   await tap('#tidebar .tb-act.bail');
@@ -1154,7 +1176,8 @@ async function belfryScenario(page, base, name, size, opts) {
   log(`${name}: ${size.w}x${size.h} ${size.touch ? 'touch' : 'mouse'}`);
   await page.viewport(size.w, size.h, size);
   page.errors.length = 0;
-  await page.goto(base + `?seed=${opts.seed}`);
+  const url = base + `?seed=${opts.seed}`;
+  await page.goto(url);
   await page.eval(`(() => { localStorage.clear(); localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true })); localStorage.setItem('brinelight.tutorial.v1', 'done'); localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true })); })()`);
   await page.goto(base + `?seed=${opts.seed}`);
   await inject(page);
@@ -1253,6 +1276,8 @@ async function belfryScenario(page, base, name, size, opts) {
   for (let i = 0; i < 4 && await beat(); i++) { await tap('#overlay [data-act="opnext"]'); await sleep(300); }
   if (await beat()) failures.push(`${name}: the Belfry's scene didn't close`);
   if (!/below/.test(await page.eval(`JSON.parse(localStorage.getItem('brinelight.story.v1')).scenes.join(',')`))) failures.push(`${name}: the Belfry's scene isn't stored as seen`);
+  if (!/Lamplighter’s tag/.test(await page.eval(`document.querySelector('#overlay .quest-modal')?.textContent || ''`))) failures.push(`${name}: no Hester brief for the Belfry after the dive scene`);
+  await dismissHints(page);
   // v0.37.0: the Belfry is a dive: one stop a row, 5 landings, and under a lesser bell one of six
   const dive = await page.eval(`(() => { const r = window.Brinelight.run; return { rows: r.map.rows, nodes: document.querySelectorAll('.map .node').length, hud: document.querySelector('.stat.floor').textContent, legend: document.querySelector('.map-legend').textContent }; })()`);
   if (dive.rows !== 4 || dive.nodes !== 5 || !/0\/5/.test(dive.hud) || !/lesser bell/i.test(dive.legend)) failures.push(`${name}: the Belfry should be a dive of 4 stops and the pin, 5 landings (${JSON.stringify(dive)})`);
@@ -1261,8 +1286,12 @@ async function belfryScenario(page, base, name, size, opts) {
   await waitIdle(page);
   await dismissHints(page);
   const bellStop = await page.eval(`({ opts: [...document.querySelectorAll('.stair-opt')].map((b) => b.dataset.id), title: document.querySelector('.stair-title').textContent, count: document.querySelector('.stair-count').textContent })`);
-  if (bellStop.opts.join() !== 'rest,refit,shed,flask,sea,fog' || !/lesser bell/i.test(bellStop.title) || !/one/.test(bellStop.count)) failures.push(`${name}: a lesser bell should offer one of six (${JSON.stringify(bellStop)})`);
+  if (bellStop.opts.join() !== 'hester,rest,refit,shed,flask,sea,fog' || !/lesser bell/i.test(bellStop.title) || !/one/.test(bellStop.count)) failures.push(`${name}: the marked lesser bell should include the quest choice (${JSON.stringify(bellStop)})`);
   await checkPage(page, name + ' lesser bell');
+  await clickIf(page, '.stair-opt[data-id="hester"]');
+  if (!/Lamplighter’s tag recovered/.test(await page.eval(`document.querySelector('#overlay .modal-head')?.textContent || ''`))) failures.push(`${name}: the tag recovery should open a popup`);
+  await clickIf(page, '[data-act="hesterfound"]');
+  await page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; E.backToMap(r); E.enterNode(r, r.map.grid[3][2]); B.render(); })()`);
   await page.eval(`document.querySelector('.stair-opt[data-id="fog"]').scrollIntoView({ block: 'center' })`);
   await tap('.stair-opt[data-id="fog"]');
   await page.waitFor('window.Brinelight.run.screen === "event"', 5000, 'a Belfry Fog event from the lesser bell');
@@ -1291,6 +1320,8 @@ async function belfryScenario(page, base, name, size, opts) {
   const jab = await page.eval(`window.Brinelight.run.combat.hand.find((x) => x.id === 'jab').uid`);
   await tap(`#hand .card[data-uid="${jab}"]`);
   await tap(`.unit.enemy .sprite`);
+  await page.waitFor(`document.querySelector('.opening [data-act="opnext"]')?.textContent === 'Face the Thing'`, 6000, 'the Bell breaking scene');
+  await clickIf(page, '.opening [data-act="opnext"]');
   await waitIdle(page, 'the Bell breaking');
   await sleep(1200);
   const after = await page.eval(`(() => { const B = window.Brinelight, c = B.run.combat, e = c.enemies[0], u = document.querySelector('.unit.enemy');
@@ -1300,6 +1331,14 @@ async function belfryScenario(page, base, name, size, opts) {
   if (!after.phase2) failures.push(`${name}: the field doesn't show the second phase`);
   if (!(after.keeper > 30)) failures.push(`${name}: the Heart's light should heal Wren when the Bell breaks (HP ${after.keeper})`);
   await checkPage(page, name + ' thing in the bell');
+  await page.eval(`(() => { const B = window.Brinelight, r = B.run; r.hp = 0; r.combat.lost = true; B.E.gainKeepsake(r, 'whaletooth'); B.E.gainTonic(r, 'ink'); return B.onDefeat(); })()`);
+  await page.waitFor(`!!document.querySelector('[data-act="retryfinal"]')`, 5000, 'the Belfry rematch offer');
+  await page.goto(url);
+  await inject(page);
+  await clickIf(page, '[data-act="continue"]');
+  await clickIf(page, '[data-act="retryfinal"]');
+  const retry = await page.eval(`(() => { const { run, E } = window.Brinelight; return run.screen === 'combat' && run.hp === Math.ceil(run.maxHp * E.FINAL_RETRY_HP) && run.combat.enemies[0].id === 'bell' && !run.keepsakes.length && run.tonics.every((t) => !t); })()`);
+  if (!retry) failures.push(`${name}: the reloaded offer should restart from the Bellwether at the stated health without carried loot`);
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
@@ -1848,6 +1887,7 @@ async function audioScenario(page, base, name, size) {
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
+  await dismissHints(page);
   await expect('the map, the game choosing the music again', { target: 'reach', depth: 0, intensity: 0, ambience: 'shallows/1', song: null });
   if (!(await heardList()).includes('cue:reach')) failures.push(`${name}: the map's music didn't count as heard`);
   // Barnaby's has two songs, one each visit in turn, and leaving hands back to the score
@@ -1936,16 +1976,19 @@ async function audioScenario(page, base, name, size) {
   await expect('the Tolling Buoy a third time', { playing: true, target: 'buoy', song: null });
   await set('B.run.combat.phase2 = true');
   await expect("the Buoy's second phase, the music box", { playing: true, target: 'buoy', song: null });
-  // the Bellwether has its song, in both its forms
+  // the Bellwether's song hands over to the score when the Thing comes out
   await set(`B.run.level = 2; B.E.startCombat(B.run, 'boss')`);
   await expect('the Drowned Bellwether', { playing: false, song: 'bell', ambience: '' });
   await plays("the Bellwether's song");
   await set(`B.run.combat.enemies.forEach((e) => { if (e.id === 'bell') e.id = 'bellthing'; }); B.run.combat.phase2 = true`);
-  await expect('the Thing in the Bell', { playing: false, song: 'bell' });
+  await expect('the Thing in the Bell', { playing: true, target: 'pin2', song: null });
   // the Belfry's Dreads with songs (v0.45.0)
   await set(`B.E.startCombat(B.run, 'elite', ['oarfish', 'spawn']); B.fightSong()`);
   await expect('the Crowned Oarfish', { playing: false, song: 'herring' });
+  const herringStart = await audio();
+  if (herringStart.songGain == null || herringStart.songGain >= 0.12) failures.push(`${name}: King of the Herrings should fade in from a low level`);
   await plays('King of the Herrings');
+  await page.waitFor('Brinelight.audio().songGain >= 0.19', 4000, 'the Oarfish song at its normal level');
   await set(`B.run.heartHome = true; B.E.startCombat(B.run, 'elite', ['yearling', 'listener']); B.fightSong()`);
   await expect('the Bell Yearling', { playing: false, song: 'eye' });
   await plays('Remember the Eye');
@@ -2085,13 +2128,17 @@ async function choicesScenario(page, base, name, size) {
   await inject(page);
   const R = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; return ${js}; })()`);
   await page.click('[data-act="newrun"]');
+  if (!/Keeper’s log/.test(await page.eval(`document.querySelector('#overlay .quest-modal')?.textContent || ''`))) throw new Error('Hester should brief the player in a popup before the first move');
   await dismissHints(page);
   if (!/8 Salvage/.test(await page.eval(`document.querySelector('#hester-job')?.textContent || ''`))) throw new Error('Hester should brief the player on the Shallows map');
-  const parent = await R('E.availableNodes(r).find((n) => n.next.includes(r.hesterJob.col)).col');
+  const parent = await R('E.availableNodes(r).find((n) => n.next.includes(E.hesterJob(r).col)).col');
   await clickIf(page, `.node.avail[data-col="${parent}"]`);
   await dismissHints(page);
   await page.eval(`(() => { const B = window.Brinelight; const c = B.run.combat; c.won = true; c.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); return B.onVictory(); })()`);
   await dismissHints(page);
+  await page.eval(`(() => { const B = window.Brinelight; B.run.rewards.tonic = 'kelptea'; B.render(); })()`);
+  if (!await page.eval(`document.querySelector('.tonic-reward').getBoundingClientRect().bottom < document.querySelector('.reward-main').getBoundingClientRect().top`)) throw new Error('Tonic reward should appear above the card choices');
+  await clickIf(page, '[data-act="taketonic"]');
   const roles = await page.eval(`[...document.querySelectorAll('.opening-option > span')].map((el) => el.textContent).join(',')`);
   if (roles !== 'Surge,Ebb,Wildcard') throw new Error('Wrong opening choices: ' + roles);
   if (size.touch) await clickIf(page, '.card[data-scope="rw-card"][data-key="1"]');
@@ -2103,8 +2150,9 @@ async function choicesScenario(page, base, name, size) {
   await dismissHints(page);
   const recover = await R('E.eventOptions(r).length - 1');
   await clickIf(page, `[data-act="evopt"][data-i="${recover}"]`);
+  if (!/Keeper’s log recovered/.test(await page.eval(`document.querySelector('.scene h1').textContent`))) throw new Error('The log should have a recovery screen');
   await clickIf(page, '[data-act="evcontinue"]');
-  if (!(await R('r.hesterJob.recovered'))) throw new Error('The Fog choice should recover the log');
+  if (!(await R('E.hesterJob(r).recovered'))) throw new Error('The Fog choice should recover the log');
 
   const enc = await R('E.bosunClue(r).enc.join(",")');
   const warning = await page.eval(`document.querySelector('#bosun-clue').textContent`);
@@ -2133,14 +2181,18 @@ async function choicesScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="deckconfirm"][data-up="2"]');
   if (!(await R(`r.restDone && E.cardName(r.deck.find((c) => c.uid === ${swell})) === 'High Swell'`))) throw new Error('Choosing the second refit should spend one Cove action');
 
-  await page.eval(`(() => { const B = window.Brinelight; B.run.cleared = [0]; B.run.floor = 8; B.run.screen = 'pin'; B.render(); })()`);
+  await page.eval(`(() => { const B = window.Brinelight; B.run.cleared = [0]; B.run.floor = 8; B.run.screen = 'pin'; B.E.gainKeepsake(B.run, 'tidewatch'); B.E.gainKeepsake(B.run, 'anchor'); B.render(); })()`);
   if (!/8 Salvage/.test(await page.eval(`document.querySelector('[data-act="gohome"]').textContent`))) throw new Error('The pin should show the job payout');
   await clickIf(page, '[data-act="gohome"]');
-  if (!(await R('B.meta.hesterDone && r.final.hesterPay === E.HESTER_PAY && B.meta.salvage === r.final.salvage + E.HESTER_PAY'))) throw new Error('The job should pay separately from score Salvage');
+  if (!(await R('B.meta.hesterDone.includes("log") && r.final.hesterJobs[0].pay === 8 && B.meta.salvage === r.final.salvage + 8'))) throw new Error('The job should pay separately from score Salvage');
+  if (!(await R('r.final.laz.added.length === 2 && B.meta.lazaret.includes("tidewatch") && B.meta.lazaret.includes("anchor")'))) throw new Error('Surfacing should bank every carried keepsake');
+  if (!/Keeper’s log returned/.test(await page.eval(`document.querySelector('#overlay .quest-modal')?.textContent || ''`))) throw new Error('Returning the log should open Hester’s handoff');
+  await clickIf(page, '[data-act="hesterhome"]');
   await page.goto(url);
   await inject(page);
   await page.click('[data-act="newrun"]');
-  if (!(await R('B.meta.hesterDone && !r.hesterJob'))) throw new Error('The completed job should stay completed after reload');
+  await clickIf(page, '[data-act="dive"]');
+  if (!(await R('B.meta.hesterDone.includes("log") && !E.hesterJob(r)'))) throw new Error('The completed job should stay completed after reload');
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 
@@ -2154,7 +2206,7 @@ async function mateoScenario(page, base, name, size) {
     localStorage.clear();
     localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true }));
     localStorage.setItem('brinelight.tutorial.v1', 'done');
-    localStorage.setItem('brinelight.story.v1', ${QUIET_STORY});
+    localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true, scenes: ${JSON.stringify(SEEN_SCENES.filter((id) => id !== 'knocking'))} }));
     localStorage.setItem('brinelight.meta.v1', JSON.stringify({ record: { runs: 1, wins: 1, hearts: 1 }, owned: ['suit'], reached: 2, told: ${JSON.stringify(TOLD)}, hesterDone: true }));
   })()`);
   await page.goto(url);
@@ -2171,7 +2223,10 @@ async function mateoScenario(page, base, name, size) {
   };
   const win = () => evalRun(`r.combat.won = true; r.combat.enemies.forEach((e) => { e.hp = 0; e.dead = true; }); return B.onVictory();`);
   const art = () => page.eval(`document.querySelector('.op-art')?.style.backgroundImage || ''`);
+  if (!/Follow the knocking/.test(await page.eval(`document.querySelector('[data-act="newrun"]').textContent`))) throw new Error('The title should lead a Heart winner to the knocking');
   await click('[data-act="newrun"]');
+  if (!/marked Dread in Dark Water/.test(await page.eval(`document.querySelector('.op-text')?.textContent || ''`))) throw new Error('The title lead should explain the marked Dread');
+  await click('[data-act="opnext"]');
   if (await has('[data-act="keeper"]')) throw new Error('Mateo appeared in Pack before the note came home');
   await click('[data-act="dive"]');
   if (!await evalRun('return r.keeper === "wren" && r.stranger === "mateo"')) throw new Error('Wren’s next descent should have Mateo’s Dread');
@@ -2179,7 +2234,14 @@ async function mateoScenario(page, base, name, size) {
   await click('[data-act="godeeper"]');
   await dismissHints(page);
   await click('[data-act="tomap"]');
-  await evalRun(`const n = E.strangerAhead(r);
+  if (!/Buoy’s nameplate/.test(await page.eval(`document.querySelector('.quest-modal')?.textContent || ''`))) throw new Error('Hester should brief the player on the second job in Dark Water');
+  await dismissHints(page);
+  await evalRun('E.enterNode(r, E.nodeAt(r, E.hesterJob(r))); B.render();');
+  await dismissHints(page);
+  await click(`[data-act="evopt"][data-i="${await evalRun('return E.eventOptions(r).length - 1;')}"]`);
+  if (!/Buoy’s nameplate recovered/.test(await page.eval(`document.querySelector('.scene h1').textContent`))) throw new Error('The nameplate should have a recovery screen');
+  await click('[data-act="evcontinue"]');
+  await evalRun(`const n = r.map.grid.flat().find((n) => n?.stranger);
     if (!n) throw new Error('Missing Split Cask');
     const p = r.map.grid[n.row - 1].find((x) => x?.next.includes(n.col) && x.next.length > 1) || r.map.grid[n.row - 1].find((x) => x?.next.includes(n.col));
     r.pos = { row: p.row, col: p.col }; r.floor = p.row + 1; B.save(); B.render();`);
@@ -2189,20 +2251,44 @@ async function mateoScenario(page, base, name, size) {
   await dismissHints(page);
   await win();
   if (!await evalRun('return r.metKeeper === "mateo" && !E.keeperOpen(B.meta, "mateo")')) throw new Error('Winning the Dread should only recover the note');
+  if (!await has('.opening .cask-note')) throw new Error('The note should appear immediately after the Split Cask');
+  await click('[data-act="opnext"]');
   await evalRun('r.cleared = [0, 1]; r.screen = "pin"; r.rewards = null; B.render();');
   await click('[data-act="gohome"]');
-  if (!await has('.op-text') || !await evalRun('return E.keeperOpen(B.meta, "mateo")')) throw new Error('Safe return should open the scene and welcome Mateo');
-  if (!/tied around his waist/i.test(await page.eval('document.querySelector(".op-text").textContent'))) throw new Error('Mateo’s scene should describe the line tied to him in the boat');
+  if (!await evalRun('return B.meta.keeperNote === "mateo" && !E.keeperOpen(B.meta, "mateo")')) throw new Error('Returning should bank the note before Mateo arrives');
+  await click('[data-act="hesterhome"]');
+  await click('[data-act="readcask"]');
+  if (await page.eval('document.querySelector(".modal .cask-note").textContent !== BL.CASK_NOTE')) throw new Error('The score screen should open the complete note');
+  await click('.modal-foot [data-act="close"]');
+  await click('[data-act="totitle"]');
+  await page.goto(url);
+  await inject(page);
+  if (!/Someone at the door/.test(await page.eval(`document.querySelector('[data-act="newrun"]').textContent`))) throw new Error('The welcome should remain pending on reload');
+  await click('[data-act="newrun"]');
+  if (!await has('.opening .cask-note')) throw new Error('The welcome should start with Wren and Hester reading the note');
   await click('[data-act="opnext"]');
-  if (!/sc_mateo_lamp/.test(await art())) throw new Error('Missing lamp-room painting');
-  await shot('lamp');
+  if (!await has('.opening-night')) throw new Error('The lighthouse should fade into night');
   await click('[data-act="opnext"]');
+  if (!/Open the door/.test(await page.eval(`document.querySelector('[data-act="opnext"]').textContent`))) throw new Error('The three knocks should lead to the door');
+  await click('[data-act="opnext"]');
+  if (!/sc_mateo_door/.test(await art())) throw new Error('Missing doorway painting');
+  await shot('door');
+  await click('[data-act="opnext"]');
+  if (!/sc_mateo_memory/.test(await art())) throw new Error('Missing flood memory painting');
+  await shot('memory');
+  await click('[data-act="opnext"]');
+  await click('[data-act="opnext"]');
+  if (!/Saltmere inn/.test(await page.eval(`document.querySelector('.op-text').textContent`))) throw new Error('The welcome should say where Mateo stays');
+  await click('[data-act="opnext"]');
+  if (!await evalRun('return E.keeperOpen(B.meta, "mateo") && !B.meta.keeperNote && E.keeperProfile(B.meta).firstRing;')) throw new Error('The welcome should unlock Mateo and Wren’s First Ring');
   await click('[data-act="newrun"]');
   await click('[data-act="keeper"][data-k="mateo"]');
   if (!await page.eval(`document.querySelector('.doll-wren img').src.endsWith('/mateo.webp')`)) throw new Error('The Pack should show Mateo upright');
   await checkPage(page, name + ' pack');
   await shot('pack');
   await click('[data-act="dive"]');
+  if (!/costs 0 Light and uses one of your Bail or Stir actions/.test(await page.eval(`document.querySelector('.quest-modal')?.textContent || ''`))) throw new Error('Mateo needs an introductory Bash briefing');
+  await click('[data-act="bashbrief"]');
   await evalRun('E.startCombat(r, "easy", ["kelp", "crab"]).player.ward = 10; B.render();');
   await dismissHints(page);
   if (!await page.eval(`document.querySelector('.tb-seg').getBoundingClientRect().width >= 15`)) throw new Error('Shield Bash squeezed the Swell steps');
@@ -2227,12 +2313,17 @@ async function mateoScenario(page, base, name, size) {
   await dismissHints(page);
   if (!await has('.enemy[data-id="lasthoop"]') || !await page.eval(`document.querySelector('.unit.player .sprite img').src.endsWith('/mateo_suit.webp')`)) throw new Error('The Last Hoop fight should show Mateo in his dress');
   await shot('final');
+  await evalRun('E.gainKeepsake(r, "whaletooth"); E.gainKeepsake(r, "anchor");');
   await win();
+  await click('[data-act="opnext"]');
+  if (!/sc_mateo_lamp/.test(await art())) throw new Error('Missing lamp-room painting after the Last Hoop');
+  await shot('lamp');
   await click('[data-act="opnext"]');
   if (!/sc_mateo_tea/.test(await art())) throw new Error('Missing the tea scene on Mateo’s first clear');
   await shot('tea');
   await click('[data-act="opnext"]');
   if (!await evalRun('return E.kitUnlocked(B.meta, "sparehoop") && !E.kitUnlocked(B.meta, "watchglass") && B.meta.mateoQuiets === 1;')) throw new Error('Mateo’s clear should open only his own kit and count once');
+  if (!await evalRun('return r.final.laz.added.length === 2 && B.meta.lazaret.includes("whaletooth") && B.meta.lazaret.includes("anchor");')) throw new Error('A full clear should bank every carried keepsake');
   if (page.errors.length) throw new Error(page.errors.join('\n'));
 }
 

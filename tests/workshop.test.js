@@ -381,7 +381,7 @@ test('Seep: shuffled into the draw pile at the start of each fight, unplayable, 
   assert.equal(lc.enemies.length, 1);
 });
 
-test('Thrash: at the start of each of your turns, take that much damage; Ward left from the turn before stops it', () => {
+test('Thrash hits after the enemies, when you have had a turn to build Ward', () => {
   const quiet = (c) => c.enemies.forEach((e) => { e.intent = Object.keys(BL.ENEMIES[e.id].moves).find((k) => { const m = BL.ENEMIES[e.id].moves[k]; return !m.dmg && !m.debuff; }) || e.intent; });
   const run = E.newRun(5);
   run.keepsakes = ['whaletooth', 'stormbottle']; // 19 + 18 = 37: 2 steps, so 1 Seep and Thrash 1
@@ -390,8 +390,8 @@ test('Thrash: at the start of each of your turns, take that much damage; Ward le
   const c = fightIn(run, ['crab']);
   tough(c);
   assert.equal(c.thrash, 1);
-  assert.equal(run.hp, hp0 - 1, 'the first turn of a fight: 1 damage, with no Ward up yet');
-  assert.equal(c.flags.hpLost, true, 'so the fight is no longer Flawless');
+  assert.equal(run.hp, hp0, 'the keeper gets a turn before the first Thrash');
+  assert.equal(c.flags.hpLost, false);
   const hp = run.hp;
   // end the turn with enough Ward for the enemies' attacks and `left` over
   const incoming = (cc, r) => E.alive(cc).reduce((n, e) => { const i = E.intentInfo(r, e); return n + (i && i.dmg ? i.dmg * i.hits : 0); }, 0);
@@ -409,9 +409,9 @@ test('Thrash: at the start of each of your turns, take that much damage; Ward le
   const c2 = fightIn(two, ['crab']);
   tough(c2);
   c2.enemies.splice(1); // leave only the crab: the Minnow would bite
-  assert.equal(two.hp, hp2 - 2);
+  assert.equal(two.hp, hp2);
   quiet(c2); c2.player.ward = incoming(c2, two) + 1; E.endTurn(two);
-  assert.equal(two.hp, hp2 - 3);
+  assert.equal(two.hp, hp2 - 1);
   // at 1 HP it ends the run
   two.hp = 1;
   quiet(c2);
@@ -421,14 +421,14 @@ test('Thrash: at the start of each of your turns, take that much damage; Ward le
   assert.equal(two.hp, 0);
 });
 
-test("Thrash and the Shell Gorget: the Gorget's Ward is up before the first turn, so it stops the first Thrash", () => {
+test('the Shell Gorget gives all 4 Ward before the first turn of a Roiled fight', () => {
   const run = E.newRun(5, 0, ['gorget']);
   run.keepsakes = ['whaletooth', 'stormbottle']; // Thrash 1
   const hp = run.hp;
   const c = fightIn(run, ['crab']);
   assert.equal(run.hp, hp);
-  assert.equal(c.player.ward, 3, '1 of its 4 Ward went to the Thrash');
-  assert.equal(c.flags.hpLost, false, 'a stopped Thrash keeps the fight Flawless');
+  assert.equal(c.player.ward, 4);
+  assert.equal(c.flags.hpLost, false);
   // a Calm run never has Thrash
   assert.equal(fightIn(E.newRun(5)).thrash, undefined);
 });
@@ -443,10 +443,10 @@ test('Bell Minnows follow a Roiled aether into every fight, after the encounter\
   assert.equal(c.roilMinnows, 1);
   assert.equal(c.enemies[2].roil, true);
   assert.ok(c.enemies[2].intent, 'it has an intent like any enemy');
-  // at half a Bell Minnow's health (11 to 13), rounded up
+  // Wounded, with their full (Skirmish-scaled) maximum health visible.
   assert.equal(E.ROIL_MINNOW_HP, 0.5);
-  assert.ok(c.enemies[2].maxHp >= 6 && c.enemies[2].maxHp <= 7, 'half health: ' + c.enemies[2].maxHp);
-  assert.equal(c.enemies[2].hp, c.enemies[2].maxHp);
+  assert.ok(c.enemies[2].maxHp >= 13 && c.enemies[2].maxHp <= 15);
+  assert.equal(c.enemies[2].hp, Math.ceil(c.enemies[2].maxHp / 2));
   assert.deepEqual(cc.enemies.map((e) => e.id), ['crab', 'jelly'], 'a Calm run meets only the encounter');
   // the fight is not won until the Minnow is dead too
   c.enemies.slice(0, 2).forEach((e) => { e.dead = true; e.hp = 0; });

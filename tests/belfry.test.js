@@ -27,6 +27,46 @@ const ids = (c) => E.alive(c).map((e) => e.id);
 const quiet = (c) => E.alive(c).forEach((e) => { e.intent = 'none'; });
 const safe = (run) => { run.hp = run.maxHp = 999; };
 
+test('only a fall at the Belfry pin offers one full rematch at the expense of loot and score', () => {
+  const run = E.newRun(23, 2, ['suit'], ['biscuit', 'whaletooth'], ['teeth']);
+  const deck = JSON.stringify(run.deck);
+  run.tonics[0] = 'ink';
+  run.cleared = [0, 1];
+  let c = E.startCombat(run, 'boss');
+  assert.equal(E.canRetryFinal(run), false);
+  c.enemies[0].id = 'bellthing'; // fallen after the bell broke
+  c.lost = true;
+  run.hp = 0;
+  assert.ok(E.canRetryFinal(run));
+  assert.equal(E.canRetryFinal({ ...run, level: 1 }), false);
+  assert.equal(E.canRetryFinal({ ...run, cheated: true }), false);
+  const saved = JSON.parse(JSON.stringify({ ...run, screen: 'lastchance' }));
+  assert.ok(E.retryFinal(saved));
+  assert.equal(saved.maxHp, 70, 'the sacrificed Scallop Charm takes its max HP');
+  assert.equal(saved.hp, 60);
+  assert.equal(saved.combat.enemies[0].id, 'bell');
+  assert.equal(saved.combat.turn, 1);
+  assert.equal(saved.screen, 'combat');
+  assert.equal(JSON.stringify(saved.deck), deck);
+  assert.deepEqual(saved.tonics, [null, null, null]);
+  assert.deepEqual(saved.keepsakes, []);
+  assert.deepEqual(saved.retryLost.keepsakes, ['biscuit', 'whaletooth']);
+  assert.deepEqual(saved.cleared, [0, 1]);
+  c = saved.combat;
+  c.lost = true;
+  assert.equal(E.canRetryFinal(saved), false);
+  c.lost = false;
+  c.won = true;
+  E.finishCombat(saved);
+  assert.ok(saved.heart);
+  assert.equal(E.score(saved, true), 0);
+  const meta = E.newMeta();
+  assert.deepEqual(E.carryHome(meta, saved).added, []);
+  assert.equal(E.earnSalvage(meta, E.score(saved, true)), 0);
+  E.recordRun(meta, saved, true);
+  assert.ok(E.heartIsHome(meta));
+});
+
 /* ---------- The Shallows' pin ---------- */
 test('the Harbour Hermit: In its Bell, its Ward stays from turn to turn; a Crest\'s wave hits the Ward, then shakes off the rest, and a Strand shakes it all out', () => {
   assert.deepEqual(BL.BANDS.shallows.enc.boss, [['harbour']]);

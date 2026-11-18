@@ -37,7 +37,7 @@
   // The mix: each sound's level in dB. Set by rendering every sound offline and measuring its loudest 50 ms,
   // aiming for about -24 dB for a blow, -18 for the big moments, -36 to -46 for clicks and the ambience.
   const LEVEL = {
-    draw: -2.5, select: 7.5, page: -4, hurt: -1.5, block: 2, ward: 1.5, buff: -5, debuff: -2, kill: -3, die: -5.5, echo: -4.5, danger: -17,
+    draw: -2.5, select: 7.5, page: -4, knock: -6, hurt: -1.5, block: 2, ward: 1.5, buff: -5, debuff: -2, kill: -3, die: -5.5, echo: -4.5, danger: -17,
     turn: -4, bell: -10.5, phase: -11, chain: -5, fury: -4, shopbell: -5.5, toll: -12.5, lastblow: -6, shatter: -9,
     lightgain: -1, douse: -4.5, tide: -6, crest: -8.5, low: -2.5, submerge: -8.5, bail: 6.5, stir: -6,
     coin: -1, tonic: -5.5, keepsake: -7, treasure: -5, step: -2.5, unlock: -8, victory: -8, defeat: -5,
@@ -316,6 +316,13 @@
         noise(t + 0.36, { color: 'pink', vol: 0.16, a: 0.002, dur: 0.07, ui: true, pan: -0.3, filter: { type: 'lowpass', f: 2600, to: 700, sweep: 0.05 } }); // the flap
         tone(t + 0.36, { f: 140, to: 80, glide: 0.04, vol: 0.06, a: 0.002, dur: 0.07, ui: true, pan: -0.3 });
         clicks(t + 0.37, 3, 0.06, { vol: 0.03, lo: 3000, hi: 5000, ui: true, pan: -0.3 });
+      },
+      knock(t) {
+        [0, 0.28, 0.62].forEach((delay, i) => {
+          const at = t + delay;
+          tone(at, { type: 'triangle', f: 195 - 8 * i, to: 105, glide: 0.07, vol: 0.22, a: 0.002, dur: 0.13, ui: true });
+          noise(at, { color: 'pink', vol: 0.18, a: 0.001, dur: 0.07, ui: true, filter: { type: 'bandpass', f: 780, q: 1.6 } });
+        });
       },
 
       /* blows */
@@ -685,6 +692,7 @@
       { name: 'card', opts: { type: 'status' }, label: 'Play a Status or Curse', now: 'card', when: 'Weed and seawater slopped onto the pile: a slap, a squelch, bubbles and drips.' },
       { name: 'select', label: 'Select', now: 'select', when: 'Picking a card, a target, a menu item.' },
       { name: 'page', label: 'Turn a page', now: 'select', when: 'The next picture of the opening, a page of Story so far: a crinkle, a sweep across, a flap.' },
+      { name: 'knock', label: 'Three knocks', when: 'Someone knocks at the lighthouse door.' },
     ] },
     { group: 'Blows', items: [
       { name: 'hit', opts: { n: 6 }, label: 'Hit (6)', now: 'hit', when: 'Wren\'s blow lands: a snap, a gritty punch, a wet smack, spray. n is the damage.' },
