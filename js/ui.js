@@ -1809,7 +1809,8 @@
     const keeperId = E.keeperId(meta);
     const outfit = where === 'pack' && keeperId === 'wren' ? E.outfitId(meta) : 'ochre';
     const look = E.keeperArt(meta.kit, false, keeperId, false, outfit);
-    const alt = outfit === 'ochre' ? kitKeeperAlt(meta.kit, keeper) : `${keeper.name} in ${BL.OUTFITS[outfit].name}`;
+    const over = meta.kit.coat && BL.KIT[meta.kit.coat]?.overOutfit ? `, wearing the ${BL.KIT[meta.kit.coat].name}` : '';
+    const alt = outfit === 'ochre' ? kitKeeperAlt(meta.kit, keeper) : `${keeper.name} in ${BL.OUTFITS[outfit].name}${over}`;
     // each side lists its slots top to bottom by where they point, so the lines don't cross
     const side = (s) => BL.KIT_PLACES.map((pl, i) => [pl, i]).filter(([pl]) => (pl.side || 'right') === s)
       .sort((x, y) => (x[0].at || [0, 0])[1] - (y[0].at || [0, 0])[1]).map(([pl, i]) => kitSlot(pl, where, pl.id === sel, i)).join('');

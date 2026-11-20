@@ -59,6 +59,22 @@ test("Wren's picture follows her rig, and every place has a slot on the kit scre
   assert.equal(E.keeperArt(E.fitKit(['suit']), true), 'keeper_suit');
   assert.equal(E.keeperArt(E.fitKit(['plated'])), 'keeper_plated');
   assert.equal(E.keeperArt(E.fitKit(['plated']), true), 'keeper_plated');
+  // an outfit replaces her picture above water, but the Cork Vest and Shell Gorget are drawn over it (v0.59.0)
+  assert.equal(E.keeperArt(E.fitKit(), false, 'wren', false, 'harbour'), 'wren_harbour');
+  assert.equal(E.keeperArt(E.fitKit(['cork']), false, 'wren', true, 'harbour'), 'wren_harbour_cork');
+  assert.equal(E.keeperArt(E.fitKit(['gorget']), false, 'wren', false, 'gala'), 'wren_gala_gorget');
+  assert.equal(E.keeperArt(E.fitKit(['cork']), false, 'wren', false, 'ochre'), 'keeper_cork');
+  assert.equal(E.keeperArt(E.fitKit(['suit']), false, 'wren', false, 'shells'), 'wren_shells', 'a dress replaces the outfit only in the Belfry');
+  assert.equal(E.keeperArt(E.fitKit(['cork']), true, 'wren', true, 'shells'), 'keeper_suit');
+  assert.equal(E.keeperArt(E.fitKit(['plated']), true, 'wren', true, 'gala'), 'keeper_plated');
+  assert.equal(E.keeperArt(E.fitKit(['cork']), false, 'mateo', true, 'harbour'), BL.KEEPERS.mateo.guard);
+  const overOutfit = Object.keys(BL.KIT).filter((id) => BL.KIT[id].overOutfit);
+  assert.deepEqual(overOutfit, ['cork', 'gorget']);
+  overOutfit.forEach((id) => assert.ok(BL.KIT[id].place === 'coat' && BL.KIT[id].look && BL.KIT[id].as !== 'suit', id + ' is a Rig piece with its own picture, not a dress'));
+  Object.keys(BL.OUTFITS).filter((o) => o !== 'ochre').forEach((o) => overOutfit.forEach((id) => {
+    const art = E.keeperArt(E.fitKit([id]), false, 'wren', false, o);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/units', art + '.webp')), `img/units/${art}.webp is missing`);
+  }));
   // the kit screens use the shared art lookup for the keeper, rig and outfit
   const ui = fs.readFileSync(path.join(__dirname, '..', 'js/ui.js'), 'utf8');
   assert.match(ui, /E\.keeperArt\(meta\.kit, false, keeperId, false, outfit\)/);

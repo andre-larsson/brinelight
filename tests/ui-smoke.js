@@ -2573,6 +2573,18 @@ async function outfitsScenario(page, base, name, size) {
   if (await options() !== 'ochre,harbour,lamplighter,shells,gala,longjohns') throw new Error('All earned outfits should be available after reload');
   await choose('longjohns');
   await sprite('.doll-wren img', 'wren_longjohns');
+  // the Cork Vest is drawn over the outfit, in Pack and in a fight (v0.59.0)
+  await evalRun('B.meta.owned.push("cork"); B.meta.kit.coat = "cork"; B.saveMeta();');
+  await reload();
+  await click('[data-act="newrun"]');
+  await sprite('.doll-wren img', 'wren_longjohns_cork');
+  if (!(await page.eval(`document.querySelector('.doll-wren img').alt`)).includes('Long Johns, wearing the Cork Vest')) throw new Error('Pack should name the outfit and the Cork Vest');
+  await shot('longjohns-cork-pack');
+  await click('[data-act="dive"]');
+  await dismissHints(page);
+  await evalRun('E.startCombat(r, "easy", ["kelp"]); B.render();');
+  await sprite('.unit.player .sprite img', 'wren_longjohns_cork');
+  await shot('longjohns-cork-fight');
   if (page.errors.length) throw new Error(page.errors.join('\n'));
 }
 

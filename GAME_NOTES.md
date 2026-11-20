@@ -1777,8 +1777,17 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 ### Wren's outfits and Mateo's tea (v0.56.0, 2026-11-20)
 
 - Pack offers Wren's ochre oilskin and Harbour Blue from the first descent. Hester's Shallows log unlocks Lamplighter's Green, the Heart homecoming unlocks Gala, and Wren's first Dark Watch clear unlocks Long Johns. Existing saves qualify from the same milestones. New at the lighthouse tells the player what opened, and the score screen notes new outfits earned on that expedition.
-- The four existing costume drafts ship as above-water sprites. An outfit can cover the look of the Rig, and every equipped piece still works. Pack remembers Wren's choice when switching keepers. The Workshop shows her equipped rig, and Belfry fights show her Diving Dress or Plated Dress.
+- The four existing costume drafts ship as above-water sprites. An outfit could cover the look of the Rig, and every equipped piece still works. Since v0.59.0 the Cork Vest and Shell Gorget show over every outfit (below). Pack remembers Wren's choice when switching keepers. The Workshop shows her equipped rig, and Belfry fights show her Diving Dress or Plated Dress.
 - Mateo is a good-hearted trickster. In the scene on the lighthouse step he invents a harbour regulation about tea for the keeper on duty. Wren treats it as a friendly gesture and goes to take the watch.
+
+### The Rig over Wren's outfits (v0.59.0, 2026-11-20)
+
+- The user saw that the Cork Vest showed only over the ochre oilskin: any other outfit replaced her whole picture and hid it. Of three ways to fix it (a finished picture for each outfit and Rig piece, a second image laid over hers while the game runs, or telling the player the outfit hides the Rig), the user chose finished pictures.
+- `python3 tools/wren-art.py rigs` makes them: `img/units/<outfit art>_<kit id>.webp` for each outfit and each Rig piece marked `overOutfit` in `BL.KIT` (the Cork Vest and Shell Gorget), 10 pictures of about 80 KB, loaded only when worn. All outfits share Wren's canvas and pose, so the piece cut from its picture of plain Wren fits every one, the costumes too.
+  - The cut keeps what changed from the master inside an outline for each piece (`RIG_OUTLINES`). Where the change is only darker oilskin (the piece's shadow), the outfit is darkened by the same amount instead, and what the edit painted out (the coat collar beside her neck) is cleared. Without that, the shadows and the repainted lapel and sleeve brought ochre onto the other coats.
+  - The gorget keeps the oilskin's bag strap across its shells, which reads as its own strap on the costumes.
+- The vest over the three costumes is painted instead (`PAINTED` in the script, which `rigs` leaves alone). The user saw that the cut vest brought the red scarf from the vest picture, where it lies across the vest, onto every outfit: over the Gala's boa, and doubled with the Shell Bikini's and Long Johns' own scarf. The vest also looked off on the bare torso. There is no vest painted under that scarf, so it can't simply be cut away. Codex's image tool put the vest on each costume, with `keeper_cork` attached as the reference, fitted to her own shoulders and arms, with her own scarf or boa lying over it. The edit is pasted back with `compose --base` (raw edits `assets-src/units/wren_*_cork-edit.png`, prompts in `assets-src/wanted-images.tsv`). None of the three edits shifted. Harbour Blue and Lamplighter's Green keep the cut vest: their scarf is the ochre picture's own.
+- The dresses still replace the outfit only in the Belfry. A new outfit needs only the command run again; a new Rig piece needs an outline in `RIG_OUTLINES`. A costume whose scarf or shape differs may need its vest painted as above.
 
 ### Shell Bikini (v0.57.0, 2026-11-20)
 
@@ -2666,7 +2675,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   - What worked: a gag that comes from the keeper's own trade or habits (the pilot's signal flag, the cooper's barrel, the salt-raker's spa day), and a clear change of silhouette.
   - Set aside by the user: Beach Day (a bikini with her boots), the fantasy armour and the barbarian (a sealskin fur bikini and a seal-skull helmet), all too close to the shell bikini, which is more fun. The armour had been drawn on local Qwen-Image 2.1 after Codex refused it; its original is `assets-src/units/samples/wren-armour-qwen.png`.
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
-  - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. Pack and above-water fights show the chosen outfit. The worn dresses hide it in the Belfry.
+  - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. Pack and above-water fights show the chosen outfit, with the Cork Vest or Shell Gorget over it (v0.59.0). The worn dresses hide it in the Belfry.
 - **What the samples showed:**
   1. The ochre oilskin is what reads on a phone. Dark outfits fade into the water: all the round 1 B samples, Esi's first trousers, and tarred Wren.
   2. The 400x600 canvas caps height. Josiah, Tavita, Abena, Esi and the Lamp Engine were shrunk to fit, so a really big keeper needs a taller canvas, which means changing the fight layout.

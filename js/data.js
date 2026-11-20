@@ -1237,7 +1237,9 @@
     mateo: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.53, 0.41], pocket: [0.65, 0.49] },
     mateo_suit: { harpoon: [0.2, 0.35], ditty: [0.31, 0.51], coat: [0.62, 0.35], bell: [0.41, 0.54], pocket: [0.62, 0.56] },
   };
-  /* A rig's `look` is Wren's picture (img/units) wearing it. See E.keeperArt for outfits and the Belfry. */
+  /* A rig's `look` is Wren's picture (img/units) wearing it. See E.keeperArt for outfits and the Belfry.
+     `overOutfit`: it is worn over each of Wren's outfits too, in img/units/<outfit art>_<id>.webp
+     (made by `python3 tools/wren-art.py rigs`). The dresses replace the outfit instead. */
   BL.KIT = {
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
@@ -1247,8 +1249,8 @@
     ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you Strand, draw 1 card and gain 3 Ward. A Crest gives nothing.' },
     crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Strand each turn gives nothing. Every one after it draws 2 cards and gives 1 Light.' },
     harbourbell: { place: 'bell', name: 'Harbour Bell', art: 'g_harbourbell', price: 25, unlock: 'outofbell', desc: 'The Hermit\'s bell, mended. Whenever you Crest or Strand, gain 3 Ward. It draws nothing.' },
-    cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', look: 'keeper_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
-    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', look: 'keeper_gorget', price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
+    cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', look: 'keeper_cork', overOutfit: true, price: 12, desc: 'Start each run with 5 more Max HP.' },
+    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', look: 'keeper_gorget', overOutfit: true, price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
     /* Found, never bought: the first time Dark Water's pin breaks, Wren finds it and carries it home (E.carryHome). */
     suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', look: 'keeper_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
     /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */

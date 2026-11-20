@@ -94,8 +94,9 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
-  /* An outfit covers Wren's rig above water. With her default look, the rig shows from the first landing.
-     In the Belfry the dress always shows, even in a debug run that gets there without one. */
+  /* Above water an outfit replaces Wren's whole picture. A Rig piece marked `overOutfit` (the Cork Vest, the Shell
+     Gorget) has a picture over each outfit, so it still shows (v0.59.0; until then the outfit hid it); a dress
+     doesn't. In the Belfry the dress always shows, even in a debug run that gets there without one. */
   E.keeperId = (state) => state && Object.hasOwn(BL.KEEPERS, state.keeper) ? state.keeper : 'wren';
   E.keeper = (state) => BL.KEEPERS[E.keeperId(state)];
   const knownOutfit = (id) => typeof id === 'string' && Object.hasOwn(BL.OUTFITS, id);
@@ -108,7 +109,7 @@
       return combat ? K.guard : K.portrait;
     }
     if (under && !(g && (id === 'suit' || g.as === 'suit'))) return 'keeper_suit';
-    if (!under && outfit !== 'ochre' && knownOutfit(outfit)) return BL.OUTFITS[outfit].art;
+    if (!under && outfit !== 'ochre' && knownOutfit(outfit)) return BL.OUTFITS[outfit].art + (g?.overOutfit ? '_' + id : '');
     return (g && g.look) || 'keeper';
   };
   /* Wearing `id` or kit that counts as it (the Plated Dress is a Diving Dress). */

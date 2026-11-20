@@ -45,6 +45,9 @@ Object.values(BL.KIT).forEach((k) => {
   check(`img/icons/${k.art}.webp`, 'kit ' + k.name);
   if (k.look) check(`img/units/${k.look}.webp`, 'kit ' + k.name);
 });
+// and for each piece worn over an outfit, its picture over each of Wren's outfits
+Object.entries(BL.KIT).filter(([, k]) => k.overOutfit).forEach(([id, k]) => Object.values(BL.OUTFITS).filter((o) => o.art !== 'keeper')
+  .forEach((o) => check(`img/units/${o.art}_${id}.webp`, `kit ${k.name} over ${o.name}`)));
 Object.values(BL.BANDS).forEach((b) => [b.bg, b.bossBg].forEach((bg) => check(`img/bg/${bg}.webp`, 'band ' + b.name)));
 Object.values(BL.BANDS).forEach((b) => b.stairArt && check(`img/scenes/${b.stairArt}.webp`, 'stair into ' + b.name));
 // Story so far and the opening name their pictures by path under img/

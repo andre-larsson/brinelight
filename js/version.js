@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.58.1';
+  BL.VERSION = '0.59.0';
   BL.CHANGELOG = [
+    { v: '0.59.0', date: '2026-11-20', items: [
+      'The Cork Vest and the Shell Gorget now show over all of Wren’s outfits, in Pack and in fights. Before, any outfit but the ochre oilskin hid them.',
+    ] },
     { v: '0.58.1', date: '2026-11-20', items: [
       'The menu on the title screen is now just Settings: sound, music, animation speed and backups. How to Play, Story so far, the Tutorial, What’s new and Credits stay on the title screen itself.',
     ] },
