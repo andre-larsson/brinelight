@@ -94,13 +94,13 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
-  /* Wren's picture (img/units) for a kit: her rig's `look`, the same in every fight and on the kit screens. A dress is
-     worn, helmet and all, from the first landing (since v0.26.1; before, she carried it rolled up until the Belfry).
-     `under`: below the water (the Belfry), where she shows in the plain diving dress if she has no dress on (only a
-     debug run gets there without one). */
+  /* An outfit covers Wren's rig above water. With her default look, the rig shows from the first landing.
+     In the Belfry the dress always shows, even in a debug run that gets there without one. */
   E.keeperId = (state) => state && Object.hasOwn(BL.KEEPERS, state.keeper) ? state.keeper : 'wren';
   E.keeper = (state) => BL.KEEPERS[E.keeperId(state)];
-  E.keeperArt = function (kit, under, keeper, combat = false) {
+  const knownOutfit = (id) => typeof id === 'string' && Object.hasOwn(BL.OUTFITS, id);
+  E.outfitId = (state) => knownOutfit(state?.outfit) ? state.outfit : 'ochre';
+  E.keeperArt = function (kit, under, keeper, combat = false, outfit = 'ochre') {
     const id = kit && kit.coat, g = id ? BL.KIT[id] : null;
     if (keeper === 'mateo') {
       const K = BL.KEEPERS.mateo;
@@ -108,6 +108,7 @@
       return combat ? K.guard : K.portrait;
     }
     if (under && !(g && (id === 'suit' || g.as === 'suit'))) return 'keeper_suit';
+    if (!under && outfit !== 'ochre' && knownOutfit(outfit)) return BL.OUTFITS[outfit].art;
     return (g && g.look) || 'keeper';
   };
   /* Wearing `id` or kit that counts as it (the Plated Dress is a Diving Dress). */
@@ -211,6 +212,7 @@
       level: level || 0,
       heartHome: !!heartHome,
       keeper: heartHome ? E.keeperId(profile) : 'wren',
+      outfit: E.outfitId(profile),
       currents: (currents || []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i),
       cleared: [], // the levels whose pin is broken on this expedition
       hold: E.holdAt(Math.max(deepest || 0, level || 0)) + (holdUp || 0),
@@ -2160,17 +2162,35 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', mateoQuiets: 0 });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', outfit: 'ochre', mateoQuiets: 0 });
+  E.outfitOpen = function (meta, id) {
+    if (!knownOutfit(id)) return false;
+    switch (BL.OUTFITS[id].when) {
+      case 'log': return hesterDone(meta.hesterDone).includes('log');
+      case 'heart': return E.heartIsHome(meta);
+      case 'longwatch': return meta.ach.includes('longwatch') && (meta.record.quiets || 0) > (meta.mateoQuiets || 0);
+      default: return true;
+    }
+  };
+  E.unlockedOutfits = (meta) => Object.keys(BL.OUTFITS).filter((id) => E.outfitOpen(meta, id));
+  E.equipOutfit = function (meta, id) {
+    if (E.keeperId(meta) !== 'wren' || !E.outfitOpen(meta, id)) return false;
+    meta.outfit = id;
+    return true;
+  };
   /* What opens at the lighthouse as the player gets on, in the order it opens: the Workshop (the first Salvage), the
-     Lazaret (the first time home), the Diving Dress (carried home) and currents (the Heart home). `meta.told` lists the
+     Lazaret (the first time home), the Diving Dress (carried home), currents and earned outfits. `meta.told` lists the
      ones the player has been shown: the UI tells each once, in a window that has to be acknowledged (v0.33.0, the user:
      "it is easy to miss e.g. Currents"). */
-  E.FEATURES = ['workshop', 'lazaret', 'suit', 'currents'];
+  const lighthouseFeatures = ['workshop', 'lazaret', 'suit', 'currents'];
+  E.FEATURES = [...lighthouseFeatures,
+    ...Object.keys(BL.OUTFITS).filter((id) => BL.OUTFITS[id].when).map((id) => 'outfit:' + id)];
   E.featureOpen = function (meta, id) {
     if (id === 'workshop') return meta.earned > 0 || meta.owned.length > 0;
     if (id === 'lazaret') return E.lazaretOpen(meta);
     if (id === 'suit') return E.ownsKit(meta, 'suit');
     if (id === 'currents') return E.currentsOpen(meta);
+    if (typeof id === 'string' && id.startsWith('outfit:')) return E.outfitOpen(meta, id.slice('outfit:'.length));
     return false;
   };
   /* Open, and not told yet. */
@@ -2265,7 +2285,7 @@
   E.keeperProfile = function (meta) {
     const keeper = E.keeperOpen(meta, meta.keeper) ? meta.keeper : 'wren';
     const mateo = E.keeperOpen(meta, 'mateo');
-    return { keeper, firstRing: mateo && keeper === 'wren', stranger: E.heartIsHome(meta) && !mateo && !meta.keeperNote ? 'mateo' : null };
+    return { keeper, outfit: E.outfitId(meta), firstRing: mateo && keeper === 'wren', stranger: E.heartIsHome(meta) && !mateo && !meta.keeperNote ? 'mateo' : null };
   };
   E.returnKeeperNote = function (meta, run) {
     const id = run.metKeeper;
@@ -2368,8 +2388,9 @@
     if (m.reached >= 1) grant('outofbell');
     if (m.reached >= 2) grant('stillwater');
     if (rec.hearts > 0) grant('heartlight');
-    // what the player has been told is open (v0.33.0): lasting state from before counts everything already open as told
-    m.told = Array.isArray(m.told) ? m.told.filter((id, i, a) => E.FEATURES.indexOf(id) >= 0 && a.indexOf(id) === i) : E.FEATURES.filter((id) => E.featureOpen(m, id));
+    m.outfit = E.outfitOpen(m, m.outfit) ? m.outfit : 'ochre';
+    // Saves from before v0.33.0 treat the original features they had opened as told. New outfits still get their notice.
+    m.told = Array.isArray(m.told) ? m.told.filter((id, i, a) => E.FEATURES.includes(id) && a.indexOf(id) === i) : lighthouseFeatures.filter((id) => E.featureOpen(m, id));
     return m;
   };
   E.achievementsMet = (run) => (run.tutorial ? [] : Object.keys(BL.ACHIEVEMENTS).filter((id) => BL.ACHIEVEMENTS[id].met(run)));

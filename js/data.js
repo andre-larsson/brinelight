@@ -349,6 +349,16 @@
       desc: 'Spend 4 Ward to deal 6 damage. Bash costs 0 Light and uses one of your Bail or Stir actions. Once per turn.',
       quiet: 'The last hoop drops. You lift the lid and wait. Only water comes out. You take the loose end of the line home to tell Hester who held the other end.' },
   };
+  BL.OUTFITS = {
+    ochre: { name: 'Ochre Oilskin', art: 'keeper' },
+    harbour: { name: 'Harbour Blue', art: 'wren_harbour' },
+    lamplighter: { name: 'Lamplighter’s Green', art: 'wren_lamplighter', when: 'log',
+      home: 'For bringing the keeper’s log home, Hester leaves a spare green oilskin on Wren’s peg.' },
+    gala: { name: 'Gala', art: 'wren_gala', when: 'heart',
+      home: 'Saltmere is throwing a party now the Heart is home. The harbour players have laid out your gala outfit.' },
+    longjohns: { name: 'Long Johns', art: 'wren_longjohns', when: 'longwatch',
+      home: 'Hester leaves a dry pair of long johns by your bed. For the first time since the light went out, you sleep through to morning.' },
+  };
   BL.REWARD_POOL = {
     common: Object.values(CARDS).filter((c) => c.rarity === 'common').map((c) => c.id),
     uncommon: Object.values(CARDS).filter((c) => c.rarity === 'uncommon').map((c) => c.id),
@@ -1225,8 +1235,7 @@
     mateo: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.53, 0.41], pocket: [0.65, 0.49] },
     mateo_suit: { harpoon: [0.2, 0.35], ditty: [0.31, 0.51], coat: [0.62, 0.35], bell: [0.41, 0.54], pocket: [0.62, 0.56] },
   };
-  /* A rig's `look` is Wren's picture (img/units) wearing it, in fights and on the kit screens (E.keeperArt). Without
-     one she shows as plain Wren (keeper, and keeper_suit underwater). */
+  /* A rig's `look` is Wren's picture (img/units) wearing it. See E.keeperArt for outfits and the Belfry. */
   BL.KIT = {
     honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
     barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
@@ -1370,7 +1379,7 @@
         { art: 'scenes/sc_mateo_lamp', pos: 'center 31%', wide: 'center 32%', together: true,
           text: 'After Mateo gives Hester his brother’s name for the harbour record, Wren shows him how to trim his wick. Mateo smiles at her across the lantern. “Just the blackened tip,” she says. He makes the cut and she nods. “That’ll do.”' },
         { art: 'scenes/sc_mateo_tea', pos: 'center 22%', wide: 'center 37%', together: true,
-          text: 'Mateo brings two mugs out to the step. “I like your company, Wren.” She gives him a polite smile. “Thank you for the tea. I’m due up in the lamp room.” “Good watch,” he says. When she goes, he stays to finish his tea.' },
+          text: 'Mateo brings two mugs to the step. “Tea for the keeper on duty. Harbour regulations,” he says. “Since when?” Wren asks. “Since I put the kettle on. I was hoping I’d see you.” Wren thanks him and goes up to take the watch. “Good watch,” he calls.' },
       ] },
     },
     chapters: [
@@ -1428,7 +1437,7 @@
       { id: 'hoop', title: 'The Last Hoop', when: 'quiet:mateo', lock: 'Quiet the Belfry as Mateo.', scene: 'hoop', text: [
         'The cask beneath the silent bell was larger than any he had made. Every time he reached for its lid, he heard the three knocks. When it finally opened, only water came out.',
         'Mateo told Hester his brother’s name for the harbour record. Upstairs, Wren showed him how to trim his lamp wick.',
-        'He made tea and asked Wren to sit with him on the step. He liked her company. To her, it was tea with a fellow keeper, and that suited him. She thanked him for the tea and went up to take the watch.',
+        'Mateo invented a harbour regulation about tea on watch and brought Wren a mug. He’d been looking forward to seeing her. To her, it was tea with a fellow keeper, and that suited him. She thanked him and went up to take the watch.',
       ] },
     ],
     world: [

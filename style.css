@@ -1229,6 +1229,16 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .keeper-option b { color: #f3dfb2; font: 700 17px var(--serif); }
 .keeper-option small { color: #d6e3e0; font-size: 13px; line-height: 1.35; }
 .keeper-option[aria-pressed="true"] { border-color: #efc67b; box-shadow: inset 0 0 0 1px rgba(239, 198, 123, .28); background: #143141; }
+.outfit-pick { display: grid; grid-template-columns: auto minmax(0, 240px) 1fr; align-items: center; gap: 6px 12px; margin-bottom: 14px; padding: 8px 12px; border: 1px solid rgba(148, 193, 204, .4); border-radius: 10px; background: #0a2030; }
+.outfit-pick label { color: #f3dfb2; font: 700 17px var(--serif); }
+.outfit-pick select { min-width: 0; min-height: 44px; padding: 6px 10px; border: 1px solid rgba(201, 162, 74, .55); border-radius: 8px; color-scheme: dark; background: #0e2b3a; color: var(--text); font: inherit; cursor: pointer; }
+.outfit-pick small { color: #d6e3e0; font-size: 13px; }
+.outfit-preview { display: flex; justify-content: center; }
+.outfit-preview img { height: clamp(145px, 34dvh, 270px); max-width: 100%; object-fit: contain; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .6)); }
+@media (max-width: 600px) {
+  .outfit-pick { grid-template-columns: auto minmax(0, 1fr); }
+  .outfit-pick small { grid-column: 1 / -1; }
+}
 @media (max-width: 480px) {
   .keeper-options { grid-template-columns: 1fr; }
   .keeper-option { min-height: 60px; padding: 6px 8px; }
@@ -1646,6 +1656,7 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .news-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; background: rgba(60, 30, 80, .55); border: 1px solid rgba(200, 160, 255, .4); }
 .news-item .medal { flex: 0 0 auto; width: 52px; height: 52px; }
 .news-item .medal svg { width: 28px; height: 28px; }
+.news-item .outfit-news-art { flex: 0 0 52px; width: 52px; height: 68px; object-fit: contain; }
 .news-item b { display: block; font-family: var(--serif); font-size: 20px; line-height: 1.25; color: #ffe2a8; }
 .news-item p { margin: 4px 0 6px; font-size: 16px; line-height: 1.45; color: #eadcff; }
 .news-item p b { display: inline; font-family: inherit; font-size: inherit; color: #fff; }

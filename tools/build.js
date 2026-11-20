@@ -35,6 +35,7 @@ Object.values(BL.KEEPERS).forEach((k) => {
   [k.portrait, k.guard, k.suit].filter(Boolean).forEach((art) => check(`img/units/${art}.webp`, k.name));
   if (k.strikeArt) check(`img/cards/${k.strikeArt}.webp`, k.name + "'s starter attack");
 });
+Object.values(BL.OUTFITS).forEach((o) => check(`img/units/${o.art}.webp`, 'outfit ' + o.name));
 Object.values(BL.ENEMIES).forEach((e) => check(`img/units/${e.art}.webp`, 'enemy ' + e.name));
 Object.values(BL.KEEPSAKES).forEach((k) => check(`img/icons/${k.art}.webp`, 'keepsake ' + k.name));
 Object.values(BL.TONICS).forEach((t) => check(`img/icons/${t.art}.webp`, 'tonic ' + t.name));

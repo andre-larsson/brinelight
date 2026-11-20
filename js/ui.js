@@ -38,6 +38,7 @@
     ['salvage', 'earned', 'mateoQuiets', 'holdUp'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
     ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told', 'keepers'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
     raw.keeper = m.keeper;
+    raw.outfit = m.outfit;
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
@@ -875,6 +876,11 @@
   overlayEl.addEventListener('change', (e) => {
     const r = e.target;
     if (r.matches && r.matches('.juke-depth select')) { jukeDepth(+r.value); return; }
+    if (r.id === 'pack-outfit') {
+      if (E.equipOutfit(meta, r.value)) { saveMeta(); sfx('select'); }
+      redrawKit('#pack-outfit');
+      return;
+    }
     if (!r.matches || !r.matches('input[data-vol]')) return;
     savePrefs();
     if (r.dataset.vol === 'sound') sfx('select');
@@ -1742,7 +1748,7 @@
   /* The Workshop and Pack for the expedition share one view of the kit: Wren in the middle with a slot for each
      place around her (BL.KIT_PLACES), a line from each slot to where the piece sits on her, and under her a tray
      with every piece of kit for the chosen slot: what she owns (tap to wear or take off), what is for sale, and
-     what is still locked. Her picture follows her rig, the same one she has in a fight (E.keeperArt). */
+     what is still locked. Her picture shows her rig in the Workshop and her chosen outfit in Pack. */
   const kitForSale = (id) => { const g = BL.KIT[id]; return !g.starter && !g.found && !E.ownsKit(meta, id) && E.kitUnlocked(meta, id); };
   const canBuyNow = (id) => kitForSale(id) && meta.salvage >= BL.KIT[id].price;
   const placeOf = (id) => BL.KIT_PLACES.find((pl) => pl.id === id);
@@ -1789,13 +1795,16 @@
   }
   function kitDoll(where) {
     const sel = kitSlotFor(where), keeper = E.keeper(meta);
-    const look = E.keeperArt(meta.kit, false, E.keeperId(meta));
+    const keeperId = E.keeperId(meta);
+    const outfit = where === 'pack' && keeperId === 'wren' ? E.outfitId(meta) : 'ochre';
+    const look = E.keeperArt(meta.kit, false, keeperId, false, outfit);
+    const alt = outfit === 'ochre' ? kitKeeperAlt(meta.kit, keeper) : `${keeper.name} in ${BL.OUTFITS[outfit].name}`;
     // each side lists its slots top to bottom by where they point, so the lines don't cross
     const side = (s) => BL.KIT_PLACES.map((pl, i) => [pl, i]).filter(([pl]) => (pl.side || 'right') === s)
       .sort((x, y) => (x[0].at || [0, 0])[1] - (y[0].at || [0, 0])[1]).map(([pl, i]) => kitSlot(pl, where, pl.id === sel, i)).join('');
     return `<div class="doll" data-look="${look}"><svg class="doll-lines" aria-hidden="true"></svg>
       <div class="doll-side left">${side('left')}</div>
-      <div class="doll-wren"><img src="img/units/${look}.webp" alt="${kitKeeperAlt(meta.kit, keeper)}"></div>
+      <div class="doll-wren"><img src="img/units/${look}.webp" alt="${alt}"></div>
       <div class="doll-side right">${side('right')}</div></div>${kitTray(sel, where)}`;
   }
   /* Lines from the slots to Wren (wide screens only; on a phone the slots stand in a column beside her). */
@@ -1921,12 +1930,13 @@
     openOverlay(modal('The Lazaret', body + rest, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
 
-  /* Before an expedition: choose what to wear, one piece in each place, which keepsakes to bring, and the currents.
-     Skipped while there is nothing to choose. */
-  function prepareDive() {
-    if (!meta.owned.length && !meta.lazaret.length && !E.currentsOpen(meta)) return startNewRun(meta.kit);
-    showKit();
+  function outfitPicker() {
+    const current = E.outfitId(meta);
+    const options = E.unlockedOutfits(meta).map((id) => `<option value="${id}"${id === current ? ' selected' : ''}>${BL.OUTFITS[id].name}</option>`).join('');
+    return `<div class="outfit-pick"><label for="pack-outfit">Wren’s outfit</label><select id="pack-outfit" aria-describedby="outfit-info">${options}</select>
+      <small id="outfit-info">${levelKnown(2) ? 'Cosmetic. The Belfry shows your diving dress.' : 'Cosmetic.'}</small></div>`;
   }
+  /* Pack starts with a choice of outfit. Kit, keepsakes and currents appear as they become useful. */
   function showKit(focus) {
     ui.kitFrom = 'pack';
     meta.kit = E.fitKit(meta.kit, meta.owned);
@@ -1943,8 +1953,13 @@
     const parts = [MT.item.toLowerCase(), keeps ? 'keepsakes' : '', curs ? 'currents' : ''].filter(Boolean);
     const keepers = Object.entries(BL.KEEPERS).filter(([id]) => E.keeperOpen(meta, id));
     const choice = keepers.length > 1 ? `<section class="keeper-pick" aria-label="Choose a keeper"><h3 class="ws-place">Keeper</h3><div class="keeper-options">${keepers.map(([id, K]) => `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${id === E.keeperId(meta)}"><img src="img/units/${K.portrait}.webp" alt=""><span><b>${K.name}</b><small><strong>${K.skill}.</strong> ${K.desc}</small></span></button>`).join('')}</div></section>` : '';
-    const body = `${choice}<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
-      <h3 class="ws-place">${MT.item} <small>One piece in each place.</small></h3>${kitDoll('pack')}${keeps}${curs}`;
+    const outfit = E.keeperId(meta) === 'wren' ? outfitPicker() : '';
+    const current = BL.OUTFITS[E.outfitId(meta)];
+    const kit = meta.owned.length || keeps || curs
+      ? `<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
+        <h3 class="ws-place">${MT.item} <small>One piece in each place.</small></h3>${kitDoll('pack')}`
+      : `<div class="outfit-preview"><img src="img/units/${current.art}.webp" alt="Wren in ${current.name}"></div>`;
+    const body = `${choice}${outfit}${kit}${keeps}${curs}`;
     openOverlay(modal('Pack for the expedition', body,
       `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, 'workshop-modal'), { focus });
     requestAnimationFrame(drawDollLines);
@@ -1963,7 +1978,13 @@
     if (!overlayEl.hidden || (run && run.tutorial)) return false;
     const ids = E.featureNews(meta);
     if (!ids.length) return false;
-    const items = ids.map((id) => { const [art, name, text, where] = NEWS[id](); return `<li class="news-item">${art}<div><b>${name}</b><p>${text}</p><small>${where}</small></div></li>`; }).join('');
+    const items = ids.map((id) => {
+      const outfit = id.startsWith('outfit:') ? BL.OUTFITS[id.slice('outfit:'.length)] : null;
+      const [art, name, text, where] = outfit
+        ? [`<img class="outfit-news-art" src="img/units/${outfit.art}.webp" alt="">`, `${outfit.name} unlocked`, outfit.home, 'Pack &rarr; Wren’s outfit']
+        : NEWS[id]();
+      return `<li class="news-item">${art}<div><b>${name}</b><p>${text}</p><small>${where}</small></div></li>`;
+    }).join('');
     ui.news = ids;
     openOverlay(modal('New at the lighthouse', `<ul class="news-list">${items}</ul>`, '<button class="btn primary" data-act="newsok" autofocus>Got it</button>', 'narrow news-modal').replace(/<button class="icon-btn" data-act="close"[^>]*>.*?<\/button>/, ''), { locked: true });
     sfx('unlock');
@@ -2005,16 +2026,16 @@
       return showOpening(0, () => {
         story.scenes.push('knocking');
         saveStory();
-        prepareDive();
+        showKit();
       }, false, 'knocking', 'Pack for Dark Water');
     }
     if (!story.opening) return showOpening(0, beginNewRun);
     if (!Teach.status()) {
       openOverlay(modal('First descent?', '<p class="lead-sm">A short guided fight teaches the basics: health, Ward, Light, and the Swell. About 2 minutes.</p>',
-        '<button class="btn" data-act="tutorialskip">Skip, start the run</button><button class="btn primary" data-act="tutorial" autofocus>Play the tutorial</button>', 'narrow'));
+        '<button class="btn" data-act="tutorialskip">Skip to Pack</button><button class="btn primary" data-act="tutorial" autofocus>Play the tutorial</button>', 'narrow'));
       return;
     }
-    prepareDive();
+    showKit();
   }
 
   /* ----- Map ----- */
@@ -2145,7 +2166,7 @@
     ui.combatRef = c;
     ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null; ui.bashAim = false;
     const keeper = E.keeper(run);
-    const look = E.keeperArt(run.tutorial ? null : run.kit, E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial, E.keeperId(run), true);
+    const look = E.keeperArt(run.tutorial ? null : run.kit, E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial, E.keeperId(run), true, E.outfitId(run));
     $('#pz').innerHTML = `<div class="unit player" data-uid="p" data-tip="unit:p">
         <div class="sprite"><img src="img/units/${look}.webp" alt="${keeper.title}"></div>
         <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">${keeper.title}</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
@@ -3905,6 +3926,7 @@
       if (run.cheated) fin.newBest = false; // a run with debug cheats keeps no best score
       if (fin.newBest) setNum(BEST_KEY, score);
       if (!run.tutorial) {
+        const outfitsBefore = E.unlockedOutfits(meta);
         checkUnlocks(true);
         fin.salvage = E.earnSalvage(meta, score);
         fin.hesterJobs = E.deliverHesterJobs(meta, run);
@@ -3919,6 +3941,7 @@
         }
         else if (!win && wasOpen) { fin.lost = E.lostKeepsakes(run); E.storeKeepsakes(meta, run); } // the fall: what was chosen and is gone is no longer chosen
         if (fin.laz) fin.laz.opened = !wasOpen;
+        fin.outfits = E.unlockedOutfits(meta).filter((id) => !outfitsBefore.includes(id));
         saveMeta();
       }
       fin.story = noteStory().map((en) => en.title);
@@ -3957,6 +3980,7 @@
     screenEl.innerHTML = `<div class="run-screen" style="--hud-h:0px"><div class="run-body"><div class="scene" style="background-image:url(img/${endArt}.webp);background-position:${endPos}"><div class="scene-inner" style="padding-top:8vh">
       <h1>${title}</h1><p class="lead">${text}</p>
       ${fin.note ? '<div class="quest-found note-returned"><b>Note found and returned</b><span>You brought the Split Cask’s note home to Hester.</span><button class="btn" data-act="readcask">Read the note</button></div>' : ''}
+      ${(fin.outfits || []).map((id) => `<div class="unlock-box outfit-reward"><b>${BL.OUTFITS[id].name} unlocked.</b> Choose it in Pack.</div>`).join('')}
       ${scoreHTML}
       <div class="stats end-stats">${stats}</div>
       <div class="row-buttons">${fin.note ? '<button class="btn primary" data-act="totitle" autofocus>Back to the lighthouse</button>' : `<button class="btn primary" data-act="newrun" autofocus>${run.heart ? 'Follow the knocking' : win ? 'Go down again' : 'Try again'}</button><button class="btn" data-act="totitle">Title screen</button>`}</div>
@@ -3998,7 +4022,7 @@
       case 'close': closeOverlay(); break;
       case 'newsok': E.tellFeatures(meta, ui.news || []); ui.news = null; saveMeta(); closeOverlay(true); break;
       case 'tutorial': closeOverlay(true); Teach.startTutorial(); break;
-      case 'tutorialskip': Teach.setStatus('skipped'); closeOverlay(true); prepareDive(); break;
+      case 'tutorialskip': Teach.setStatus('skipped'); closeOverlay(true); showKit(); break;
       case 'tutnext': Teach.next(); break;
       case 'tutskip': closeOverlay(true); Teach.endTutorial(false); break;
       case 'tutback': closeOverlay(true); Teach.endTutorial(true); break;

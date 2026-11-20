@@ -19,7 +19,7 @@ test('old saves are Wren and Mateo is only selectable with the Heart and his wel
   assert.equal(E.keeperId(old), 'wren');
   assert.ok(!E.keeperOpen(old, 'mateo'));
   assert.equal(E.keeperId({}), 'wren');
-  assert.deepEqual(E.keeperProfile(heartMeta()), { keeper: 'wren', firstRing: false, stranger: 'mateo' });
+  assert.deepEqual(E.keeperProfile(heartMeta()), { keeper: 'wren', outfit: 'ochre', firstRing: false, stranger: 'mateo' });
   const m = E.migrateMeta({ ...heartMeta(), keepers: ['bad', 'mateo', 'mateo'], keeper: 'mateo' });
   assert.deepEqual(m.keepers, ['mateo']);
   assert.equal(E.keeperProfile(m).keeper, 'mateo');

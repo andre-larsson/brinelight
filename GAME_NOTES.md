@@ -1773,7 +1773,12 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 - Mateo likes Wren. She treats him with the courtesy she gives a fellow keeper, and he is comfortable with that. The wick lesson, the tea on the step and the Last Hoop chapter in Story so far now show this.
 - Abena is the draft recommendation for the next keeper. Her family forged the Bellwether’s yoke, and she worries about what their work helped set in motion. Once Mateo joins, either keeper could face her marked Dread in the Shallows and bring its note home. Abena recognizes her family’s forge mark and brings her own lamp to the Heart.
-- The draft outfit order for Wren gives her Harbour Blue at the start, Lamplighter’s Green when she returns Hester’s Shallows log, the Gala at the first Heart homecoming and Long Johns after her first Dark Watch clear. Use the existing milestones for past clears and let players equip outfits in Pack. Keep the diving dress visible in the Belfry.
+
+### Wren's outfits and Mateo's tea (v0.56.0, 2026-11-20)
+
+- Pack offers Wren's ochre oilskin and Harbour Blue from the first descent. Hester's Shallows log unlocks Lamplighter's Green, the Heart homecoming unlocks Gala, and Wren's first Dark Watch clear unlocks Long Johns. Existing saves qualify from the same milestones. New at the lighthouse tells the player what opened, and the score screen notes new outfits earned on that expedition.
+- The four existing costume drafts ship as above-water sprites. An outfit can cover the look of the Rig, and every equipped piece still works. Pack remembers Wren's choice when switching keepers. The Workshop shows her equipped rig, and Belfry fights show her Diving Dress or Plated Dress.
+- Mateo is a good-hearted trickster. In the scene on the lighthouse step he invents a harbour regulation about tea for the keeper on duty. Wren treats it as a friendly gesture and goes to take the watch.
 
 ### Debug music unlock includes the dawn song (v0.50.2, 2026-11-17)
 
@@ -2617,7 +2622,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   - Hae-won, Wei, Setsuko and Kenji;
   - Kaito, a manga hero, in both styles;
   - Barnaby, who keeps his shop. Winkle goes down in his place.
-- **Wren's costume drafts** are in `assets-src/drafts/costumes/`, on her canvas.
+- **Wren's costume drafts** are in `assets-src/drafts/costumes/`, on her canvas. Harbour Blue, Lamplighter's Green, Gala and Long Johns ship as outfits in v0.56.0.
   - Oilskin recolours (tarred, harbour blue, the Lamplighter's green). The user wants these as a cheap unlock or open from the start.
   - Secret joke costumes:
     - bathing: an 1890s bathing dress, the at-home one;
@@ -2650,7 +2655,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   - What worked: a gag that comes from the keeper's own trade or habits (the pilot's signal flag, the cooper's barrel, the salt-raker's spa day), and a clear change of silhouette.
   - Set aside by the user: Beach Day (a bikini with her boots), the fantasy armour and the barbarian (a sealskin fur bikini and a seal-skull helmet), all too close to the shell bikini, which is more fun. The armour had been drawn on local Qwen-Image 2.1 after Codex refused it; its original is `assets-src/units/samples/wren-armour-qwen.png`.
   - The secret costumes are whole-picture Codex edits, so her face and pose are close but not identical, and the light is warmer. To ship one, paste it back with a mask like the Rig pictures, or inpaint it locally.
-  - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. In the game a recolour needs 5 pictures: plain, Cork Vest, Shell Gorget and both carried dresses. The worn dresses hide the oilskin.
+  - The recolours are a scripted hue swap of the ochre, with a mask that keeps out the lantern, rope coils, bell, face and harpoon hand. Pack and above-water fights show the chosen outfit. The worn dresses hide it in the Belfry.
 - **What the samples showed:**
   1. The ochre oilskin is what reads on a phone. Dark outfits fade into the water: all the round 1 B samples, Esi's first trousers, and tarred Wren.
   2. The 400x600 canvas caps height. Josiah, Tavita, Abena, Esi and the Lamp Engine were shrunk to fit, so a really big keeper needs a taller canvas, which means changing the fight layout.

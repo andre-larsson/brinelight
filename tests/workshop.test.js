@@ -59,9 +59,9 @@ test("Wren's picture follows her rig, and every place has a slot on the kit scre
   assert.equal(E.keeperArt(E.fitKit(['suit']), true), 'keeper_suit');
   assert.equal(E.keeperArt(E.fitKit(['plated'])), 'keeper_plated');
   assert.equal(E.keeperArt(E.fitKit(['plated']), true), 'keeper_plated');
-  // a fight and the kit screens show the same picture for every rig
+  // the kit screens use the shared art lookup for the keeper, rig and outfit
   const ui = fs.readFileSync(path.join(__dirname, '..', 'js/ui.js'), 'utf8');
-  assert.match(ui, /E\.keeperArt\(meta\.kit, false, E\.keeperId\(meta\)\)/, 'the kit screens call E.keeperArt for the selected keeper');
+  assert.match(ui, /E\.keeperArt\(meta\.kit, false, keeperId, false, outfit\)/);
   // every rig piece has its own picture on the kit screens
   const rigs = Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === 'coat');
   const looks = rigs.map((id) => E.keeperArt(E.fitKit([id])));
@@ -490,7 +490,7 @@ test('old lasting state carries over: gear becomes kit, and the pack becomes wha
 
 test('what opens at the lighthouse is told once: the Workshop, the Lazaret, the Diving Dress and currents', () => {
   const meta = E.newMeta();
-  assert.deepEqual(E.FEATURES, ['workshop', 'lazaret', 'suit', 'currents']);
+  assert.deepEqual(E.FEATURES, ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:gala', 'outfit:longjohns']);
   assert.deepEqual(E.featureNews(meta), [], 'a new player has nothing open');
   E.earnSalvage(meta, 500); // the first Salvage opens the Workshop
   assert.deepEqual(E.featureNews(meta), ['workshop']);
@@ -501,7 +501,7 @@ test('what opens at the lighthouse is told once: the Workshop, the Lazaret, the 
   assert.deepEqual(E.featureNews(meta), [], 'told once');
   meta.owned.push('suit');
   meta.record.hearts = 1;
-  assert.deepEqual(E.featureNews(meta), ['suit', 'currents']);
+  assert.deepEqual(E.featureNews(meta), ['suit', 'currents', 'outfit:gala']);
   E.tellFeatures(meta, ['suit', 'suit']);
   assert.deepEqual(meta.told, ['workshop', 'lazaret', 'suit']);
   // lasting state from before v0.33.0 has no list: what is already open counts as told, so only new things are announced
@@ -509,7 +509,7 @@ test('what opens at the lighthouse is told once: the Workshop, the Lazaret, the 
   assert.deepEqual(old.told, ['workshop', 'lazaret', 'suit']);
   assert.deepEqual(E.featureNews(old), []);
   old.record.hearts = 1;
-  assert.deepEqual(E.featureNews(old), ['currents']);
+  assert.deepEqual(E.featureNews(old), ['currents', 'outfit:gala']);
   // a saved list is kept, without unknown or repeated ids
   assert.deepEqual(E.migrateMeta({ salvage: 0, earned: 9, owned: [], ach: [], told: ['workshop', 'x', 'workshop'] }).told, ['workshop']);
 });

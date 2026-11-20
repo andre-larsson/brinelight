@@ -267,7 +267,7 @@
         </ul>
         <p class="muted">The full rules are in How to Play, in the menu.</p></div>`;
       const foot = (tut.resume ? '<button class="btn" data-act="tutback">Back to my run</button>' : '<button class="btn" data-act="tutback">Title screen</button>') +
-        '<button class="btn primary" data-act="tutstart" autofocus>Start a descent</button>';
+        '<button class="btn primary" data-act="tutstart" autofocus>Pack for the expedition</button>';
       api.openOverlay(api.modal('Tutorial complete', body, foot, 'narrow'), { locked: true });
     }
     /* Enter or Space moves past an info step from anywhere. */

@@ -4,7 +4,7 @@
    - phone 390x844 with touch (taps, a drag)
    Fails on any JS error or console error, on a stuck screen, or on horizontal page overflow.
    Usage: node tests/ui-smoke.js [--port 8873] [--stops 6] [--full] [--only desktop|phone|tutorial|workshop|lazaret|story|debug]
-          [--only darkwater|belfry|progress|finds|workshop|audio|music-unlocks|choices|mateo] [--workers 4]
+          [--only darkwater|belfry|progress|finds|workshop|audio|music-unlocks|choices|mateo|outfits] [--workers 4]
           [--root DIR --path /brinelight/]   (serve DIR and load the game from that sub-path)
    Each scenario starts from cleared storage, so they run on several headless Chromes at once (--workers, 4 unless
    given; each has its own throwaway profile, so their saves don't meet). --workers 1 plays them one after another. */
@@ -25,7 +25,8 @@ const WORKERS = Math.max(1, Math.floor(+arg('workers', 4)) || 1);
 const failures = [];
 /* v0.33.0: a story scene plays the first time a pin breaks and on the end screen, and a "New at the lighthouse" window
    says what opened. The Belfry and Lazaret scenarios go through them; the others start with them seen and told. */
-const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart', 'fall', 'knocking'], TOLD = ['workshop', 'lazaret', 'suit', 'currents'];
+const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart', 'fall', 'knocking'];
+const TOLD = ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:gala', 'outfit:longjohns'];
 const QUIET_STORY = JSON.stringify(JSON.stringify({ opening: true, scenes: SEEN_SCENES }));
 const QUIET_META = `localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify({ told: TOLD }))});`;
 const log = (...a) => console.log(...a);
@@ -327,6 +328,7 @@ async function startRun(page, base, seed) {
   // first launch plays the opening and offers the tutorial; this scenario skips both
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
+  await clickIf(page, '[data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
   await dismissHints(page);
 }
@@ -727,6 +729,8 @@ async function tutorialScenario(page, base, name, size, input) {
   await sleep(250);
   if (await page.eval('!!document.querySelector("#overlay [data-act=\\"tutorial\\"]")')) failures.push(`${name}: offered the tutorial again`);
   if (await page.eval('!!document.querySelector("#overlay .opening")')) failures.push(`${name}: played the opening again`);
+  await clickIf(page, '[data-act="dive"]');
+  await page.waitFor('window.Brinelight.run && !window.Brinelight.run.tutorial', 5000, 'expedition after tutorial');
   await checkPage(page, name);
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
@@ -812,6 +816,7 @@ async function storyScenario(page, base, name, size) {
   await sleep(200);
   if (await count('#overlay .opening')) failures.push(`${name}: the opening played again after the replay`);
   await clickIf(page, '[data-act="tutorialskip"]');
+  await clickIf(page, '[data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the story scenario');
   await dismissHints(page);
   await clickIf(page, '.node.avail[data-idx="0"]');
@@ -870,6 +875,7 @@ async function lazaretScenario(page, base, name, size) {
   if (await count('[data-act="lazaret"]')) failures.push(`${name}: the Lazaret is on the title screen before the first win`);
   // first win: the Lazaret opens and keeps both keepsakes
   await page.click('[data-act="newrun"]');
+  await clickIf(page, '[data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the first Lazaret run');
   await dismissHints(page);
   await end('victory', ['moonshard', 'anchor']);
@@ -999,6 +1005,7 @@ async function darkwaterScenario(page, base, name, size, opts) {
   await sleep(200);
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
+  await clickIf(page, '[data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'the Shallows map');
   await dismissHints(page);
   if (!/Shallows/.test(await page.eval(`document.querySelector('.map-header h2').textContent`))) failures.push(`${name}: the map header doesn't name the Shallows`);
@@ -1192,6 +1199,7 @@ async function belfryScenario(page, base, name, size, opts) {
   const toDarkPin = `(() => { const B = window.Brinelight, E = B.E, r = B.run; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; E.goDeeper(r); r.floor = 8; r.cleared = [0, 1]; r.found = E.hasKit(r, 'suit') ? null : 'suit'; r.screen = 'pin'; B.render(); })()`;
 
   await page.click('[data-act="newrun"]');
+  await clickIf(page, '[data-act="dive"]');
   await toMap('the first map');
   await page.eval(toDarkPin);
   await sleep(300);
@@ -1475,6 +1483,7 @@ async function progressScenario(page, base, name, size) {
 
   // a won run: the score lines add up to the score, and every unlock box is the same purple
   await page.click('[data-act="newrun"]');
+  await clickIf(page, '[data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the progress run');
   await dismissHints(page);
   await page.eval(`(() => { const B = window.Brinelight, r = B.run; B.E.gainKeepsake(r, 'moonshard'); r.stats.kills = 20; r.stats.crests = 7; r.stats.elites = 2; r.combat = null; r.landed = [8, 8]; r.level = 2; r.floor = 8; r.cleared = [0, 1, 2]; r.heart = true; r.screen = 'victory'; B.render(); })()`);
@@ -1654,9 +1663,9 @@ async function mutedMusicScenario(page, base, name, size) {
     if (state.setting !== false || state.music || state.song) failures.push(`${name}: ${label} started music while muted (${JSON.stringify(state)})`);
   };
   await page.click('[data-act="newrun"]');
-  await clickIf(page, '#overlay [data-act="dive"]');
   await clickIf(page, '#overlay [data-act="opskip"]');
   await clickIf(page, '#overlay [data-act="tutorialskip"]');
+  await clickIf(page, '#overlay [data-act="dive"]');
   await page.waitFor('Brinelight.run && Brinelight.run.screen === "map"', 5000, 'muted descent');
   await check('starting a descent', ['cue:reach']);
   const set = (js) => page.eval(`(() => { const B = Brinelight; ${js}; B.fightSong(); B.render(); B.save(); B.closeOverlay(true); })()`);
@@ -1886,6 +1895,7 @@ async function audioScenario(page, base, name, size) {
   await expect("the opening: The Keeper's Song", { playing: true, target: 'title', depth: 0, intensity: 0, song: null });
   await clickIf(page, '[data-act="opskip"]');
   await clickIf(page, '[data-act="tutorialskip"]');
+  await clickIf(page, '[data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map after New Descent');
   await dismissHints(page);
   await expect('the map, the game choosing the music again', { target: 'reach', depth: 0, intensity: 0, ambience: 'shallows/1', song: null });
@@ -2054,6 +2064,7 @@ async function seaScenario(page, base, name, size) {
   await inject(page);
   const R = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; return ${js}; })()`);
   await page.click('[data-act="newrun"]');
+  await clickIf(page, '[data-act="dive"]');
   await page.waitFor('window.Brinelight.run && window.Brinelight.run.screen === "map"', 5000, 'map for the sea');
   await dismissHints(page);
   // a Cove with no keepsake: the sea is there, shut
@@ -2128,6 +2139,7 @@ async function choicesScenario(page, base, name, size) {
   await inject(page);
   const R = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; return ${js}; })()`);
   await page.click('[data-act="newrun"]');
+  await clickIf(page, '[data-act="dive"]');
   if (!/Keeper’s log/.test(await page.eval(`document.querySelector('#overlay .quest-modal')?.textContent || ''`))) throw new Error('Hester should brief the player in a popup before the first move');
   await dismissHints(page);
   if (!/8 Salvage/.test(await page.eval(`document.querySelector('#hester-job')?.textContent || ''`))) throw new Error('Hester should brief the player on the Shallows map');
@@ -2282,6 +2294,12 @@ async function mateoScenario(page, base, name, size) {
   await click('[data-act="opnext"]');
   if (!await evalRun('return E.keeperOpen(B.meta, "mateo") && !B.meta.keeperNote && E.keeperProfile(B.meta).firstRing;')) throw new Error('The welcome should unlock Mateo and Wren’s First Ring');
   await click('[data-act="newrun"]');
+  if (!await has('#pack-outfit option[value="lamplighter"]') || !await has('#pack-outfit option[value="gala"]')) throw new Error('The earlier log and Heart should count on this save');
+  await page.eval(`(() => { const select = document.querySelector('#pack-outfit'); select.value = 'gala'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await click('[data-act="keeper"][data-k="mateo"]');
+  if (await has('#pack-outfit')) throw new Error('Wren’s outfit picker should be hidden for Mateo');
+  await click('[data-act="keeper"][data-k="wren"]');
+  if (!await page.eval(`document.querySelector('#pack-outfit').value === 'gala'`)) throw new Error('Switching keepers should remember Wren’s outfit');
   await click('[data-act="keeper"][data-k="mateo"]');
   if (!await page.eval(`document.querySelector('.doll-wren img').src.endsWith('/mateo.webp')`)) throw new Error('The Pack should show Mateo upright');
   await checkPage(page, name + ' pack');
@@ -2320,15 +2338,118 @@ async function mateoScenario(page, base, name, size) {
   await shot('lamp');
   await click('[data-act="opnext"]');
   if (!/sc_mateo_tea/.test(await art())) throw new Error('Missing the tea scene on Mateo’s first clear');
+  if (!/Harbour regulations/.test(await page.eval(`document.querySelector('.op-text').textContent`))) throw new Error('The tea scene should show Mateo’s joke');
   await shot('tea');
   await click('[data-act="opnext"]');
   if (!await evalRun('return E.kitUnlocked(B.meta, "sparehoop") && !E.kitUnlocked(B.meta, "watchglass") && B.meta.mateoQuiets === 1;')) throw new Error('Mateo’s clear should open only his own kit and count once');
+  if (await evalRun('return E.outfitOpen(B.meta, "longjohns");')) throw new Error('Mateo’s clear should not unlock Wren’s Long Johns');
   if (!await evalRun('return r.final.laz.added.length === 2 && B.meta.lazaret.includes("whaletooth") && B.meta.lazaret.includes("anchor");')) throw new Error('A full clear should bank every carried keepsake');
   if (page.errors.length) throw new Error(page.errors.join('\n'));
 }
 
 const DESK = { w: 1280, h: 800 }, PHONE = { w: 390, h: 844, mobile: true, touch: true };
+async function outfitsScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  const url = base + '?seed=23';
+  await page.goto(url);
+  await page.eval(`(() => {
+    localStorage.clear();
+    localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true }));
+    localStorage.setItem('brinelight.tutorial.v1', 'done');
+    localStorage.setItem('brinelight.story.v1', JSON.stringify({ opening: true, scenes: ${JSON.stringify(SEEN_SCENES)} }));
+  })()`);
+  const reload = async () => { await page.goto(url); await inject(page); };
+  await reload();
+  const evalRun = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; ${js} })()`);
+  const click = async (s) => { if (!await clickIf(page, s)) throw new Error('Missing control: ' + s); };
+  const text = (s) => page.eval(`document.querySelector(${JSON.stringify(s)})?.textContent || ''`);
+  const options = () => page.eval(`[...document.querySelectorAll('#pack-outfit option')].map((o) => o.value).join(',')`);
+  const choose = (id) => page.eval(`(() => {
+    const select = document.querySelector('#pack-outfit');
+    select.value = ${JSON.stringify(id)};
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  const sprite = (selector, art) => page.waitFor(`(() => {
+    const img = document.querySelector(${JSON.stringify(selector)});
+    return img?.naturalWidth > 0 && img.src.endsWith('/${art}.webp');
+  })()`, 3500, art);
+  const shot = async (key) => {
+    if (!process.env.BRINELIGHT_OUTFIT_SHOTS) return;
+    await sleep(280);
+    const prefix = path.join(process.env.BRINELIGHT_OUTFIT_SHOTS, size.touch ? 'phone' : 'desktop');
+    await page.screenshot(`${prefix}-${key}.png`);
+  };
+  const notice = async (outfit) => {
+    if (!(await text('.outfit-reward')).includes(outfit)) throw new Error('The score screen should name ' + outfit);
+    if (!(await text('.news-list')).includes(outfit + ' unlocked')) throw new Error('The lighthouse should tell the player about ' + outfit);
+    await click('[data-act="newsok"]');
+  };
+
+  await click('[data-act="newrun"]');
+  if (await options() !== 'ochre,harbour') throw new Error('The first Pack should offer the two starting outfits');
+  await choose('harbour');
+  await sprite('.outfit-preview img', 'wren_harbour');
+  await checkPage(page, name + ' first Pack');
+  await shot('first-pack');
+  await click('[data-act="dive"]');
+  await dismissHints(page);
+  await evalRun('E.startCombat(r, "easy", ["kelp"]); B.render(); B.save();');
+  await sprite('.unit.player .sprite img', 'wren_harbour');
+  await reload();
+  await click('[data-act="continue"]');
+  await sprite('.unit.player .sprite img', 'wren_harbour');
+  await dismissHints(page);
+
+  await evalRun('E.enterNode(r, E.nodeAt(r, E.hesterJob(r))); B.render();');
+  await click(`[data-act="evopt"][data-i="${await evalRun('return E.eventOptions(r).length - 1')}"]`);
+  await click('[data-act="evcontinue"]');
+  if (await evalRun('return E.outfitOpen(B.meta, "lamplighter")')) throw new Error('Finding the log below should wait for a safe return');
+  await evalRun('r.screen = "pin"; r.cleared = [0]; B.render();');
+  await click('[data-act="gohome"]');
+  await click('[data-act="hesterhome"]');
+  await notice('Lamplighter’s Green');
+  await click('[data-act="newrun"]');
+  if (await options() !== 'ochre,harbour,lamplighter') throw new Error('Only the returned log should add an outfit so far');
+  await choose('lamplighter');
+  await click('[data-act="dive"]');
+  await dismissHints(page);
+  await evalRun('r.level = 2; r.cleared = [0, 1, 2]; r.heart = true; r.screen = "victory"; B.render();');
+  await notice('Gala');
+
+  await evalRun('B.meta.owned.push("plated"); B.meta.kit.coat = "plated"; B.saveMeta();');
+  await click('[data-act="newrun"]');
+  if (await options() !== 'ochre,harbour,lamplighter,gala') throw new Error('Gala should open with the Heart');
+  await choose('gala');
+  await sprite('.doll-wren img', 'wren_gala');
+  await checkPage(page, name + ' Pack with kit');
+  await shot('gala-pack');
+  await click('[data-act="dive"]');
+  await dismissHints(page);
+  await evalRun('E.startCombat(r, "easy", ["kelp"]); B.render();');
+  await sprite('.unit.player .sprite img', 'wren_gala');
+  if (!await evalRun('return r.kit.coat === "plated" && r.combat.player.ward === 3')) throw new Error('Gala should leave the rig equipped');
+  await shot('gala-fight');
+  await evalRun('r.level = 2; r.cleared = [0, 1]; E.startCombat(r, "boss"); B.render();');
+  await sprite('.unit.player .sprite img', 'keeper_plated');
+  await dismissHints(page);
+  await evalRun('r.combat.won = true; r.combat.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); return B.onVictory();');
+  await click('[data-act="opnext"]');
+  await click('[data-act="opnext"]');
+  await shot('longjohns-notice');
+  await notice('Long Johns');
+  await reload();
+  await click('[data-act="newrun"]');
+  if (await options() !== 'ochre,harbour,lamplighter,gala,longjohns') throw new Error('All earned outfits should be available after reload');
+  await choose('longjohns');
+  await sprite('.doll-wren img', 'wren_longjohns');
+  if (page.errors.length) throw new Error(page.errors.join('\n'));
+}
+
 const JOBS = [
+  ['outfits', 'outfits desktop', (p, b) => outfitsScenario(p, b, 'outfits desktop', DESK)],
+  ['outfits', 'outfits small phone', (p, b) => outfitsScenario(p, b, 'outfits small phone', { ...PHONE, w: 360, h: 640 })],
   ['mateo', 'Mateo desktop', (p, b) => mateoScenario(p, b, 'Mateo desktop', DESK)],
   ['mateo', 'Mateo small phone', (p, b) => mateoScenario(p, b, 'Mateo small phone', { ...PHONE, w: 360, h: 640 })],
   ['choices', 'choices desktop', (p, b) => choicesScenario(p, b, 'choices desktop', DESK)],
