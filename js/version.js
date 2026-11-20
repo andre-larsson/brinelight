@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.54.0';
+  BL.VERSION = '0.55.0';
   BL.CHANGELOG = [
+    { v: '0.55.0', date: '2026-11-20', items: [
+      'New dialogue for Mateo and Wren in the lighthouse homecoming, with a revised chapter in Story so far.',
+    ] },
     { v: '0.54.0', date: '2026-11-19', items: [
       'Hester marks a job at each depth. You see what to look for before setting out and bring the finds home for Salvage.',
       'Follow the knocking after bringing the Heart home. Find the Split Cask’s note, return it to Hester and see who comes to the lighthouse. Mateo learns about Shield Bash on his first descent.',

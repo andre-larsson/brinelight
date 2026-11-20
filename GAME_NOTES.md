@@ -1769,6 +1769,12 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 - Musicbox’s *The Bell Cracks* takes over when the Thing comes out. The early homecoming slides use the score’s *Dawn*. *Harbour Bells at Dawn* starts on the final painting. The Oarfish recording fades in over three seconds from playback. The browser measured a gain of 0.003 near the start and 0.2 at 3.05 seconds. Compare that transition by ear on the device that heard the jump. ImageGen prompts for the dawn, doorway and rescue memory pictures are in `assets-src/wanted-images.tsv`.
 - Future music direction from the playtest. Give each keeper’s final boss its own song about that keeper’s dread or worry. Keeper theme songs are optional.
 
+### Mateo and Wren (v0.55.0, 2026-11-20)
+
+- Mateo likes Wren. She treats him with the courtesy she gives a fellow keeper, and he is comfortable with that. The wick lesson, the tea on the step and the Last Hoop chapter in Story so far now show this.
+- Abena is the draft recommendation for the next keeper. Her family forged the Bellwether’s yoke, and she worries about what their work helped set in motion. Once Mateo joins, either keeper could face her marked Dread in the Shallows and bring its note home. Abena recognizes her family’s forge mark and brings her own lamp to the Heart.
+- The draft outfit order for Wren gives her Harbour Blue at the start, Lamplighter’s Green when she returns Hester’s Shallows log, the Gala at the first Heart homecoming and Long Johns after her first Dark Watch clear. Use the existing milestones for past clears and let players equip outfits in Pack. Keep the diving dress visible in the Belfry.
+
 ### Debug music unlock includes the dawn song (v0.50.2, 2026-11-17)
 
 - The user still saw "Bring the Heart home" after Hear all music. Harbour Bells at Dawn's extra story gate ignored the debug grant. The Jukebox now honors that grant using its existing debug-only `depth:0` marker, so previously saved music unlocks work too. Ordinary legacy listening history still waits for the Heart; story, Logbook records, reached level and Hold are unchanged.

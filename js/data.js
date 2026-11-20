@@ -1368,9 +1368,9 @@
         { art: 'bg/bg_belfry_boss', pos: 'center', wide: 'center 40%',
           text: 'The last hoop gives. Mateo lifts the lid and waits for the three knocks. Only water comes out. He coils the loose end of the rescue line and carries it up the stair. This time he’ll tell Hester who was holding the other end.' },
         { art: 'scenes/sc_mateo_lamp', pos: 'center 31%', wide: 'center 32%', together: true,
-          text: 'After Mateo gives Hester his brother’s name for the harbour record, Wren takes him up to the lamp room. She shows him how to trim the wick he took down. “Stay while I try again?” he asks. She pulls up a stool.' },
+          text: 'After Mateo gives Hester his brother’s name for the harbour record, Wren shows him how to trim his wick. Mateo smiles at her across the lantern. “Just the blackened tip,” she says. He makes the cut and she nods. “That’ll do.”' },
         { art: 'scenes/sc_mateo_tea', pos: 'center 22%', wide: 'center 37%', together: true,
-          text: 'Wren is sitting on the lighthouse step with two mugs. Mateo sets his lamp between them and sits down. “You waited up,” he says. “Your tea went cold. Twice.” They sit a while before either of them gets up.' },
+          text: 'Mateo brings two mugs out to the step. “I like your company, Wren.” She gives him a polite smile. “Thank you for the tea. I’m due up in the lamp room.” “Good watch,” he says. When she goes, he stays to finish his tea.' },
       ] },
     },
     chapters: [
@@ -1427,7 +1427,8 @@
       ] },
       { id: 'hoop', title: 'The Last Hoop', when: 'quiet:mateo', lock: 'Quiet the Belfry as Mateo.', scene: 'hoop', text: [
         'The cask beneath the silent bell was larger than any he had made. Every time he reached for its lid, he heard the three knocks. When it finally opened, only water came out.',
-        'Mateo told Hester about his brother so she could put his name in the harbour record. By then the kettle had boiled twice. Wren was still sitting on the step.',
+        'Mateo told Hester his brother’s name for the harbour record. Upstairs, Wren showed him how to trim his lamp wick.',
+        'He made tea and asked Wren to sit with him on the step. He liked her company. To her, it was tea with a fellow keeper, and that suited him. She thanked him for the tea and went up to take the watch.',
       ] },
     ],
     world: [
