@@ -2037,7 +2037,7 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 ## Version and What's new (v0.6.0, 2026-11-11)
 
-- `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the menu has the same link at its foot. It opens a modal listing every version.
+- `js/version.js` holds `BL.VERSION` and `BL.CHANGELOG` (newest first, player-facing wording). The title foot shows "v0.6.0 · What's new", and the in-run menu has the same link at its foot (since v0.58.1 the title screen's top-right button opens only Settings: sound, music, fast animations and backups, because the title screen already has buttons for How to Play, Story so far, the Tutorial, What's new and Credits). It opens a modal listing every version.
 - It's marked **New** for a returning player until they open it. `brinelight.version.v1` stores the last version they saw. A first-time player has nothing new to see, so their first visit stores the current version.
 - Versions so far were reconstructed from git history: 0.1.0 is the blind-test build, 0.2.0 the tutorial and interface pass, 0.3.0 playtest fixes, 0.4.0 the Low Water rework, 0.5.0 required keepsake picks and decline scoring (the last version pushed before this), and 0.6.0 is this version. Provisional: the user may prefer 1.x.
 - Rule: every player-facing change bumps the version (minor for rules, content or features, patch for fixes only), adds a What's new entry, and keeps `package.json` in step. `tests/version.test.js` checks this.

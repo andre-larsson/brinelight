@@ -1552,6 +1552,10 @@ async function progressScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="close"]');
   await page.click('[data-act="menu"]');
   await sleep(150);
+  // on the title screen the menu is only Settings: what the title screen already has a button for isn't repeated (v0.58.1)
+  const repeats = await page.eval(`['help', 'story', 'tutorial', 'changelog', 'credits'].filter((a) => document.querySelector('#overlay .modal-body [data-act="' + a + '"]')).concat(document.querySelector('#overlay .modal-body [data-act="close"]') ? ['Resume'] : [])`);
+  if (repeats.length) failures.push(`${name}: the title screen's Settings repeats ${repeats.join(', ')}`);
+  if (!(await count('#overlay [data-act="togglefast"]')) || !(await count('#overlay [data-vol="music"]'))) failures.push(`${name}: the title screen's Settings lost a setting`);
   await page.eval(`document.querySelector('#overlay [data-act="progress"]').scrollIntoView({ block: 'center' })`);
   await page.click('#overlay [data-act="progress"]');
   await sleep(150);

@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.58.0';
+  BL.VERSION = '0.58.1';
   BL.CHANGELOG = [
+    { v: '0.58.1', date: '2026-11-20', items: [
+      'The menu on the title screen is now just Settings: sound, music, animation speed and backups. How to Play, Story so far, the Tutorial, What’s new and Credits stay on the title screen itself.',
+    ] },
     { v: '0.58.0', date: '2026-11-20', items: [
       'Debug has Unlock all and Unlock all costumes buttons, with separate sections for combat, travel, and saved progress.',
     ] },

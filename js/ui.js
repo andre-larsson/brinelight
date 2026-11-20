@@ -1058,18 +1058,26 @@
       <div class="vol-line"><input type="range" min="0" max="100" step="5" value="${v}" data-vol="${key}" aria-label="${name} volume"><output>${v}%</output></div>
     </div>`;
   }
+  /* The top-right button. During a run it is the pause menu, with the way to the rules, the story and the tutorial.
+     On the title screen those already have buttons of their own, so it is only Settings (v0.58.1). */
   function showMenu() {
+    const settings = `${volumeRow('sound', 'Sound effects')}
+      ${volumeRow('music', 'Music')}
+      <button class="choice" data-act="togglefast"><b>Fast animations: ${prefs.fast ? 'On' : 'Off'}</b><span>Halves the waits between actions.</span></button>`;
+    if (!run) {
+      openOverlay(modal('Settings', `<div class="choice-list" style="margin:0 auto">${settings}
+        <button class="choice" data-act="progress"><b>Back up or reset progress</b><span>Save your progress to a file, load it again, or start over.</span></button>
+      </div>`, null, 'narrow'));
+      return;
+    }
     const body = `<div class="choice-list" style="margin:0 auto">
       <button class="choice" data-act="close"><b>Resume</b><span>Back to the deep.</span></button>
       <button class="choice" data-act="help"><b>How to Play</b><span>Rules, controls and glossary.</span></button>
       <button class="choice" data-act="story"><b>Story so far</b><span>The story, the world and your keeper's notes.</span></button>
-      ${run && run.tutorial ? '<button class="choice" data-act="tutskip"><b>Leave the tutorial</b><span>You can replay it from the menu or the title screen.</span></button>' : '<button class="choice" data-act="tutorial"><b>Tutorial</b><span>A guided fight that teaches the basics.' + (run ? ' Your run is saved and waits for you.' : '') + '</span></button>'}
-      ${volumeRow('sound', 'Sound effects')}
-      ${volumeRow('music', 'Music')}
-      <button class="choice" data-act="togglefast"><b>Fast animations: ${prefs.fast ? 'On' : 'Off'}</b><span>Halves the waits between actions.</span></button>
-      ${run && !run.tutorial ? '<button class="choice" data-act="totitle"><b>Save and quit to title</b><span>Your run is saved; continue it from the title screen.</span></button>' : ''}
-      ${run && !run.tutorial ? '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>' : ''}
-      ${run ? '' : '<button class="choice" data-act="progress"><b>Back up or reset progress</b><span>Save your progress to a file, load it again, or start over.</span></button>'}
+      ${run.tutorial ? '<button class="choice" data-act="tutskip"><b>Leave the tutorial</b><span>You can replay it from the menu or the title screen.</span></button>' : '<button class="choice" data-act="tutorial"><b>Tutorial</b><span>A guided fight that teaches the basics. Your run is saved and waits for you.</span></button>'}
+      ${settings}
+      ${run.tutorial ? '' : '<button class="choice" data-act="totitle"><b>Save and quit to title</b><span>Your run is saved; continue it from the title screen.</span></button>'}
+      ${run.tutorial ? '' : '<button class="choice" data-act="abandon"><b>Abandon run</b><span>Give up this descent and start fresh.</span></button>'}
     </div>
     <p class="menu-version"><button class="title-version" data-act="changelog">Brinelight v${BL.VERSION} &middot; What's new</button>
       <button class="title-version" data-act="credits">Credits</button></p>`;
@@ -1324,7 +1332,7 @@
     const saved = loadSave();
     // once the Heart is home the lighthouse on the title screen is lit (v0.37.0, the user's idea)
     screenEl.innerHTML = `<div class="title-screen${E.heartIsHome(meta) ? ' lit' : ''}">
-      <div class="title-corner"><button class="icon-btn" data-act="menu" aria-label="Settings">${ICON.menu}</button></div>
+      <div class="title-corner"><button class="icon-btn" data-act="menu" aria-label="Settings" title="Settings">${ICON.menu}</button></div>
       <div class="title-now"></div>
       <div class="logo">BRINELIGHT</div>
       <p class="tagline">${knockingLead() ? (meta.keeperNote ? 'The note lies on Hester’s table. Someone has come to the lighthouse.' : 'The Lantern Heart is home. Something in Dark Water is knocking back.') : E.heartIsHome(meta) ? 'The Lantern Heart is home. The light turns over Saltmere, and two keepers go down into the Reach.' : BL.STORY.title}</p>

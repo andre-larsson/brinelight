@@ -23,7 +23,7 @@ The panel groups tools for playtesting, travel, the current expedition, combat a
 
 Progress is saved automatically in your browser, at the start of every turn and between map stops. **Continue** on the title screen resumes the run. To replay a specific map and card sequence, add `?seed=12345` to the URL before starting a new run.
 
-**Back up or reset progress** is in the menu on the title screen. **Download a backup** saves everything to a `.json` file: Salvage and kit, the Lazaret, achievements, the currents, best score, the Logbook, Story so far, a run in progress and your settings. **Restore from a backup** loads such a file in place of the progress in the browser. It refuses any other file, and it asks before it replaces anything. **Reset progress** asks first, then erases all progress, the hints and the tutorial. Your sound, music and animation settings stay.
+**Back up or reset progress** is in Settings, the top-right button on the title screen. During a run, that button opens the menu instead, with How to Play, Story so far, the Tutorial, the settings, Save and quit and Abandon run. **Download a backup** saves everything to a `.json` file: Salvage and kit, the Lazaret, achievements, the currents, best score, the Logbook, Story so far, a run in progress and your settings. **Restore from a backup** loads such a file in place of the progress in the browser. It refuses any other file, and it asks before it replaces anything. **Reset progress** asks first, then erases all progress, the hints and the tutorial. Your sound, music and animation settings stay.
 
 ## Controls
 
