@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.56.0';
+  BL.VERSION = '0.57.0';
   BL.CHANGELOG = [
+    { v: '0.57.0', date: '2026-11-20', items: [
+      'Break the Harbour Hermit’s bell as Wren and make it home to unlock the Shell Bikini in Pack.',
+    ] },
     { v: '0.56.0', date: '2026-11-20', items: [
       'Wren can choose an outfit in Pack. Harbour Blue is available from the first descent, and more outfits unlock as you bring things home and finish her story.',
       'Mateo has his own harbour regulations about tea on watch.',

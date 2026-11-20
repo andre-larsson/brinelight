@@ -490,7 +490,7 @@ test('old lasting state carries over: gear becomes kit, and the pack becomes wha
 
 test('what opens at the lighthouse is told once: the Workshop, the Lazaret, the Diving Dress and currents', () => {
   const meta = E.newMeta();
-  assert.deepEqual(E.FEATURES, ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:gala', 'outfit:longjohns']);
+  assert.deepEqual(E.FEATURES, ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:shells', 'outfit:gala', 'outfit:longjohns']);
   assert.deepEqual(E.featureNews(meta), [], 'a new player has nothing open');
   E.earnSalvage(meta, 500); // the first Salvage opens the Workshop
   assert.deepEqual(E.featureNews(meta), ['workshop']);

@@ -39,6 +39,7 @@
     ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told', 'keepers'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
     raw.keeper = m.keeper;
     raw.outfit = m.outfit;
+    raw.shellsHome = m.shellsHome;
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
     raw.lazOpen = !!m.lazOpen;
@@ -1978,7 +1979,10 @@
     if (!overlayEl.hidden || (run && run.tutorial)) return false;
     const ids = E.featureNews(meta);
     if (!ids.length) return false;
-    const items = ids.map((id) => {
+    // Keep the outfits earned on this return visible on small screens with several notices.
+    const earned = (run?.final?.outfits || []).map((id) => 'outfit:' + id);
+    const ordered = ids.filter((id) => earned.includes(id)).concat(ids.filter((id) => !earned.includes(id)));
+    const items = ordered.map((id) => {
       const outfit = id.startsWith('outfit:') ? BL.OUTFITS[id.slice('outfit:'.length)] : null;
       const [art, name, text, where] = outfit
         ? [`<img class="outfit-news-art" src="img/units/${outfit.art}.webp" alt="">`, `${outfit.name} unlocked`, outfit.home, 'Pack &rarr; Wren’s outfit']
@@ -3685,6 +3689,7 @@
     const dbgNote = run.cheated && (newKit || found.length)
       ? `<p class="lead dbg-note"><b>Debug run:</b> a run that used a cheat carries nothing home, ${newKit ? 'not even the dress' : 'not even its keepsakes'}. To keep what you find, turn on <b>Cheats count as real runs</b> in the debug panel before you set out, or use <b>Own all kit</b>.</p>` : '';
     const homeKeeps = run.cheated ? '' : newKit ? ` Bank your keepsakes and mend the ${kit.name}.` : ' Bank all carried keepsakes.';
+    const shells = lv === 0 && !run.cheated && E.keeperId(run) === 'wren' && !E.outfitOpen(meta, 'shells');
     const cargo = run.cheated ? [] : E.hesterCargo(run);
     const jobPay = cargo.reduce((n, job) => n + job.pay, 0);
     const deeper = can
@@ -3693,6 +3698,7 @@
     screenEl.innerHTML = `<div class="run-screen">${hudHTML()}<div class="run-body"><div class="scene" style="background-image:url(img/bg/${B.bossBg}.webp)"><div class="scene-inner">
       <h1>The pin is broken</h1>
       <p class="lead">${B.pin}</p>
+      ${shells ? '<p class="lead">You pick up two scallop shells from the drained basin and tuck them into your coat.</p>' : ''}
       ${shut}
       ${dbgNote}
       <div class="choice-list">

@@ -1780,6 +1780,11 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 - The four existing costume drafts ship as above-water sprites. An outfit can cover the look of the Rig, and every equipped piece still works. Pack remembers Wren's choice when switching keepers. The Workshop shows her equipped rig, and Belfry fights show her Diving Dress or Plated Dress.
 - Mateo is a good-hearted trickster. In the scene on the lighthouse step he invents a harbour regulation about tea for the keeper on duty. Wren treats it as a friendly gesture and goes to take the watch.
 
+### Shell Bikini (v0.57.0, 2026-11-20)
+
+- Wren picks up two scallop shells after the Harbour Hermit’s bell breaks. Her first safe return with the Shallows cleared opens the existing shell costume draft in Pack. The harbour players make it into a mermaid costume and leave it on her peg, as told in New at the lighthouse.
+- Earlier saves qualify from a recorded homecoming and the Shallows pin achievement, or from Hester’s returned Shallows log.
+
 ### Debug music unlock includes the dawn song (v0.50.2, 2026-11-17)
 
 - The user still saw "Bring the Heart home" after Hear all music. Harbour Bells at Dawn's extra story gate ignored the debug grant. The Jukebox now honors that grant using its existing debug-only `depth:0` marker, so previously saved music unlocks work too. Ordinary legacy listening history still waits for the Heart; story, Logbook records, reached level and Hold are unchanged.
@@ -2622,7 +2627,7 @@ The user asked how more characters could be added, and wanted to judge the look 
   - Hae-won, Wei, Setsuko and Kenji;
   - Kaito, a manga hero, in both styles;
   - Barnaby, who keeps his shop. Winkle goes down in his place.
-- **Wren's costume drafts** are in `assets-src/drafts/costumes/`, on her canvas. Harbour Blue, Lamplighter's Green, Gala and Long Johns ship as outfits in v0.56.0.
+- **Wren's costume drafts** are in `assets-src/drafts/costumes/`, on her canvas. Harbour Blue, Lamplighter's Green, Gala and Long Johns ship as outfits in v0.56.0. The Shell Bikini ships in v0.57.0.
   - Oilskin recolours (tarred, harbour blue, the Lamplighter's green). The user wants these as a cheap unlock or open from the start.
   - Secret joke costumes:
     - bathing: an 1890s bathing dress, the at-home one;

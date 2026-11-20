@@ -354,6 +354,8 @@
     harbour: { name: 'Harbour Blue', art: 'wren_harbour' },
     lamplighter: { name: 'Lamplighter’s Green', art: 'wren_lamplighter', when: 'log',
       home: 'For bringing the keeper’s log home, Hester leaves a spare green oilskin on Wren’s peg.' },
+    shells: { name: 'Shell Bikini', art: 'wren_shells', when: 'shells',
+      home: 'Saltmere’s harbour players stitched your scallop shells into a mermaid costume and hung it on your peg beside your oilskin.' },
     gala: { name: 'Gala', art: 'wren_gala', when: 'heart',
       home: 'Saltmere is throwing a party now the Heart is home. The harbour players have laid out your gala outfit.' },
     longjohns: { name: 'Long Johns', art: 'wren_longjohns', when: 'longwatch',

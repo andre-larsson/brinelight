@@ -26,7 +26,7 @@ const failures = [];
 /* v0.33.0: a story scene plays the first time a pin breaks and on the end screen, and a "New at the lighthouse" window
    says what opened. The Belfry and Lazaret scenarios go through them; the others start with them seen and told. */
 const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart', 'fall', 'knocking'];
-const TOLD = ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:gala', 'outfit:longjohns'];
+const TOLD = ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:shells', 'outfit:gala', 'outfit:longjohns'];
 const QUIET_STORY = JSON.stringify(JSON.stringify({ opening: true, scenes: SEEN_SCENES }));
 const QUIET_META = `localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify({ told: TOLD }))});`;
 const log = (...a) => console.log(...a);
@@ -891,7 +891,7 @@ async function lazaretScenario(page, base, name, size) {
   await sleep(200);
   let m = await stored();
   if (await news()) failures.push(`${name}: Got it didn't close the New at the lighthouse window`);
-  if (!m.told || m.told.join(',') !== 'workshop,lazaret') failures.push(`${name}: what was told isn't stored (${JSON.stringify(m.told)})`);
+  if (!m.told || m.told.join(',') !== 'workshop,lazaret,outfit:shells') failures.push(`${name}: what was told isn't stored (${JSON.stringify(m.told)})`);
   if (!m.lazOpen || m.lazaret.join(',') !== 'moonshard,anchor') failures.push(`${name}: the first win didn't keep both keepsakes (${JSON.stringify(m.lazaret)})`);
   if (!/key to the Lazaret/.test(await text('.lz-box')) || !/Moon Shard/.test(await text('.lz-box'))) failures.push(`${name}: the end screen doesn't say the Lazaret opened and what it kept`);
   await checkPage(page, name + ' first win');
@@ -2377,13 +2377,18 @@ async function outfitsScenario(page, base, name, size) {
   })()`, 3500, art);
   const shot = async (key) => {
     if (!process.env.BRINELIGHT_OUTFIT_SHOTS) return;
+    await page.waitFor('!document.querySelector("#toast .toast-msg")', 6000, 'toasts to fade before the screenshot');
     await sleep(280);
     const prefix = path.join(process.env.BRINELIGHT_OUTFIT_SHOTS, size.touch ? 'phone' : 'desktop');
     await page.screenshot(`${prefix}-${key}.png`);
   };
-  const notice = async (outfit) => {
-    if (!(await text('.outfit-reward')).includes(outfit)) throw new Error('The score screen should name ' + outfit);
-    if (!(await text('.news-list')).includes(outfit + ' unlocked')) throw new Error('The lighthouse should tell the player about ' + outfit);
+  const notice = async (...outfits) => {
+    const rewards = await page.eval(`[...document.querySelectorAll('.outfit-reward')].map((el) => el.textContent)`);
+    const news = await text('.news-list');
+    for (const outfit of outfits) {
+      if (!rewards.some((reward) => reward.includes(outfit))) throw new Error('The score screen should name ' + outfit);
+      if (!news.includes(outfit + ' unlocked')) throw new Error('The lighthouse should tell the player about ' + outfit);
+    }
     await click('[data-act="newsok"]');
   };
 
@@ -2406,21 +2411,42 @@ async function outfitsScenario(page, base, name, size) {
   await click(`[data-act="evopt"][data-i="${await evalRun('return E.eventOptions(r).length - 1')}"]`);
   await click('[data-act="evcontinue"]');
   if (await evalRun('return E.outfitOpen(B.meta, "lamplighter")')) throw new Error('Finding the log below should wait for a safe return');
-  await evalRun('r.screen = "pin"; r.cleared = [0]; B.render();');
+  await evalRun('E.startCombat(r, "boss"); r.combat.won = true; return B.onVictory();');
+  if (!(await text('.scene-inner')).includes('two scallop shells')) throw new Error('Wren should find the shells after breaking the pin');
+  if (await evalRun('return E.outfitOpen(B.meta, "shells")')) throw new Error('The shells should wait for a safe return');
+  await shot('shells-pin');
   await click('[data-act="gohome"]');
   await click('[data-act="hesterhome"]');
-  await notice('Lamplighter’s Green');
+  if (!(await text('.news-list')).includes('stitched your scallop shells into a mermaid costume')) throw new Error('The lighthouse should tell how Wren gets her shell costume');
+  await sprite('.news-list img[src$="/wren_shells.webp"]', 'wren_shells');
+  const visibleNotice = await page.eval(`(() => {
+    const item = document.querySelector('.news-list img[src$="/wren_shells.webp"]').closest('.news-item');
+    return item.getBoundingClientRect().bottom <= item.closest('.modal-body').getBoundingClientRect().bottom;
+  })()`);
+  if (!visibleNotice) throw new Error('The Shell Bikini notice should be visible without scrolling');
+  await checkPage(page, name + ' Shell Bikini notice');
+  await shot('shells-notice');
+  await notice('Lamplighter’s Green', 'Shell Bikini');
   await click('[data-act="newrun"]');
-  if (await options() !== 'ochre,harbour,lamplighter') throw new Error('Only the returned log should add an outfit so far');
-  await choose('lamplighter');
+  if (await options() !== 'ochre,harbour,lamplighter,shells') throw new Error('The returned log and shells should each add an outfit');
+  await choose('shells');
+  await sprite('.outfit-preview img', 'wren_shells');
+  await shot('shells-pack');
+  await reload();
+  if (await text('.news-list')) throw new Error('The acknowledged outfit notices should stay closed after reload');
+  await click('[data-act="newrun"]');
+  await sprite('.outfit-preview img', 'wren_shells');
   await click('[data-act="dive"]');
   await dismissHints(page);
-  await evalRun('r.level = 2; r.cleared = [0, 1, 2]; r.heart = true; r.screen = "victory"; B.render();');
+  await evalRun('E.startCombat(r, "easy", ["kelp"]); B.render();');
+  await sprite('.unit.player .sprite img', 'wren_shells');
+  await shot('shells-fight');
+  await evalRun('r.level = 2; r.cleared = [0, 1, 2]; r.combat = null; r.heart = true; r.screen = "victory"; B.render();');
   await notice('Gala');
 
   await evalRun('B.meta.owned.push("plated"); B.meta.kit.coat = "plated"; B.saveMeta();');
   await click('[data-act="newrun"]');
-  if (await options() !== 'ochre,harbour,lamplighter,gala') throw new Error('Gala should open with the Heart');
+  if (await options() !== 'ochre,harbour,lamplighter,shells,gala') throw new Error('Gala should open with the Heart');
   await choose('gala');
   await sprite('.doll-wren img', 'wren_gala');
   await checkPage(page, name + ' Pack with kit');
@@ -2441,7 +2467,7 @@ async function outfitsScenario(page, base, name, size) {
   await notice('Long Johns');
   await reload();
   await click('[data-act="newrun"]');
-  if (await options() !== 'ochre,harbour,lamplighter,gala,longjohns') throw new Error('All earned outfits should be available after reload');
+  if (await options() !== 'ochre,harbour,lamplighter,shells,gala,longjohns') throw new Error('All earned outfits should be available after reload');
   await choose('longjohns');
   await sprite('.doll-wren img', 'wren_longjohns');
   if (page.errors.length) throw new Error(page.errors.join('\n'));

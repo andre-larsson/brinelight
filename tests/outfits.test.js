@@ -40,6 +40,44 @@ test('outfits open from returned progress and their shore notices are acknowledg
   assert.ok(E.featureNews(saveLoad(meta)).every((id) => !id.startsWith('outfit:')));
 });
 
+test('the Shell Bikini opens on Wren’s safe return after breaking the Shallows pin', () => {
+  const meta = E.newMeta();
+  const run = E.newRun(23);
+  E.startCombat(run, 'boss');
+  run.combat.won = true;
+  E.finishCombat(run);
+  E.unlockAchievements(meta, run);
+  assert.equal(E.outfitOpen(meta, 'shells'), false, 'breaking the pin alone does not bring the shells home');
+  assert.ok(E.goDeeper(run));
+  E.recordRun(meta, { ...run, screen: 'defeat' }, false);
+  assert.equal(E.outfitOpen(meta, 'shells'), false, 'a fall in Dark Water loses the shells');
+
+  E.startCombat(run, 'boss');
+  run.combat.won = true;
+  E.finishCombat(run);
+  assert.ok(E.goHome(run));
+  E.recordRun(meta, { ...run, keeper: 'mateo' }, true);
+  E.recordRun(meta, { ...run, cheated: true }, true);
+  E.recordRun(meta, { ...run, cleared: [1] }, true);
+  assert.equal(E.outfitOpen(saveLoad(meta), 'shells'), false);
+
+  E.recordRun(meta, run, true);
+  const saved = saveLoad(meta);
+  assert.ok(E.outfitOpen(saved, 'shells'), 'a safe return from deeper down brings back the Shallows shells');
+  assert.ok(E.equipOutfit(saved, 'shells'));
+  assert.ok(E.featureNews(saved).includes('outfit:shells'));
+  E.tellFeatures(saved, ['outfit:shells']);
+  assert.equal(E.outfitId(saveLoad(saved)), 'shells');
+  assert.ok(!E.featureNews(saveLoad(saved)).includes('outfit:shells'));
+});
+
+test('the Shell Bikini recognizes older Shallows homecomings', () => {
+  const priorWin = E.migrateMeta({ ach: ['outofbell'], record: { runs: 2, wins: 1 } });
+  assert.ok(E.featureNews(priorWin).includes('outfit:shells'));
+  const priorFall = E.migrateMeta({ ach: ['outofbell'], record: { runs: 2, wins: 0 } });
+  assert.equal(E.outfitOpen(priorFall, 'shells'), false);
+});
+
 test('past clears qualify and the outfit choice is saved for Wren', () => {
   const legacy = E.migrateMeta({ hesterDone: true, record: { runs: 4, wins: 3, hearts: 1, quiets: 1 }, ach: ['longwatch'] });
   assert.deepEqual(E.unlockedOutfits(legacy), Object.keys(BL.OUTFITS));
