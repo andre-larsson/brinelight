@@ -1785,6 +1785,12 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 - Wren picks up two scallop shells after the Harbour Hermit’s bell breaks. Her first safe return with the Shallows cleared opens the existing shell costume draft in Pack. The harbour players make it into a mermaid costume and leave it on her peg, as told in New at the lighthouse.
 - Earlier saves qualify from a recorded homecoming and the Shallows pin achievement, or from Hester’s returned Shallows log.
 
+### Debug unlocks (v0.58.0, 2026-11-20)
+
+- Unlock all grants the current keepers, outfits, achievements, kit, Lazaret collection, story and music. It applies the Heart shortcut, reveals all depths, and fills the Hold upgrades. The grant keeps selected kit, outfits, currents and existing keepsake copies.
+- Unlock all costumes grants access in Pack independently of story and expedition records. Both buttons save their grants and confirm them in Debug.
+- The panel puts combat and travel first when available. Unlocks, Playtest, Expedition, Inventory, Workshop and Lazaret, Story and depth, Achievements, Music, and Saved progress have their own sections. Reset everything remains under Saved progress.
+
 ### Debug music unlock includes the dawn song (v0.50.2, 2026-11-17)
 
 - The user still saw "Bring the Heart home" after Hear all music. Harbour Bells at Dawn's extra story gate ignored the debug grant. The Jukebox now honors that grant using its existing debug-only `depth:0` marker, so previously saved music unlocks work too. Ordinary legacy listening history still waits for the Heart; story, Logbook records, reached level and Hold are unchanged.

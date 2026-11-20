@@ -2162,9 +2162,10 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', outfit: 'ochre', shellsHome: false, mateoQuiets: 0 });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', outfit: 'ochre', debugOutfits: [], shellsHome: false, mateoQuiets: 0 });
   E.outfitOpen = function (meta, id) {
     if (!knownOutfit(id)) return false;
+    if (meta.debugOutfits?.includes(id)) return true;
     switch (BL.OUTFITS[id].when) {
       case 'log': return hesterDone(meta.hesterDone).includes('log');
       case 'shells': return meta.shellsHome === true;
@@ -2396,6 +2397,7 @@
     if (typeof m.shellsHome !== 'boolean') {
       m.shellsHome = m.hesterDone.includes('log') || (rec.wins > 0 && m.ach.includes('outofbell'));
     }
+    m.debugOutfits = Array.isArray(m.debugOutfits) ? [...new Set(m.debugOutfits.filter(knownOutfit))] : [];
     m.outfit = E.outfitOpen(m, m.outfit) ? m.outfit : 'ochre';
     // Saves from before v0.33.0 treat the original features they had opened as told. New outfits still get their notice.
     m.told = Array.isArray(m.told) ? m.told.filter((id, i, a) => E.FEATURES.includes(id) && a.indexOf(id) === i) : lighthouseFeatures.filter((id) => E.featureOpen(m, id));

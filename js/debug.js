@@ -39,41 +39,110 @@
   };
   const GO = [['fight', 'Fight'], ['elite', 'Dread'], ['boss', 'Boss'], ['shop', 'Shop'], ['event', 'Fog'], ['treasure', 'Wreck'], ['toll', 'Toll'], ['rest', 'Cove']];
 
-  const btn = (act, label, extra) => `<button class="btn small" data-dbg="${act}"${extra || ''}>${label}</button>`;
-  const select = (name, entries) => `<select class="dbg-sel" data-dbg-sel="${name}" aria-label="${name}">${entries.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>`;
+  function addMissing(list, ids) {
+    ids.forEach((id) => { if (!list.includes(id)) list.push(id); });
+  }
+
+  const GRANTS = {
+    allcostumes({ E, meta }) {
+      const lockedOutfits = Object.keys(BL.OUTFITS).filter((id) => !E.outfitOpen(meta, id));
+      addMissing(meta.debugOutfits, lockedOutfits);
+      // A debug grant has its own confirmation. The shore notices describe real homecomings.
+      E.tellFeatures(meta, lockedOutfits.map((id) => 'outfit:' + id));
+      return 'All costumes are available in Pack.';
+    },
+    allach({ meta }) { addMissing(meta.ach, Object.keys(BL.ACHIEVEMENTS)); },
+    allkit({ meta }) { addMissing(meta.owned, Object.keys(BL.KIT).filter((id) => !BL.KIT[id].starter)); },
+    hearts({ meta: { record } }) {
+      record.hearts = Math.max(1, record.hearts || 0);
+      record.wins = Math.max(record.wins, record.hearts);
+      record.runs = Math.max(record.runs, record.wins);
+    },
+    allstory({ E, story, saveStory }) {
+      addMissing(story.marks, E.storyEntries().map((entry) => entry.when).filter(Boolean));
+      saveStory();
+    },
+    allmusic({ meta, juke, jukeDepths }) {
+      // depth:0 identifies an explicit grant even for songs that have a story gate.
+      addMissing(meta.heard, juke.map(([kind, key]) => kind + ':' + key));
+      addMissing(meta.heard, jukeDepths.map((_, i) => 'depth:' + i));
+      return 'Every piece of music counts as heard';
+    },
+    alllaz({ meta }) {
+      addMissing(meta.lazaret, Object.keys(BL.KEEPSAKES));
+      meta.lazOpen = true;
+    },
+  };
+
+  function unlockAll(b) {
+    const { E, meta } = b;
+    const lockedFeatures = E.FEATURES.filter((id) => !E.featureOpen(meta, id));
+    Object.values(GRANTS).forEach((grant) => grant(b));
+    addMissing(meta.keepers, Object.keys(BL.KEEPERS).filter((id) => id !== 'wren'));
+    meta.keeperNote = null;
+    meta.reached = E.LEVELS.length - 1;
+    meta.holdUp = E.HOLD_UP.prices.length;
+    E.tellFeatures(meta, lockedFeatures);
+  }
+
+  const btn = (act, label, extra = '', variant = '') => `<button class="btn small${variant ? ' ' + variant : ''}" data-dbg="${act}"${extra}>${label}</button>`;
+  const pair = (name, label, entries, act, button) => `<div class="dbg-pair"><select class="dbg-sel" data-dbg-sel="${name}" aria-label="${label}">${entries.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>${btn(act, button)}</div>`;
   const sorted = (obj) => Object.keys(obj).map((k) => [k, obj[k].name]).sort((a, b) => a[1].localeCompare(b[1]));
 
   function panelHTML() {
-    const b = B(), run = b.run, meta = b.meta;
+    const { E, run, meta, ui } = B();
     const live = run && !run.tutorial;
     const c = live && run.screen === 'combat' ? run.combat : null;
-    const fighting = c && !c.won && !c.lost && c.phase === 'player' && !b.ui.busy;
-    const sec = (title, inner) => `<section class="dbg-sec"><h3>${title}</h3><div class="dbg-row">${inner}</div></section>`;
-    let html = sec('Playtest <small>kept in this browser</small>',
-      btn('skip', `Skip fights: ${opts.skip ? 'On' : 'Off'}`, ` aria-pressed="${opts.skip}"`) + btn('count', `Cheats count as real runs: ${opts.count ? 'On' : 'Off'}`, ` aria-pressed="${opts.count}"`));
-    html += sec(`Progress <small>${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit · ${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} achievements · ${meta.record.hearts ? 'the Heart is home' : 'no Heart yet'}</small>`,
-      btn('salvage', '+100 Salvage') + btn('allach', 'Unlock all achievements') + btn('allkit', 'Own all kit') + btn('hearts', 'The Heart is home (currents, finals)') + btn('allstory', 'Unlock all story') + btn('allmusic', 'Hear all music (Jukebox)') + btn('alllaz', 'Fill the Lazaret') + btn('reached', 'Reach the next level') +
-      btn('resetmeta', 'Reset Workshop and Lazaret') + btn('resetall', 'Reset everything'));
-    if (live) {
-      html += sec(`This run <small>seed ${run.seed} · landing ${run.floor}${run.cheated ? ' · cheated' : ''}</small>`,
-        btn('pearls', '+100 Pearls') + btn('heal', 'Heal to full') + btn('maxhp', '+10 Max HP') +
-        btn('god', `God mode: ${run.debugGod ? 'On' : 'Off'}`) +
-        `<span class="dbg-pair">${select('card', sorted(BL.CARDS))}${btn('addcard', 'Add card')}</span>` +
-        `<span class="dbg-pair">${select('ks', sorted(BL.KEEPSAKES))}${btn('addks', 'Add keepsake')}</span>` +
-        `<span class="dbg-pair">${select('tonic', sorted(BL.TONICS))}${btn('addtonic', 'Add tonic')}</span>` +
-        `<span class="dbg-pair">${select('ach', Object.keys(MEET).map((k) => [k, BL.ACHIEVEMENTS[k].name]))}${btn('meet', 'Meet in this run')}</span>`);
-      if (!c || c.won || c.lost) html += sec('Go to', GO.map(([t, l]) => btn('go', l, ` data-type="${t}"`)).join('') + (b.E.lastLevel(run) ? '' : btn('deeper', `Down to ${b.E.LEVELS[(run.level || 0) + 1].name}`)));
-    }
+    const fighting = c && !c.won && !c.lost && c.phase === 'player' && !ui.busy;
+    const sec = (title, inner, { wide = false, info = '' } = {}) =>
+      `<section class="dbg-sec${wide ? ' dbg-wide' : ''}"><h3>${title}</h3>${info ? `<p class="dbg-info">${info}</p>` : ''}<div class="dbg-row">${inner}</div></section>`;
+    let html = '';
     if (fighting) {
-      html += sec('This fight', btn('win', 'Win the fight') + btn('lose', 'Lose the fight') + btn('light', '+3 Light') + btn('draw', 'Draw 3') +
-        '<span class="dbg-pair">Swell ' + [0, 1, 2, 3, 4, 5, 6].map((n) => btn('tide', String(n), ` data-n="${n}"`)).join('') + '</span>');
+      const steps = [0, 1, 2, 3, 4, 5, 6].map((n) => btn('tide', String(n), ` data-n="${n}" aria-pressed="${c.tide === n}"`)).join('');
+      html += sec('Combat', btn('win', 'Win the fight') + btn('lose', 'Lose the fight') + btn('light', '+3 Light') + btn('draw', 'Draw 3') +
+        `<div class="dbg-swell" role="group" aria-label="Set Swell"><b>Swell</b><div class="dbg-steps">${steps}</div></div>`, { wide: true });
     }
-    return html + `<p class="dbg-note"><b>Skip fights</b> wins every fight the moment it starts. <b>Cheats count as real runs</b> is on by default. Turn it off to mark cheated runs: they keep no best score, open no currents or story, and put nothing in the Lazaret. Press <span class="kbd">\`</span> to open this panel.</p>`;
+    if (live && (!c || c.won || c.lost)) {
+      const next = E.LEVELS[(run.level || 0) + 1];
+      html += sec('Go to', GO.map(([type, title]) => btn('go', title, ` data-type="${type}"`)).join('') +
+        (next ? btn('deeper', `Down to ${next.name}`) : ''), { wide: true });
+    }
+
+    const keepers = Object.keys(BL.KEEPERS);
+    const unlockedKeepers = keepers.filter((id) => E.keeperOpen(meta, id)).length;
+    html += sec('Unlocks', `<div class="dbg-unlock-actions">${btn('unlockall', 'Unlock all', '', 'primary')}${btn('allcostumes', 'Unlock all costumes')}</div>`,
+      { wide: true, info: `${unlockedKeepers}/${keepers.length} keepers · ${E.unlockedOutfits(meta).length}/${Object.keys(BL.OUTFITS).length} costumes` });
+    html += sec('Playtest',
+      btn('skip', `Skip fights: ${opts.skip ? 'On' : 'Off'}`, ` aria-pressed="${opts.skip}"`) +
+      btn('count', `Cheats count as real runs: ${opts.count ? 'On' : 'Off'}`, ` aria-pressed="${opts.count}"`),
+      { info: 'Counted runs keep scores, story and finds.' });
+    if (live) {
+      html += sec('Expedition',
+        btn('pearls', '+100 Pearls') + btn('heal', 'Heal to full') + btn('maxhp', '+10 Max HP') +
+        btn('god', `God mode: ${run.debugGod ? 'On' : 'Off'}`),
+        { info: `Seed ${run.seed} · landing ${run.floor}${run.cheated ? ' · cheated' : ''}` });
+      html += sec('Inventory',
+        pair('card', 'Card', sorted(BL.CARDS), 'addcard', 'Add card') +
+        pair('ks', 'Keepsake', sorted(BL.KEEPSAKES), 'addks', 'Add keepsake') +
+        pair('tonic', 'Tonic', sorted(BL.TONICS), 'addtonic', 'Add tonic'));
+    }
+    html += sec('Workshop and Lazaret',
+      btn('salvage', '+100 Salvage') + btn('allkit', 'Own all kit') + btn('alllaz', 'Fill the Lazaret'),
+      { info: `${meta.salvage} Salvage · ${meta.owned.length}/${Object.keys(BL.KIT).length - 1} kit` });
+    html += sec('Story and depth',
+      btn('hearts', 'The Heart is home (currents, finals)') + btn('reached', 'Reveal next depth') + btn('allstory', 'Unlock all story'),
+      { info: E.heartIsHome(meta) ? 'The Heart is home' : 'The Heart is still below' });
+    html += sec('Achievements', btn('allach', 'Unlock all achievements') +
+      (live ? pair('ach', 'Achievement', Object.keys(MEET).map((id) => [id, BL.ACHIEVEMENTS[id].name]), 'meet', 'Meet in this run') : ''),
+      { info: `${meta.ach.length}/${Object.keys(BL.ACHIEVEMENTS).length} unlocked` });
+    html += sec('Music', btn('allmusic', 'Hear all music (Jukebox)'));
+    return html + sec('Saved progress', btn('resetall', 'Reset everything', '', 'danger'));
   }
 
-  function open() {
+  function open(focus, scrollTop = 0) {
     const b = B();
-    b.openOverlay(b.modal('Debug', `<div class="dbg">${panelHTML()}</div>`, '<button class="btn" data-dbg="off">Turn debug mode off</button><button class="btn primary" data-act="close">Close</button>', 'narrow dbg-modal'));
+    b.openOverlay(b.modal('Debug', `<div class="dbg">${panelHTML()}</div>`, '<button class="btn ghost" data-dbg="off">Turn Debug off</button><button class="btn primary" data-act="close">Close</button>', 'dbg-modal'), { focus });
+    document.querySelector('.dbg-modal .modal-body').scrollTop = scrollTop;
   }
 
   function cheat(fn) {
@@ -101,7 +170,15 @@
   function act(name, el) {
     const b = B(), run = b.run, meta = b.meta;
     const val = (k) => { const s = document.querySelector(`[data-dbg-sel="${k}"]`); return s ? s.value : null; };
-    const reopen = () => { b.render(); open(); };
+    const scrollTop = el.closest('.modal-body')?.scrollTop || 0;
+    const focus = `[data-dbg="${name}"]` + (el.dataset.n ? `[data-n="${el.dataset.n}"]` : '');
+    const reopen = () => { b.render(); open(focus, scrollTop); };
+    if (Object.hasOwn(GRANTS, name)) {
+      const text = GRANTS[name](b);
+      b.saveMeta();
+      if (text) b.toast(text);
+      return reopen();
+    }
     switch (name) {
       case 'skip': opts.skip = !opts.skip; saveOpts(); tab.textContent = tabText(); return reopen();
       case 'count':
@@ -110,16 +187,12 @@
         if (opts.count && run && run.cheated) { delete run.cheated; if (run.screen !== 'combat') b.save(); }
         return reopen();
       case 'salvage': meta.salvage += 100; meta.earned += 100; b.saveMeta(); return reopen();
-      case 'allach': Object.keys(BL.ACHIEVEMENTS).forEach((a) => { if (meta.ach.indexOf(a) < 0) meta.ach.push(a); }); b.saveMeta(); return reopen();
-      case 'allkit': Object.keys(BL.KIT).forEach((g) => { if (!BL.KIT[g].starter && meta.owned.indexOf(g) < 0) meta.owned.push(g); }); b.saveMeta(); return reopen();
-      case 'hearts': meta.record.hearts = Math.max(1, meta.record.hearts || 0); meta.record.wins = Math.max(meta.record.wins, meta.record.hearts); meta.record.runs = Math.max(meta.record.runs, meta.record.wins); b.saveMeta(); return reopen();
-      case 'allstory': b.E.storyEntries().forEach((en) => { if (en.when && b.story.marks.indexOf(en.when) < 0) b.story.marks.push(en.when); }); b.saveStory(); return reopen();
       case 'reached': meta.reached = Math.min(b.E.LEVELS.length - 1, (meta.reached || 0) + 1); b.saveMeta(); b.toast(`Reached ${b.E.LEVELS[meta.reached].name}: Hold ${b.E.metaHold(meta)}`); return reopen();
-      case 'alllaz': Object.keys(BL.KEEPSAKES).forEach((k) => { if (meta.lazaret.indexOf(k) < 0) meta.lazaret.push(k); }); meta.lazOpen = true; b.saveMeta(); return reopen();
-      case 'resetmeta': Object.assign(meta, b.E.newMeta()); b.saveMeta(); return reopen();
-      // every song and piece of the score counts as heard, at every depth of the score (meta.reached, and so the
-      // Hold, stays as it is). The depth:0 marker also identifies this explicit grant for story-gated songs.
-      case 'allmusic': meta.heard = b.juke.map(([kind, key]) => kind + ':' + key).concat(b.jukeDepths.map((d, i) => 'depth:' + i)); b.saveMeta(); b.toast('Every piece of music counts as heard'); return reopen();
+      case 'unlockall':
+        unlockAll(b);
+        b.saveMeta();
+        b.toast('All unlocks granted. Choose a keeper and outfit in Pack.');
+        return reopen();
       case 'resetall':
         if (!window.confirm('Erase all Brinelight progress in this browser (save, best score, Workshop, Lazaret, Logbook, story, tutorial, hints)? Debug mode stays on.')) return;
         try { Object.keys(localStorage).filter((k) => k.indexOf('brinelight.') === 0 && k !== KEY).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* ignore */ }

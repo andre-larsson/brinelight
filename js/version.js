@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.57.0';
+  BL.VERSION = '0.58.0';
   BL.CHANGELOG = [
+    { v: '0.58.0', date: '2026-11-20', items: [
+      'Debug has Unlock all and Unlock all costumes buttons, with separate sections for combat, travel, and saved progress.',
+    ] },
     { v: '0.57.0', date: '2026-11-20', items: [
       'Break the Harbour Hermit’s bell as Wren and make it home to unlock the Shell Bikini in Pack.',
     ] },

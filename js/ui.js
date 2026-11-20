@@ -36,7 +36,7 @@
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
     const raw = { salvage: 0, earned: 0, owned: [], ach: [] };
     ['salvage', 'earned', 'mateoQuiets', 'holdUp'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
-    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told', 'keepers'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
+    ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told', 'keepers', 'debugOutfits'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
     raw.keeper = m.keeper;
     raw.outfit = m.outfit;
     raw.shellsHome = m.shellsHome;
@@ -839,7 +839,7 @@
     overlayEl.hidden = false;
     ui.overlayOnClose = opts.onClose || null;
     ui.overlayLocked = !!opts.locked;
-    const scroll = $('.workshop-modal .modal-body', overlayEl);
+    const scroll = $('.workshop-modal .modal-body, .dbg-modal .modal-body', overlayEl);
     if (scroll) updateScrollCue(scroll);
     const f = (opts.focus && overlayEl.querySelector(opts.focus)) || overlayEl.querySelector('[autofocus]') || overlayEl.querySelector('button, [tabindex="0"]');
     if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
@@ -1209,7 +1209,9 @@
     }
     if (!cue) return;
     cue.hidden = !more;
-    if (more && sc.classList.contains('modal-body')) cue.style.bottom = `${body.getBoundingClientRect().bottom - sc.getBoundingClientRect().bottom + 8}px`;
+    if (more && sc.classList.contains('modal-body') && !body.classList.contains('dbg-modal')) {
+      cue.style.bottom = `${body.getBoundingClientRect().bottom - sc.getBoundingClientRect().bottom + 8}px`;
+    }
   }
   /* The music and the place's own sounds follow the screen: the score has a cue for each kind of screen
      (see music/brinelight.scrim), and its intensity is the depth, as is the echo on the sound effects. */
@@ -4586,7 +4588,7 @@
     if (run && run.screen === 'map') renderMap();
     if (run && run.combat) renderGlossary();
     fitScene();
-    const scroll = $('.workshop-modal .modal-body', overlayEl);
+    const scroll = $('.workshop-modal .modal-body, .dbg-modal .modal-body', overlayEl);
     if (scroll) updateScrollCue(scroll);
     drawDollLines();
   });

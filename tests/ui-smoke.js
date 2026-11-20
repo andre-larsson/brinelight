@@ -2348,6 +2348,105 @@ async function mateoScenario(page, base, name, size) {
 }
 
 const DESK = { w: 1280, h: 800 }, PHONE = { w: 390, h: 844, mobile: true, touch: true };
+async function debugUnlocksScenario(page, base, name, size) {
+  log(`${name}: ${size.w}x${size.h}`);
+  await page.viewport(size.w, size.h, size);
+  page.errors.length = 0;
+  const url = base + '?seed=23';
+  const meta = {
+    salvage: 12, earned: 12, owned: ['purse'], kit: { pocket: 'purse' }, outfit: 'harbour',
+    lazaret: ['whaletooth', 'whaletooth'], bring: ['whaletooth'], lazOpen: true,
+    record: { runs: 3, wins: 1 }, told: ['workshop', 'lazaret'],
+  };
+  await page.goto(url);
+  const loadDebug = async () => {
+    await page.eval(`(() => {
+      localStorage.clear();
+      localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify(meta))});
+      localStorage.setItem('brinelight.prefs.v1', JSON.stringify({ sound: false, music: false, fast: true }));
+      localStorage.setItem('brinelight.tutorial.v1', 'done');
+      localStorage.setItem('brinelight.story.v1', ${QUIET_STORY});
+    })()`);
+    await page.goto(url + '&debug');
+    await inject(page);
+    await click('.dbg-tab');
+  };
+  const click = async (selector) => { if (!await clickIf(page, selector)) throw new Error('Missing control: ' + selector); };
+  const press = (action) => click(`#overlay [data-dbg="${action}"]`);
+  const shot = async (state) => {
+    if (process.env.BRINELIGHT_DEBUG_SHOTS) await page.screenshot(path.join(process.env.BRINELIGHT_DEBUG_SHOTS, `${size.touch ? 'phone' : 'desktop'}-${state}.png`));
+  };
+  const progress = () => page.eval(`(() => {
+    const { debugOutfits, told, ...progress } = Brinelight.meta;
+    return JSON.stringify({ progress, story: Brinelight.story });
+  })()`);
+  const wardrobe = () => page.eval(`[...document.querySelectorAll('#pack-outfit option')].map((o) => o.value).join(',') === Object.keys(BL.OUTFITS).join(',')`);
+  const firstGroup = () => page.eval("document.querySelector('.dbg-sec h3').textContent");
+
+  await loadDebug();
+  if (await firstGroup() !== 'Unlocks') throw new Error('Unlocks should be first at the lighthouse');
+  if (await page.eval(`!!document.querySelector('[data-dbg="resetmeta"]') || !document.querySelector('[data-dbg="resetall"].danger')`)) throw new Error('The panel should have only the full reset in its own section');
+  await checkModalScrollCue(page, name + ' lighthouse');
+  await checkPage(page, name + ' lighthouse');
+  await shot('lighthouse');
+  const before = await progress();
+  await press('allcostumes');
+  if (await progress() !== before) throw new Error('The costume grant changed regular progression');
+  await page.goto(url + '&debug=0');
+  await inject(page);
+  if (await page.eval("!!document.querySelector('.news-modal, .dbg-tab')")) throw new Error('A saved costume grant should leave the ordinary title ready to use');
+  await click('[data-act="newrun"]');
+  if (!await wardrobe()) throw new Error('All costumes should be selectable after turning Debug off');
+  if (await page.eval(`!!document.querySelector('[data-act="keeper"][data-k="mateo"]')`)) throw new Error('The costume grant also unlocked a keeper');
+
+  await loadDebug();
+  await press('unlockall');
+  const savedProgress = () => page.eval("localStorage.getItem('brinelight.meta.v1') + localStorage.getItem('brinelight.story.v1')");
+  const once = await savedProgress();
+  await press('unlockall');
+  if (await savedProgress() !== once) throw new Error('Repeating Unlock all should leave the same progress');
+  await page.goto(url + '&debug=0');
+  await inject(page);
+  const granted = await page.eval(`(() => {
+    const { E, meta, story, juke, jukeDepths } = Brinelight;
+    return {
+      keepers: Object.keys(BL.KEEPERS).every((id) => E.keeperOpen(meta, id)),
+      kit: Object.keys(BL.KIT).every((id) => E.ownsKit(meta, id) && E.kitUnlocked(meta, id)),
+      achievements: Object.keys(BL.ACHIEVEMENTS).every((id) => meta.ach.includes(id)),
+      lazaret: E.lazaretOpen(meta) && E.lazKinds(meta).length === Object.keys(BL.KEEPSAKES).length && E.lazCount(meta, 'whaletooth') === 2,
+      story: E.storyEntries().every((entry) => E.storyOpen(entry, story.marks)),
+      jukebox: juke.every(([kind, id]) => meta.heard.includes(kind + ':' + id)) && jukeDepths.every((_, i) => meta.heard.includes('depth:' + i)),
+      progression: E.currentsOpen(meta) && meta.reached === E.LEVELS.length - 1 && E.holdUpPrice(meta) === null,
+      savedChoices: meta.kit.pocket === 'purse' && meta.bring.join(',') === 'whaletooth' && meta.outfit === 'harbour' && meta.salvage === 12,
+      record: meta.record.hearts === 1 && meta.record.runs === 3 && meta.record.wins === 1 && meta.record.quiets === 0,
+    };
+  })()`);
+  for (const [group, ok] of Object.entries(granted)) if (!ok) throw new Error('Unlock all did not give or preserve ' + group);
+  await click('[data-act="newrun"]');
+  if (!await wardrobe()) throw new Error('Unlock all should include the costumes');
+  await click('[data-act="keeper"][data-k="mateo"]');
+  await click('[data-act="dive"]');
+  await clickIf(page, '[data-act="bashbrief"]');
+  await dismissHints(page);
+  await page.goto(url + '&debug');
+  await inject(page);
+  await click('[data-act="continue"]');
+  if (await page.eval('Brinelight.run.keeper') !== 'mateo') throw new Error('Mateo should be playable from a saved grant');
+  await dismissHints(page);
+  await click('.dbg-tab');
+  if (await firstGroup() !== 'Go to') throw new Error('Travel should be first outside combat');
+  await shot('travel');
+  await click('#overlay [data-dbg="go"][data-type="fight"]');
+  await waitIdle(page);
+  await dismissHints(page);
+  await click('.dbg-tab');
+  if (await firstGroup() !== 'Combat') throw new Error('Combat tools should be first during a fight');
+  await checkModalScrollCue(page, name + ' combat');
+  await checkPage(page, name + ' combat');
+  await shot('combat');
+  if (page.errors.length) throw new Error(page.errors.join('\n'));
+}
+
 async function outfitsScenario(page, base, name, size) {
   log(`${name}: ${size.w}x${size.h}`);
   await page.viewport(size.w, size.h, size);
@@ -2474,6 +2573,8 @@ async function outfitsScenario(page, base, name, size) {
 }
 
 const JOBS = [
+  ['debug', 'debug unlocks desktop', (p, b) => debugUnlocksScenario(p, b, 'debug unlocks desktop', DESK)],
+  ['debug', 'debug unlocks small phone', (p, b) => debugUnlocksScenario(p, b, 'debug unlocks small phone', { ...PHONE, w: 360, h: 640 })],
   ['outfits', 'outfits desktop', (p, b) => outfitsScenario(p, b, 'outfits desktop', DESK)],
   ['outfits', 'outfits small phone', (p, b) => outfitsScenario(p, b, 'outfits small phone', { ...PHONE, w: 360, h: 640 })],
   ['mateo', 'Mateo desktop', (p, b) => mateoScenario(p, b, 'Mateo desktop', DESK)],

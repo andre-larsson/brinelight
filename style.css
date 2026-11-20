@@ -1338,13 +1338,25 @@ img.salv { width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto; }
 .dbg-tab { position: fixed; left: 0; top: 28%; z-index: 450; padding: 10px 5px; border: 1px solid rgba(255, 120, 120, .6); border-left: 0; border-radius: 0 8px 8px 0;
   background: rgba(60, 10, 14, .85); color: #ffc9c9; font: 800 12px/1 var(--sans); letter-spacing: .12em; writing-mode: vertical-rl; cursor: pointer; opacity: .75; }
 .dbg-tab:hover, .dbg-tab:focus-visible { opacity: 1; }
-.dbg-modal { width: min(640px, 100%); }
-.dbg-sec + .dbg-sec { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(201, 162, 74, .2); }
-.dbg-sec h3 { margin: 0 0 8px; font-size: 16px; color: #f3dfb2; }
-.dbg-sec h3 small { display: block; margin-top: 2px; font-size: 13px; font-weight: 500; color: var(--muted); }
-.dbg-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.dbg-pair { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; color: #d6e3e0; font-size: 14px; }
-.dbg-sel { min-height: 36px; max-width: 190px; border-radius: 8px; border: 1px solid rgba(201, 162, 74, .45); background: #0b1f2c; color: #e6dcc6; font: 14px var(--sans); }
+.dbg-modal { width: min(720px, 100%); }
+.dbg-modal .scroll-cue { top: 14px; right: 64px; bottom: auto; left: auto; transform: none; animation: none; }
+.dbg { display: grid; gap: 12px; align-items: start; }
+.dbg-sec { min-width: 0; padding: 12px; border: 1px solid rgba(201, 162, 74, .25); border-radius: 12px; background: rgba(5, 15, 24, .42); }
+.dbg-sec h3 { margin: 0 0 8px; font-size: 17px; color: #f3dfb2; }
+.dbg-info { margin: -2px 0 8px; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.dbg-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dbg .btn.small { min-height: 44px; max-width: 100%; }
+.dbg .btn[aria-pressed="true"] { border-color: var(--kelp); background: rgba(63, 174, 138, .22); }
+.dbg-unlock-actions, .dbg-pair, .dbg-swell { width: 100%; min-width: 0; display: grid; gap: 6px; }
+.dbg-pair { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.dbg-sel { min-width: 0; min-height: 44px; padding: 0 8px; border-radius: 8px; border: 1px solid rgba(201, 162, 74, .45); background: #0b1f2c; color: #e6dcc6; font: 14px var(--sans); }
+.dbg-swell { font-size: 14px; }
+.dbg-steps { width: min(100%, 380px); display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.dbg-steps .btn { padding-inline: 4px; }
+@media (min-width: 660px) {
+  .dbg, .dbg-unlock-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dbg-wide { grid-column: 1 / -1; }
+}
 .dbg-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
 
 /* ---------- Kit places and keepsake Charge (v0.10.0) ---------- */

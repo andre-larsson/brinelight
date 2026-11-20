@@ -78,6 +78,20 @@ test('the Shell Bikini recognizes older Shallows homecomings', () => {
   assert.equal(E.outfitOpen(priorFall, 'shells'), false);
 });
 
+test('a saved debug outfit grant applies to known outfits without earning progression', () => {
+  const meta = E.newMeta();
+  meta.debugOutfits = [...Object.keys(BL.OUTFITS), 'unknown', 'gala'];
+  assert.ok(E.equipOutfit(meta, 'longjohns'));
+  const saved = saveLoad(meta);
+  assert.deepEqual(E.unlockedOutfits(saved), Object.keys(BL.OUTFITS));
+  assert.deepEqual(saved.debugOutfits, Object.keys(BL.OUTFITS));
+  assert.equal(E.outfitId(saved), 'longjohns');
+  assert.equal(E.outfitOpen(saved, 'toString'), false);
+  assert.equal(E.heartIsHome(saved), false);
+  assert.deepEqual(saved.record, E.newRecord());
+  assert.deepEqual(E.unlockedOutfits(E.migrateMeta({ debugOutfits: 'true' })), ['ochre', 'harbour']);
+});
+
 test('past clears qualify and the outfit choice is saved for Wren', () => {
   const legacy = E.migrateMeta({ hesterDone: true, record: { runs: 4, wins: 3, hearts: 1, quiets: 1 }, ach: ['longwatch'] });
   assert.deepEqual(E.unlockedOutfits(legacy), Object.keys(BL.OUTFITS));
