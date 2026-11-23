@@ -400,6 +400,13 @@ async function workshopScenario(page, base, name, size) {
   await slot('bell');
   if (await page.eval(`!!document.querySelector('#overlay [data-act="kitbuy"][data-g="crackedbell"]')`)) failures.push(`${name}: locked kit can be bought`);
   if (!(await page.eval(`!!document.querySelector('#overlay .kit-tray .kit-opt.locked')`))) failures.push(`${name}: the Bell's tray doesn't show its locked bells`);
+  // what earns a locked piece doesn't name a level that hasn't been found (v0.63.0: the Sponge Wrap's said "Dark Water's pin")
+  for (const pl of ['harpoon', 'ditty', 'coat', 'bell', 'pocket']) {
+    await slot(pl);
+    const hints = await page.eval(`[...document.querySelectorAll('#overlay .kit-tray .g-lock')].map((el) => el.textContent).join(' | ')`);
+    if (/Belfry|Dark Water/.test(hints)) failures.push(`${name}: a locked piece for the ${pl} place names a level that hasn't been found: ${hints}`);
+    if (pl === 'harpoon' && !/Earned below the Shallows/.test(hints)) failures.push(`${name}: the Sponge Wrap should say it is earned below the Shallows: ${hints}`);
+  }
   for (const [pl, g] of [['coat', 'cork'], ['bell', 'floodbell']]) {
     await slot(pl);
     await clickIf(page, `#overlay [data-act="kitbuy"][data-g="${g}"]`);
@@ -791,14 +798,23 @@ async function storyScenario(page, base, name, size) {
   await page.click('[data-act="story"]');
   await sleep(200);
   if ((await count('#overlay .st-ch')) !== 1 || (await count('#overlay .st-lock')) !== S.chapters - 1) failures.push(`${name}: a first visit should read chapter 1 and see the rest locked`);
+  // nothing a new player can read names a level that hasn't been found, a locked chapter's title included (v0.63.0)
+  const deepNames = async (tab) => { const t = await page.eval(`document.querySelector('#overlay').textContent`); const m = t.match(/.{0,40}(Belfry|Dark Water).{0,20}/); if (m) failures.push(`${name}: on a first visit the ${tab} tab names a level that hasn't been found: "${m[0]}"`); };
+  await deepNames('Story');
   await checkPage(page, name + ' story');
   await page.click('#overlay [data-act="storytab"][data-tab="world"]');
   await sleep(150);
   if (!(await count('#overlay .help-dl dt'))) failures.push(`${name}: The world tab is empty`);
+  // The world shows the entries that are open from the start, and none of the ones that open later
+  const dts = await page.eval(`[...document.querySelectorAll('#overlay .help-dl dt')].map((el) => el.textContent)`);
+  const fromStart = await page.eval(`window.BL.STORY.world.flatMap((g) => g.items).filter((r) => !r[2]).map((r) => r[0])`);
+  if (dts.join('|') !== fromStart.join('|')) failures.push(`${name}: a first visit's world tab should list the entries open from the start, got ${dts.join(', ')}`);
+  await deepNames('world');
   await checkPage(page, name + ' world');
   await page.click('#overlay [data-act="storytab"][data-tab="notes"]');
   await sleep(150);
   if ((await count('#overlay .st-lock')) !== S.notes || (await count('#overlay .st-note'))) failures.push(`${name}: a first visit should have every note locked`);
+  await deepNames('notes');
   await checkPage(page, name + ' notes');
   // the opening plays again from chapter 1 and comes back to the story
   await page.click('#overlay [data-act="storytab"][data-tab="story"]');
@@ -843,6 +859,26 @@ async function storyScenario(page, base, name, size) {
   await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   await clickIf(page, '[data-act="totitle"]');
   if (await count('[data-act="story"] .new-pill')) failures.push(`${name}: Story so far is still marked New after reading`);
+  /* The world's entries open and never change (v0.63.0): with both pins broken and the Heart home, every entry is
+     listed but Mateo's, and the entries that were open on the first visit still read the same. */
+  const worldTab = async () => {
+    await page.click('[data-act="story"]');
+    await sleep(200);
+    await page.click('#overlay [data-act="storytab"][data-tab="world"]');
+    await sleep(150);
+    return page.eval(`[...document.querySelectorAll('#overlay .help-dl dt')].map((el) => [el.textContent, el.nextElementSibling.textContent])`);
+  };
+  const early = await worldTab();
+  await clickIf(page, '#overlay .modal-foot [data-act="close"]');
+  await page.eval(`(() => { const s = JSON.parse(localStorage.getItem('brinelight.story.v1')); s.marks = s.marks.concat(['won:0', 'won:1', 'heart']); localStorage.setItem('brinelight.story.v1', JSON.stringify(s)); })()`);
+  await page.goto(base + '?seed=6666');
+  await inject(page);
+  const late = await worldTab();
+  const want = await page.eval(`window.BL.STORY.world.flatMap((g) => g.items).filter((r) => !(r[2] && r[2].when === 'keeper:mateo')).map((r) => r[0])`);
+  if (late.map((r) => r[0]).join('|') !== want.join('|')) failures.push(`${name}: with the Heart home, The world should list every entry but Mateo's, got ${late.map((r) => r[0]).join(', ')}`);
+  early.forEach(([t, d]) => { const now = late.find((r) => r[0] === t); if (!now || now[1] !== d) failures.push(`${name}: The world's entry "${t}" changed its text after the Heart came home`); });
+  await checkPage(page, name + ' world, late');
+  await clickIf(page, '#overlay .modal-foot [data-act="close"]');
   if (page.errors.length) failures.push(`${name}: page errors:\n    ` + page.errors.join('\n    '));
 }
 

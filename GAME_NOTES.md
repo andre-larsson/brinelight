@@ -1743,6 +1743,48 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Second opinion on the lore, and a glossary that only unlocks (v0.63.0, 2026-11-23)
+
+**What the user asked.** After v0.62.0 the user asked for a second opinion: "check for any additional lore consistency issues". Four other models reviewed the repository at `c20c773`, each alone and with the same briefing: Grok 4.7, Composer 2.5, GPT-6.2 Sol and Gemini 3.8 Flash. The agent checked every claim against the files and the pictures before accepting it. The user then said "Fix 1-12 and documents", and about the glossary: "Is it possible to rewrite glossary text to fit both before/after the heart? Or only unlock after heart is unlocked. I dont want to change texts in glossary throughout progress, only unlock new ones."
+
+**What the review found.** No reviewer found a hole in the v0.62.0 timeline. Twelve leftovers were confirmed. Numbers 4 and 5 were mistakes made in v0.62.0; the rest were older.
+
+1. **The lamplighter's tag.** His tag hangs in the Belfry's first lesser bell, and a keeper took the tag off on the way up. But his note said he drowned on the low stair and "has waited there since", and Wren meets him in the Shallows and Dark Water. *The agent's call:* the low stair is the part of the keepers' stair under the sea. He drowned there, below his tag, and has kept the keepers' stairs since. The job's brief now says he never came back up past the tag. WORLD.md, "where the lamplighter drowned".
+2. **Hester on the gallery.** *The sea gives you back* had her see the ember "from the gallery". Her knees do not take the tower stairs (the opening, the user's words), and the picture has her on the rock. Now "from the door".
+3. **The Thing's title card** said "It grew into the bronze, around the Heart". The Heart was in the lighthouse for those hundred years. Now "and now it holds the Heart".
+4. **Tonics.** v0.62.0's glossary said the Tide-Witch brews them, but a flask filled on the stair "with brinelight" gives the same tonics. *The agent's call:* the held water keeps what it takes, her bottles among it, and brinelight copies (the Pool's note). So where brinelight stands deep, an empty flask fills with one of her brews.
+5. **Who lit the lamp.** The note said Saltmere remembers him for it, and the tag's line said the town now "knows who lit its great lamp". Only the name is news: "the record has a name for the lamplighter".
+6. **"Keepers walked down to it at the lowest tides."** The Belfry never drains, and the diving bell's note says how they went. Now "in a diving bell at first and later in diving dresses".
+7. **Mateo raised a harpoon** in Eyes in the Kelp. The line now names the keeper's own weapon.
+8. **Lamps that burn.** Wren's is the last flame lit from the Heart, but the Hollow Divers' lamp "still burns, cold" and a few Lost Lanterns "hold a spark". Now "glows" and "a spark of brinelight". The lamp rule written in v0.62.0 also contradicted the bullet after it in WORLD.md (set down, never put down); both are reworded.
+9. **Mending the dress.** The text had Hester holding the lamp. The picture has Wren alone under a lamp on a beam. Now Hester hangs the lamp over the bench. The homecoming screen said the dress is mended "at the lighthouse"; the scene is the boathouse on the harbour.
+10. **The bell-rope.** Pulling it rang something "far above you", and its note said "the great bell gives one note". The great bell is at the bottom of the tower, the picture shows a bell overhead, and after the Heart is home the great bell is broken. Both texts now say "something in the tower".
+11. **A locked chapter's title** named the Belfry on a fresh save ("Chapter 6: Into the Belfry."). The user asked in v0.33.0 that the Belfry not show until it is found. A locked chapter whose title names an unknown level now shows only its number.
+12. **The Workshop** showed what earns a locked piece of kit, which named Dark Water, the Tolling Buoy and the Belfry as soon as the Workshop opened. It now says "Earned below the Shallows." or "Earned deeper down." until the level is known (`hidesLevel` in `js/ui.js`, also used by the lock lines).
+
+**The glossary (the user's rule).** No entry's text changes any more. Five entries had a short `before` text that was swapped for a longer one as levels were found, and several were only true on the first night. Now each has one text that is true before and after the Heart, and later facts are entries of their own. WORLD.md, "The world tab", lists the wording that fits both times.
+
+- The five entries keep their short text for good: Expeditions, Landings, Bosun, Pins and Why so many bells.
+- What their long texts added moved to entries that open with a level: Dark Water names its pin, and **The last dry step** and **The lost bells** are new (both open with the Belfry).
+- Reworded to fit both times: the lighthouse, the Drowned Reach, the Belfry, Wren, the Lantern Heart, the Bellwether, the Tide-bell, Brinelight and Tonics.
+- Two new entries open with a story mark, which the glossary could not do before (`{ when }` beside `{ level }`): **The broken bell** once the Heart is home, and **Mateo** once he is a keeper.
+- The same thinking was applied to one line outside the glossary: the Shallows' pin screen shows on every expedition, so it no longer says "The Lantern Heart is not here" or "the glow of the fire". The Hermit's story scene, which plays once, still says it.
+
+**Documents.** WORLD.md: the v0.19.0 "current game" paragraph, "a hundred years is the only span of time", "tally" for the tag, the gallery, and the summary of *What stays below* (it had the Thing growing back, which the chapter does not say). README: 22 pieces of kit and 14 achievements (it said 21 and 13 since Mateo's Spare Hoop and Last Hoop).
+
+**Claims the agent did not accept.**
+
+- The Cove's "a lantern burns steadily" (Composer): that is Wren's own lantern.
+- Scarf against collar in the fall (Composer): Bosun swims her in by the scarf and hauls her up the shingle by the collar, as the picture shows.
+- The tide-board's event against its note (Grok): the event poses the riddle and the note answers it.
+- The Hermit still wears the bell that the Workshop sells mended (GPT): true, but every expedition meets the Hermit again, and a recorded song fixes the kit's wording.
+- A first fall after the Heart is home reads "The lighthouse is still dark" (GPT): real, but rare. Left as it is.
+- Landings' short text (Gemini): incomplete at Dark Water, not false, and now it is the entry's only text.
+
+**Left alone.** The opening and the title line (the user's words). The songs. Rules and numbers. The glossary's new entries get no "New" mark, as before. The Lazaret's note still says Hester locks the keepsakes in, while the glossary says she gives Wren the key.
+
+**Checks.** `npm test`: 272 pass (two new tests: the glossary rule, and the corrected texts). The UI test now checks that a first visit's Story, world and notes tabs and the Workshop name no level below the Shallows, and that the world's entries open later without any of the earlier ones changing. `npm run test:ui`: passed (200 s). One sentence of the diving-dress chapter was reworded while that run was going, so the story, Dark Water and Belfry groups were run again afterwards: passed. `npm run build`: OK.
+
 ### Lore review: the old bargain, and the year the light went up (v0.62.0, 2026-11-23)
 
 The user asked for a review of the story, the art and the lore in the game's text: does it make sense, is it consistent, and is it "the best version of itself". Their example was the Tide-Witch in the first level: where did she come from, why is she there, has she always been there, and is this a world where witches are common? Text only. No rule, number or picture changed. WORLD.md, "Before the keepers, and the year the light went up", holds the result.

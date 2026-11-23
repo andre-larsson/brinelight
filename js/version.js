@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.62.0';
+  BL.VERSION = '0.63.0';
   BL.CHANGELOG = [
+    { v: '0.63.0', date: '2026-11-23', items: [
+      'The world’s entries no longer change as you get further. Each has one text, and what you learn later is a new entry. The last dry step and The lost bells open with the Belfry, The broken bell opens when the Heart comes home, and Mateo has an entry once he is a keeper.',
+      'A level you have not found is no longer named by a locked chapter’s title, or by what earns a piece of kit in the Workshop.',
+      'Fixed in the story: the Lost Lamplighter drowned under the sea, below the tag he left in the Belfry, and he has kept the keepers’ stairs since. Hester sees your ember from the door, since her knees do not take the tower stairs. Keepers went down to the great bell in a diving bell and later in diving dresses.',
+      'Fixed: the Thing’s title card no longer says it grew around the Heart, which was in the lighthouse for those hundred years. Mateo raises his mallet in Eyes in the Kelp. The Hollow Divers’ lamp glows and no longer burns. The mending of the dress reads as its picture shows it. Pulling the bell-rope no longer says where the note comes from.',
+      'The world says how a flask filled on a stair becomes a tonic. The Shallows’ pin screen now reads true on every expedition, after the Heart is home too.',
+    ] },
     { v: '0.62.0', date: '2026-11-23', items: [
       'The story now says who the Tide-Witch is. Before Saltmere had keepers, it paid tide-wives to sing the water for its boats, and she is the last of them. Her note, the forgotten goddess’s and the Hollow Siren’s tell it, and The world has an entry for tide-wives.',
       'Three new Keeper’s notes: Fog Wisps, the Reefback Hulk and the Angler Twins. Barnaby’s note says how a crab learned to talk, and the Coves’ note hints at who still stocks them.',

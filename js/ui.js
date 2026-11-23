@@ -70,6 +70,10 @@
     || (!!E.LEVELS[lv] && !!E.LEVELS[lv].needs && E.ownsKit(meta, E.LEVELS[lv].needs)) // whoever owns the dress knows what it is for
     || (!!run && !run.tutorial && ((run.level || 0) >= lv || (run.cleared || []).indexOf(lv - 1) >= 0));
   const allLevelsKnown = () => E.LEVELS.every((L, i) => levelKnown(i));
+  /* Which level a text names before it is known: 2 for the Belfry, 1 for Dark Water, 0 for neither. Text written once
+     for every player (what opens a chapter or a note, a locked chapter's title, what earns a piece of kit) asks this
+     and shows a line without the name. */
+  const hidesLevel = (s) => (!levelKnown(2) && /Belfry/.test(s) ? 2 : !levelKnown(1) && /Dark Water/.test(s) ? 1 : 0);
   const wait = (ms) => new Promise((r) => setTimeout(r, prefs.fast ? ms * 0.5 : ms));
   const isTouchUI = () => ui.lastPointer === 'touch' || ui.lastPointer === 'pen';
 
@@ -1365,13 +1369,15 @@
   function storySection(tab) {
     const S = BL.STORY, marks = storyMarks(), fresh = ui.storyFresh || [];
     const pill = (en) => (fresh.indexOf(en.id) >= 0 ? ' <span class="new-pill">New</span>' : '');
-    // a locked note doesn't name a level that hasn't been found
-    const lockText = (en) => (!levelKnown(2) && /Belfry/.test(en.lock) ? 'Found deeper down.' : !levelKnown(1) && /Dark Water/.test(en.lock) ? 'Found below the Shallows.' : en.lock);
+    // a locked entry doesn't name a level that hasn't been found: not in what opens it, and not in its title
+    // (v0.63.0: a fresh save showed "Chapter 6: Into the Belfry.")
+    const lockText = (en) => ['', 'Found below the Shallows.', 'Found deeper down.'][hidesLevel(en.lock)] || en.lock;
     const locked = (label, en) => `<div class="st-lock">${ICON.lock}<span><b>${label}</b> ${lockText(en)}</span></div>`;
     if (tab === 'world') {
-      // an entry about a level opens once the level is known (its third field: { level, before: the text until then })
-      const shown = (r) => (!r[2] || levelKnown(r[2].level) ? r[1] : r[2].before || null);
-      return S.world.map((g) => `<h3 class="st-group">${g.group}</h3><dl class="help-dl">${g.items.filter((r) => shown(r)).map((r) => `<dt>${r[0]}</dt><dd>${shown(r)}</dd>`).join('')}</dl>`).join('');
+      /* An entry that opens later has a third field: { level } once that level is known, { when } once that mark is
+         earned. Until then it is left out. No entry's text changes (v0.63.0, the user's rule; BL.STORY.world). */
+      const shown = (r) => !r[2] || ((r[2].level == null || levelKnown(r[2].level)) && (!r[2].when || marks.indexOf(r[2].when) >= 0));
+      return S.world.map((g) => `<h3 class="st-group">${g.group}</h3><dl class="help-dl">${g.items.filter(shown).map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`).join('');
     }
     if (tab === 'notes') {
       const found = S.notes.filter((n) => E.storyOpen(n, marks)).length;
@@ -1380,7 +1386,7 @@
         : locked('Not found yet.', n))).join('');
     }
     return S.chapters.map((ch, i) => {
-      if (!E.storyOpen(ch, marks)) return locked(`Chapter ${i + 1}: ${ch.title}.`, ch);
+      if (!E.storyOpen(ch, marks)) return locked(`Chapter ${i + 1}${hidesLevel(ch.title) ? '' : `: ${ch.title}`}.`, ch);
       const paras = ch.opening ? S.opening.map((b) => b.text) : ch.text;
       const again = ch.opening ? '<button class="btn small" data-act="opening">Play the opening again</button>' : ch.scene ? `<button class="btn small" data-act="scene" data-id="${ch.scene}">See it again</button>` : '';
       return `<section class="st-ch"><h3><small>Chapter ${i + 1}</small>${ch.title}${pill(ch)}</h3>${paras.map((t) => `<p>${t}</p>`).join('')}${again}</section>`;
@@ -1793,7 +1799,8 @@
       return `<button class="kit-opt buy" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}">${gearArt(g)}<b>${g.name}</b><span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span><small>${kitDesc(id)}</small></button>`;
     }
     const a = g.unlock ? BL.ACHIEVEMENTS[g.unlock] : null;
-    const why = g.found ? '<b>Not for sale:</b> found in Dark Water. Break its pin and carry it home.' : `<b>${a.name}:</b> ${a.desc}`;
+    // what earns it doesn't name a level that hasn't been found (v0.63.0: the Sponge Wrap's said "Dark Water's pin" from the first visit)
+    const why = g.found ? '<b>Not for sale:</b> found in Dark Water. Break its pin and carry it home.' : `<b>${a.name}:</b> ${['', 'Earned below the Shallows.', 'Earned deeper down.'][hidesLevel(a.desc)] || a.desc}`;
     return `<div class="kit-opt locked">${gearArt(g)}<b>${g.name}</b><small>${kitDesc(id)}</small><span class="g-lock">${ICON.lock}<span>${why}</span></span></div>`;
   }
   function kitTray(place, where) {
@@ -3000,7 +3007,7 @@
      beat when the Bellwether's bronze breaks and the Thing comes out, and a slow last blow where the bell goes to light. */
   const FINAL_CARD = {
     bell: ['The Drowned Bellwether', 'The keepers\' great bell, ringing with no hand on its rope'],
-    bellthing: ['The Thing in the Bell', 'It grew into the bronze, around the Heart'],
+    bellthing: ['The Thing in the Bell', 'It grew into the bronze, and now it holds the Heart'], // not "around the Heart": the Heart was in the tower for those hundred years
     darkwatch: ['The Dark Watch', 'The light went out on her watch'],
   };
   const finalFight = () => !!(run && !run.tutorial && run.combat && run.combat.kind === 'boss' && E.lastLevel(run));
@@ -3941,7 +3948,7 @@
       if (z.opened) parts.push('<b>Hester gives you the key to the Lazaret.</b> It is the locked store room at the lighthouse, on the title screen. Keepsakes kept there are yours until you take them down again, and you choose which to bring on each descent.');
       if ((z.added || []).length) parts.push(`<b>${z.added.length} keepsake${z.added.length === 1 ? '' : 's'} stored in the Lazaret.</b> ${ksNames(z.added)}.`);
       // kit found on the expedition (the diving dress) is mended at home and joins the Workshop
-      const kit = (z.found || []).map((id) => `<div class="unlock-box found-kit">${gearArt(BL.KIT[id])}<span><b>You carried home the ${BL.KIT[id].name}.</b> You mend it at the lighthouse. Wear it in your ${BL.KIT_PLACES.find((pl) => pl.id === BL.KIT[id].place).name} place, and the stair below Dark Water is open.</span></div>`).join('');
+      const kit = (z.found || []).map((id) => `<div class="unlock-box found-kit">${gearArt(BL.KIT[id])}<span><b>You carried home the ${BL.KIT[id].name}.</b> You mend it in the boathouse on the harbour. Wear it in your ${BL.KIT_PLACES.find((pl) => pl.id === BL.KIT[id].place).name} place, and the stair below Dark Water is open.</span></div>`).join('');
       return kit + (parts.length ? `<button class="unlock-box lz-box" data-act="lazaret">${parts.join(' ')}</button>` : '');
     }
     if (fin.lost && fin.lost.length) {
@@ -4013,7 +4020,8 @@
     const text = win
       ? (run.heart ? E.band(run).win : run.quieted ? E.keeper(run).quiet || E.band(run).quiet : `You climb back up the drained stairs with everything you carry, and Bosun runs ahead to tell Hester. Behind you the bells start again, and the water creeps back over the landings. ${run.heartHome ? 'The great light turns over the town' : 'The lighthouse is still dark'}, and you know the way down now.`)
       : `The cold water closes over your lantern, and you go under. Past the bell's reach the sea gives you back, and Bosun hauls you up out of the surf by your collar. ${run.heartHome ? 'The great light still turns over the town.' : 'The lighthouse is still dark, and the water has risen a little higher toward the town.'}`;
-    /* v0.44.0: Hester and Bosun on the end screens. Bringing the Heart home shows her on the gallery as the light turns;
+    /* v0.44.0: Hester and Bosun on the end screens. Bringing the Heart home shows them on the path below the tower as
+       the light turns (she was at the gallery rail until the picture was redrawn: her knees do not take the tower stairs);
        coming home shows her in the doorway with Bosun running ahead, the lamp lit once the Heart is home; a fall shows
        Bosun bringing Wren out of the surf (the first fall's story scene). */
     const mateo = E.keeperId(run) === 'mateo';
