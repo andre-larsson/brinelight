@@ -6,16 +6,16 @@ The canvas is 400x600 (2:3). Her boot soles are on row 596 and her face is centr
 and the kit screens draw the picture 600/560 times the height of its box, so the empty top runs over the box and
 her body fills it (style.css, --wren-tall).
 
-Plain Wren (keeper.webp) is the master. A new coat is an edit of her, so her face, pose, lantern, harpoon and bell
+Plain Wren (keeper.webp) is the master. A new outfit in her pose is an edit of her, so her face, pose, lantern, harpoon and bell
 stay the same:
   1. python3 tools/wren-art.py input OUT.png
      makes a 1024x1536 copy of the master to attach to the image generator's edit (exact 2.56x scale).
-  2. Ask Codex's built-in image tool to edit it. Change only the coat area and keep everything else identical
+  2. Ask Codex's built-in image tool to edit it. Change only the clothes and keep everything else identical
      (see the prompts in assets-src/wanted-images.tsv). It repaints the whole picture slightly but keeps it aligned.
   3. python3 tools/wren-art.py compose EDIT.png --allow "x,y x,y ..." [--allow ...] --out img/units/keeper_NAME.webp
      pastes back only what changed inside the --allow polygons (canvas pixels), so everything else stays the
      master's own pixels. --preview P.png saves the mask over Wren, so you can check it.
-Both commands take --base PICTURE.webp to edit another picture instead (the Plated Dress is an edit of keeper_suit).
+Both commands take --base PICTURE.webp to edit another picture instead.
 A whole new picture (a new diving dress) can't be an edit of her. Put it on the canvas at Wren's scale with:
   python3 tools/wren-art.py place SRC.png --eye Y --head X --out img/units/keeper_NAME.webp
   where Y is her eye level and X the centre of her face (or helmet) in SRC pixels. The lowest opaque row counts as
@@ -23,18 +23,9 @@ A whole new picture (a new diving dress) can't be an edit of her. Put it on the 
   the canvas is shrunk until the top of the picture touches its top edge. The keeper drafts in assets-src/drafts
   were placed this way (GAME_NOTES.md, "Keeper and costume drafts").
 
-An outfit replaces her whole picture above water, so each Rig piece marked `overOutfit` in js/data.js has a picture
-over each outfit too (img/units/<outfit art>_<kit id>.webp, such as wren_harbour_cork.webp). Make them all with:
-  python3 tools/wren-art.py rigs [--preview DIR]
-  It takes the piece from its picture of plain Wren, inside its outline in RIG_OUTLINES below, and puts it on each
-  outfit. Where the piece only darkens the oilskin around it (its shadow), the outfit is darkened by the same amount,
-  so no ochre comes along, and what the edit painted out (the coat collar beside her neck) is cleared. A new Rig piece needs an outline here; a new outfit needs nothing but this command.
-  --preview DIR saves each picture with the piece in green and its shadow in red, so you can check them.
-  The pictures in PAINTED below are left alone: there the cut piece didn't fit (the vest picture's scarf lies across
-  the vest, and a costume has its own scarf or boa), so the piece was painted onto the outfit with Codex instead
-  (input and compose with --base img/units/<outfit art>.webp; prompts in assets-src/wanted-images.tsv)."""
-import json
-import subprocess
+Kit never changes her picture (v0.61.0): a piece shows as its icon in its slot, so no piece needs a picture of her.
+Until then the Cork Vest and the Shell Gorget had one for each outfit, cut from their picture of plain Wren by this
+tool's `rigs` command (in git before v0.61.0). Those pictures are kept in assets-src/units/."""
 import sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -87,75 +78,6 @@ def compose(edit_p, polys, out, preview=None, base_p=MASTER):
         save(bg, preview)
 
 
-# Canvas polygons around each Rig piece in its picture of plain Wren. Inside, what changed from the master is the piece;
-# outside, only its shadow carries over. They keep out the oilskin that the edit repainted beside the piece: the
-# sleeve next to the vest's right side and the lapel under the gorget's right side.
-RIG_OUTLINES = {
-    'keeper_cork': '128,135 150,122 180,120 200,124 250,110 292,110 290,140 283,165 283,226 250,230 170,230 148,222 '
-                   '138,180 126,160',
-    'keeper_gorget': '140,124 215,118 292,120 292,170 285,178 264,186 240,191 226,193 224,208 205,208 186,200 150,190 '
-                     '138,160',
-}
-
-
-# Painted onto the outfit by an edit instead of made by `rigs` (see above).
-PAINTED = {'wren_shells_cork', 'wren_gala_cork', 'wren_longjohns_cork'}
-
-
-def fill_holes(m):
-    holes = Image.fromarray(255 - np.asarray(m)).copy()
-    ImageDraw.floodfill(holes, (0, 0), 0)
-    return Image.fromarray(np.maximum(np.asarray(m), np.asarray(holes)))
-
-
-def tidy(m):  # close small gaps, then drop specks
-    m = m.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))
-    return m.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
-
-
-def rig_over(outfit_p, rig_p, outline, base_p=MASTER):
-    """Wren in the outfit at outfit_p, with the Rig piece from rig_p (a picture of the master wearing it) over it."""
-    A, R, O = (np.asarray(Image.open(p).convert('RGBA')).astype(float) for p in (base_p, rig_p, outfit_p))
-    prem = lambda X: X[..., :3] * (X[..., 3:4] / 255)
-    d = np.abs(prem(A) - prem(R)).mean(-1) + np.abs(A[..., 3] - R[..., 3]) * 0.5
-    changed = fill_holes(tidy(Image.fromarray((d > 34).astype(np.uint8) * 255))).filter(ImageFilter.MaxFilter(3))
-    # the piece is a new colour; its shadow is the old colour, darker
-    sa, sr = A[..., :3].sum(-1) + 30, R[..., :3].sum(-1) + 30
-    hue = np.abs(A[..., :3] / sa[..., None] - R[..., :3] / sr[..., None]).sum(-1)
-    piece = fill_holes(tidy(Image.fromarray(((hue > 0.06) & (np.asarray(changed) > 0)).astype(np.uint8) * 255)))
-    inside = Image.new('L', (W, H), 0)
-    ImageDraw.Draw(inside).polygon([tuple(float(v) for v in xy.split(',')) for xy in outline.split()], fill=255)
-    piece = Image.fromarray(np.minimum(np.asarray(piece), np.asarray(inside)))
-    p = np.asarray(piece.filter(ImageFilter.GaussianBlur(0.8))).astype(float)[..., None] / 255
-    c = np.asarray(changed.filter(ImageFilter.GaussianBlur(1.0))).astype(float)[..., None] / 255
-    shade = O.copy()
-    shade[..., :3] *= np.clip(sr / sa, 0, 1.2)[..., None]
-    shade[..., 3] *= np.clip(R[..., 3] / np.maximum(A[..., 3], 1), 0, 1)  # what the piece's edit painted out (a collar)
-    res = (O * (1 - c) + shade * c) * (1 - p) + R * p
-    return Image.fromarray(np.clip(res, 0, 255).round().astype(np.uint8), 'RGBA'), piece, changed
-
-
-def rigs(preview=None):
-    js = ("require('./js/data.js'); const BL = globalThis.BL; console.log(JSON.stringify({"
-          "outfits: Object.values(BL.OUTFITS).map((o) => o.art).filter((a) => a !== 'keeper'), "
-          "rigs: Object.entries(BL.KIT).filter(([, k]) => k.overOutfit).map(([id, k]) => [id, k.look])}))")
-    data = json.loads(subprocess.check_output(['node', '-e', js], text=True))
-    for rig_id, look in data['rigs']:
-        if look not in RIG_OUTLINES:
-            sys.exit(f'{look} has no outline in RIG_OUTLINES')
-        for art in data['outfits']:
-            if f'{art}_{rig_id}' in PAINTED:
-                continue
-            im, piece, changed = rig_over(f'img/units/{art}.webp', f'img/units/{look}.webp', RIG_OUTLINES[look])
-            save(im, f'img/units/{art}_{rig_id}.webp')
-            if preview:
-                pv = Image.new('RGBA', (W, H), (40, 60, 70, 255))
-                pv.alpha_composite(im)
-                pv.paste(Image.new('RGBA', (W, H), (255, 0, 80, 255)), (0, 0), changed.point(lambda v: v // 3))
-                pv.paste(Image.new('RGBA', (W, H), (0, 255, 120, 255)), (0, 0), piece.point(lambda v: v // 3))
-                save(pv, f'{preview}/{art}_{rig_id}.png')
-
-
 def place(src_p, eye, head, out, tall=1.0):
     src = Image.open(src_p).convert('RGBA')
     rows = np.where((np.asarray(src.getchannel('A')) > 128).any(1))[0]
@@ -178,9 +100,8 @@ def place(src_p, eye, head, out, tall=1.0):
 
 if __name__ == '__main__':
     a = sys.argv[1:]
-    if not a or a[0] not in ('input', 'compose', 'place', 'rigs'):
+    if not a or a[0] not in ('input', 'compose', 'place'):
         sys.exit(__doc__)
     if a[0] == 'input': make_input(a[1], arg(a, '--base', MASTER))
-    elif a[0] == 'rigs': rigs(arg(a, '--preview'))
     elif a[0] == 'compose': compose(a[1], arg(a, '--allow', many=True), arg(a, '--out'), arg(a, '--preview'), arg(a, '--base', MASTER))
     else: place(a[1], float(arg(a, '--eye')), float(arg(a, '--head')), arg(a, '--out'), float(arg(a, '--tall', 1)))

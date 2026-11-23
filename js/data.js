@@ -341,24 +341,40 @@
       home: 'Hester reads the name out loud and adds it to the harbour record. Now the town knows who tended the bell last.' },
   ];
   BL.CASK_NOTE = 'If you reach the boat in the fog, knock three times on the gunwale. If the line pulls you over, cut it. One of us has to get home.';
+  /* Who goes down. A keeper's pictures (img/units) are their own, and kit never changes them (v0.61.0):
+       looks.shore  on land, when the keeper has no outfit (BL.OUTFITS) or before one is chosen
+       looks.fight  optional: a fighting stance on land, instead of the shore picture
+       looks.dive   under the sea (the Belfry), in the keeper's diving dress, whatever the outfit and the kit
+     `weapon` is what the keeper carries: its name, the name of their starter attack (`strike`, the 'jab' card; `refit`
+     and `art` when that card has its own refit name and picture for them) and the glyph of the empty Weapon slot
+     (ICON[icon] in ui.js). Kit text says {weapon} and {strike} (E.kitText), so one piece of kit reads right for all.
+     `points` moves the kit screen's slot lines for this keeper's shore picture (see BL.KIT_PLACES).
+     A new keeper needs these, a shore picture and a dive picture. E.keeperArt chooses the picture. */
   BL.KEEPERS = {
-    wren: { name: 'Wren', title: 'Wren, the Keeper', portrait: 'keeper', final: 'darkwatch', skill: 'First Ring',
+    wren: { name: 'Wren', title: 'Wren, the Keeper', looks: { shore: 'keeper', dive: 'keeper_suit' },
+      weapon: { name: 'Harpoon', strike: 'Harpoon Jab', icon: 'slot_harpoon' }, final: 'darkwatch', skill: 'First Ring',
       desc: 'Your first Bail or Stir each fight costs 0 Light.' },
-    mateo: { name: 'Mateo', title: 'Mateo, the Cooper', portrait: 'mateo', guard: 'mateo_guard', suit: 'mateo_suit', strikeArt: 'c_mallet',
+    mateo: { name: 'Mateo', title: 'Mateo, the Cooper', looks: { shore: 'mateo', fight: 'mateo_guard', dive: 'mateo_suit' },
+      weapon: { name: 'Mallet', strike: 'Mallet Strike', refit: 'Guarded Strike', art: 'c_mallet', icon: 'slot_mallet' },
+      points: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.53, 0.41], pocket: [0.65, 0.49] },
       dread: 'splitcask', level: 1, final: 'lasthoop', skill: 'Shield Bash',
       desc: 'Spend 4 Ward to deal 6 damage. Bash costs 0 Light and uses one of your Bail or Stir actions. Once per turn.',
       quiet: 'The last hoop drops. You lift the lid and wait. Only water comes out. You take the loose end of the line home to tell Hester who held the other end.' },
   };
+  /* Outfits: what a keeper wears on land, one picture each (`art`; `fight` for a fighting stance of its own). Each
+     belongs to one keeper, and that keeper's first one is what they wear until another is chosen. They are for looks
+     only. `when` is what opens it (E.outfitOpen) and `home` what the lighthouse says then.
+     A new outfit needs a line here and its picture, on the keeper's own canvas and in the same pose. */
   BL.OUTFITS = {
-    ochre: { name: 'Ochre Oilskin', art: 'keeper' },
-    harbour: { name: 'Harbour Blue', art: 'wren_harbour' },
-    lamplighter: { name: 'Lamplighter’s Green', art: 'wren_lamplighter', when: 'log',
+    ochre: { keeper: 'wren', name: 'Ochre Oilskin', art: 'keeper' },
+    harbour: { keeper: 'wren', name: 'Harbour Blue', art: 'wren_harbour' },
+    lamplighter: { keeper: 'wren', name: 'Lamplighter’s Green', art: 'wren_lamplighter', when: 'log',
       home: 'For bringing the keeper’s log home, Hester leaves a spare green oilskin on Wren’s peg.' },
-    shells: { name: 'Shell Bikini', art: 'wren_shells', when: 'shells',
+    shells: { keeper: 'wren', name: 'Shell Bikini', art: 'wren_shells', when: 'shells',
       home: 'Saltmere’s harbour players stitched your scallop shells into a mermaid costume and hung it on your peg beside your oilskin.' },
-    gala: { name: 'Gala', art: 'wren_gala', when: 'heart',
+    gala: { keeper: 'wren', name: 'Gala', art: 'wren_gala', when: 'heart',
       home: 'Saltmere is throwing a party now the Heart is home. The harbour players have laid out your gala outfit.' },
-    longjohns: { name: 'Long Johns', art: 'wren_longjohns', when: 'longwatch',
+    longjohns: { keeper: 'wren', name: 'Long Johns', art: 'wren_longjohns', when: 'longwatch',
       home: 'Hester leaves a dry pair of long johns by your bed. For the first time since the light went out, you sleep through to morning.' },
   };
   BL.REWARD_POOL = {
@@ -1218,43 +1234,40 @@
    * ------------------------------------------------------------------ */
   BL.META_TEXT = { currency: 'Salvage', shop: 'Workshop', item: 'Kit' };
   /* Where kit goes. The Bell always holds a bell; the others can be empty (`none` names the empty slot).
-     The kit screens show Wren with a slot for each place: `side` is the side of her picture the slot sits on,
-     and `at` is where its line points on her picture (fractions of its width and height, from the top left).
-     Her pictures share one canvas (tools/wren-art.py), so one point fits them all; BL.WREN_POINTS moves a point
-     for a picture where her rig covers it. A new place needs these and a glyph in ui.js (ICON.slot_<id>).
-     The Rig place is `coat` in the code and in saves (it was called the Coat until v0.24.3). */
+     Place and kit text can say {weapon}, {Weapon} and {strike}: the keeper's own words for them (E.kitText).
+     The kit screens show the keeper with a slot for each place: `side` is the side of the picture the slot sits on,
+     and `at` is where its line points on the picture (fractions of its width and height, from the top left).
+     `at` fits Wren, whose outfits share one canvas and pose (tools/wren-art.py); another keeper moves the points
+     with `points` in BL.KEEPERS. A new place needs these and a glyph in ui.js (ICON.slot_<id>).
+     The Weapon place is `harpoon` in the code and in saves (it was called the Harpoon until v0.61.0), and the Rig
+     place is `coat` (it was called the Coat until v0.24.3). */
   BL.KIT_PLACES = [
-    { id: 'harpoon', name: 'Harpoon', desc: 'Your weapon. It changes your Harpoon Jabs.', none: 'Plain harpoon', side: 'left', at: [0.2, 0.48] },
+    { id: 'harpoon', name: 'Weapon', desc: 'A fitting for your {weapon}. It changes your first {strike} in each fight.', none: 'Plain {weapon}', side: 'left', at: [0.2, 0.48] },
     { id: 'bell', name: 'Bell', desc: 'Your Tide-Bell. It decides what you get when you Crest or Strand.', side: 'right', at: [0.52, 0.42] },
-    { id: 'coat', name: 'Rig', desc: 'What you wear over your oilskin. A keeper never takes the oilskin off: brinelight runs off it.', none: 'Just the oilskin', side: 'right', at: [0.66, 0.29] },
+    { id: 'coat', name: 'Rig', desc: 'What you wear over your clothes, or the dress that takes you under the sea.', none: 'Nothing extra', side: 'right', at: [0.66, 0.29] },
     { id: 'pocket', name: 'Pocket', desc: 'Coins and tokens.', none: 'Empty', side: 'right', at: [0.75, 0.515] },
     { id: 'ditty', name: 'Ditty Bag', desc: 'Small tools and supplies.', none: 'Empty', side: 'left', at: [0.37, 0.49] },
   ];
-  /* Per-picture corrections to the slot points above, where her rig moves a point: { picture: { place: [x, y] } }.
-     In a diving dress she stands in another pose, with her harpoon raised, her bell lower and no coat pocket. */
-  const IN_DRESS = { harpoon: [0.3, 0.335], ditty: [0.47, 0.455], coat: [0.64, 0.34], bell: [0.59, 0.52], pocket: [0.7, 0.55] };
-  BL.WREN_POINTS = { keeper_suit: IN_DRESS, keeper_plated: IN_DRESS,
-    mateo: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.53, 0.41], pocket: [0.65, 0.49] },
-    mateo_suit: { harpoon: [0.2, 0.35], ditty: [0.31, 0.51], coat: [0.62, 0.35], bell: [0.41, 0.54], pocket: [0.62, 0.56] },
-  };
-  /* A rig's `look` is Wren's picture (img/units) wearing it. See E.keeperArt for outfits and the Belfry.
-     `overOutfit`: it is worn over each of Wren's outfits too, in img/units/<outfit art>_<id>.webp
-     (made by `python3 tools/wren-art.py rigs`). The dresses replace the outfit instead. */
+  /* Kit shows as its icon (`art`, img/icons) in its slot, and never changes the keeper's picture (v0.61.0; until then
+     a Rig piece had a picture of Wren wearing it, one for each of her outfits). So a new piece needs only an icon.
+     The Weapon pieces are fittings that go on any keeper's weapon, so their text says {weapon} and {strike}.
+     A dress (`suit`, or `as: 'suit'`) opens the Belfry; under the sea every keeper shows in their own dive picture. */
   BL.KIT = {
-    honed: { place: 'harpoon', name: 'Honed Harpoon', art: 'g_honed', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'Your first Harpoon Jab in each fight deals 2 more damage.' },
-    barbed: { place: 'harpoon', name: 'Barbed Harpoon', art: 'g_barbed', price: 25, unlock: 'pickled', brine: 1, desc: 'Your first Harpoon Jab in each fight applies 1 Brine.' },
-    toggle: { place: 'harpoon', name: 'Toggle Iron', art: 'g_toggle', price: 30, unlock: 'stillwater', soaked: 2, desc: 'Your first Harpoon Jab in each fight applies 2 Soaked.' },
+    /* Until v0.61.0 these were the Honed Harpoon, the Barbed Harpoon and the Toggle Iron (the ids are from then). */
+    honed: { place: 'harpoon', name: 'Lead Collar', art: 'g_collar', price: 35, unlock: 'dreadhunter', dmg: 2, desc: 'A lead weight for your {weapon}. Your first {strike} in each fight deals 2 more damage.' },
+    barbed: { place: 'harpoon', name: 'Brined Lashing', art: 'g_lashing', price: 25, unlock: 'pickled', brine: 1, desc: 'Brine-soaked cord for your {weapon}. Your first {strike} in each fight applies 1 Brine.' },
+    toggle: { place: 'harpoon', name: 'Sponge Wrap', art: 'g_sponge', price: 30, unlock: 'stillwater', soaked: 2, desc: 'A wet sea sponge bound to your {weapon}. Your first {strike} in each fight applies 2 Soaked.' },
     tidebell: { place: 'bell', name: 'Brass Tide-Bell', art: 'k_tidebell', price: 0, starter: true, desc: 'Whenever you Crest or Strand, draw 1 card.' },
     floodbell: { place: 'bell', name: 'Flood Bell', art: 'g_floodbell', price: 20, unlock: 'twocrests', desc: 'Whenever you Crest, draw 1 card and gain 1 Light. A Strand gives nothing.' },
     ebbbell: { place: 'bell', name: 'Ebb Bell', art: 'g_ebbbell', price: 20, unlock: 'twolows', desc: 'Whenever you Strand, draw 1 card and gain 3 Ward. A Crest gives nothing.' },
     crackedbell: { place: 'bell', name: 'Cracked Bell', art: 'g_crackedbell', price: 30, unlock: 'threecrests', desc: 'Your first Crest or Strand each turn gives nothing. Every one after it draws 2 cards and gives 1 Light.' },
     harbourbell: { place: 'bell', name: 'Harbour Bell', art: 'g_harbourbell', price: 25, unlock: 'outofbell', desc: 'The Hermit\'s bell, mended. Whenever you Crest or Strand, gain 3 Ward. It draws nothing.' },
-    cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', look: 'keeper_cork', overOutfit: true, price: 12, desc: 'Start each run with 5 more Max HP.' },
-    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', look: 'keeper_gorget', overOutfit: true, price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
+    cork: { place: 'coat', name: 'Cork Vest', art: 'g_cork', price: 12, desc: 'Start each run with 5 more Max HP.' },
+    gorget: { place: 'coat', name: 'Shell Gorget', art: 'g_gorget', price: 25, unlock: 'untouched', ward: 4, desc: 'Start each fight with 4 Ward.' },
     /* Found, never bought: the first time Dark Water's pin breaks, Wren finds it and carries it home (E.carryHome). */
-    suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', look: 'keeper_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
+    suit: { place: 'coat', name: 'Diving Dress', art: 'g_suit', price: 0, found: true, desc: "An old keeper's diving dress with a sealed lamp. You need it to go down into the Belfry. It does nothing in a fight." },
     /* The dress again, plated with shell: it counts as the Diving Dress (`as`) for the Belfry's stair. */
-    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', look: 'keeper_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
+    plated: { place: 'coat', name: 'Plated Dress', art: 'g_plated', price: 50, unlock: 'heartlight', as: 'suit', ward: 3, desc: 'The diving dress again, armoured with shell plates from shoulders to shins. You can go down into the Belfry in it, and you start each fight with 3 Ward.' },
     purse: { place: 'pocket', name: 'Coin Purse', art: 'g_purse', price: 8, desc: 'Start each run with 30 more Pearls.' },
     // 10 until v0.33.0: with no Pearls at the start it more than paid for a keepsake in the Shallows alone (the user: "a bit over-powered")
     pouch: { place: 'pocket', name: "Gleaner's Pouch", art: 'g_pouch', price: 15, pearls: 6, desc: 'Gain 6 extra Pearls after each fight.' },

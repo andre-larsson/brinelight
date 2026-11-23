@@ -38,7 +38,8 @@
     ['salvage', 'earned', 'mateoQuiets', 'holdUp'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
     ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told', 'keepers', 'debugOutfits'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
     raw.keeper = m.keeper;
-    raw.outfit = m.outfit;
+    raw.outfit = m.outfit; // Wren's, in saves from before v0.61.0 (E.migrateMeta)
+    if (m.outfits && typeof m.outfits === 'object') raw.outfits = m.outfits;
     raw.shellsHome = m.shellsHome;
     if (typeof m.reached === 'number') raw.reached = m.reached;
     if (m.kit && typeof m.kit === 'object') raw.kit = m.kit;
@@ -126,7 +127,9 @@
     close: svg('<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
     salvage: '<img class="salv" src="img/icons/g_salvage.webp" alt="">',
     lock: svg('<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/>'),
-    /* empty kit slots, one per place (BL.KIT_PLACES); a new place falls back to the pack */
+    /* empty kit slots, one per place (BL.KIT_PLACES); a new place falls back to the pack. The Weapon slot shows the
+       keeper's own weapon (`weapon.icon` in BL.KEEPERS) */
+    slot_mallet: svg('<path d="M4.5 19.5 13 11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/><rect x="10.6" y="4.4" width="10.5" height="6.6" rx="1.5" transform="rotate(45 15.85 7.7)"/>'),
     slot_harpoon: svg('<path d="M5 19 17.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M20.5 3.5 13 6.6l1.6.8.9 1.6.8 1.6z"/><path d="M4 16.5c1.4.2 2.6 1.4 2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.6"/>'),
     slot_bell: svg('<path d="M12 3.5a1.4 1.4 0 0 1 1.4 1.4v.5a5.6 5.6 0 0 1 4.2 5.4v4.4l2 2.8H4.4l2-2.8v-4.4a5.6 5.6 0 0 1 4.2-5.4v-.5A1.4 1.4 0 0 1 12 3.5z"/><circle cx="12" cy="20" r="1.8"/>'),
     swell_mid: svg('<path d="m3 7 4 5-4 5m18-10-4 5 4 5M11 5h2m-1 0v14m-1 0h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
@@ -638,8 +641,8 @@
       case 'pearls': return `<b>Pearls</b><br>Spend them at Barnaby's shop.`;
       case 'floor': return `<b>${LevelName(run.level)}, landing ${run.floor} of ${E.mapRows(run) + 1}</b><br>${bossName()} waits on the last landing.${!E.lastLevel(run) ? (E.deepestReachable(run) === (run.level || 0) ? ' Below it the stair runs under the sea, and you have nothing to dive in: this pin is as deep as this expedition can go.' : ' Break it, then go home or go deeper.') : run.heartHome ? ' Beat it to quiet the Belfry and come home.' : ' Break it to bring the Heart home.'}`;
       case 'ks': { const k = BL.KEEPSAKES[parts[1]]; return `<b>${k.name}</b> <span class="k-charge">Roil ${k.charge}</span><br>${k.desc}${k.deep ? `<div class="tip-row muted">${foundIn(parts[1])}</div>` : ''}`; }
-      case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${BL.KIT[id].desc}</div>`).join('')}`;
-      case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${b.desc}` : ''; }
+      case 'kit': return `<b>Your ${MT.item.toLowerCase()}</b>${E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell').map((id) => `<div class="tip-row"><b>${BL.KIT[id].name}:</b> ${E.kitDesc(id, run)}</div>`).join('')}`;
+      case 'bell': { const b = BL.KIT[E.bell(run)]; return b ? `<b>${b.name}</b><br>${E.kitDesc(E.bell(run), run)}` : ''; }
       case 'charge': {
         const ch = E.charge(run), h = E.hold(run), rf = E.roil(run);
         return `<b>Roil ${ch} of ${h}</b><br>Your keepsakes stir the aether: ${ch} Roil. The aether around you holds ${h}: your Hold. It is <b>${rf.steps ? 'Roiled' : 'Calm'}</b>.` +
@@ -673,7 +676,7 @@
         const isP = parts[1] === 'p';
         const o = isP ? c.player : E.enemyByUid(c, parts[1]);
         if (!o) return '';
-        let html = `<b>${isP ? 'Wren, the Keeper' : o.name}</b> ${isP ? run.hp + '/' + run.maxHp : o.hp + '/' + o.maxHp} HP`;
+        let html = `<b>${isP ? E.keeper(run).title : o.name}</b> ${isP ? run.hp + '/' + run.maxHp : o.hp + '/' + o.maxHp} HP`;
         if (o.ward) html += `, ${o.ward} Ward`;
         if (!isP && o.roil) html += '<div class="tip-row">It followed your Roil here.</div>';
         if (!isP && o.follower) html += '<div class="tip-row">It followed you from the Glimmer Garden.</div>';
@@ -1137,7 +1140,7 @@
       <div class="stat pearls" data-tip="pearls" aria-label="Pearls">${ICON.pearl}<span>${run.pearls}</span></div>
       <div class="stat floor" data-tip="floor">${ICON.anchor}<span><span class="lbl">Landing </span>${run.floor}/${E.mapRows(run) + 1}</span></div>
       <div class="hud-break"></div>
-      ${bell ? `<button class="medal gear bell" data-tip="bell" data-act="kitinfo" data-k="bell" aria-label="${bell.name}: ${bell.desc}"><img src="img/icons/${bell.art}.webp" alt=""></button>` : ''}
+      ${bell ? `<button class="medal gear bell" data-tip="bell" data-act="kitinfo" data-k="bell" aria-label="${bell.name}: ${E.kitDesc(E.bell(run), run)}"><img src="img/icons/${bell.art}.webp" alt=""></button>` : ''}
       ${kitIds.length ? `<button class="medal gear-pack" data-tip="kit" data-act="kitinfo" aria-label="${MT.item}: ${kitIds.map((id) => BL.KIT[id].name).join(', ')}">${ICON.pack}<span class="n">${kitIds.length}</span></button>` : ''}
       ${run.keepsakes.length ? `<button class="charge${rf.steps ? ' over' : ''}" data-tip="charge" data-act="kitinfo" aria-label="Roil ${ch} of ${hold}${rf.steps ? `, ${roilWords(rf)} in every fight` : ''}">${ICON.charge}<span>${ch}/${hold}</span></button>` : ''}
       <div class="keepsakes">${ks}</div>
@@ -1751,16 +1754,19 @@
   const workshopOpen = () => meta.earned > 0 || meta.owned.length > 0;
   const kitIn = (place) => Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === place);
 
-  /* The Workshop and Pack for the expedition share one view of the kit: Wren in the middle with a slot for each
-     place around her (BL.KIT_PLACES), a line from each slot to where the piece sits on her, and under her a tray
-     with every piece of kit for the chosen slot: what she owns (tap to wear or take off), what is for sale, and
-     what is still locked. Her picture shows her rig in the Workshop and her chosen outfit in Pack. */
+  /* The Workshop and Pack for the expedition share one view of the kit: the chosen keeper in the middle with a slot
+     for each place around them (BL.KIT_PLACES), a line from each slot to where the piece sits on them, and under them
+     a tray with every piece of kit for the chosen slot: what is owned (tap to wear or take off), what is for sale,
+     and what is still locked. The picture is the keeper in their outfit on both screens (E.keeperArt): kit shows as
+     its icon in its slot and never changes the picture. Its text is in the keeper's own words (E.kitText). */
+  const kitDesc = (id) => E.kitDesc(id, meta);
   const kitForSale = (id) => { const g = BL.KIT[id]; return !g.starter && !g.found && !E.ownsKit(meta, id) && E.kitUnlocked(meta, id); };
   const canBuyNow = (id) => kitForSale(id) && meta.salvage >= BL.KIT[id].price;
   const placeOf = (id) => BL.KIT_PLACES.find((pl) => pl.id === id);
-  function kitKeeperAlt(kit, keeper) {
-    const g = kit.coat ? BL.KIT[kit.coat] : null;
-    return g ? `${keeper.title}, wearing the ${g.name}` : keeper.title;
+  /* What a keeper's picture shows, in words: "Wren in Harbour Blue", or the keeper's title when they have no outfit. */
+  function keeperAlt(state) {
+    const K = E.keeper(state), O = BL.OUTFITS[E.outfitId(state)];
+    return O ? `${K.name} in ${O.name}` : K.title;
   }
   /* The chosen slot: the last one chosen, else the first with something to wear (packing) or to buy (the Workshop). */
   function kitSlotFor(where) {
@@ -1770,24 +1776,25 @@
   }
   function kitSlot(pl, where, sel, i) {
     const id = meta.kit[pl.id], g = id ? BL.KIT[id] : null;
-    const name = g ? g.name : pl.none || 'Empty';
+    const name = g ? g.name : E.kitText(pl.none || 'Empty', meta);
+    const glyph = ICON[(pl.id === 'harpoon' && E.keeper(meta).weapon.icon) || 'slot_' + pl.id] || ICON.pack;
     const buy = where === 'workshop' && kitIn(pl.id).some(canBuyNow);
     return `<button class="kit-slot${g ? '' : ' empty'}" style="--o:${i}" data-act="kitslot" data-place="${pl.id}" aria-pressed="${sel}" aria-label="${pl.name}: ${name}${buy ? `. You can buy ${MT.item.toLowerCase()} for it` : ''}">` +
-      `<span class="medal gear${g ? '' : ' empty'}">${g ? `<img src="img/icons/${g.art}.webp" alt="">` : ICON['slot_' + pl.id] || ICON.pack}</span>` +
+      `<span class="medal gear${g ? '' : ' empty'}">${g ? `<img src="img/icons/${g.art}.webp" alt="">` : glyph}</span>` +
       `<span class="ks-txt"><small>${pl.name}</small><b>${name}</b></span>${buy ? `<span class="ks-new" title="For sale">${ICON.salvage}</span>` : ''}</button>`;
   }
   function kitOpt(id) {
     const g = BL.KIT[id];
     if (E.ownsKit(meta, id)) {
       const on = meta.kit[g.place] === id;
-      return `<button class="kit-opt${on ? ' worn' : ''}" data-act="kitwear" data-g="${id}" aria-pressed="${on}">${gearArt(g)}<b>${g.name}</b><span class="opt-state">${on ? 'Worn' : 'Wear'}</span><small>${g.desc}</small></button>`;
+      return `<button class="kit-opt${on ? ' worn' : ''}" data-act="kitwear" data-g="${id}" aria-pressed="${on}">${gearArt(g)}<b>${g.name}</b><span class="opt-state">${on ? 'Worn' : 'Wear'}</span><small>${kitDesc(id)}</small></button>`;
     }
     if (kitForSale(id)) {
-      return `<button class="kit-opt buy" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}">${gearArt(g)}<b>${g.name}</b><span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span><small>${g.desc}</small></button>`;
+      return `<button class="kit-opt buy" data-act="kitbuy" data-g="${id}" aria-label="Buy ${g.name} for ${g.price} ${MT.currency}">${gearArt(g)}<b>${g.name}</b><span class="price${meta.salvage < g.price ? ' cant' : ''}">${ICON.salvage}${g.price}</span><small>${kitDesc(id)}</small></button>`;
     }
     const a = g.unlock ? BL.ACHIEVEMENTS[g.unlock] : null;
     const why = g.found ? '<b>Not for sale:</b> found in Dark Water. Break its pin and carry it home.' : `<b>${a.name}:</b> ${a.desc}`;
-    return `<div class="kit-opt locked">${gearArt(g)}<b>${g.name}</b><small>${g.desc}</small><span class="g-lock">${ICON.lock}<span>${why}</span></span></div>`;
+    return `<div class="kit-opt locked">${gearArt(g)}<b>${g.name}</b><small>${kitDesc(id)}</small><span class="g-lock">${ICON.lock}<span>${why}</span></span></div>`;
   }
   function kitTray(place, where) {
     const pl = placeOf(place);
@@ -1796,20 +1803,16 @@
     // the dresses are for the Belfry: until it is found they stay out of the tray (a dress you own always shows)
     const ids = kitIn(place).filter((id) => E.ownsKit(meta, id) || levelKnown(2) || !(id === 'suit' || BL.KIT[id].as === 'suit')).sort((x, y) => rank(x) - rank(y));
     const bal = where !== 'workshop' && ids.some(kitForSale) ? `<span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span>` : '';
-    return `<section class="kit-tray" aria-label="${pl.name}"><h3 class="ws-place"><span>${pl.name} <small>${pl.desc}</small></span>${bal}</h3>
+    return `<section class="kit-tray" aria-label="${pl.name}"><h3 class="ws-place"><span>${pl.name} <small>${E.kitText(pl.desc, meta)}</small></span>${bal}</h3>
       <div class="kit-list">${ids.map(kitOpt).join('')}</div></section>`;
   }
   function kitDoll(where) {
-    const sel = kitSlotFor(where), keeper = E.keeper(meta);
-    const keeperId = E.keeperId(meta);
-    const outfit = where === 'pack' && keeperId === 'wren' ? E.outfitId(meta) : 'ochre';
-    const look = E.keeperArt(meta.kit, false, keeperId, false, outfit);
-    const over = meta.kit.coat && BL.KIT[meta.kit.coat]?.overOutfit ? `, wearing the ${BL.KIT[meta.kit.coat].name}` : '';
-    const alt = outfit === 'ochre' ? kitKeeperAlt(meta.kit, keeper) : `${keeper.name} in ${BL.OUTFITS[outfit].name}${over}`;
+    const sel = kitSlotFor(where);
+    const look = E.keeperArt(meta), alt = keeperAlt(meta);
     // each side lists its slots top to bottom by where they point, so the lines don't cross
     const side = (s) => BL.KIT_PLACES.map((pl, i) => [pl, i]).filter(([pl]) => (pl.side || 'right') === s)
       .sort((x, y) => (x[0].at || [0, 0])[1] - (y[0].at || [0, 0])[1]).map(([pl, i]) => kitSlot(pl, where, pl.id === sel, i)).join('');
-    return `<div class="doll" data-look="${look}"><svg class="doll-lines" aria-hidden="true"></svg>
+    return `<div class="doll"><svg class="doll-lines" aria-hidden="true"></svg>
       <div class="doll-side left">${side('left')}</div>
       <div class="doll-wren"><img src="img/units/${look}.webp" alt="${alt}"></div>
       <div class="doll-side right">${side('right')}</div></div>${kitTray(sel, where)}`;
@@ -1826,7 +1829,7 @@
     // the picture is drawn bottom-centred inside the img box (object-fit: contain)
     const k = Math.min(ir.width / img.naturalWidth, ir.height / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
     const x0 = ir.left - box.left + (ir.width - w) / 2, y0 = ir.top - box.top + ir.height - h;
-    const fix = BL.WREN_POINTS[doll.dataset.look] || {}, n = (v) => v.toFixed(1);
+    const fix = E.keeper(meta).points || {}, n = (v) => v.toFixed(1);
     lines.setAttribute('viewBox', `0 0 ${n(box.width)} ${n(box.height)}`);
     lines.innerHTML = BL.KIT_PLACES.map((pl) => {
       const el = $(`.kit-slot[data-place="${pl.id}"]`, doll), at = fix[pl.id] || pl.at;
@@ -1850,7 +1853,7 @@
   function showWorkshop(focus) {
     ui.kitFrom = 'workshop';
     meta.kit = E.fitKit(meta.kit, meta.owned);
-    const body = `<div class="ws-art" style="background-image:url(img/scenes/workshop.webp)" role="img" aria-label="The keepers' workshop on the shore"></div><p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good. Wren wears one piece in each place: choose a place to see what fits there.</p>
+    const body = `<div class="ws-art" style="background-image:url(img/scenes/workshop.webp)" role="img" aria-label="The keepers' workshop on the shore"></div><p class="ws-lead">Every finished run turns its score into ${MT.currency}: 1 for every ${E.SALVAGE_PER_SCORE} points. ${MT.item} you buy is yours for good, whoever goes down. You wear one piece in each place: choose a place to see what fits there.</p>
       <div class="ws-bal"><span class="chip">${ICON.salvage}<b>${meta.salvage}</b> ${MT.currency}</span></div>${kitDoll('workshop')}${lanternPanel()}`;
     openOverlay(modal(`The ${MT.shop}`, body, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'), { focus });
     requestAnimationFrame(drawDollLines);
@@ -1939,16 +1942,22 @@
     openOverlay(modal('The Lazaret', body + rest, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
 
-  /* Wren's outfits, each a picture of her wearing it: the look is the choice (until v0.60.0 it was a drop-down of
-     names). The row wraps on a wide screen and scrolls sideways on a phone. */
+  /* The chosen keeper's outfits, each a picture of them wearing it: the look is the choice (until v0.60.0 it was a
+     drop-down of names). The row wraps on a wide screen and scrolls sideways on a phone. With a dress packed, a last
+     tile shows the keeper as they go under the sea: the dress is carried until then, and it covers any outfit. A keeper
+     with no outfits to choose from has the row only for that tile, beside their shore picture. */
   function outfitPicker() {
-    const current = E.outfitId(meta);
-    const opts = E.unlockedOutfits(meta).map((id) => {
-      const O = BL.OUTFITS[id], on = id === current;
-      return `<button class="outfit-opt" data-act="outfit" data-o="${id}" aria-pressed="${on}"><img src="img/units/${O.art}.webp" alt=""><b>${O.name}</b><span class="opt-state">${on ? 'Worn' : 'Wear'}</span></button>`;
-    }).join('');
-    return `<section class="outfit-pick" aria-label="Wren’s outfit"><h3 class="ws-place">Wren’s outfit <small>${levelKnown(2) ? 'Cosmetic. The Belfry shows your diving dress.' : 'Cosmetic.'}</small></h3>
-      <div class="outfit-strip">${opts}</div></section>`;
+    const id = E.keeperId(meta), K = E.keeper(meta), current = E.outfitId(meta), mine = E.unlockedOutfits(meta, id);
+    const dress = E.wears({ kit: meta.kit }, 'suit');
+    if (!mine.length && !dress) return '';
+    const opts = mine.map((o) => {
+      const O = BL.OUTFITS[o], on = o === current;
+      return `<button class="outfit-opt" data-act="outfit" data-o="${o}" aria-pressed="${on}"><img src="img/units/${O.art}.webp" alt=""><b>${O.name}</b><span class="opt-state">${on ? 'Worn' : 'Wear'}</span></button>`;
+    }).join('') || `<div class="outfit-tile"><img src="img/units/${K.looks.shore}.webp" alt=""><b>${K.name}</b><span class="opt-state">On shore</span></div>`;
+    const dive = dress ? `<div class="outfit-tile outfit-dive"><img src="img/units/${E.keeperArt(meta, { under: true })}.webp" alt="${K.name} in a diving dress"><b>Diving dress</b><span class="opt-state">In ${levelName(E.LEVELS.findIndex((L) => L.needs === 'suit'))}</span></div>` : '';
+    const note = mine.length ? `Cosmetic. ${MT.item} shows in its slots, not in the picture.` : `${MT.item} shows in its slots, not in the picture.`;
+    return `<section class="outfit-pick" aria-label="${K.name}’s outfit"><h3 class="ws-place">${K.name}’s ${mine.length ? 'outfit' : 'look'} <small>${note}</small></h3>
+      <div class="outfit-strip${mine.length + (dive ? 1 : 0) > 6 ? ' many' : ''}">${opts}${dive}</div></section>`;
   }
   /* Bring the worn outfit into view when its row scrolls sideways. */
   function showWornOutfit() {
@@ -1971,18 +1980,17 @@
       }).join('')}</div>` : '';
     const parts = [MT.item.toLowerCase(), keeps ? 'keepsakes' : '', curs ? 'currents' : ''].filter(Boolean);
     const keepers = Object.entries(BL.KEEPERS).filter(([id]) => E.keeperOpen(meta, id));
-    // Wren's card shows her in the outfit she has on
-    const face = (id, K) => (id === 'wren' ? BL.OUTFITS[E.outfitId(meta)].art : K.portrait);
+    // each keeper's card shows them in the outfit they have on
+    const face = (id) => E.keeperArt({ keeper: id, outfits: meta.outfits });
     const choice = keepers.length > 1 ? `<section class="keeper-pick" aria-label="Choose a keeper"><h3 class="ws-place">Keeper</h3><div class="keeper-options">${keepers.map(([id, K]) => {
       const on = id === E.keeperId(meta);
-      return `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${on}"><img src="img/units/${face(id, K)}.webp" alt=""><b>${K.name}</b><span class="opt-state">${on ? 'Chosen' : 'Choose'}</span><small><strong>${K.skill}.</strong> ${K.desc}</small></button>`;
+      return `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${on}"><img src="img/units/${face(id)}.webp" alt=""><b>${K.name}</b><span class="opt-state">${on ? 'Chosen' : 'Choose'}</span><small><strong>${K.skill}.</strong> ${K.desc}</small></button>`;
     }).join('')}</div></section>` : '';
-    const outfit = E.keeperId(meta) === 'wren' ? outfitPicker() : '';
-    const current = BL.OUTFITS[E.outfitId(meta)];
+    const outfit = outfitPicker();
     const kit = meta.owned.length || keeps || curs
       ? `<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
         <h3 class="ws-place">${MT.item} <small>One piece in each place.</small></h3>${kitDoll('pack')}`
-      : `<div class="outfit-preview"><img src="img/units/${current.art}.webp" alt="Wren in ${current.name}"></div>`;
+      : `<div class="outfit-preview"><img src="img/units/${E.keeperArt(meta)}.webp" alt="${keeperAlt(meta)}"></div>`;
     // with kit to choose, her outfits stand above it; before that her picture comes first
     const first = !(meta.owned.length || keeps || curs);
     const body = first ? `${choice}<div class="pack-look">${kit}${outfit}</div>` : `${choice}${outfit}${kit}${keeps}${curs}`;
@@ -2011,7 +2019,7 @@
     const items = ordered.map((id) => {
       const outfit = id.startsWith('outfit:') ? BL.OUTFITS[id.slice('outfit:'.length)] : null;
       const [art, name, text, where] = outfit
-        ? [`<img class="outfit-news-art" src="img/units/${outfit.art}.webp" alt="">`, `${outfit.name} unlocked`, outfit.home, 'Pack &rarr; Wren’s outfit']
+        ? [`<img class="outfit-news-art" src="img/units/${outfit.art}.webp" alt="">`, `${outfit.name} unlocked`, outfit.home, `Pack &rarr; ${BL.KEEPERS[outfit.keeper].name}’s outfit`]
         : NEWS[id]();
       return `<li class="news-item">${art}<div><b>${name}</b><p>${text}</p><small>${where}</small></div></li>`;
     }).join('');
@@ -2196,7 +2204,7 @@
     ui.combatRef = c;
     ui.sel = null; ui.target = null; ui.hover = null; ui.tonicSel = null; ui.bashAim = false;
     const keeper = E.keeper(run);
-    const look = E.keeperArt(run.tutorial ? null : run.kit, E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial, E.keeperId(run), true, E.outfitId(run));
+    const look = E.keeperArt(run, { under: E.LEVELS[run.level || 0].needs === 'suit' && !run.tutorial, combat: true });
     $('#pz').innerHTML = `<div class="unit player" data-uid="p" data-tip="unit:p">
         <div class="sprite"><img src="img/units/${look}.webp" alt="${keeper.title}"></div>
         <div class="info"><div class="incoming" data-tip="incoming"></div><div class="uname">${keeper.title}</div><div class="hpbar"></div><div class="statuses"></div></div></div>`;
@@ -4076,7 +4084,7 @@
         if (meta.salvage < g.price) { toast(`Not enough ${MT.currency}`); break; }
         { const sc = $('.modal-body', overlayEl); ui.kitScroll = sc ? sc.scrollTop : 0; }
         openOverlay(modal(`Buy ${g.name} for ${g.price} ${MT.currency}?`,
-          `<div class="buy-item">${gearArt(g)}<div><b>${g.name}</b><p>${g.desc}</p></div></div><p class="buy-left">You have ${meta.salvage} ${MT.currency}; ${meta.salvage - g.price} left after this.</p>`,
+          `<div class="buy-item">${gearArt(g)}<div><b>${g.name}</b><p>${kitDesc(id)}</p></div></div><p class="buy-left">You have ${meta.salvage} ${MT.currency}; ${meta.salvage - g.price} left after this.</p>`,
           `<button class="btn" data-act="kitback" data-g="${id}">Back</button><button class="btn primary" data-act="kitbuyconfirm" data-g="${id}" autofocus>Buy</button>`, 'narrow'));
         break;
       }

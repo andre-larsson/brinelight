@@ -5,8 +5,14 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.60.0';
+  BL.VERSION = '0.61.0';
   BL.CHANGELOG = [
+    { v: '0.61.0', date: '2026-11-23', items: [
+      'Kit now shows as icons in its slots and no longer changes a keeper’s picture. The picture shows who you play and the outfit you chose, the same in the Workshop, in Pack and in a fight. The Cork Vest and the Shell Gorget are no longer painted on Wren. They work as before.',
+      'A diving dress is carried until the Belfry. Above water you fight in your outfit, and under the sea every keeper wears their diving dress. With a dress packed, Pack shows that picture beside the outfits.',
+      'The Harpoon place is now the Weapon place, and its three pieces are fittings that go on any keeper’s weapon: the Honed Harpoon is now the Lead Collar, the Barbed Harpoon the Brined Lashing and the Toggle Iron the Sponge Wrap. They do what they did before, and what you own is still yours. As Mateo, their text speaks of his mallet and his Mallet Strike.',
+      'Fixed: as Mateo, the Workshop and the fight tooltip spoke of Wren.',
+    ] },
     { v: '0.60.0', date: '2026-11-23', items: [
       'Pack shows Wren’s outfits as pictures of her wearing each one. Before, you chose from a list of names.',
       'The keeper you chose in Pack is marked more clearly, and Wren’s card shows the outfit she has on.',

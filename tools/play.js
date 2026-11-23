@@ -106,7 +106,7 @@ function fxLines(run) {
       case 'swellact': lines.push(`You ${f.kind === 'bail' ? 'Bail (Ebb 1)' : 'Stir (Surge 1)'} for 1 Light.`); break;
       case 'tide': tide += f.d; lines.push(`Swell ${f.d > 0 ? '+' : ''}${f.d}${f.undertow ? ' (the undertow)' : ''}.`); break;
       case 'light': lines.push(`+${f.n} Light.`); break;
-      case 'kit': { const id = E.kitIds(run).find((x) => BL.KIT[x].place === f.k) || (f.k === 'bell' ? E.bell(run) : null); if (id && BL.KIT[id]) lines.push(`(Your ${BL.KIT[id].name} acts${f.k === 'bell' ? `: ${strip(BL.KIT[id].desc).replace(/\.$/, '')}` : ''}.)`); break; }
+      case 'kit': { const id = E.kitIds(run).find((x) => BL.KIT[x].place === f.k) || (f.k === 'bell' ? E.bell(run) : null); if (id && BL.KIT[id]) lines.push(`(Your ${BL.KIT[id].name} acts${f.k === 'bell' ? `: ${strip(E.kitDesc(id, run)).replace(/\.$/, '')}` : ''}.)`); break; }
       case 'roil': lines.push(`The aether is Roiled: ${[f.seep && `${f.seep} Seep in your deck`, f.thrash && `Thrash ${f.thrash}`, f.minnows && `${f.minnows} Bell Minnows`].filter(Boolean).join(', ')}.`); break;
       default: break;
     }
@@ -365,7 +365,7 @@ function info(run, q) {
   Object.keys(BL.TONICS).forEach((id) => { if (hit(BL.TONICS[id])) found.push(`Tonic: ${BL.TONICS[id].name}: ${strip(BL.TONICS[id].desc)}`); });
   Object.keys(BL.STATUSES).forEach((id) => { const st = BL.STATUSES[id]; if (hit(st) && st.kind !== 'rite') found.push(`Status: ${st.name}: ${strip(st.desc('N'))}`); });
   Object.keys(BL.KEYWORDS).forEach((w) => { if (w.toLowerCase() === k) found.push(`${w}: ${strip(BL.KEYWORDS[w])}`); });
-  Object.keys(BL.KIT).forEach((id) => { if (hit(BL.KIT[id])) found.push(`Kit: ${BL.KIT[id].name}: ${strip(BL.KIT[id].desc)}`); });
+  Object.keys(BL.KIT).forEach((id) => { if (hit(BL.KIT[id])) found.push(`Kit: ${BL.KIT[id].name}: ${strip(E.kitDesc(id, run))}`); });
   const c = run && run.combat;
   if (run && !(c && E.alive(c).some((e) => e.name.toLowerCase() === k))) {
     if (bossName(run).toLowerCase().replace(/^the /, '') === k) found.push(`${bossName(run)}: the boss on this level's last landing. You learn its moves in the fight.`);

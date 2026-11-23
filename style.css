@@ -1229,16 +1229,21 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 .keeper-option img { grid-row: span 2; align-self: center; width: 56px; height: 84px; object-fit: contain; object-position: 50% 100%; }
 .keeper-option b { color: #f3dfb2; font: 700 18px var(--serif); }
 .keeper-option small { grid-column: 2 / span 2; align-self: start; color: #d6e3e0; font-size: 14px; line-height: 1.35; }
-.keeper-option .opt-state, .outfit-opt .opt-state { font-size: 13px; font-weight: 700; color: var(--muted); }
+.keeper-option .opt-state, .outfit-opt .opt-state, .outfit-tile .opt-state { font-size: 13px; font-weight: 700; color: var(--muted); }
 .keeper-option:hover, .outfit-opt:hover { border-color: rgba(255, 184, 77, .7); }
 .keeper-option[aria-pressed="true"], .outfit-opt[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber), 0 0 16px rgba(255, 184, 77, .35); background: #10293a; }
 .keeper-option[aria-pressed="true"] .opt-state, .outfit-opt[aria-pressed="true"] .opt-state { color: var(--amber); }
 /* the padding leaves room for the chosen picture's ring inside the scrolling row */
 .outfit-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px; padding: 4px; }
-.outfit-opt { flex: 0 0 108px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 6px 8px; text-align: center; color: var(--text); background: rgba(6, 20, 30, .88); border: 1px solid rgba(201, 162, 74, .35); border-radius: 12px; cursor: pointer; }
-.outfit-opt img { width: 72px; height: 108px; object-fit: contain; object-position: 50% 100%; pointer-events: none; }
-.outfit-opt b { margin-top: 2px; font-size: 14px; line-height: 1.25; color: #f3dfb2; }
-.outfit-opt .opt-state { margin-top: auto; }
+.outfit-opt, .outfit-tile { flex: 0 0 108px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 6px 8px; text-align: center; color: var(--text); background: rgba(6, 20, 30, .88); border: 1px solid rgba(201, 162, 74, .35); border-radius: 12px; cursor: pointer; }
+.outfit-opt img, .outfit-tile img { width: 72px; height: 108px; object-fit: contain; object-position: 50% 100%; pointer-events: none; }
+.outfit-opt b, .outfit-tile b { margin-top: 2px; font-size: 14px; line-height: 1.25; color: #f3dfb2; }
+.outfit-opt .opt-state, .outfit-tile .opt-state { margin-top: auto; }
+/* not a choice: the keeper as they go under the sea (with a dress packed), or a keeper with no outfits to choose */
+.outfit-tile { border-style: dashed; background: rgba(6, 20, 30, .5); }
+.outfit-tile .opt-state { color: #9fc4c6; }
+/* seven (six outfits and the diving tile) still stand in one row of the wide window; the longest name keeps one tile wider */
+@media (min-width: 601px) { .outfit-strip.many > * { flex-basis: 92px; } }
 /* before there is kit to choose, Pack is only her picture and her outfits: one centred column */
 .pack-first { width: min(540px, 100%); }
 .pack-first .outfit-pick { margin-bottom: 4px; }
@@ -1250,19 +1255,19 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
   /* one row that scrolls sideways: the cut-off picture at the edge says there are more */
   .outfit-strip { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding: 0 4px; scrollbar-width: none; }
   .outfit-strip::-webkit-scrollbar { display: none; }
-  .outfit-opt { flex-basis: 100px; scroll-snap-align: start; }
+  .outfit-opt, .outfit-tile { flex-basis: 100px; scroll-snap-align: start; }
   /* centred with margins, not justify-content, so a row too long for the screen still scrolls from its start */
   .pack-first .outfit-strip { justify-content: flex-start; }
-  .pack-first .outfit-opt:first-child { margin-left: auto; }
-  .pack-first .outfit-opt:last-child { margin-right: auto; }
-  .outfit-opt img { width: 60px; height: 90px; }
+  .pack-first .outfit-opt:first-child, .pack-first .outfit-tile:first-child { margin-left: auto; }
+  .pack-first .outfit-opt:last-child, .pack-first .outfit-tile:last-child { margin-right: auto; }
+  .outfit-opt img, .outfit-tile img { width: 60px; height: 90px; }
 }
 /* a phone on its side: her picture beside her outfits, so the choice needs no scrolling */
 @media (max-height: 480px) and (orientation: landscape) {
   .pack-look { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 16px; }
   .pack-first .outfit-preview, .pack-first .outfit-pick { margin-bottom: 0; }
   .pack-first .outfit-preview img { height: clamp(145px, 46dvh, 200px); }
-  .outfit-opt img { width: 60px; height: 90px; }
+  .outfit-opt img, .outfit-tile img { width: 60px; height: 90px; }
 }
 @media (max-width: 480px) {
   .keeper-options { grid-template-columns: 1fr; gap: 8px; }

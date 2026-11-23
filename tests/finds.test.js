@@ -208,12 +208,12 @@ test('Heart Cinder: 1 more Light on the 1st, 3rd, 5th... turn of each fight', ()
 });
 
 /* ---------- The new kit ---------- */
-test('kit places: the Toggle Iron, the Harbour Bell, the Plated Dress, the Bailer and the Safety Line', () => {
+test('kit places: the Sponge Wrap, the Harbour Bell, the Plated Dress, the Bailer and the Safety Line', () => {
   assert.deepEqual(['toggle', 'harbourbell', 'plated', 'bailer', 'line'].map((id) => BL.KIT[id].place), ['harpoon', 'bell', 'coat', 'ditty', 'ditty']);
   assert.deepEqual(['toggle', 'harbourbell', 'plated', 'bailer', 'line'].map((id) => BL.KIT[id].unlock), ['stillwater', 'outofbell', 'heartlight', 'bothends', 'closecall']);
 });
 
-test('Toggle Iron: your first Harpoon Jab of a fight applies 2 Soaked', () => {
+test('Sponge Wrap: your first Harpoon Jab of a fight applies 2 Soaked', () => {
   const { run, c } = fight(['kelp'], { kit: ['toggle'], hand: ['jab', 'jab'] });
   const k = c.enemies[0];
   play(run, 'jab', k);

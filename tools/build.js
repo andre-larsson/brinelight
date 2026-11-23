@@ -31,23 +31,18 @@ global.BL = undefined;
 require(path.join(out, 'js/data.js'));
 const BL = globalThis.BL;
 Object.values(BL.CARDS).forEach((c) => check(`img/cards/${c.art}.webp`, 'card ' + c.id));
+// a keeper's own pictures (shore, fighting stance, dive) and their starter attack's
 Object.values(BL.KEEPERS).forEach((k) => {
-  [k.portrait, k.guard, k.suit].filter(Boolean).forEach((art) => check(`img/units/${art}.webp`, k.name));
-  if (k.strikeArt) check(`img/cards/${k.strikeArt}.webp`, k.name + "'s starter attack");
+  Object.values(k.looks).forEach((art) => check(`img/units/${art}.webp`, k.name));
+  if (k.weapon.art) check(`img/cards/${k.weapon.art}.webp`, k.name + "'s starter attack");
 });
-Object.values(BL.OUTFITS).forEach((o) => check(`img/units/${o.art}.webp`, 'outfit ' + o.name));
+Object.values(BL.OUTFITS).forEach((o) => [o.art, o.fight].filter(Boolean).forEach((art) => check(`img/units/${art}.webp`, 'outfit ' + o.name)));
 Object.values(BL.ENEMIES).forEach((e) => check(`img/units/${e.art}.webp`, 'enemy ' + e.name));
 Object.values(BL.KEEPSAKES).forEach((k) => check(`img/icons/${k.art}.webp`, 'keepsake ' + k.name));
 Object.values(BL.TONICS).forEach((t) => check(`img/icons/${t.art}.webp`, 'tonic ' + t.name));
 BL.EVENTS.forEach((e) => check(`img/scenes/${e.art}.webp`, 'event ' + e.id));
-// Wren's picture for each rig
-Object.values(BL.KIT).forEach((k) => {
-  check(`img/icons/${k.art}.webp`, 'kit ' + k.name);
-  if (k.look) check(`img/units/${k.look}.webp`, 'kit ' + k.name);
-});
-// and for each piece worn over an outfit, its picture over each of Wren's outfits
-Object.entries(BL.KIT).filter(([, k]) => k.overOutfit).forEach(([id, k]) => Object.values(BL.OUTFITS).filter((o) => o.art !== 'keeper')
-  .forEach((o) => check(`img/units/${o.art}_${id}.webp`, `kit ${k.name} over ${o.name}`)));
+// kit shows as its icon only
+Object.values(BL.KIT).forEach((k) => check(`img/icons/${k.art}.webp`, 'kit ' + k.name));
 Object.values(BL.BANDS).forEach((b) => [b.bg, b.bossBg].forEach((bg) => check(`img/bg/${bg}.webp`, 'band ' + b.name)));
 Object.values(BL.BANDS).forEach((b) => b.stairArt && check(`img/scenes/${b.stairArt}.webp`, 'stair into ' + b.name));
 // Story so far and the opening name their pictures by path under img/

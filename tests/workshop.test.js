@@ -32,7 +32,7 @@ test('a finished run earns 1 Salvage per 50 score, rounded down', () => {
 /* ---------- Kit: places, buying, wearing ---------- */
 test('kit goes in five places, one piece each; the Bell always holds a bell, the Brass Tide-Bell to start', () => {
   assert.deepEqual(E.KIT_PLACES, ['harpoon', 'bell', 'coat', 'pocket', 'ditty']);
-  assert.deepEqual(BL.KIT_PLACES.map((p) => p.name), ['Harpoon', 'Bell', 'Rig', 'Pocket', 'Ditty Bag']);
+  assert.deepEqual(BL.KIT_PLACES.map((p) => p.name), ['Weapon', 'Bell', 'Rig', 'Pocket', 'Ditty Bag']);
   Object.keys(BL.KIT).forEach((id) => assert.ok(E.KIT_PLACES.includes(BL.KIT[id].place), id));
   assert.deepEqual(E.fitKit(), { harpoon: null, bell: 'tidebell', coat: null, pocket: null, ditty: null });
   // a list puts each piece in its own place; a later piece replaces an earlier one in the same place
@@ -46,54 +46,109 @@ test('kit goes in five places, one piece each; the Bell always holds a bell, the
   assert.deepEqual(E.kitIds(run), ['tidebell']);
 });
 
-test("Wren's picture follows her rig, and every place has a slot on the kit screens", () => {
+test("a keeper's picture shows who they are and what they wear, and kit never changes it", () => {
   const fs = require('fs'), path = require('path');
-  // nothing over the oilskin: plain Wren on shore, the plain diving dress underwater
-  assert.equal(E.keeperArt(E.fitKit()), 'keeper');
-  assert.equal(E.keeperArt(null), 'keeper');
-  assert.equal(E.keeperArt(E.fitKit(), true), 'keeper_suit');
-  assert.equal(E.keeperArt(E.fitKit(['cork'])), 'keeper_cork');
-  assert.equal(E.keeperArt(E.fitKit(['gorget'])), 'keeper_gorget');
-  // a dress is worn on every level, the same as on the kit screens (v0.26.1; carried rolled up until the Belfry before)
-  assert.equal(E.keeperArt(E.fitKit(['suit'])), 'keeper_suit');
-  assert.equal(E.keeperArt(E.fitKit(['suit']), true), 'keeper_suit');
-  assert.equal(E.keeperArt(E.fitKit(['plated'])), 'keeper_plated');
-  assert.equal(E.keeperArt(E.fitKit(['plated']), true), 'keeper_plated');
-  // an outfit replaces her picture above water, but the Cork Vest and Shell Gorget are drawn over it (v0.59.0)
-  assert.equal(E.keeperArt(E.fitKit(), false, 'wren', false, 'harbour'), 'wren_harbour');
-  assert.equal(E.keeperArt(E.fitKit(['cork']), false, 'wren', true, 'harbour'), 'wren_harbour_cork');
-  assert.equal(E.keeperArt(E.fitKit(['gorget']), false, 'wren', false, 'gala'), 'wren_gala_gorget');
-  assert.equal(E.keeperArt(E.fitKit(['cork']), false, 'wren', false, 'ochre'), 'keeper_cork');
-  assert.equal(E.keeperArt(E.fitKit(['suit']), false, 'wren', false, 'shells'), 'wren_shells', 'a dress replaces the outfit only in the Belfry');
-  assert.equal(E.keeperArt(E.fitKit(['cork']), true, 'wren', true, 'shells'), 'keeper_suit');
-  assert.equal(E.keeperArt(E.fitKit(['plated']), true, 'wren', true, 'gala'), 'keeper_plated');
-  assert.equal(E.keeperArt(E.fitKit(['cork']), false, 'mateo', true, 'harbour'), BL.KEEPERS.mateo.guard);
-  const overOutfit = Object.keys(BL.KIT).filter((id) => BL.KIT[id].overOutfit);
-  assert.deepEqual(overOutfit, ['cork', 'gorget']);
-  overOutfit.forEach((id) => assert.ok(BL.KIT[id].place === 'coat' && BL.KIT[id].look && BL.KIT[id].as !== 'suit', id + ' is a Rig piece with its own picture, not a dress'));
-  Object.keys(BL.OUTFITS).filter((o) => o !== 'ochre').forEach((o) => overOutfit.forEach((id) => {
-    const art = E.keeperArt(E.fitKit([id]), false, 'wren', false, o);
-    assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/units', art + '.webp')), `img/units/${art}.webp is missing`);
-  }));
-  // the kit screens use the shared art lookup for the keeper, rig and outfit
-  const ui = fs.readFileSync(path.join(__dirname, '..', 'js/ui.js'), 'utf8');
-  assert.match(ui, /E\.keeperArt\(meta\.kit, false, keeperId, false, outfit\)/);
-  // every rig piece has its own picture on the kit screens
+  const pic = (a) => fs.existsSync(path.join(__dirname, '..', 'img/units', a + '.webp'));
   const rigs = Object.keys(BL.KIT).filter((id) => BL.KIT[id].place === 'coat');
-  const looks = rigs.map((id) => E.keeperArt(E.fitKit([id])));
-  assert.equal(new Set(looks.concat('keeper')).size, rigs.length + 1, 'two rig pieces share a picture: ' + looks.join());
-  // a corrected slot point is for a picture the kit screens show
-  const kitLooks = looks.concat(E.keeperArt(E.fitKit(), false, 'mateo'), E.keeperArt(E.fitKit(['suit']), false, 'mateo'));
-  Object.keys(BL.WREN_POINTS).forEach((a) => assert.ok(kitLooks.includes(a), a + ' is never on a kit screen'));
-  // only a dress opens the Belfry, so every rig that does has its own picture there
-  Object.keys(BL.KIT).filter((id) => id === 'suit' || BL.KIT[id].as === 'suit').forEach((id) => assert.equal(E.keeperArt(E.fitKit([id]), true), BL.KIT[id].look, id + ' has no Belfry picture'));
-  Object.keys(BL.KIT).forEach((id) => [BL.KIT[id].look].filter(Boolean).forEach((a) => assert.ok(fs.existsSync(path.join(__dirname, '..', 'img/units', a + '.webp')), `${id}: img/units/${a}.webp is missing`)));
-  // each place says which side of Wren its slot is on and where its line points
+  assert.deepEqual(rigs, ['cork', 'gorget', 'suit', 'plated']);
+  // every keeper has a shore picture and a dive picture of their own, and says what they carry
+  Object.entries(BL.KEEPERS).forEach(([k, K]) => {
+    assert.ok(K.looks.shore && K.looks.dive, k);
+    Object.values(K.looks).forEach((a) => assert.ok(pic(a), `${k}: img/units/${a}.webp is missing`));
+    assert.ok(K.weapon.name && K.weapon.strike, k + ' names their weapon and their starter attack');
+  });
+  // every outfit belongs to a keeper and has a picture
+  Object.entries(BL.OUTFITS).forEach(([o, O]) => {
+    assert.ok(Object.hasOwn(BL.KEEPERS, O.keeper), o);
+    [O.art, O.fight].filter(Boolean).forEach((a) => assert.ok(pic(a), `${o}: img/units/${a}.webp is missing`));
+  });
+  assert.deepEqual(E.outfitsOf('wren'), ['ochre', 'harbour', 'lamplighter', 'shells', 'gala', 'longjohns']);
+  assert.deepEqual(E.outfitsOf('mateo'), []);
+  assert.equal(BL.OUTFITS.ochre.art, BL.KEEPERS.wren.looks.shore, "Wren's first outfit is her shore picture");
+  // on land: the outfit; a fighting stance in a fight if there is one. Under the sea: the dive picture
+  assert.equal(E.keeperArt(null), 'keeper');
+  assert.equal(E.keeperArt({}), 'keeper');
+  assert.equal(E.keeperArt({ outfit: 'harbour' }, { combat: true }), 'wren_harbour');
+  assert.equal(E.keeperArt({ keeper: 'wren', outfits: { wren: 'gala' } }), 'wren_gala');
+  assert.equal(E.keeperArt({ outfit: 'gala' }, { under: true, combat: true }), 'keeper_suit');
+  assert.equal(E.keeperArt({ keeper: 'mateo' }), 'mateo');
+  assert.equal(E.keeperArt({ keeper: 'mateo' }, { combat: true }), 'mateo_guard');
+  assert.equal(E.keeperArt({ keeper: 'mateo', outfit: 'gala' }, { combat: true }), 'mateo_guard', "another keeper's outfit is not his");
+  assert.equal(E.keeperArt({ keeper: 'mateo' }, { under: true, combat: true }), 'mateo_suit');
+  // no piece of kit changes any of them: with or without a Rig piece or a dress, in every outfit, for every keeper
+  Object.keys(BL.KEEPERS).forEach((keeper) => [null].concat(E.outfitsOf(keeper)).forEach((outfit) => {
+    [{}, { combat: true }, { under: true }, { under: true, combat: true }].forEach((opts) => {
+      const bare = E.keeperArt({ keeper, outfit, kit: E.fitKit() }, opts);
+      Object.keys(BL.KIT).forEach((id) => assert.equal(E.keeperArt({ keeper, outfit, kit: E.fitKit([id]) }, opts), bare, `${id} changes ${keeper}'s picture`));
+      // a dress shows only under the sea
+      assert.equal(bare === BL.KEEPERS[keeper].looks.dive, !!opts.under, `${keeper} in ${outfit}`);
+    });
+  }));
+  Object.keys(BL.KIT).forEach((id) => assert.ok(!('look' in BL.KIT[id]) && !('overOutfit' in BL.KIT[id]), id + ' has no picture of a keeper'));
+  // the kit screens and the fight use the one lookup
+  const ui = fs.readFileSync(path.join(__dirname, '..', 'js/ui.js'), 'utf8');
+  assert.match(ui, /const look = E\.keeperArt\(meta\), alt = keeperAlt\(meta\);/);
+  assert.match(ui, /const look = E\.keeperArt\(run, \{ under: .*, combat: true \}\);/);
+  assert.equal((ui.match(/E\.keeperArt\(/g) || []).length, 5, 'a new use of E.keeperArt: check that it passes no kit');
+  // each place says which side of the keeper its slot is on and where its line points
   BL.KIT_PLACES.forEach((pl) => {
     assert.ok(pl.side === 'left' || pl.side === 'right', pl.id);
     assert.ok(pl.at.length === 2 && pl.at.every((v) => v >= 0 && v <= 1), pl.id);
     assert.ok(pl.id === 'bell' || pl.none, pl.id + ' names its empty slot');
   });
+  // a keeper who stands another way moves the points, for places that exist
+  Object.entries(BL.KEEPERS).forEach(([k, K]) => Object.entries(K.points || {}).forEach(([place, at]) => {
+    assert.ok(E.KIT_PLACES.includes(place), `${k}: ${place}`);
+    assert.ok(at.length === 2 && at.every((v) => v >= 0 && v <= 1), `${k}: ${place}`);
+  }));
+});
+
+test('kit and place text is in the words of the keeper who carries it', () => {
+  const wren = { keeper: 'wren' }, mateo = { keeper: 'mateo' };
+  assert.equal(BL.KEEPERS.wren.weapon.strike, BL.CARDS.jab.name);
+  assert.equal(E.kitDesc('honed', wren), 'A lead weight for your harpoon. Your first Harpoon Jab in each fight deals 2 more damage.');
+  assert.equal(E.kitDesc('honed', mateo), 'A lead weight for your mallet. Your first Mallet Strike in each fight deals 2 more damage.');
+  assert.equal(E.kitDesc('barbed', mateo), 'Brine-soaked cord for your mallet. Your first Mallet Strike in each fight applies 1 Brine.');
+  assert.equal(E.kitDesc('toggle', null), 'A wet sea sponge bound to your harpoon. Your first Harpoon Jab in each fight applies 2 Soaked.');
+  const weapon = BL.KIT_PLACES.find((pl) => pl.id === 'harpoon');
+  assert.equal(E.kitText(weapon.none, wren), 'Plain harpoon');
+  assert.equal(E.kitText(weapon.none, mateo), 'Plain mallet');
+  assert.equal(E.kitText(weapon.desc, mateo), 'A fitting for your mallet. It changes your first Mallet Strike in each fight.');
+  assert.equal(E.kitText('{Weapon}', mateo), 'Mallet');
+  // the starter attack carries the keeper's name for it, so the kit text and the card agree
+  Object.keys(BL.KEEPERS).forEach((keeper) => assert.equal(E.cardName({ id: 'jab', up: 0 }, { keeper }), BL.KEEPERS[keeper].weapon.strike));
+  assert.equal(E.cardName({ id: 'jab', up: 1 }, wren), 'Harpoon Jab+');
+  assert.equal(E.cardName({ id: 'jab', up: 2 }, wren), BL.CARDS.jab.refit.name);
+  assert.equal(E.cardName({ id: 'swell', up: 0 }, mateo), BL.CARDS.swell.name);
+  // every text resolves for every keeper, and nothing names one keeper's weapon or attack outright
+  const raw = Object.values(BL.KIT).map((g) => g.name + '. ' + g.desc).concat(BL.KIT_PLACES.map((pl) => [pl.name, pl.desc, pl.none || ''].join('. ')));
+  raw.forEach((t) => Object.values(BL.KEEPERS).forEach((K) => [K.weapon.name, K.weapon.strike].forEach((w) => assert.ok(!new RegExp('\\b' + w + '\\b', 'i').test(t), `"${w}" is written out in: ${t}`))));
+  Object.keys(BL.KEEPERS).forEach((keeper) => raw.forEach((t) => assert.ok(!/[{}]/.test(E.kitText(t, { keeper })), 'an unknown word in: ' + t)));
+});
+
+test('a new outfit needs only a line of data: a keeper keeps their own choice, and it shows wherever they do', () => {
+  BL.OUTFITS.apron = { keeper: 'mateo', name: 'Cooper’s Apron', art: 'mateo_apron', fight: 'mateo_apron_guard' };
+  try {
+    const meta = metaWith({ record: { runs: 3, wins: 2, hearts: 1, quiets: 0 }, keepers: ['mateo'] });
+    assert.deepEqual(E.outfitsOf('mateo'), ['apron']);
+    assert.deepEqual(E.unlockedOutfits(meta, 'mateo'), ['apron']);
+    assert.ok(E.equipOutfit(meta, 'gala'));
+    assert.equal(E.equipOutfit(meta, 'apron'), false, 'Wren cannot wear his');
+    meta.keeper = 'mateo';
+    assert.equal(E.equipOutfit(meta, 'gala'), false, 'and he cannot wear hers');
+    assert.ok(E.equipOutfit(meta, 'apron'));
+    const saved = E.migrateMeta(JSON.parse(JSON.stringify(meta)));
+    assert.deepEqual(saved.outfits, { wren: 'gala', mateo: 'apron' });
+    assert.equal(E.keeperArt(saved), 'mateo_apron');
+    assert.equal(E.keeperArt(saved, { combat: true }), 'mateo_apron_guard');
+    assert.equal(E.keeperArt(saved, { under: true }), 'mateo_suit');
+    assert.equal(E.keeperArt({ keeper: 'wren', outfits: saved.outfits }), 'wren_gala');
+    const run = E.newRun(4, 0, null, [], [], true, 2, 0, E.keeperProfile(saved));
+    assert.equal(run.keeper, 'mateo');
+    assert.equal(run.outfit, 'apron');
+    assert.equal(E.keeperArt(run, { combat: true }), 'mateo_apron_guard');
+  } finally { delete BL.OUTFITS.apron; }
+  assert.equal(E.keeperArt({ keeper: 'mateo', outfit: 'apron' }), 'mateo');
 });
 
 test('kit costs Salvage, is bought once, and locked kit waits for its achievement', () => {
@@ -204,7 +259,7 @@ test('bells: Brass draws 1 on every Crest and Strand; Flood 1 card and 1 Light o
   assert.equal(c.hand.length, n, 'the first Crest of the new turn draws nothing');
 });
 
-test('harpoons: the Honed Harpoon adds 2 damage to the first Harpoon Jab of each fight; the Barbed Harpoon makes it apply 1 Brine', () => {
+test('weapon fittings: the Lead Collar adds 2 damage to the first Harpoon Jab of each fight; the Brined Lashing makes it apply 1 Brine', () => {
   assert.equal(BL.KIT.honed.dmg, 2);
   assert.equal(BL.KIT.barbed.brine, 1);
   const jabs = (kit, keepsakes) => {

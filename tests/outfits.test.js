@@ -102,23 +102,29 @@ test('past clears qualify and the outfit choice is saved for Wren', () => {
   saved.keepers.push('mateo');
   saved.keeper = 'mateo';
   assert.equal(E.equipOutfit(saved, 'longjohns'), false);
-  assert.equal(E.outfitId(saved), 'gala');
+  assert.equal(E.outfitId(saved), null, 'Mateo has no outfits');
+  assert.equal(E.keeperProfile(saved).outfit, null);
   saved.keeper = 'wren';
+  assert.equal(E.outfitId(saved), 'gala', 'her choice is kept while he goes down');
   const profile = E.keeperProfile(saved);
   assert.equal(E.outfitId(E.newRun(9, 0, null, [], [], true, 2, 0, profile)), 'gala');
+  // a save from before v0.61.0 kept only Wren's, as `outfit`
+  const old = E.migrateMeta({ outfit: 'harbour' });
+  assert.deepEqual(old.outfits, { wren: 'harbour' });
+  assert.ok(!('outfit' in old));
   assert.equal(E.outfitId(E.migrateMeta({ outfit: 'longjohns' })), 'ochre');
+  assert.deepEqual(E.migrateMeta({ outfits: { wren: 'longjohns', mateo: 'gala', toString: 'gala' } }).outfits, {}, 'a locked outfit, another keeper’s and an unknown keeper are dropped');
   assert.equal(E.outfitId({ outfit: 'toString' }), 'ochre');
   assert.equal(E.outfitId({}), 'ochre');
 });
 
-test('above-water outfits change the sprite while the rig and submerged art still apply', () => {
+test('an outfit shows on land with any kit, the dive picture shows under the sea, and the kit still works', () => {
   const profile = { outfit: 'gala' };
   const kit = E.fitKit(['plated']);
-  assert.equal(E.keeperArt(kit, false, 'wren', true, profile.outfit), 'wren_gala');
-  assert.equal(E.keeperArt(kit, true, 'wren', true, profile.outfit), 'keeper_plated');
-  assert.equal(E.keeperArt(E.fitKit(['suit']), true, 'wren', true, profile.outfit), 'keeper_suit');
-  assert.equal(E.keeperArt(E.fitKit(), true, 'wren', true, profile.outfit), 'keeper_suit');
-  assert.equal(E.keeperArt(kit, false, 'mateo', true, profile.outfit), 'mateo_suit');
+  assert.equal(E.keeperArt({ outfit: 'gala', kit }, { combat: true }), 'wren_gala');
+  assert.equal(E.keeperArt({ outfit: 'gala', kit }, { under: true, combat: true }), 'keeper_suit');
+  assert.equal(E.keeperArt({ outfit: 'gala', kit: E.fitKit() }, { under: true, combat: true }), 'keeper_suit');
+  assert.equal(E.keeperArt({ keeper: 'mateo', outfit: 'gala', kit }, { under: true, combat: true }), 'mateo_suit');
   const run = E.newRun(9, 0, kit, [], [], true, 2, 0, profile);
   E.startCombat(run, 'easy', ['kelp']);
   assert.equal(run.kit.coat, 'plated');

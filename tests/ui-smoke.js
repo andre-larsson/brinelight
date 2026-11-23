@@ -410,8 +410,10 @@ async function workshopScenario(page, base, name, size) {
   let m = await stored();
   if (m.owned.join() !== 'purse,cork,floodbell' || m.salvage !== 60 - 12 - 20) failures.push(`${name}: after buying, stored ${JSON.stringify(m)}`);
   if (!m.kit || m.kit.pocket !== 'purse' || m.kit.coat !== 'cork' || m.kit.bell !== 'tidebell') failures.push(`${name}: the old pack or the new Cork Vest isn't worn: ${JSON.stringify(m.kit)}`);
-  // Wren is shown in the coat she wears, and on a wide screen each slot has a line to her
-  if (!/keeper_cork\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: Wren isn't shown in the Cork Vest`);
+  // kit shows in its slot and never changes her picture (v0.61.0), and on a wide screen each slot has a line to her
+  if (!/\/keeper\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: the Cork Vest changed Wren's picture`);
+  if (!/g_cork\.webp/.test(await page.eval(`document.querySelector('#overlay .kit-slot[data-place="coat"] img')?.src || ''`))) failures.push(`${name}: the Rig slot doesn't show the Cork Vest`);
+  if ((await page.eval(`document.querySelector('#overlay .kit-slot[data-place="harpoon"] .ks-txt').textContent`)) !== 'WeaponPlain harpoon') failures.push(`${name}: Wren's empty Weapon slot should read Plain harpoon`);
   await sleep(150);
   const lines = await page.eval(`document.querySelectorAll('#overlay .doll-lines g').length`);
   if (size.w > 600 ? lines !== 5 : lines !== 0) failures.push(`${name}: ${lines} lines from the slots to Wren`);
@@ -425,7 +427,7 @@ async function workshopScenario(page, base, name, size) {
   await clickIf(page, '#overlay [data-act="kitwear"][data-g="floodbell"]');
   await slot('coat');
   await clickIf(page, '#overlay [data-act="kitwear"][data-g="cork"]');
-  if (!/keeper\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: Wren still wears the Cork Vest after taking it off`);
+  if (await page.eval(`!!document.querySelector('#overlay .kit-slot[data-place="coat"] img')`)) failures.push(`${name}: the Rig slot still shows the Cork Vest after taking it off`);
   m = await stored();
   if (m.kit.bell !== 'floodbell' || m.kit.coat !== null) failures.push(`${name}: wearing kit didn't stick: ${JSON.stringify(m.kit)}`);
   await clickIf(page, '#overlay [data-act="dive"]');
@@ -1391,9 +1393,10 @@ async function findsScenario(page, base, name, size) {
     await sleep(150);
     ws += await text('#overlay .kit-tray');
   }
-  ['Toggle Iron', 'Harbour Bell', 'Plated Dress', 'Bailer', 'Safety Line', "Out of Its Bell"].forEach((w) => { if (ws.indexOf(w) < 0) failures.push(`${name}: the Workshop doesn't show ${w}`); });
-  // the kit screens show the dress worn, not rolled up as she carries it
-  if (!/keeper_suit\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: the Workshop doesn't show Wren wearing the Diving Dress`);
+  ['Sponge Wrap', 'Harbour Bell', 'Plated Dress', 'Bailer', 'Safety Line', "Out of Its Bell"].forEach((w) => { if (ws.indexOf(w) < 0) failures.push(`${name}: the Workshop doesn't show ${w}`); });
+  // the dress is carried until the Belfry: the kit screens show her as she is on land, with the dress in its slot
+  if (!/\/keeper\.webp/.test(await page.eval(`document.querySelector('#overlay .doll-wren img').src`))) failures.push(`${name}: the Workshop shows Wren in the dress above water`);
+  if (!/g_suit\.webp/.test(await page.eval(`document.querySelector('#overlay .kit-slot[data-place="coat"] img')?.src || ''`))) failures.push(`${name}: the Rig slot doesn't show the Diving Dress`);
   await checkPage(page, name + ' workshop');
   await close();
 
@@ -2301,7 +2304,16 @@ async function mateoScenario(page, base, name, size) {
   if (!await has('.outfit-opt[data-o="lamplighter"]') || !await has('.outfit-opt[data-o="gala"]')) throw new Error('The earlier log and Heart should count on this save');
   await click('[data-act="outfit"][data-o="gala"]');
   await click('[data-act="keeper"][data-k="mateo"]');
-  if (await has('.outfit-pick')) throw new Error('Wren’s outfit picker should be hidden for Mateo');
+  if (await has('.outfit-opt')) throw new Error('Mateo has no outfits to choose from');
+  if ((await page.eval(`document.querySelector('.kit-slot[data-place="harpoon"] .ks-txt').textContent`)) !== 'WeaponPlain mallet') throw new Error('Mateo’s empty Weapon slot should read Plain mallet');
+  await click('[data-act="kitslot"][data-place="harpoon"]');
+  if (!/A fitting for your mallet\. It changes your first Mallet Strike/.test(await page.eval(`document.querySelector('.kit-tray').textContent`))) throw new Error('The Weapon tray should speak of Mateo’s mallet');
+  if (/harpoon/i.test(await page.eval(`document.querySelector('.kit-tray').textContent + document.querySelector('.doll').textContent`))) throw new Error('Mateo’s kit should not mention a harpoon');
+  // with a dress packed, a tile shows him as he goes under the sea
+  const rig = await evalRun('const was = B.meta.kit.coat; B.meta.owned.includes("suit") || B.meta.owned.push("suit"); B.meta.kit.coat = "suit"; B.saveMeta(); return was;');
+  await click('[data-act="keeper"][data-k="mateo"]');
+  if (!await page.eval(`(document.querySelector('.outfit-dive img')?.src || '').endsWith('/mateo_suit.webp')`)) throw new Error('With a dress packed, Pack should show Mateo in his diving dress');
+  await evalRun(`B.meta.kit.coat = ${JSON.stringify(rig)}; B.saveMeta();`);
   await click('[data-act="keeper"][data-k="wren"]');
   if (!await has('.outfit-opt[data-o="gala"][aria-pressed="true"]')) throw new Error('Switching keepers should remember Wren’s outfit');
   await click('[data-act="keeper"][data-k="mateo"]');
@@ -2421,7 +2433,7 @@ async function debugUnlocksScenario(page, base, name, size) {
       story: E.storyEntries().every((entry) => E.storyOpen(entry, story.marks)),
       jukebox: juke.every(([kind, id]) => meta.heard.includes(kind + ':' + id)) && jukeDepths.every((_, i) => meta.heard.includes('depth:' + i)),
       progression: E.currentsOpen(meta) && meta.reached === E.LEVELS.length - 1 && E.holdUpPrice(meta) === null,
-      savedChoices: meta.kit.pocket === 'purse' && meta.bring.join(',') === 'whaletooth' && meta.outfit === 'harbour' && meta.salvage === 12,
+      savedChoices: meta.kit.pocket === 'purse' && meta.bring.join(',') === 'whaletooth' && meta.outfits.wren === 'harbour' && meta.salvage === 12,
       record: meta.record.hearts === 1 && meta.record.runs === 3 && meta.record.wins === 1 && meta.record.quiets === 0,
     };
   })()`);
@@ -2557,7 +2569,7 @@ async function outfitsScenario(page, base, name, size) {
   if (!await evalRun('return r.kit.coat === "plated" && r.combat.player.ward === 3')) throw new Error('Gala should leave the rig equipped');
   await shot('gala-fight');
   await evalRun('r.level = 2; r.cleared = [0, 1]; E.startCombat(r, "boss"); B.render();');
-  await sprite('.unit.player .sprite img', 'keeper_plated');
+  await sprite('.unit.player .sprite img', 'keeper_suit');
   await dismissHints(page);
   await evalRun('r.combat.won = true; r.combat.enemies.forEach((e) => { e.dead = true; e.hp = 0; }); return B.onVictory();');
   await click('[data-act="opnext"]');
@@ -2569,17 +2581,31 @@ async function outfitsScenario(page, base, name, size) {
   if (await options() !== 'ochre,harbour,lamplighter,shells,gala,longjohns') throw new Error('All earned outfits should be available after reload');
   await choose('longjohns');
   await sprite('.doll-wren img', 'wren_longjohns');
-  // the Cork Vest is drawn over the outfit, in Pack and in a fight (v0.59.0)
+  // kit never changes her picture (v0.61.0): the Cork Vest shows in its slot, in Pack and in a fight
   await evalRun('B.meta.owned.push("cork"); B.meta.kit.coat = "cork"; B.saveMeta();');
   await reload();
   await click('[data-act="newrun"]');
-  await sprite('.doll-wren img', 'wren_longjohns_cork');
-  if (!(await page.eval(`document.querySelector('.doll-wren img').alt`)).includes('Long Johns, wearing the Cork Vest')) throw new Error('Pack should name the outfit and the Cork Vest');
+  await sprite('.doll-wren img', 'wren_longjohns');
+  if ((await page.eval(`document.querySelector('.doll-wren img').alt`)) !== 'Wren in Long Johns') throw new Error('Pack should name the keeper and the outfit');
+  await sprite('.kit-slot[data-place="coat"] img', 'g_cork');
+  if (await page.eval(`!!document.querySelector('.outfit-dive')`)) throw new Error('Without a dress packed there is no diving tile');
   await shot('longjohns-cork-pack');
+  // with a dress packed, the outfit stays on the doll and a last tile shows her as she goes under the sea
+  await evalRun('B.meta.kit.coat = "plated"; B.saveMeta();');
+  await reload();
+  await click('[data-act="newrun"]');
+  await sprite('.doll-wren img', 'wren_longjohns');
+  await sprite('.outfit-dive img', 'keeper_suit');
+  if (await options() !== 'ochre,harbour,lamplighter,shells,gala,longjohns') throw new Error('The diving tile is not an outfit to choose');
+  await checkPage(page, name + ' Pack with a dress');
+  await shot('longjohns-dress-pack');
+  await evalRun('B.meta.kit.coat = "cork"; B.saveMeta();');
+  await reload();
+  await click('[data-act="newrun"]');
   await click('[data-act="dive"]');
   await dismissHints(page);
   await evalRun('E.startCombat(r, "easy", ["kelp"]); B.render();');
-  await sprite('.unit.player .sprite img', 'wren_longjohns_cork');
+  await sprite('.unit.player .sprite img', 'wren_longjohns');
   await shot('longjohns-cork-fight');
   if (page.errors.length) throw new Error(page.errors.join('\n'));
 }

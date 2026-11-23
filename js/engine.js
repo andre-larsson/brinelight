@@ -63,12 +63,12 @@
     if (cost != null && c && d.costDown === 'crests') cost = Math.max(0, cost - (c.turnCrests || 0));
     return cost;
   };
+  /* The starter attack ('jab') is the keeper's own weapon: its name, refit name and picture can be theirs (BL.KEEPERS). */
   E.cardName = (card, run) => {
-    const d = BL.CARDS[card.id];
-    if (card.id === 'jab' && E.keeperId(run) === 'mateo') return card.up === 2 ? 'Guarded Strike' : 'Mallet Strike' + (card.up ? '+' : '');
-    return card.up === 2 && d.refit ? d.refit.name : d.name + (card.up ? '+' : '');
+    const d = BL.CARDS[card.id], W = card.id === 'jab' ? E.keeper(run).weapon : {};
+    return card.up === 2 && d.refit ? W.refit || d.refit.name : (W.strike || d.name) + (card.up ? '+' : '');
   };
-  E.cardArt = (card, run) => (card.id === 'jab' && E.keeper(run).strikeArt) || E.def(card).art;
+  E.cardArt = (card, run) => (card.id === 'jab' && E.keeper(run).weapon.art) || E.def(card).art;
   E.canUpgrade = (card) => {
     const d = BL.CARDS[card.id];
     return !card.up && d.type !== 'status' && d.type !== 'curse' && Object.keys(d.up).length > 0;
@@ -94,24 +94,34 @@
   /* Everything a run has on, one piece in each place. */
   E.kitIds = (run) => (run.kit ? E.KIT_PLACES.map((pl) => run.kit[pl]).filter(Boolean) : []);
   E.hasKit = (run, id) => E.kitIds(run).indexOf(id) >= 0;
-  /* Above water an outfit replaces Wren's whole picture. A Rig piece marked `overOutfit` (the Cork Vest, the Shell
-     Gorget) has a picture over each outfit, so it still shows (v0.59.0; until then the outfit hid it); a dress
-     doesn't. In the Belfry the dress always shows, even in a debug run that gets there without one. */
   E.keeperId = (state) => state && Object.hasOwn(BL.KEEPERS, state.keeper) ? state.keeper : 'wren';
   E.keeper = (state) => BL.KEEPERS[E.keeperId(state)];
+  /* Outfits belong to a keeper (BL.OUTFITS). A run has one (`outfit`); the lasting state keeps a choice for each keeper
+     (`outfits`). A keeper wears their first outfit until another is chosen; one without outfits has none (null). */
   const knownOutfit = (id) => typeof id === 'string' && Object.hasOwn(BL.OUTFITS, id);
-  E.outfitId = (state) => knownOutfit(state?.outfit) ? state.outfit : 'ochre';
-  E.keeperArt = function (kit, under, keeper, combat = false, outfit = 'ochre') {
-    const id = kit && kit.coat, g = id ? BL.KIT[id] : null;
-    if (keeper === 'mateo') {
-      const K = BL.KEEPERS.mateo;
-      if (under || id === 'suit' || g?.as === 'suit') return K.suit;
-      return combat ? K.guard : K.portrait;
-    }
-    if (under && !(g && (id === 'suit' || g.as === 'suit'))) return 'keeper_suit';
-    if (!under && outfit !== 'ochre' && knownOutfit(outfit)) return BL.OUTFITS[outfit].art + (g?.overOutfit ? '_' + id : '');
-    return (g && g.look) || 'keeper';
+  E.outfitsOf = (keeper) => Object.keys(BL.OUTFITS).filter((id) => BL.OUTFITS[id].keeper === keeper);
+  E.outfitId = function (state, keeper = E.keeperId(state)) {
+    const kept = state && state.outfits && typeof state.outfits === 'object';
+    const id = kept ? (Object.hasOwn(state.outfits, keeper) ? state.outfits[keeper] : null) : state?.outfit;
+    return knownOutfit(id) && BL.OUTFITS[id].keeper === keeper ? id : E.outfitsOf(keeper)[0] || null;
   };
+  /* The keeper's picture (img/units), for a run or the lasting state. It shows who they are and what they wear, and
+     kit never changes it (v0.61.0): on land their outfit, or their shore picture if they have none; in a fight
+     (`combat`) its fighting stance if it has one; under the sea (`under`, the Belfry) their dive picture, whatever
+     the outfit and the kit. A dress is carried until then. */
+  E.keeperArt = function (state, { under = false, combat = false } = {}) {
+    const L = E.keeper(state).looks;
+    if (under) return L.dive;
+    const O = BL.OUTFITS[E.outfitId(state)];
+    return (combat && (O ? O.fight : L.fight)) || (O ? O.art : L.shore);
+  };
+  /* Place and kit text in the keeper's own words: {weapon} and {Weapon} are what they carry, {strike} their starter
+     attack. "Your first {strike}" is a Harpoon Jab for Wren and a Mallet Strike for Mateo. */
+  E.kitText = function (text, state) {
+    const W = E.keeper(state).weapon;
+    return String(text == null ? '' : text).replace(/\{(weapon|Weapon|strike)\}/g, (m, k) => (k === 'strike' ? W.strike : k === 'Weapon' ? W.name : W.name.toLowerCase()));
+  };
+  E.kitDesc = (id, state) => E.kitText(BL.KIT[id].desc, state);
   /* Wearing `id` or kit that counts as it (the Plated Dress is a Diving Dress). */
   E.wears = (run, id) => E.kitIds(run).some((k) => k === id || BL.KIT[k].as === id);
   /* A creature's name for more than one of it: 'Glimmer Leeches', 'Grasping Arms'. */
@@ -213,7 +223,7 @@
       level: level || 0,
       heartHome: !!heartHome,
       keeper: heartHome ? E.keeperId(profile) : 'wren',
-      outfit: E.outfitId(profile),
+      outfit: E.outfitId(profile, heartHome ? E.keeperId(profile) : 'wren'),
       currents: (currents || []).filter((k, i, a) => E.CURRENTS[k] && a.indexOf(k) === i),
       cleared: [], // the levels whose pin is broken on this expedition
       hold: E.holdAt(Math.max(deepest || 0, level || 0)) + (holdUp || 0),
@@ -1591,7 +1601,7 @@
   };
 
   E.needsTarget = (card) => BL.CARDS[card.id].target === 'enemy';
-  /* A card's numbers as it would play right now: the Honed Harpoon adds to the first Harpoon Jab of a fight. */
+  /* A card's numbers as it would play right now: the Lead Collar adds to the keeper's first starter attack of a fight. */
   E.playVals = function (run, card, harpoon) {
     const v = E.vals(card);
     if (harpoon === undefined) harpoon = card.id === 'jab' && run.combat && !run.combat.jabbed ? (run.kit && run.kit.harpoon) : null;
@@ -2163,7 +2173,7 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', outfit: 'ochre', debugOutfits: [], shellsHome: false, mateoQuiets: 0 });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', outfits: {}, debugOutfits: [], shellsHome: false, mateoQuiets: 0 });
   E.outfitOpen = function (meta, id) {
     if (!knownOutfit(id)) return false;
     if (meta.debugOutfits?.includes(id)) return true;
@@ -2175,10 +2185,12 @@
       default: return true;
     }
   };
-  E.unlockedOutfits = (meta) => Object.keys(BL.OUTFITS).filter((id) => E.outfitOpen(meta, id));
+  /* Every open outfit, or only `keeper`'s. */
+  E.unlockedOutfits = (meta, keeper) => (keeper ? E.outfitsOf(keeper) : Object.keys(BL.OUTFITS)).filter((id) => E.outfitOpen(meta, id));
+  /* The chosen keeper puts on one of their own outfits. The choice is kept for each keeper. */
   E.equipOutfit = function (meta, id) {
-    if (E.keeperId(meta) !== 'wren' || !E.outfitOpen(meta, id)) return false;
-    meta.outfit = id;
+    if (!E.outfitOpen(meta, id) || BL.OUTFITS[id].keeper !== E.keeperId(meta)) return false;
+    meta.outfits = Object.assign({}, meta.outfits, { [E.keeperId(meta)]: id });
     return true;
   };
   /* What opens at the lighthouse as the player gets on, in the order it opens: the Workshop (the first Salvage), the
@@ -2291,7 +2303,7 @@
   E.keeperProfile = function (meta) {
     const keeper = E.keeperOpen(meta, meta.keeper) ? meta.keeper : 'wren';
     const mateo = E.keeperOpen(meta, 'mateo');
-    return { keeper, outfit: E.outfitId(meta), firstRing: mateo && keeper === 'wren', stranger: E.heartIsHome(meta) && !mateo && !meta.keeperNote ? 'mateo' : null };
+    return { keeper, outfit: E.outfitId(meta, keeper), firstRing: mateo && keeper === 'wren', stranger: E.heartIsHome(meta) && !mateo && !meta.keeperNote ? 'mateo' : null };
   };
   E.returnKeeperNote = function (meta, run) {
     const id = run.metKeeper;
@@ -2399,7 +2411,11 @@
       m.shellsHome = m.hesterDone.includes('log') || (rec.wins > 0 && m.ach.includes('outofbell'));
     }
     m.debugOutfits = Array.isArray(m.debugOutfits) ? [...new Set(m.debugOutfits.filter(knownOutfit))] : [];
-    m.outfit = E.outfitOpen(m, m.outfit) ? m.outfit : 'ochre';
+    // a choice of outfit for each keeper (v0.61.0; until then `outfit` held Wren's): only their own, and only if open
+    const worn = m.outfits && typeof m.outfits === 'object' ? m.outfits : { wren: m.outfit };
+    m.outfits = {};
+    Object.keys(BL.KEEPERS).forEach((k) => { const id = Object.hasOwn(worn, k) ? worn[k] : null; if (knownOutfit(id) && BL.OUTFITS[id].keeper === k && E.outfitOpen(m, id)) m.outfits[k] = id; });
+    delete m.outfit;
     // Saves from before v0.33.0 treat the original features they had opened as told. New outfits still get their notice.
     m.told = Array.isArray(m.told) ? m.told.filter((id, i, a) => E.FEATURES.includes(id) && a.indexOf(id) === i) : lighthouseFeatures.filter((id) => E.featureOpen(m, id));
     return m;
