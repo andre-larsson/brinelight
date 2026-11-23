@@ -5,8 +5,12 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.59.0';
+  BL.VERSION = '0.60.0';
   BL.CHANGELOG = [
+    { v: '0.60.0', date: '2026-11-23', items: [
+      'Pack shows Wren’s outfits as pictures of her wearing each one. Before, you chose from a list of names.',
+      'The keeper you chose in Pack is marked more clearly, and Wren’s card shows the outfit she has on.',
+    ] },
     { v: '0.59.0', date: '2026-11-20', items: [
       'The Cork Vest and the Shell Gorget now show over all of Wren’s outfits, in Pack and in fights. Before, any outfit but the ochre oilskin hid them.',
     ] },

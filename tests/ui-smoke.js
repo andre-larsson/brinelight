@@ -2298,12 +2298,12 @@ async function mateoScenario(page, base, name, size) {
   await click('[data-act="opnext"]');
   if (!await evalRun('return E.keeperOpen(B.meta, "mateo") && !B.meta.keeperNote && E.keeperProfile(B.meta).firstRing;')) throw new Error('The welcome should unlock Mateo and Wren’s First Ring');
   await click('[data-act="newrun"]');
-  if (!await has('#pack-outfit option[value="lamplighter"]') || !await has('#pack-outfit option[value="gala"]')) throw new Error('The earlier log and Heart should count on this save');
-  await page.eval(`(() => { const select = document.querySelector('#pack-outfit'); select.value = 'gala'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  if (!await has('.outfit-opt[data-o="lamplighter"]') || !await has('.outfit-opt[data-o="gala"]')) throw new Error('The earlier log and Heart should count on this save');
+  await click('[data-act="outfit"][data-o="gala"]');
   await click('[data-act="keeper"][data-k="mateo"]');
-  if (await has('#pack-outfit')) throw new Error('Wren’s outfit picker should be hidden for Mateo');
+  if (await has('.outfit-pick')) throw new Error('Wren’s outfit picker should be hidden for Mateo');
   await click('[data-act="keeper"][data-k="wren"]');
-  if (!await page.eval(`document.querySelector('#pack-outfit').value === 'gala'`)) throw new Error('Switching keepers should remember Wren’s outfit');
+  if (!await has('.outfit-opt[data-o="gala"][aria-pressed="true"]')) throw new Error('Switching keepers should remember Wren’s outfit');
   await click('[data-act="keeper"][data-k="mateo"]');
   if (!await page.eval(`document.querySelector('.doll-wren img').src.endsWith('/mateo.webp')`)) throw new Error('The Pack should show Mateo upright');
   await checkPage(page, name + ' pack');
@@ -2384,7 +2384,7 @@ async function debugUnlocksScenario(page, base, name, size) {
     const { debugOutfits, told, ...progress } = Brinelight.meta;
     return JSON.stringify({ progress, story: Brinelight.story });
   })()`);
-  const wardrobe = () => page.eval(`[...document.querySelectorAll('#pack-outfit option')].map((o) => o.value).join(',') === Object.keys(BL.OUTFITS).join(',')`);
+  const wardrobe = () => page.eval(`[...document.querySelectorAll('.outfit-opt')].map((o) => o.dataset.o).join(',') === Object.keys(BL.OUTFITS).join(',')`);
   const firstGroup = () => page.eval("document.querySelector('.dbg-sec h3').textContent");
 
   await loadDebug();
@@ -2468,12 +2468,8 @@ async function outfitsScenario(page, base, name, size) {
   const evalRun = (js) => page.eval(`(() => { const B = window.Brinelight, E = B.E, r = B.run; ${js} })()`);
   const click = async (s) => { if (!await clickIf(page, s)) throw new Error('Missing control: ' + s); };
   const text = (s) => page.eval(`document.querySelector(${JSON.stringify(s)})?.textContent || ''`);
-  const options = () => page.eval(`[...document.querySelectorAll('#pack-outfit option')].map((o) => o.value).join(',')`);
-  const choose = (id) => page.eval(`(() => {
-    const select = document.querySelector('#pack-outfit');
-    select.value = ${JSON.stringify(id)};
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  })()`);
+  const options = () => page.eval(`[...document.querySelectorAll('.outfit-opt')].map((o) => o.dataset.o).join(',')`);
+  const choose = (id) => click(`[data-act="outfit"][data-o="${id}"]`);
   const sprite = (selector, art) => page.waitFor(`(() => {
     const img = document.querySelector(${JSON.stringify(selector)});
     return img?.naturalWidth > 0 && img.src.endsWith('/${art}.webp');

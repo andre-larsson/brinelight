@@ -877,11 +877,6 @@
   overlayEl.addEventListener('change', (e) => {
     const r = e.target;
     if (r.matches && r.matches('.juke-depth select')) { jukeDepth(+r.value); return; }
-    if (r.id === 'pack-outfit') {
-      if (E.equipOutfit(meta, r.value)) { saveMeta(); sfx('select'); }
-      redrawKit('#pack-outfit');
-      return;
-    }
     if (!r.matches || !r.matches('input[data-vol]')) return;
     savePrefs();
     if (r.dataset.vol === 'sound') sfx('select');
@@ -1845,8 +1840,10 @@
   /* Redraw whichever kit screen is open, keeping its scroll, with the focus on `focus` (a selector). */
   function redrawKit(focus) {
     const sc = $('.modal-body', overlayEl), top = sc ? sc.scrollTop : 0;
+    const row = $('.outfit-strip', overlayEl), left = row ? row.scrollLeft : null;
     if (ui.kitFrom === 'pack') showKit(focus); else showWorkshop(focus);
-    const sc2 = $('.modal-body', overlayEl);
+    const sc2 = $('.modal-body', overlayEl), row2 = $('.outfit-strip', overlayEl);
+    if (row2 && left != null) row2.scrollLeft = left;
     if (sc2) { sc2.scrollTop = top; updateScrollCue(sc2); }
   }
 
@@ -1942,11 +1939,21 @@
     openOverlay(modal('The Lazaret', body + rest, '<button class="btn primary" data-act="close" autofocus>Done</button>', 'workshop-modal'));
   }
 
+  /* Wren's outfits, each a picture of her wearing it: the look is the choice (until v0.60.0 it was a drop-down of
+     names). The row wraps on a wide screen and scrolls sideways on a phone. */
   function outfitPicker() {
     const current = E.outfitId(meta);
-    const options = E.unlockedOutfits(meta).map((id) => `<option value="${id}"${id === current ? ' selected' : ''}>${BL.OUTFITS[id].name}</option>`).join('');
-    return `<div class="outfit-pick"><label for="pack-outfit">Wren’s outfit</label><select id="pack-outfit" aria-describedby="outfit-info">${options}</select>
-      <small id="outfit-info">${levelKnown(2) ? 'Cosmetic. The Belfry shows your diving dress.' : 'Cosmetic.'}</small></div>`;
+    const opts = E.unlockedOutfits(meta).map((id) => {
+      const O = BL.OUTFITS[id], on = id === current;
+      return `<button class="outfit-opt" data-act="outfit" data-o="${id}" aria-pressed="${on}"><img src="img/units/${O.art}.webp" alt=""><b>${O.name}</b><span class="opt-state">${on ? 'Worn' : 'Wear'}</span></button>`;
+    }).join('');
+    return `<section class="outfit-pick" aria-label="Wren’s outfit"><h3 class="ws-place">Wren’s outfit <small>${levelKnown(2) ? 'Cosmetic. The Belfry shows your diving dress.' : 'Cosmetic.'}</small></h3>
+      <div class="outfit-strip">${opts}</div></section>`;
+  }
+  /* Bring the worn outfit into view when its row scrolls sideways. */
+  function showWornOutfit() {
+    const strip = $('.outfit-strip', overlayEl), on = strip && $('.outfit-opt[aria-pressed="true"]', strip);
+    if (on) strip.scrollLeft = on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2;
   }
   /* Pack starts with a choice of outfit. Kit, keepsakes and currents appear as they become useful. */
   function showKit(focus) {
@@ -1964,16 +1971,24 @@
       }).join('')}</div>` : '';
     const parts = [MT.item.toLowerCase(), keeps ? 'keepsakes' : '', curs ? 'currents' : ''].filter(Boolean);
     const keepers = Object.entries(BL.KEEPERS).filter(([id]) => E.keeperOpen(meta, id));
-    const choice = keepers.length > 1 ? `<section class="keeper-pick" aria-label="Choose a keeper"><h3 class="ws-place">Keeper</h3><div class="keeper-options">${keepers.map(([id, K]) => `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${id === E.keeperId(meta)}"><img src="img/units/${K.portrait}.webp" alt=""><span><b>${K.name}</b><small><strong>${K.skill}.</strong> ${K.desc}</small></span></button>`).join('')}</div></section>` : '';
+    // Wren's card shows her in the outfit she has on
+    const face = (id, K) => (id === 'wren' ? BL.OUTFITS[E.outfitId(meta)].art : K.portrait);
+    const choice = keepers.length > 1 ? `<section class="keeper-pick" aria-label="Choose a keeper"><h3 class="ws-place">Keeper</h3><div class="keeper-options">${keepers.map(([id, K]) => {
+      const on = id === E.keeperId(meta);
+      return `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${on}"><img src="img/units/${face(id, K)}.webp" alt=""><b>${K.name}</b><span class="opt-state">${on ? 'Chosen' : 'Choose'}</span><small><strong>${K.skill}.</strong> ${K.desc}</small></button>`;
+    }).join('')}</div></section>` : '';
     const outfit = E.keeperId(meta) === 'wren' ? outfitPicker() : '';
     const current = BL.OUTFITS[E.outfitId(meta)];
     const kit = meta.owned.length || keeps || curs
       ? `<p class="ws-lead">Choose your ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. You keep this pack for the whole expedition. Your choice is remembered.${keeps ? '' : ` Keepsakes: the aether holds <b>${E.metaHold(meta)} Roil</b>.`}</p>
         <h3 class="ws-place">${MT.item} <small>One piece in each place.</small></h3>${kitDoll('pack')}`
       : `<div class="outfit-preview"><img src="img/units/${current.art}.webp" alt="Wren in ${current.name}"></div>`;
-    const body = `${choice}${outfit}${kit}${keeps}${curs}`;
+    // with kit to choose, her outfits stand above it; before that her picture comes first
+    const first = !(meta.owned.length || keeps || curs);
+    const body = first ? `${choice}<div class="pack-look">${kit}${outfit}</div>` : `${choice}${outfit}${kit}${keeps}${curs}`;
     openOverlay(modal('Pack for the expedition', body,
-      `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, 'workshop-modal'), { focus });
+      `<button class="btn" data-act="close">Back</button><button class="btn primary" data-act="dive" autofocus>Set out</button>`, `workshop-modal${first ? ' pack-first' : ''}`), { focus });
+    showWornOutfit();
     requestAnimationFrame(drawDollLines);
   }
 
@@ -4123,6 +4138,10 @@
           saveMeta(); sfx('select');
           redrawKit(`[data-act="keeper"][data-k="${meta.keeper}"]`);
         }
+        break;
+      case 'outfit':
+        if (ui.kitFrom === 'pack' && E.equipOutfit(meta, t.dataset.o)) { saveMeta(); sfx('select'); }
+        redrawKit(`[data-act="outfit"][data-o="${t.dataset.o}"]`);
         break;
       case 'current': {
         const k = t.dataset.k;

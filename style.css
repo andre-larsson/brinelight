@@ -1221,28 +1221,53 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 /* a picture of the room above the Workshop's and the Lazaret's lists */
 .ws-art { width: 100%; height: clamp(96px, 24vw, 190px); margin: 0 0 12px; border-radius: 10px; background: #0a1d2b center/cover no-repeat; border: 1px solid rgba(201, 162, 74, .35); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
 .ws-lead { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: #d6e3e0; }
-.keeper-pick { margin-bottom: 14px; }
-.keeper-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.keeper-option { display: flex; align-items: center; gap: 10px; min-height: 72px; padding: 8px 10px; text-align: left; color: var(--text); background: #0a2030; border: 1px solid rgba(148, 193, 204, .4); border-radius: 10px; cursor: pointer; }
-.keeper-option img { width: 43px; height: 60px; object-fit: contain; flex-shrink: 0; }
-.keeper-option span, .keeper-option small { display: block; }
-.keeper-option b { color: #f3dfb2; font: 700 17px var(--serif); }
-.keeper-option small { color: #d6e3e0; font-size: 13px; line-height: 1.35; }
-.keeper-option[aria-pressed="true"] { border-color: #efc67b; box-shadow: inset 0 0 0 1px rgba(239, 198, 123, .28); background: #143141; }
-.outfit-pick { display: grid; grid-template-columns: auto minmax(0, 240px) 1fr; align-items: center; gap: 6px 12px; margin-bottom: 14px; padding: 8px 12px; border: 1px solid rgba(148, 193, 204, .4); border-radius: 10px; background: #0a2030; }
-.outfit-pick label { color: #f3dfb2; font: 700 17px var(--serif); }
-.outfit-pick select { min-width: 0; min-height: 44px; padding: 6px 10px; border: 1px solid rgba(201, 162, 74, .55); border-radius: 8px; color-scheme: dark; background: #0e2b3a; color: var(--text); font: inherit; cursor: pointer; }
-.outfit-pick small { color: #d6e3e0; font-size: 13px; }
-.outfit-preview { display: flex; justify-content: center; }
+.keeper-pick, .outfit-pick { margin-bottom: 16px; }
+.keeper-pick .ws-place, .outfit-pick .ws-place { margin-top: 0; }
+/* the keeper cards and the outfit pictures look and choose like the kit's (.kit-opt): amber ring and a word */
+.keeper-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.keeper-option { display: grid; grid-template-columns: 56px 1fr auto; grid-template-rows: auto 1fr; align-items: baseline; gap: 2px 12px; padding: 8px 12px 8px 8px; text-align: left; color: var(--text); background: rgba(6, 20, 30, .88); border: 1px solid rgba(201, 162, 74, .35); border-radius: 12px; cursor: pointer; }
+.keeper-option img { grid-row: span 2; align-self: center; width: 56px; height: 84px; object-fit: contain; object-position: 50% 100%; }
+.keeper-option b { color: #f3dfb2; font: 700 18px var(--serif); }
+.keeper-option small { grid-column: 2 / span 2; align-self: start; color: #d6e3e0; font-size: 14px; line-height: 1.35; }
+.keeper-option .opt-state, .outfit-opt .opt-state { font-size: 13px; font-weight: 700; color: var(--muted); }
+.keeper-option:hover, .outfit-opt:hover { border-color: rgba(255, 184, 77, .7); }
+.keeper-option[aria-pressed="true"], .outfit-opt[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber), 0 0 16px rgba(255, 184, 77, .35); background: #10293a; }
+.keeper-option[aria-pressed="true"] .opt-state, .outfit-opt[aria-pressed="true"] .opt-state { color: var(--amber); }
+/* the padding leaves room for the chosen picture's ring inside the scrolling row */
+.outfit-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px; padding: 4px; }
+.outfit-opt { flex: 0 0 108px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 6px 8px; text-align: center; color: var(--text); background: rgba(6, 20, 30, .88); border: 1px solid rgba(201, 162, 74, .35); border-radius: 12px; cursor: pointer; }
+.outfit-opt img { width: 72px; height: 108px; object-fit: contain; object-position: 50% 100%; pointer-events: none; }
+.outfit-opt b { margin-top: 2px; font-size: 14px; line-height: 1.25; color: #f3dfb2; }
+.outfit-opt .opt-state { margin-top: auto; }
+/* before there is kit to choose, Pack is only her picture and her outfits: one centred column */
+.pack-first { width: min(540px, 100%); }
+.pack-first .outfit-pick { margin-bottom: 4px; }
+.pack-first .outfit-pick .ws-place { text-align: center; }
+.pack-first .outfit-strip { justify-content: center; }
+.outfit-preview { display: flex; justify-content: center; margin-bottom: 14px; }
 .outfit-preview img { height: clamp(145px, 34dvh, 270px); max-width: 100%; object-fit: contain; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .6)); }
 @media (max-width: 600px) {
-  .outfit-pick { grid-template-columns: auto minmax(0, 1fr); }
-  .outfit-pick small { grid-column: 1 / -1; }
+  /* one row that scrolls sideways: the cut-off picture at the edge says there are more */
+  .outfit-strip { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding: 0 4px; scrollbar-width: none; }
+  .outfit-strip::-webkit-scrollbar { display: none; }
+  .outfit-opt { flex-basis: 100px; scroll-snap-align: start; }
+  /* centred with margins, not justify-content, so a row too long for the screen still scrolls from its start */
+  .pack-first .outfit-strip { justify-content: flex-start; }
+  .pack-first .outfit-opt:first-child { margin-left: auto; }
+  .pack-first .outfit-opt:last-child { margin-right: auto; }
+  .outfit-opt img { width: 60px; height: 90px; }
+}
+/* a phone on its side: her picture beside her outfits, so the choice needs no scrolling */
+@media (max-height: 480px) and (orientation: landscape) {
+  .pack-look { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 16px; }
+  .pack-first .outfit-preview, .pack-first .outfit-pick { margin-bottom: 0; }
+  .pack-first .outfit-preview img { height: clamp(145px, 46dvh, 200px); }
+  .outfit-opt img { width: 60px; height: 90px; }
 }
 @media (max-width: 480px) {
-  .keeper-options { grid-template-columns: 1fr; }
-  .keeper-option { min-height: 60px; padding: 6px 8px; }
-  .keeper-option img { width: 32px; height: 45px; }
+  .keeper-options { grid-template-columns: 1fr; gap: 8px; }
+  .keeper-option { grid-template-columns: 44px 1fr auto; gap: 2px 10px; padding: 6px 10px 6px 6px; }
+  .keeper-option img { width: 44px; height: 66px; }
 }
 .ws-bal { display: flex; justify-content: center; margin: 0 0 14px; }
 /* kit is square with a brass corner, so it never reads as a (round) keepsake */

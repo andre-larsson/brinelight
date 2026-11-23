@@ -2595,6 +2595,15 @@ The user made songs with Google Gemini (the user called the model "Omni"; Google
 - A new piece of kit in an existing place needs no screen work. A new place needs `side`, `at`, `none` (the empty slot's name) and an empty-slot glyph (`ICON.slot_<id>` in `js/ui.js`).
 - Open: do the trays read well on a small phone, and is choosing a slot first slower than the old long list when you change several pieces?
 
+### The keeper and outfit choice in Pack (v0.60.0, 2026-11-23)
+
+- The user asked for a design pass on the Pack screen's character and costume choice. The changes are the agent's.
+- **Outfits are pictures** (`outfitPicker` in `js/ui.js`, `.outfit-opt`): a tile for each unlocked outfit with Wren wearing it, its name, and Worn or Wear. It was a drop-down of names, so you had to choose an outfit to see it. The row wraps on a wide screen. At 600px and narrower it is one row that scrolls sideways, opens with the worn outfit in view, and keeps its place when you choose.
+- **Keeper cards** look and choose like the kit tray (`.kit-opt`): the same tile, the amber ring, and Chosen or Choose. Before, the chosen keeper had only a thin lighter border. The portrait is bigger (56x84, was 43x60), and Wren's shows the outfit she has on.
+- **The first Pack** (no kit, keepsakes or currents yet) is one centred column in a narrower window: her picture, then her outfits. On a phone on its side they stand side by side, so the choice needs no scrolling.
+- Only unlocked outfits show. Locked ones stay hidden so the Shell Bikini, Gala and Long Johns remain surprises.
+- Open: with six outfits a phone shows about three at a time. Is the sideways row found, or should it wrap to two rows?
+
 ### Keeper and costume drafts (2026-11-14; not in the game)
 
 The user asked how more characters could be added, and wanted to judge the look first. I proposed a foundation (`BL.KEEPERS`, a keeper choice on the Pack screen, a Logbook per keeper) and five ways keepers could differ: numbers and loadout, own cards, an own water rule, own kit places, companions. None of that is decided. Three rounds of Codex samples followed. They were compared on a private artifact page (https://claude.ai/artifact/39b2dzv4LmqunJR8TmhdsJ), with each picture swapped into the real fight and Workshop (`tools/swap-shots.js`). The user keeps the drafts below and will choose later which to build.
