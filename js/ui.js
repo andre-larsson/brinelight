@@ -1943,18 +1943,22 @@
   }
 
   /* The chosen keeper's outfits, each a picture of them wearing it: the look is the choice (until v0.60.0 it was a
-     drop-down of names). The row wraps on a wide screen and scrolls sideways on a phone. With a dress packed, a last
-     tile shows the keeper as they go under the sea: the dress is carried until then, and it covers any outfit. A keeper
-     with no outfits to choose from has the row only for that tile, beside their shore picture. */
+     drop-down of names). The row wraps on a wide screen and scrolls sideways on a phone. Once a dress is owned, a last
+     tile shows the keeper as they go under the sea: the dress is carried until then, and it covers any outfit. Without
+     a dress packed the tile is dimmed, not left out, so packing one changes the tile and nothing moves (v0.61.2: the
+     row grew, or for Mateo appeared, and pushed the Rig tray down under the finger). Its two words fit one line in the
+     narrowest tile, for the same reason ("In the Belfry" took two). A keeper with no outfits to choose
+     from has the row only for that tile, beside their shore picture. */
   function outfitPicker() {
     const id = E.keeperId(meta), K = E.keeper(meta), current = E.outfitId(meta), mine = E.unlockedOutfits(meta, id);
     const dress = E.wears({ kit: meta.kit }, 'suit');
-    if (!mine.length && !dress) return '';
+    const hasDress = dress || Object.keys(BL.KIT).some((g) => (g === 'suit' || BL.KIT[g].as === 'suit') && E.ownsKit(meta, g));
+    if (!mine.length && !hasDress) return '';
     const opts = mine.map((o) => {
       const O = BL.OUTFITS[o], on = o === current;
       return `<button class="outfit-opt" data-act="outfit" data-o="${o}" aria-pressed="${on}"><img src="img/units/${O.art}.webp" alt=""><b>${O.name}</b><span class="opt-state">${on ? 'Worn' : 'Wear'}</span></button>`;
     }).join('') || `<div class="outfit-tile"><img src="img/units/${K.looks.shore}.webp" alt=""><b>${K.name}</b><span class="opt-state">On shore</span></div>`;
-    const dive = dress ? `<div class="outfit-tile outfit-dive"><img src="img/units/${E.keeperArt(meta, { under: true })}.webp" alt="${K.name} in a diving dress"><b>Diving dress</b><span class="opt-state">In ${levelName(E.LEVELS.findIndex((L) => L.needs === 'suit'))}</span></div>` : '';
+    const dive = hasDress ? `<div class="outfit-tile outfit-dive${dress ? '' : ' off'}"><img src="img/units/${E.keeperArt(meta, { under: true })}.webp" alt="${dress ? `${K.name} in a diving dress` : ''}"><b>Diving dress</b><span class="opt-state">${dress ? 'Packed' : 'Not packed'}</span></div>` : '';
     const note = mine.length ? `Cosmetic. ${MT.item} shows in its slots, not in the picture.` : `${MT.item} shows in its slots, not in the picture.`;
     return `<section class="outfit-pick" aria-label="${K.name}’s outfit"><h3 class="ws-place">${K.name}’s ${mine.length ? 'outfit' : 'look'} <small>${note}</small></h3>
       <div class="outfit-strip${mine.length + (dive ? 1 : 0) > 6 ? ' many' : ''}">${opts}${dive}</div></section>`;

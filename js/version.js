@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.61.1';
+  BL.VERSION = '0.61.2';
   BL.CHANGELOG = [
+    { v: '0.61.2', date: '2026-11-23', items: [
+      'Pack no longer jumps when you pack a diving dress. Once you own a dress, its picture always stands at the end of the outfits, dimmed until you pack one, so the Rig choices stay where you tapped them. Before, the picture appeared only then and pushed everything below it down, a long way for Mateo.',
+    ] },
     { v: '0.61.1', date: '2026-11-23', items: [
       'Mateo now carries a brass bell on his belt, in the Workshop, in Pack and in a fight above water. The Bell slot’s line points at it and no longer at his lantern.',
     ] },

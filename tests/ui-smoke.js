@@ -2309,10 +2309,20 @@ async function mateoScenario(page, base, name, size) {
   await click('[data-act="kitslot"][data-place="harpoon"]');
   if (!/A fitting for your mallet\. It changes your first Mallet Strike/.test(await page.eval(`document.querySelector('.kit-tray').textContent`))) throw new Error('The Weapon tray should speak of Mateo’s mallet');
   if (/harpoon/i.test(await page.eval(`document.querySelector('.kit-tray').textContent + document.querySelector('.doll').textContent`))) throw new Error('Mateo’s kit should not mention a harpoon');
-  // with a dress packed, a tile shows him as he goes under the sea
-  const rig = await evalRun('const was = B.meta.kit.coat; B.meta.owned.includes("suit") || B.meta.owned.push("suit"); B.meta.kit.coat = "suit"; B.saveMeta(); return was;');
+  // with a dress owned, a tile shows him as he goes under the sea: dimmed until it is packed, so packing it moves
+  // nothing (before v0.61.2 his whole look row appeared and pushed the Rig tray about 200px down under the finger)
+  const rig = await evalRun('const was = B.meta.kit.coat || null; B.meta.owned.includes("suit") || B.meta.owned.push("suit"); B.meta.kit.coat = null; B.ui.kitSlot = "coat"; B.saveMeta(); return was;');
   await click('[data-act="keeper"][data-k="mateo"]');
-  if (!await page.eval(`(document.querySelector('.outfit-dive img')?.src || '').endsWith('/mateo_suit.webp')`)) throw new Error('With a dress packed, Pack should show Mateo in his diving dress');
+  if (!await has('.outfit-dive.off')) throw new Error('With a dress owned but not packed, Pack should show Mateo’s diving tile dimmed');
+  const suit = '[data-act="kitwear"][data-g="suit"]';
+  const suitAt = () => page.eval(`Math.round(document.querySelector(${JSON.stringify(suit)}).getBoundingClientRect().top)`);
+  await page.eval(`window.__t.scrollTo(${JSON.stringify(suit)})`);
+  await sleep(150);
+  const suitWas = await suitAt();
+  await page.click(suit);
+  await sleep(150);
+  if (await suitAt() !== suitWas) throw new Error(`Packing the dress should not move the Rig tray (${suitWas}px -> ${await suitAt()}px)`);
+  if (!await page.eval(`(document.querySelector('.outfit-dive:not(.off) img')?.src || '').endsWith('/mateo_suit.webp')`)) throw new Error('With a dress packed, Pack should show Mateo in his diving dress');
   await evalRun(`B.meta.kit.coat = ${JSON.stringify(rig)}; B.saveMeta();`);
   await click('[data-act="keeper"][data-k="wren"]');
   if (!await has('.outfit-opt[data-o="gala"][aria-pressed="true"]')) throw new Error('Switching keepers should remember Wren’s outfit');
@@ -2588,7 +2598,7 @@ async function outfitsScenario(page, base, name, size) {
   await sprite('.doll-wren img', 'wren_longjohns');
   if ((await page.eval(`document.querySelector('.doll-wren img').alt`)) !== 'Wren in Long Johns') throw new Error('Pack should name the keeper and the outfit');
   await sprite('.kit-slot[data-place="coat"] img', 'g_cork');
-  if (await page.eval(`!!document.querySelector('.outfit-dive')`)) throw new Error('Without a dress packed there is no diving tile');
+  if (await page.eval(`!!document.querySelector('.outfit-dive:not(.off)')`)) throw new Error('Without a dress packed the diving tile is dimmed or not there');
   await shot('longjohns-cork-pack');
   // with a dress packed, the outfit stays on the doll and a last tile shows her as she goes under the sea
   await evalRun('B.meta.kit.coat = "plated"; B.saveMeta();');

@@ -1242,6 +1242,9 @@ button.unlock-box:hover, button.unlock-box:focus-visible { border-color: #e9d5ff
 /* not a choice: the keeper as they go under the sea (with a dress packed), or a keeper with no outfits to choose */
 .outfit-tile { border-style: dashed; background: rgba(6, 20, 30, .5); }
 .outfit-tile .opt-state { color: #9fc4c6; }
+/* a dress owned but not packed: the tile keeps its place, dimmed like locked kit */
+.outfit-dive.off img { filter: grayscale(1) brightness(.55); }
+.outfit-dive.off b, .outfit-dive.off .opt-state { color: var(--muted); }
 /* seven (six outfits and the diving tile) still stand in one row of the wide window; the longest name keeps one tile wider */
 @media (min-width: 601px) { .outfit-strip.many > * { flex-basis: 92px; } }
 /* before there is kit to choose, Pack is only her picture and her outfits: one centred column */
