@@ -5,8 +5,15 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.61.2';
+  BL.VERSION = '0.62.0';
   BL.CHANGELOG = [
+    { v: '0.62.0', date: '2026-11-23', items: [
+      'The story now says who the Tide-Witch is. Before Saltmere had keepers, it paid tide-wives to sing the water for its boats, and she is the last of them. Her note, the forgotten goddess’s and the Hollow Siren’s tell it, and The world has an entry for tide-wives.',
+      'Three new Keeper’s notes: Fog Wisps, the Reefback Hulk and the Angler Twins. Barnaby’s note says how a crab learned to talk, and the Coves’ note hints at who still stocks them.',
+      'The story’s dates now agree. Saltmere’s two old bells were lost in one storm a hundred years ago, the lighthouse was built after it, and the Lost Lamplighter was the keeper who lit its great lamp. Why the bell was sunk and Why the fire followed tell more of that year.',
+      'Fixed: Hester no longer remembers the old buoy, which sank before the lighthouse was built. Her three jobs now say how she knows where to look. The tide-board now says that no living keeper cut its lines of the last hundred years, when nobody went down. The note on keepsakes describes giving one to the sea as it works now.',
+      'The world says what Pearls are and where tonics come from, and has one entry for pins where it had two.',
+    ] },
     { v: '0.61.2', date: '2026-11-23', items: [
       'Pack no longer jumps when you pack a diving dress. Once you own a dress, its picture always stands at the end of the outfits, dimmed until you pack one, so the Rig choices stay where you tapped them. Before, the picture appeared only then and pushed everything below it down, a long way for Mateo.',
     ] },

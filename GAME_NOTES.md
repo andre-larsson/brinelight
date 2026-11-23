@@ -1743,6 +1743,44 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Lore review: the old bargain, and the year the light went up (v0.62.0, 2026-11-23)
+
+The user asked for a review of the story, the art and the lore in the game's text: does it make sense, is it consistent, and is it "the best version of itself". Their example was the Tide-Witch in the first level: where did she come from, why is she there, has she always been there, and is this a world where witches are common? Text only. No rule, number or picture changed. WORLD.md, "Before the keepers, and the year the light went up", holds the result.
+
+**What the review found.**
+- **Seven things left from before the game had a world.** The Tide-Witch, the forgotten goddess, the Hollow Siren, the Reefback Hulk, the Angler Twins, the Fog Wisp and Barnaby are from the first build, a generic sea-themed deckbuilder. Everything added later hangs on the bell, the Heart and the held water. These hung on nothing. The Hulk, the Twins and the Wisp had no note at all, and the Siren's note was only her rule.
+- **Contradictions in the dates.**
+  - The buoy was "lost in a storm before the lighthouse was built", but Hester's Dark Water job said she used to hear it and polished its nameplate as a young keeper.
+  - The Heart went down tonight, but the note on the glow said it "warmed the Belfry for a hundred years", *What stays below* said brinelight grew toward the Heart for a hundred years, and lost lanterns rolled "toward the fire" under the bell.
+  - Keepers were older than the lighthouse (the tide-board's lowest lines), but a keeper is whoever carries a lantern lit from the lighthouse's fire.
+  - The tide-board had a cut line for each of the last hundred years, where no keeper had been for a hundred years.
+  - Hester "never went down the stair", but her first job had her show Wren where "the old keeper" hid a log. "The old keeper" is also what The world calls Hester.
+- **Stale text.** The keepsake note still gave v0.35.0's reason for giving one to the sea (v0.38.0 changed it). *The sea gives you back* said only found keepsakes are lost (v0.36.0: all are called back, and she holds on to one). The Roil texts had the Bellwether send the Minnow, which is wrong once it is silent. The Listeners "hear" a bell that is silent when they are met. The Bellwether's note said "a hundred years under the sea" for a bell sunk long before. The world had two entries called Pins, and one called pins "lesser bells", which is the Belfry's word for its air bells.
+
+**The agent's calls (each can be undone on its own).**
+1. **One turning point, a hundred years ago.** One winter storm took both of Saltmere's bells (the duet "Ring for the Deep" already sang "since the storm put us there"). Saltmere built the lighthouse, and the keepers carried the fire up to it from under the Bellwether, where it had burned until then. The lamplighter lit the great lamp, went down once more and drowned. This is the largest call. It fixes the first three contradictions at once, and it uses what the game already said: the Heart burns in water, the bell hung "over the Heart", a light "stays behind there, as it always does", and the choir's "you took the Heart up the stair, but we were told to stay". The opening is unchanged, because the user chose its words.
+2. **The old bargain.** Before the keepers, Saltmere paid the sea in person: blood at the altar, years to the tide-wives, the first fish to the Hulk. The keepers' bell and light ended the paying. This is the frame for the witch, the goddess, the Siren and the Hulk. It fits the theme in WORLD.md (progress with real benefits and a cost that comes later), and the two events already played that way: the Shrine costs HP and the Witch costs Max HP.
+3. **The Tide-Witch is the last tide-wife**, not one of a world of witches. There has always been a crone in the hut, and nobody asks whether it is the same one. Her price goes into her shawl of knotted net. Tonics are her brews.
+4. **The goddess is whom old Saltmere asked.** A hint only: the old town's name for the warmth at her altar "is the name nobody remembers", so she and the fire may be one thing. Not settled, and not to be settled without the user.
+5. **The Hollow Siren is a tide-wife's slack-water note with nobody singing it**, in a shape the held water grew around it. It mirrors the bell that rings with no hand on its rope, and "hollow" means what it means for the Hollow Divers.
+6. **Barnaby learned to talk from the lost lanterns he keeps** (his song already said he keeps them), and the Coves' note hints that he stocks them.
+7. **Fog Wisps are brinelight out of the water**, and that fog is the map's Fog. **The Angler Twins** came up with the flood. **The Hulk** is what the fishers fed.
+8. **The tide-board's last hundred lines are cut in one hand**, by no living keeper: the drowned still work their watch. The first fix (the water leaving salt rings) disagreed with the picture, which shows cut lines to the top.
+9. **Hester's three jobs** now come from the keepers' book. The log is the keepers' stair log, and its last line is the lamplighter's. The tag is a brass name tag that a keeper hung in the first lesser bell on the way down and took off on the way up.
+10. **The world:** an entry for tide-wives, Pearls as brinelight gone hard, tonics as the witch's bottles, and one Pins entry.
+
+**Left alone.**
+- The opening, the title line, every scene, every card, keepsake, kit and rule text.
+- The Gilded Gull: what it carried and what lives in its hold stay open. A draft keeper (Kamala) is its only survivor, so it must stay a wreck within living memory, and the agent dropped a first idea of making it the boat the Buoy's singer rang for.
+- The songs are recordings. Their words were checked against the new timeline and none disagrees.
+
+**Pictures checked** (18 of them, against the text): the Tide-Witch, the Shrine, Barnaby, the Lamplighter, the Gull, the Siren, the kelp, the Wisp, the Hulk, the Twins, the Deckhand, the tide-board, the Cove, the Pool, the opening's bell and fire, the glow under the bell and the Lost Lanterns. None needs repainting for this version. Kept for a later art pass, none of it urgent:
+- The Gull's chest spills gold coins, and the event pays Pearls.
+- The Gull's cabin lamps and two hanging lamps in the Pool are lit, though no keeper has been down. WORLD.md now gives a reading for them, and text should not call them burning.
+- The Hulk has an ogre's face. The note says nobody knows what it is under the reef, which leaves room.
+
+**Checks.** `npm test` (270 pass; the story test now wants a note for every Dread of the Shallows and for the Wisp) and the UI story scenario.
+
 ### Opening draft, Bosun's warning, refits and Hester's job (v0.52.0, 2026-11-18)
 
 - The first Shallows Skirmish offers a common Surge card, a common Ebb card and a distinct wildcard from the normal reward roll. The directional cards use a separate seeded roll. Later rewards keep their usual pools.

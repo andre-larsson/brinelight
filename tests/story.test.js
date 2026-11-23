@@ -105,13 +105,15 @@ test('every mark can be earned in the game as it is', () => {
   assert.ok(S.chapters.some((c) => c.when === 'heart'));
 });
 
-test('there are twelve chapters and 43 notes, with a note for every Fog event, a shop, a Cove, a Wreck, a toll bell, Hester, Bosun and each boss', () => {
+test('there are twelve chapters and 46 notes, with a note for every Fog event, a shop, a Cove, a Wreck, a toll bell, Hester, Bosun, each boss and each Dread of the Shallows', () => {
   assert.equal(S.chapters.length, 12);
-  assert.equal(S.notes.length, 43);
+  assert.equal(S.notes.length, 46);
   assert.deepEqual(['hester', 'bosun'].map((id) => S.notes.find((n) => n.id === id).when), ['home', 'fell']);
   const whens = S.notes.map((n) => n.when);
   BL.EVENTS.forEach((ev) => assert.ok(whens.includes('ev:' + ev.id), ev.title));
   ['shop', 'cove', 'wreck', 'toll', 'keepsake', 'roiled', 'en:sailor', 'en:siren', 'en:bell', 'en:buoy', 'en:leech', 'en:hermit', 'en:harbour', 'en:bellthing', 'en:cantor', 'en:darkwatch'].forEach((m) => assert.ok(whens.includes(m), m));
+  // every Dread of the Shallows has a note (v0.62.0: the Hulk and the Twins had none), and so does the Fog Wisp
+  BL.ENCOUNTERS.elite.flat().concat('wisp').forEach((id) => assert.ok(whens.includes('en:' + id), id));
   // every boss has a note
   Object.keys(BL.ENEMIES).filter((id) => BL.ENEMIES[id].boss && !BL.ENEMIES[id].tutorial).forEach((id) => assert.ok(whens.includes('en:' + id), id));
   assert.ok(S.chapters.some((c) => c.when === 'fell'));

@@ -326,19 +326,22 @@
 
   BL.CARDS = CARDS;
   BL.STARTER_DECK = ['jab', 'jab', 'jab', 'jab', 'brace', 'brace', 'brace', 'brace', 'swell', 'slack'];
+  /* Hester never went down the stair, and nobody has for a hundred years: what she knows of the Reach is in the keepers'
+     book. The buoy sank before the lighthouse was built, so she never heard it (until v0.62.0 her lines said she had,
+     and that she polished its plate). The log is the keepers' stair log: its last line is the lamplighter's. */
   BL.HESTER_JOBS = [
     { id: 'log', name: 'Keeper’s log', marker: 'Log', pay: 8, stop: 'event',
-      brief: 'Hester shows you where the old keeper hid a log in an oilskin wrap. Search the marked Fog landing in the Shallows.',
+      brief: 'The keepers’ book says a stair log was kept behind a loose stone on the first stair: a line when a keeper went down, a line when they came up. Hester marks the place. Search the marked Fog landing in the Shallows.',
       found: 'Behind a loose stone you find an oilskin wrap tied with cord. The log inside is still dry.',
-      home: 'Hester opens the log and recognizes the old keeper’s hand. She sets it beside the harbour record.' },
+      home: 'Hester knows the last hand in it from the keepers’ book: the lamplighter’s, a hundred years old. “Lamp lit last night. Gone down to see to the bell.” There is no line under it. She sets the log beside the harbour record.' },
     { id: 'plate', name: 'Buoy’s nameplate', marker: 'Nameplate', pay: 12, stop: 'event',
-      brief: 'Hester used to hear the old buoy on foggy nights. Look for its brass nameplate at the marked Fog landing in Dark Water.',
+      brief: 'The keepers’ book says the old bell-buoy wore the town’s name on a brass plate. Look for it at the marked Fog landing in Dark Water.',
       found: 'You work the plate loose from a tangle of broken chain. Under the salt you can still read the letters that spelled Saltmere.',
-      home: 'Hester rubs the last of the salt out of the letters. She remembers polishing them as a young keeper.' },
+      home: 'Hester rubs the last of the salt out of the letters. The plate goes into the harbour record, beside the night of the storm that sank the buoy.' },
     { id: 'tag', name: 'Lamplighter’s tag', marker: 'Tag', pay: 16, stop: 'pocket',
-      brief: 'The last lamplighter carried a brass tally stamped with his name. Hester asks you to search under the first lesser bell in the Belfry.',
+      brief: 'A keeper going down to the great bell hung a brass tag with their name on a hook in the first lesser bell, and took it off again on the way up. The lamplighter’s should still hang there. Hester asks you to search under the first lesser bell in the Belfry.',
       found: 'Your glove catches a small brass tag on a hook inside the bell. There is a name under the green tarnish.',
-      home: 'Hester reads the name out loud and adds it to the harbour record. Now the town knows who tended the bell last.' },
+      home: 'Hester reads the name out loud and writes it in the harbour record. After a hundred years the town knows who lit its great lamp, and who tended the bell last.' },
   ];
   BL.CASK_NOTE = 'If you reach the boat in the fog, knock three times on the gunwale. If the line pulls you over, cut it. One of us has to get home.';
   /* Who goes down. A keeper's pictures (img/units) are their own, and kit never changes them (v0.61.0):
@@ -1080,7 +1083,7 @@
   BL.EVENTS = [
     {
       id: 'shrine', title: 'The Sunken Shrine', art: 'ev_shrine',
-      text: 'A barnacle-crusted altar to a sea goddess nobody remembers. Her stone hands are still held out, waiting for an offering.',
+      text: 'A barnacle-crusted altar to a sea goddess nobody remembers. Before Saltmere had keepers, it paid the sea here. Her stone hands are still held out, waiting for an offering.',
       options: [
         { label: 'Offer blood', desc: 'Lose 7 HP. Upgrade 2 random cards.',
           act: (r, E) => { E.loseHp(r, 7); const n = E.upgradeRandom(r, 2); return { text: n ? `The water warms. ${n} of your cards feel sharper.` : 'The goddess has nothing left to teach you.' }; } },
@@ -1106,13 +1109,13 @@
     },
     {
       id: 'witch', title: "The Tide-Witch's Bargain", art: 'ev_witch',
-      text: 'A hut on stilts, a crone in a shawl of fishing net. "Rare lessons for a rare price, keeper. Or a brew, for pearls."',
+      text: 'A hut on stilts below the tide line, and a crone in a shawl of knotted net. Saltmere calls her the Tide-Witch, and does not come down here. "Rare lessons for a rare price, keeper. Or a brew, for pearls."',
       options: [
         { label: 'Trade your years', desc: 'Lose 7 Max HP. Choose 1 of 3 rare cards.',
-          act: (r, E) => { E.loseMaxHp(r, 7); return { text: 'She plucks a few of your years like loose threads, and spreads her cards.', next: { cards: E.randomCards(r, 'rare', 3) } }; } },
+          act: (r, E) => { E.loseMaxHp(r, 7); return { text: 'She plucks a few of your years like loose threads and knots them into her shawl. Then she spreads her cards.', next: { cards: E.randomCards(r, 'rare', 3) } }; } },
         { label: 'Buy a brew', desc: 'Pay 30 Pearls. Gain a random tonic.', cond: (r) => (r.pearls >= 30 ? (r.tonics.includes(null) || 'Tonic slots full') : 'Not enough Pearls'),
           act: (r, E) => { r.pearls -= 30; const t = E.gainRandomTonic(r); return { text: `She corks a bottle of ${BL.TONICS[t].name} and presses it into your hand.` }; } },
-        { label: 'Decline', desc: 'Leave politely.', decline: true, act: () => ({ text: '"Another time," she cackles.' }) },
+        { label: 'Decline', desc: 'Leave politely.', decline: true, act: () => ({ text: '"Another time," she cackles. "I have plenty."' }) },
       ],
     },
     {
@@ -1158,7 +1161,7 @@
     // ---------- Dark Water ----------
     {
       id: 'tideboard', title: 'The Tide-Board', art: 'ev_tideboard',
-      text: 'The keepers cut a tide-board into the wall of the stair: a line and a year for every highest tide. The lowest lines are older than the lighthouse. For the last hundred years each line sits a little above the one before, and the newest is above your head.',
+      text: 'The keepers cut a tide-board into the wall of the stair: a line and a year for every highest tide. The lowest lines are older than the lighthouse. For the last hundred years each line sits a little above the one before, and the newest is above your head. No keeper has come down here in all that time, and still the lines are cut.',
       options: [
         { label: 'Read the old notes', desc: 'Choose 1 of 3 cards that Surge or Ebb.',
           act: (r, E) => ({ text: 'Beside the oldest lines the keepers wrote down how the water moved, and how they moved it.', next: { cards: E.swellCards(r, 3) } }) },
@@ -1404,7 +1407,7 @@
       { id: 'fall', title: 'The sea gives you back', when: 'fell', lock: 'Fall in the Reach.', scene: 'fall', text: [
         'The cold water closed over your lantern, and you went under. The water the bell holds keeps everything it takes. The open sea does not: past the bell\'s reach it gives back what it takes, and it gave you back.',
         'Bosun went in after you and would not let go of your scarf. He swam you in to the shingle below the lighthouse, and barked until Hester saw your ember from the gallery and came down with a blanket. You woke under it, alive, with your harpoon beside you. Your lantern had burned down to an ember, but it was still alight.',
-        'The keepsakes you found in the caves are gone: the bell called them back. The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again, and Bosun goes with you.',
+        'The bell calls back the keepsakes a keeper carries. The most you can hold on to is one, in a shut fist. The lighthouse is still dark, and the water stands a little higher on the stairs. You trim your lantern and go down again, and Bosun goes with you.',
       ] },
       { id: 'home', title: 'The harbour bell', when: 'won:0', lock: "Break the Shallows' pin.", scene: 'hermit', text: [
         'On the last landing of the Shallows waited a hermit crab as big as a rowing boat. It wore Saltmere\'s old harbour bell for a shell: the bell that rang the boats home in fog, until a winter storm tore it off the harbour wall. When the bell cracked, the crab let go of the water, and the water ran away down a stair that had been under the sea for a hundred years.',
@@ -1412,9 +1415,10 @@
         'You can go home from there with what you carry. But before the next tide the water comes back over the landings, something answers the bell again, and the next expedition starts from the shore.',
       ] },
       { id: 'sunk', title: 'Why the bell was sunk', when: 'won:1', lock: "Break Dark Water's pin.", scene: 'buoy', text: [
-        'The bell ringing in Dark Water was not the Bellwether either. It was Saltmere\'s old bell-buoy, lost in a storm before the lighthouse was built. It answers the great bell now, and it held the water over the last stair.',
-        'The keepers made the Bellwether. A hand-bell like yours moves the water in a pool. They cast a bell big enough to move the sea, and sank it at the bottom of the cliffs to hold the water off their low stairs and their quay.',
-        'A bell that size has to be tended. Keepers walked down to it at the lowest tides of the year. The last one to go was a lamplighter, a hundred years ago. He drowned on the low stair, and nobody went down after him.',
+        'The bell ringing in Dark Water was not the Bellwether either. It was Saltmere\'s old bell-buoy, lost before the lighthouse was built, in the winter storm that also tore the harbour bell off its wall. It answers the great bell now, and it held the water over the last stair.',
+        'The keepers made the Bellwether. A hand-bell like yours moves the water in a pool. They cast a bell big enough to move the sea, and sank it at the bottom of the cliffs to hold the water off their low stairs and their quay. In those days they kept their fire there too, under the bell. The Lantern Heart burns in water as well as in air.',
+        'A bell that size has to be tended, and keepers walked down to it at the lowest tides of the year. Then the storm took both of the town\'s bells, and ships had nothing to hear the rocks by. Saltmere built the lighthouse, and the keepers carried the fire up to it, where ships could see it.',
+        'The lamplighter who lit the great lamp went down once more to tend the bell. That was a hundred years ago. He drowned on the low stair, and nobody went down after him. The keeping was in the tower by then.',
       ] },
       { id: 'belfry', title: 'The diving dress', when: 'won:1', lock: "Break Dark Water's pin.", scene: 'dress', text: [
         'Below Dark Water there is one more chamber, and its floor is under the sea. The keepers called it the Belfry. A lighthouse keeps its light at the top of a tower. The keepers hung their bell at the bottom of one.',
@@ -1433,12 +1437,13 @@
       ] },
       { id: 'followed', title: 'Why the fire followed', when: 'heart', lock: 'Bring the Heart home.', text: [
         'Every keeper\'s hand-bell is tuned to the Bellwether, and every keeper\'s lantern is lit from the Lantern Heart. The great bell leads and the small ones follow. That is what a bellwether is: the sheep that wears the bell, and the flock walks behind it.',
+        'For as long as the fire burned under the bell, keepers tended both. Then they carried the fire up into a tower, and for a hundred years ships came home by it. The bell stayed below, alone.',
         'Nobody rang it that night. The tide swings its clapper, and its ringing holds the tide, so it cannot stop by itself. For a hundred years nobody went down to still it, and it rang a little louder every year. Something was living in it by then. Whether that made it louder, nobody knows.',
-        'When it rang loud enough, the Lantern Heart did what a keeper\'s light does. It answered the lead bell and went down.',
+        'When it rang loud enough, the Lantern Heart did what a keeper\'s light does. It answered the lead bell and went down, back to the place under the bell where it burned before there was a tower.',
       ] },
       { id: 'after', title: 'What stays below', when: 'heart', lock: 'Bring the Heart home.', text: [
         'The Bellwether is silent and the lighthouse is lit, and the sea has stopped climbing toward the town. But the Reach has soaked in brinelight for a hundred years, and the magic in it is still strong. Something still answers in the pins, the water still comes back over the landings, and new things fill the caves.',
-        'Brinelight grows toward the brightest light near it. For a hundred years that was the Heart. Now it is the lantern of whoever goes down, and a wick keeps a little of whoever carries it. What grows below takes its shape from what the keeper brings down: grief, regret, fear. In the Belfry the Dreads are not what they were.',
+        'Brinelight grows toward the brightest light near it. For a hundred years that was the glow the Heart left in the stone under the bell. Now it is the lantern of whoever goes down, and a wick keeps a little of whoever carries it. What grows below takes its shape from what the keeper brings down: grief, regret, fear. In the Belfry the Dreads are not what they were.',
         'Saltmere still needs a keeper who goes down. Quiet the Belfry, and bring home what you find. The sea is wide awake now, and it can choose its moods: once the Heart is home you can choose currents on shore, for a harder expedition and a higher score.',
       ] },
       { id: 'watch', title: 'The Dark Watch', when: 'quiet', lock: 'Quiet the Belfry as Wren after the Heart comes home.', scene: 'watch', text: [
@@ -1468,7 +1473,6 @@
         ['The Belfry', 'The last level, below Dark Water: a chamber at the bottom of a tower, under the sea. It never drains. The Bellwether hangs there over the Lantern Heart. You can only go down in a diving dress. It is a short way down: past two Dreads, coming up for air under the lesser bells that hang in the tower.', { level: 2 }],
         ['Landings', 'The stops on the way down through a level. A boss waits on the last one: the Harbour Hermit in the Shallows, the Tolling Buoy in Dark Water, and the Bellwether in the Belfry.',
           { level: 2, before: 'The stops on the way down through a level. A boss waits on the last one: in the Shallows, the Harbour Hermit.' }],
-        ['Pins', 'A pin is a boss that holds the water over the stair down to the next level. Break it, and the water runs away down the stair.'],
         ['Currents', 'Moods of the sea that make an expedition harder and its score higher. You choose them on shore, once the Heart has come home.'],
         ['The Lazaret', 'The locked store room at the lighthouse where keepers shut keepsakes away. It keeps their Roil inside, so many can lie there together. Hester keeps its key, and gives it to you the first time you come home.'],
       ] },
@@ -1478,6 +1482,8 @@
         ['Bosun', 'A big golden dog with a soft mouth, Hester\'s first and yours now. He goes down the Reach with you and keeps back from a fight. When the sea gives you back, he is the one who pulls you out of it. He cannot follow you under the sea: he waits on the last dry step.',
           { level: 2, before: 'A big golden dog with a soft mouth, Hester\'s first and yours now. He goes down the Reach with you and keeps back from a fight. When the sea gives you back, he is the one who pulls you out of it.' }],
         ['Keepers', 'The people who tend the light and the bell. A keeper carries a lantern lit from the Lantern Heart and a hand-bell tuned to the Bellwether.'],
+        // v0.62.0: who the Tide-Witch is, and that there is one of her, not a world of witches (WORLD.md, "Before the keepers")
+        ['Tide-wives', 'Before the keepers cast their bell, Saltmere paid tide-wives to sing the water for its boats. The bell ended the trade. One hut is left in the Shallows, and the town calls the crone in it the Tide-Witch.'],
         ['The oilskin', 'A keeper\'s coat, proofed with the oil that burns in the great lamp under the Heart\'s fire. Brine runs off it, and so does brinelight, so the Reach never soaks into a keeper the way it soaks into lost things. No keeper goes down without one. Everything else you wear goes over it, in your Rig place.'],
         ['Barnaby', 'A hermit crab who keeps a shop in his shell. He sells cards, keepsakes and tonics for pearls.'],
         ['The diving dress', 'An old keeper\'s diving suit with a sealed lamp on its helmet. You find it the first time you break Dark Water\'s pin and carry it home. Pack it in your Rig place to go down into the Belfry.', { level: 2 }],
@@ -1486,9 +1492,11 @@
         ['The Lantern Heart', 'The magic fire that burns in the lighthouse lamp. Every keeper\'s lantern is lit from it.'],
         ['Light', 'The fire in your lantern. You spend it to play cards, and it comes back at the start of each turn.'],
         ['The Bellwether', 'An enchanted bronze bell. Its ringing holds seawater in place. Keepers sank it under the cliffs long ago to hold the sea back, and now it rings by itself.'],
-        ['Pins', 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The harbour bell in the Shallows and the Tolling Buoy in Dark Water are pins.',
-          { level: 1, before: 'Lesser bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down. Silence it and the water runs out. The harbour bell in the Shallows is a pin.' }],
-        ['Why so many bells', 'Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. Saltmere\'s old harbour bell and its bell-buoy were lost in storms. Under the water they rang whenever the great bell rang, and held its water for it. Things that grow in the Heart\'s light take to bells as well: a hermit crab wore the harbour bell for a shell, and in the Belfry young things wear broken bronze and look for bigger bells.',
+        /* One entry since v0.62.0 (Places had a second, shorter "Pins"). "Lost bells", not "lesser bells": the lesser
+           bells are the Belfry's own, where air is caught. */
+        ['Pins', 'Lost bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down, and it is the boss of that level. Silence it and the water runs away down the stair. The harbour bell in the Shallows and the Tolling Buoy in Dark Water are pins.',
+          { level: 1, before: 'Lost bells that answer the Bellwether and do its work. A pin holds the water in its own part of the Reach, over the stair down, and it is the boss of that level. Silence it and the water runs away down the stair. The harbour bell in the Shallows is a pin.' }],
+        ['Why so many bells', 'Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. Saltmere\'s old harbour bell and its bell-buoy were lost in one winter storm, a hundred years ago. Under the water they rang whenever the great bell rang, and held its water for it. Things that grow in the Heart\'s light take to bells as well: a hermit crab wore the harbour bell for a shell, and in the Belfry young things wear broken bronze and look for bigger bells.',
           { level: 2, before: 'Every bell on this coast was cast to answer the Bellwether, and a bell the sea takes never stops answering. Saltmere\'s old harbour bell was lost in a storm. Under the water it rang whenever the great bell rang, and held its water for it, and a hermit crab wore it for a shell.' }],
         ['Tide-bell', 'Your hand-bell. Ring it and the water near you moves. Keepers call it a tide-bell because it is tuned to the Bellwether, the bell that holds the tide.'],
         ['The Swell', 'The water around the enemies in a fight. You stand on stone and they stand in the wash. Surge raises the water until a wave breaks on them: a Crest. Ebb pulls it away until they are left on bare rock: a Strand.'],
@@ -1497,50 +1505,59 @@
         ['Brinelight', 'The glow in the water of the Reach. It is light from the Lantern Heart that has soaked into the seawater the bell holds.'],
         ['Keepsakes', 'Lost things that have lain in brinelight until they took on a magic of their own. The deeper they lay, the stronger they are.'],
         ['The aether', 'The unseen stuff that carries magic, the way air carries sound. Every keepsake stirs it. Roil is how much.'],
-        ['Calm and Roiled', 'The aether around you can take a certain amount of Roil: your Hold. Up to that it is Calm. Past it the aether is Roiled. First seawater comes out of it into your pack: Seep. Then the aether thrashes, and it strikes you each turn unless your Ward is still up: Thrash. Then the Bellwether hears it, and a Bell Minnow comes to look. A Roiled aether also shakes Pearls loose: every fight in it pays more.'],
-        ['Pearls', 'Money in the Reach. You find them after fights and in wrecks.'],
-        ['Tonics', 'Brews in small bottles. Each works once.'],
+        ['Calm and Roiled', 'The aether around you can take a certain amount of Roil: your Hold. Up to that it is Calm. Past it the aether is Roiled. First seawater comes out of it into your pack: Seep. Then the aether thrashes, and it strikes you each turn unless your Ward is still up: Thrash. Then the noise carries, and a Bell Minnow comes to look. A Roiled aether also shakes Pearls loose: every fight in it pays more.'],
+        ['Pearls', 'Brinelight gone hard. They grow wherever the light pools: in shells, in wrecks, and in whatever has been eating it, which is why you find them after fights. In the Reach they are money.'],
+        ['Tonics', 'Brews in small bottles. Each works once. The Tide-Witch brews them. The ones you find in the Reach are bottles she sold to sailors, and the bell\'s water kept them.'],
       ] },
     ],
     notes: [
       { id: 'barnaby', title: 'Barnaby', when: 'shop', lock: 'Found at a shop.', art: 'units/trader',
-        text: 'Barnaby is a hermit crab, and his shell is both his house and his shop: Barnaby\'s Drifting Emporium. He says everything in it came down with a wreck, and that it still works, mostly. He trades fairly and will not haggle. He also asks that you do not bite.' },
+        text: 'Barnaby is a hermit crab, and his shell is both his house and his shop: Barnaby\'s Drifting Emporium. He says everything in it came down with a wreck, and that it still works, mostly. He trades fairly and will not haggle. He also asks that you do not bite. Ask how a crab learned to talk and he says he had good company: he keeps the lanterns of keepers who did not come back up, and a wick lit from the Heart keeps a little of whoever carried it. Those he will not sell. What he does with the Pearls he does not say, but his shell is a little brighter every year.' },
       { id: 'cove', title: 'Sheltered Coves', when: 'cove', lock: 'Found at a Cove.', art: 'scenes/rest',
-        text: 'Here and there the caves have a dry hollow above the reach of the tide. Somebody has left a blanket, a kettle and a coil of rope in each one. The bell\'s water cannot reach you there, and a lantern burns steadily.' },
+        text: 'Here and there the caves have a dry hollow above the reach of the tide. The keepers stocked each one with a blanket, a kettle and a coil of rope, and no keeper has been down for a hundred years. Somebody still does it: the blanket is dry, and the kettle has been scoured with sand. Barnaby, the crab who keeps the shop, says he would not know anything about that. The bell\'s water cannot reach you there, and a lantern burns steadily.' },
       { id: 'chest', title: 'Sea chests', when: 'wreck', lock: 'Found at a Wreck.', art: 'scenes/treasure',
         text: 'On an ordinary coast the sea breaks a wreck up and washes the pieces ashore. The water the bell holds keeps everything it takes. Chests lie where they sank, and what is inside has soaked in brinelight for years. That is why it glows.' },
       { id: 'toll', title: 'Toll bells', when: 'toll', lock: 'Pass a toll bell.', art: 'scenes/ev_toll',
         text: 'Where the keepers\' way down narrowed, they hung a bell across it, low, so that nothing could come up out of the deep without ringing it. The Bellwether\'s water has those bells now, and like every lost bell on this coast they answer it. Each one swings over the only way on and lets nothing pass for free. It strikes whoever wades under it. Pearls are brinelight gone hard, and it drinks them if you throw them into its mouth. Or you can squeeze past it through the barnacled rock beside it, and the barnacles come with you.' },
       { id: 'keepsake', title: 'How a keepsake is made', when: 'keepsake', lock: 'Carry a keepsake.', art: 'icons/k_whaletooth',
-        text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not. Throw one back into the bell\'s water at a Cove and it gives up at once the brinelight it took years to soak in. That is enough to close a wound and to temper a piece of gear. The keepers called it giving one to the sea.' },
+        text: 'A keepsake starts as something somebody lost: a fish hook, a gull\'s feather, a whale\'s tooth. It lies in brinelight for years, and when it is found it works a small magic of its own. Nobody knows why some lost things turn and others do not. A keepsake also drinks a little from your lantern in every fight you carry it through. Throw it back into the bell\'s water, at a Cove or on the stair, and the sea gives that light back: it closes your wounds and tempers a piece of gear. The old light stays in the keepsake and goes down with it. The keepers called it giving one to the sea.' },
       { id: 'seep', title: 'A Roiled aether', when: 'roiled', lock: 'Carry more Roil than your Hold.', art: 'cards/c_seep',
-        text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether thrashes like a hooked fish. It has no aim. It strikes whoever stands nearest, again and again, and each blow takes a little of you unless you are still braced for it. That is Thrash. Further still, and the noise carries. The Bellwether listens for it, and sends a Bell Minnow to find what is calling. A thrashing aether also shakes Pearls loose from the rock and from whatever you fight in it, so a keeper who can stand it comes home richer. To calm it, drop a keepsake, give one to the sea at a Cove, or bring fewer from home.' },
+        text: 'One keepsake stirs the aether a little. Many together stir it more than it can take. First seawater beads on your gear and soaks into your pack. Keepers call that Seep. Stir it further and the aether thrashes like a hooked fish. It has no aim. It strikes whoever stands nearest, again and again, and each blow takes a little of you unless you are still braced for it. That is Thrash. Further still, and the noise carries: a Bell Minnow hears it, and comes to find what is calling. A thrashing aether also shakes Pearls loose from the rock and from whatever you fight in it, so a keeper who can stand it comes home richer. To calm it, drop a keepsake, give one to the sea at a Cove, or bring fewer from home.' },
       { id: 'lazaret', title: 'A night in the Lazaret', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/lazaret',
         text: 'A lazaret is a ship’s store locker, and also a house where the sick are kept apart. The keepers’ Lazaret is a little of both. Hester locks the keepsakes inside to shut in their Roil. If you take one down again, the sea can claim it. Every keepsake you bring back goes into the store.' },
       { id: 'hester', title: 'Hester', when: 'home', lock: 'Come home from an expedition.', art: 'scenes/op_home',
-        text: 'Hester kept the light for forty years. She taught you to trim a wick, to read the tide-board and to ring a hand-bell so the water listens. When her knees gave out on the tower stairs she gave you her lantern, and the keeping with it, so she is not a keeper any more. Like every keeper since the Lost Lamplighter, she never went down the stair. What she knows of the Reach is in the keepers\' book, which she keeps and you read. When you come home, the kettle is on.' },
+        text: 'Hester kept the light for forty years. She taught you to trim a wick, to read the tide and to ring a hand-bell so the water listens. When her knees gave out on the tower stairs she gave you her lantern, and the keeping with it, so she is not a keeper any more. Like every keeper since the Lost Lamplighter, she never went down the stair. What she knows of the Reach is in the keepers\' book, which she keeps and you read. When you come home, the kettle is on.' },
       { id: 'bosun', title: 'Bosun', when: 'fell', lock: 'Fall in the Reach.', art: 'scenes/sc_fall',
         text: 'Bosun was Hester\'s dog first. He is big and golden and soft-mouthed, and he has pulled gulls, oars and once a fisherman\'s boy out of the harbour. He goes down the Reach with you and keeps back from a fight. When the held water takes you he goes in after you, and he does not let go of your scarf until the sea gives you back.' },
       { id: 'kelp', title: 'The old coast', when: 'ev:ambush', lock: 'Found in the Fog.', art: 'scenes/ev_ambush',
         text: 'Not everything in the Reach serves the bell. Crabs, eels, gulls and kelp lived on this coast long before it rang by itself. The flooding gave them more room, and they guard what they find in it.' },
       { id: 'deckhand', title: 'Drowned Deckhands', when: 'en:sailor', lock: 'Found in a fight.', art: 'units/sailor',
         text: 'The open sea carries the drowned back to shore. The water the bell holds does not. The crews of its wrecks are still down there, and they still work their watch.' },
+      /* v0.62.0: the creatures left from before the game had a world each get a place in it (WORLD.md, "Before the
+         keepers" and "People and creatures"). The Wisp is brinelight out of the water, the Siren a tide-wife's note with
+         nobody singing it, the Hulk something old Saltmere fed, the Twins deep-water fish the flood let up. */
+      { id: 'wisp', title: 'Fog Wisps', when: 'en:wisp', lock: 'Found in a fight.', art: 'units/wisp',
+        text: 'Brinelight does not stay in the water. On cold nights it comes off the pools as a glowing fog, and that fog is what hides so much of the Reach. Some of it holds together and drifts after a lantern. Its touch is cold, and it leaves fog in your pack: Fog Bank. Hester says it is only light and cold air. But the light in that water came out of keepers\' lanterns, and a Wisp stands like someone in a hood.' },
       { id: 'siren', title: 'The Hollow Siren', when: 'en:siren', lock: 'Found at a Dread.', art: 'units/siren',
-        text: 'She sings one flat note, and the water goes flat with it. While she sings, your Swell is dragged back to the middle, and no wave can build.' },
+        text: 'She sings one flat note, and the water goes flat with it. It is the slack-water note that Saltmere\'s tide-wives sang for the fishing boats, for a price, before the keepers cast a bell to do their work. Nobody is singing it. The bell\'s water keeps what it takes. It kept the note and grew a shape around it, the way a pearl grows around grit, and the shape is the one sailors always said was out there. That is why the keepers\' book calls her hollow. While she sings, your Swell is dragged back to the middle, and no wave can build.' },
+      { id: 'hulk', title: 'The Reefback Hulk', when: 'en:hulk', lock: 'Found at a Dread.', art: 'units/hulk',
+        text: 'The fishers of old Saltmere called it the Hulk, and left it the first fish of every season so that it would leave their boats alone. It slept under the low rocks for years at a time, long enough for a reef to grow on its back. The bell\'s water has kept it wet and awake for a hundred years, and nobody feeds it now. Nobody knows what it is under the reef. The reef is its armour, and whatever strikes it is cut: Spines.' },
+      { id: 'angler', title: 'The Angler Twins', when: 'en:angler', lock: 'Found at a Dread.', art: 'units/angler',
+        text: 'Anglerfish belong in deep water, where the only light is the one they carry. The bell\'s flood let these two up the stairs, pool by pool, and now they hunt the Shallows the way you walk them: by a small light held out in the dark. They have never hunted alone. Kill one, and the other goes mad and hits far harder.' },
       { id: 'lamplighter', title: 'The Lost Lamplighter', when: 'ev:ghost', lock: 'Found in the Fog.', art: 'scenes/ev_ghost',
-        text: 'He was the last keeper who went down to tend the bell. He drowned on the low stair a hundred years ago, and he has waited there since with a lantern that went out when he did. A keeper can light another lantern from their own, but it takes something out of the one who gives. That is why sharing your light hurts.' },
+        text: 'Saltmere remembers him as the lamplighter: the keeper who lit the great lamp on the night the lighthouse was finished. Afterwards he went down once more to tend the bell, and he was the last keeper who did. He drowned on the low stair a hundred years ago, and he has waited there since with a lantern that went out when he did. A keeper can light another lantern from their own, but it takes something out of the one who gives. That is why sharing your light hurts.' },
       { id: 'goddess', title: 'The forgotten goddess', when: 'ev:shrine', lock: 'Found in the Fog.', art: 'scenes/ev_shrine',
-        text: 'Nobody in Saltmere remembers her name, or who built her altar. Her stone hands are still held out, and they are empty. She still answers an offering: the water around the altar turns warm.' },
+        text: 'Saltmere is older than its keepers. Before it had a light or a bell, it asked the sea for what it needed, and paid for it here in blood. Then the keepers held the sea back, and nobody needed to ask. Her stone hands are still held out, and they are empty. She still answers an offering: the water around the altar turns warm. Hester says that is only brinelight. The old town had another name for it, and that is the name nobody remembers.' },
       { id: 'witch', title: 'The Tide-Witch', when: 'ev:witch', lock: 'Found in the Fog.', art: 'scenes/ev_witch',
-        text: 'She lives in a hut on stilts and wears a shawl of fishing net. Her brews cost pearls. Her rare lessons cost more: she takes years off your life, and that is why your Max HP drops.' },
+        text: 'Before the keepers cast their bell, Saltmere paid tide-wives to sing the water: a slack tide to cross the bar, a fair wind tied into a knot. A bell does not ask to be paid, and the trade died. One hut is left, on stilts below the tide line, and there has been a crone in it for as long as Saltmere remembers. Nobody likes to ask whether it has always been the same one. Her brews cost pearls. Her lessons are the old craft, and they cost what it always cost: years off your life, knotted into her shawl. That is why your Max HP drops.' },
       { id: 'gull', title: 'The Gilded Gull', when: 'ev:wreck', lock: 'Found in the Fog.', art: 'scenes/ev_wreck',
         text: 'A merchant ship, split open in a rock basin. Her captain\'s cabin is still sealed and her hold is still flooded. Something long and cold has made the hold its home.' },
       { id: 'pool', title: 'The Glimmering Pool', when: 'ev:pool', lock: 'Found in the Fog.', art: 'scenes/ev_pool',
-        text: 'The turquoise glow in the pool is brinelight. There is so much of it here that the water is warm, and the light seems to listen. It mends wounds and sharpens gear. It has also given the pearls in the pool a bite.' },
+        text: 'The turquoise glow in the pool is brinelight. There is so much of it here that the water is warm, and the light seems to listen. It mends wounds and sharpens gear. It has also given the pearls in the pool a bite. And it copies: lean over the water and your reflection leans back a moment late, and it has been known to reach up. The keepers\' book says not to look long.' },
       { id: 'bottle', title: 'The message in the bottle', when: 'ev:bottle', lock: 'Found in the Fog.', art: 'scenes/ev_bottle',
         text: 'A sailor wrote down what he knew about fighting at sea, corked the note in a bottle and threw it over the side. The open sea would have carried it to a beach. The bell\'s water kept it here, and the glass has started to glow.' },
       { id: 'bellwether', title: 'The Bellwether, up close', when: 'en:bell', lock: 'Found on the last landing of the Belfry.', art: 'units/bell',
-        text: 'A hundred years under the sea have changed the bell. Coral and weed grow on its bronze, and something with one eye and many arms has grown into it. When the bronze cracks, a shoal of Bell Minnows comes to its call.' },
+        text: 'A hundred years untended have changed the bell. Coral and weed grow on its bronze, and something with one eye and many arms has grown into it. When the bronze cracks, a shoal of Bell Minnows comes to its call.' },
       // Dark Water
       { id: 'lighteaters', title: 'What eats the light', when: 'en:leech', lock: 'Found in Dark Water.', art: 'units/leech',
         text: 'Below the Shallows the water has been held still for a hundred years. The brinelight that soaks into it has no tide to carry it away, so it gathers, and things have learned to live on it. Leeches, pale stalks and long glowing chains all shine with what they have eaten. They all turn toward an open flame. A keeper\'s lantern is the brightest thing they have ever seen. When one drinks from it, you start each turn with less Light until the water swings hard enough to fan the flame again, at a Crest or a Strand: you are Doused.' },
@@ -1551,7 +1568,7 @@
       { id: 'buoy', title: 'The Tolling Buoy', when: 'en:buoy', lock: 'Found on the last landing of Dark Water.', art: 'units/buoy',
         text: 'Before there was a lighthouse, Saltmere had a bell-buoy. It rocked on its chain off the harbour rocks and rang in the swell, so ships heard the rocks before they saw them. A storm broke its chain and it sank. Now it rings for the Bellwether. It is a pin: while it rings, it holds the water in Dark Water. The light-eaters in its cage have grown together into one shape, like a woman kneeling with her arms round the bell. It sings what the bell rings. It still rocks on the water. The further you push the Swell from the middle, the harder its Toll swings, and every Toll is louder than the last. Hurt, it snaps its chain and swings free, and then it rings wild. A breaking wave smothers a bell, and a bell on dry rock cannot swing.' },
       { id: 'tideboard', title: 'The tide-board', when: 'ev:tideboard', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_tideboard',
-        text: 'For as long as there have been keepers, they cut a line for the highest tide of the year. While they still tended the Bellwether, the lines go up and down. For the last hundred years, with nobody to tend it, every line is higher than the one before. The bell holds the sea off the town by holding it under the cliffs, and the water it holds grows every year.' },
+        text: 'For as long as there have been keepers, they cut a line for the highest tide of the year. While they still tended the Bellwether, the lines go up and down. For the last hundred years every line is higher than the one before. No living keeper came down to cut those, and they are all in one hand. The drowned on this coast still work their watch. The bell holds the sea off the town by holding it under the cliffs, and the water it holds grows every year.' },
       { id: 'garden', title: 'The Glimmer Garden', when: 'ev:garden', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_garden',
         text: 'The stalks are not plants. They are animals rooted to the stone like barnacles, and each bead is a mouth full of brinelight. Picked, a bead hardens into a pearl. The garden grows around whatever glows brightest, and sometimes that is a keepsake. Something in the water tends it, and it notices what you take.' },
       { id: 'divingbell', title: 'The diving bell', when: 'ev:divingbell', lock: 'Found in the Fog in Dark Water.', art: 'scenes/ev_divingbell',
@@ -1573,7 +1590,7 @@
       { id: 'bladder', title: 'Glimmer Bladders', when: 'en:bladder', lock: 'Found in the Belfry, after the Heart comes home.', art: 'units/bladder',
         text: 'Light-eaters that found the Heart. They have drunk so much of its light that they cannot hold it, and they burst when they die. Brace before you kill one, or kill it next to its friends.' },
       { id: 'listener', title: 'Listeners', when: 'en:listener', lock: 'Found in the Belfry, after the Heart comes home.', art: 'units/listener',
-        text: 'They have no eyes. Nothing that was born under the bell has needed them. They have two fans of thin skin where the eyes would be, and with those they hear the Bellwether through a mile of rock. They hear you as well. Every card you play is a sound, and a Listener that is about to pounce hits harder for each one. Sometimes the right thing to do is less.' },
+        text: 'They have no eyes. Nothing that was born under the bell has needed them. They have two fans of thin skin where the eyes would be, and with those they heard the Bellwether through a mile of rock. Now they hear you. Every card you play is a sound, and a Listener that is about to pounce hits harder for each one. Sometimes the right thing to do is less.' },
       { id: 'diver', title: 'The Hollow Divers', when: 'en:diver', lock: 'Found in the Belfry, after the Heart comes home.', art: 'units/diver',
         text: 'Keepers went down to the bell in diving dresses like yours, and some of the dresses are still walking. There is no keeper in them. Pale things grew in through the rotted seams and filled the canvas the way a hand fills a glove, and they have learned to walk it. The lamp on the helmet still burns, cold, and it drinks from yours.' },
       { id: 'yearling', title: 'The Bell Yearling', when: 'en:yearling', lock: 'Found at a Dread in the Belfry, after the Heart comes home.', art: 'units/yearling',
@@ -1585,7 +1602,7 @@
       { id: 'lanterns', title: 'The Lost Lanterns', when: 'ev:lanterns', lock: 'Found in the dark around a lesser bell, in the Belfry.', art: 'scenes/ev_lanterns',
         text: 'Every keeper who went down carried a lantern lit from the Heart. When a keeper drowned, the lantern rolled on down the stairs, toward the fire it was lit from, and it stopped where the Belfry floor stopped it. A wick lit from the Heart keeps a little of whoever carried it. Light one from yours, and for a moment you know what they knew.' },
       { id: 'heartglow', title: 'The glow under the bell', when: 'ev:heartglow', lock: 'Found in the dark around a lesser bell, in the Belfry.', art: 'scenes/ev_heartglow',
-        text: 'The Lantern Heart burns in water as well as in air. Under the bell it warmed the Belfry for a hundred years, and everything down there grew toward it, the way a plant grows toward a window. When the Heart goes home, a little of its light stays in the stone where it lay, and they still grow toward that.' },
+        text: 'The Lantern Heart burns in water as well as in air. It burned here, under the bell, before there was a lighthouse. When the keepers carried it up, a little of its light stayed in the stone where it had lain. That glow warmed the Belfry for a hundred years, and everything down there grew toward it, the way a plant grows toward a window. When the Heart goes home again it is the same: a little stays, and they still grow toward that.' },
       { id: 'rope', title: 'The bell-rope', when: 'ev:rope', lock: 'Found in the dark around a lesser bell, in the Belfry.', art: 'scenes/ev_rope',
         text: 'The keepers rang the Bellwether by hand once, with a rope that ran up the tower to the stair. The top of it rotted away long ago. The rest hangs in the water, and the creatures of the Belfry climb it, nest in it, and hide what they find in its weed. Pull it, and the great bell gives one note, and everything near it hears.' },
       { id: 'choir', title: 'The Drowned Choir', when: 'en:cantor', lock: 'Found at a Dread in the Belfry, after the Heart comes home.', art: 'units/cantor',
