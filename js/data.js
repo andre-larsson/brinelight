@@ -356,7 +356,7 @@
       desc: 'Your first Bail or Stir each fight costs 0 Light.' },
     mateo: { name: 'Mateo', title: 'Mateo, the Cooper', looks: { shore: 'mateo', fight: 'mateo_guard', dive: 'mateo_suit' },
       weapon: { name: 'Mallet', strike: 'Mallet Strike', refit: 'Guarded Strike', art: 'c_mallet', icon: 'slot_mallet' },
-      points: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.53, 0.41], pocket: [0.65, 0.49] },
+      points: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.52, 0.48], pocket: [0.64, 0.57] },
       dread: 'splitcask', level: 1, final: 'lasthoop', skill: 'Shield Bash',
       desc: 'Spend 4 Ward to deal 6 damage. Bash costs 0 Light and uses one of your Bail or Stir actions. Once per turn.',
       quiet: 'The last hoop drops. You lift the lid and wait. Only water comes out. You take the loose end of the line home to tell Hester who held the other end.' },

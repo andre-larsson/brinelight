@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.61.0';
+  BL.VERSION = '0.61.1';
   BL.CHANGELOG = [
+    { v: '0.61.1', date: '2026-11-23', items: [
+      'Mateo now carries a brass bell on his belt, in the Workshop, in Pack and in a fight above water. The Bell slot’s line points at it and no longer at his lantern.',
+    ] },
     { v: '0.61.0', date: '2026-11-23', items: [
       'Kit now shows as icons in its slots and no longer changes a keeper’s picture. The picture shows who you play and the outfit you chose, the same in the Workshop, in Pack and in a fight. The Cork Vest and the Shell Gorget are no longer painted on Wren. They work as before.',
       'A diving dress is carried until the Belfry. Above water you fight in your outfit, and under the sea every keeper wears their diving dress. With a dress packed, Pack shows that picture beside the outfits.',
