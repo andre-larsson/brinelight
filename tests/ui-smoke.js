@@ -26,7 +26,7 @@ const failures = [];
 /* v0.33.0: a story scene plays the first time a pin breaks and on the end screen, and a "New at the lighthouse" window
    says what opened. The Belfry and Lazaret scenarios go through them; the others start with them seen and told. */
 const SEEN_SCENES = ['hermit', 'buoy', 'dress', 'heart', 'fall', 'knocking'];
-const TOLD = ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:shells', 'outfit:gala', 'outfit:longjohns'];
+const TOLD = ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:shells', 'outfit:gala', 'outfit:longjohns', 'outfit:frontman', 'outfit:king'];
 const QUIET_STORY = JSON.stringify(JSON.stringify({ opening: true, scenes: SEEN_SCENES }));
 const QUIET_META = `localStorage.setItem('brinelight.meta.v1', ${JSON.stringify(JSON.stringify({ told: TOLD }))});`;
 const log = (...a) => console.log(...a);
@@ -2340,7 +2340,8 @@ async function mateoScenario(page, base, name, size) {
   if (!await has('.outfit-opt[data-o="lamplighter"]') || !await has('.outfit-opt[data-o="gala"]')) throw new Error('The earlier log and Heart should count on this save');
   await click('[data-act="outfit"][data-o="gala"]');
   await click('[data-act="keeper"][data-k="mateo"]');
-  if (await has('.outfit-opt')) throw new Error('Mateo has no outfits to choose from');
+  const hisOutfits = () => page.eval(`[...document.querySelectorAll('.outfit-opt')].map((o) => o.dataset.o).join(',')`);
+  if (await hisOutfits() !== 'cooper') throw new Error(`Mateo should have only what he wears until he earns a costume (${await hisOutfits()})`);
   if ((await page.eval(`document.querySelector('.kit-slot[data-place="harpoon"] .ks-txt').textContent`)) !== 'WeaponPlain mallet') throw new Error('Mateo’s empty Weapon slot should read Plain mallet');
   await click('[data-act="kitslot"][data-place="harpoon"]');
   if (!/A fitting for your mallet\. It changes your first Mallet Strike/.test(await page.eval(`document.querySelector('.kit-tray').textContent`))) throw new Error('The Weapon tray should speak of Mateo’s mallet');
@@ -2364,6 +2365,21 @@ async function mateoScenario(page, base, name, size) {
   if (!await has('.outfit-opt[data-o="gala"][aria-pressed="true"]')) throw new Error('Switching keepers should remember Wren’s outfit');
   await click('[data-act="keeper"][data-k="mateo"]');
   if (!await page.eval(`document.querySelector('.doll-wren img').src.endsWith('/mateo.webp')`)) throw new Error('The Pack should show Mateo upright');
+  // his costumes open on his own safe returns (v0.64.0): the Front Man after the Shallows' pin, the King after Dark
+  // Water's. Each has a Pack picture, and Wren's row never shows them
+  const pins = async (n) => { await evalRun(`B.meta.mateoHome = ${n}; B.saveMeta();`); await click('[data-act="keeper"][data-k="mateo"]'); return hisOutfits(); };
+  if (await pins(1) !== 'cooper,frontman') throw new Error('The Front Man should open once Mateo has come home with the Shallows’ pin broken');
+  if (await pins(2) !== 'cooper,frontman,king') throw new Error('The Harbour King should open once Mateo has come home with Dark Water’s pin silenced');
+  for (const o of ['frontman', 'king']) {
+    await click(`[data-act="outfit"][data-o="${o}"]`);
+    if (!await page.eval(`document.querySelector('.doll-wren img').src.endsWith('/mateo_${o}.webp')`)) throw new Error('Pack should show Mateo in his ' + o + ' costume');
+  }
+  await shot('costume');
+  await click('[data-act="keeper"][data-k="wren"]');
+  if (/frontman|king|cooper/.test(await hisOutfits())) throw new Error('Wren’s outfits should not list Mateo’s');
+  await click('[data-act="keeper"][data-k="mateo"]');
+  await click('[data-act="outfit"][data-o="cooper"]');
+  if (await pins(0) !== 'cooper') throw new Error('The test should leave Mateo’s costumes locked for the expedition below');
   await checkPage(page, name + ' pack');
   await shot('pack');
   await click('[data-act="dive"]');
@@ -2405,6 +2421,9 @@ async function mateoScenario(page, base, name, size) {
   await click('[data-act="opnext"]');
   if (!await evalRun('return E.kitUnlocked(B.meta, "sparehoop") && !E.kitUnlocked(B.meta, "watchglass") && B.meta.mateoQuiets === 1;')) throw new Error('Mateo’s clear should open only his own kit and count once');
   if (await evalRun('return E.outfitOpen(B.meta, "longjohns");')) throw new Error('Mateo’s clear should not unlock Wren’s Long Johns');
+  if (!await evalRun('return B.meta.mateoHome === 3 && E.outfitOpen(B.meta, "frontman") && E.outfitOpen(B.meta, "king");')) throw new Error('Coming home with every pin broken should open both of Mateo’s costumes');
+  const earned = await page.eval(`[...document.querySelectorAll('.outfit-reward')].map((el) => el.textContent).join(' | ')`);
+  if (!/Front Man unlocked/.test(earned) || !/Harbour King unlocked/.test(earned)) throw new Error(`The score screen should name both costumes (${earned})`);
   if (!await evalRun('return r.final.laz.added.length === 2 && B.meta.lazaret.includes("whaletooth") && B.meta.lazaret.includes("anchor");')) throw new Error('A full clear should bank every carried keepsake');
   if (page.errors.length) throw new Error(page.errors.join('\n'));
 }
@@ -2442,7 +2461,8 @@ async function debugUnlocksScenario(page, base, name, size) {
     const { debugOutfits, told, ...progress } = Brinelight.meta;
     return JSON.stringify({ progress, story: Brinelight.story });
   })()`);
-  const wardrobe = () => page.eval(`[...document.querySelectorAll('.outfit-opt')].map((o) => o.dataset.o).join(',') === Object.keys(BL.OUTFITS).join(',')`);
+  // Pack lists the chosen keeper's outfits
+  const wardrobe = () => page.eval(`[...document.querySelectorAll('.outfit-opt')].map((o) => o.dataset.o).join(',') === BL.E.outfitsOf(BL.E.keeperId(Brinelight.meta)).join(',')`);
   const firstGroup = () => page.eval("document.querySelector('.dbg-sec h3').textContent");
 
   await loadDebug();

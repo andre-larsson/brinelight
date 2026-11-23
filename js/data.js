@@ -367,7 +367,10 @@
   /* Outfits: what a keeper wears on land, one picture each (`art`; `fight` for a fighting stance of its own). Each
      belongs to one keeper, and that keeper's first one is what they wear until another is chosen. They are for looks
      only. `when` is what opens it (E.outfitOpen) and `home` what the lighthouse says then.
-     A new outfit needs a line here and its picture, on the keeper's own canvas and in the same pose. */
+     A new outfit needs a line here and its picture, on the keeper's own canvas. Wren's are all in her pose. One in a
+     pose of its own (Mateo's costumes, v0.64.0) says where the kit screen's slot lines end on its `art` picture
+     (`points`, like a keeper's). Mateo's two open on a safe return as Mateo: the user asked that they be "fairly
+     easy to unlock" (E.outfitOpen, meta.mateoHome). */
   BL.OUTFITS = {
     ochre: { keeper: 'wren', name: 'Ochre Oilskin', art: 'keeper' },
     harbour: { keeper: 'wren', name: 'Harbour Blue', art: 'wren_harbour' },
@@ -379,6 +382,13 @@
       home: 'Saltmere is throwing a party now the Heart is home. The harbour players have laid out your gala outfit.' },
     longjohns: { keeper: 'wren', name: 'Long Johns', art: 'wren_longjohns', when: 'longwatch',
       home: 'Hester leaves a dry pair of long johns by your bed. For the first time since the light went out, you sleep through to morning.' },
+    cooper: { keeper: 'mateo', name: 'Cooper’s Blue', art: 'mateo', fight: 'mateo_guard' },
+    frontman: { keeper: 'mateo', name: 'Front Man', art: 'mateo_frontman', fight: 'mateo_frontman_fight', when: 'mateoShallows',
+      points: { harpoon: [0.7, 0.33], ditty: [0.4, 0.52], coat: [0.57, 0.38], bell: [0.585, 0.5], pocket: [0.65, 0.6] },
+      home: 'Mateo sang all the way home from the Shallows. Hester gave the harbour players an old keeper’s oilskin, and they cut it short for him. The harbour band has a front man now.' },
+    king: { keeper: 'mateo', name: 'Harbour King', art: 'mateo_king', fight: 'mateo_king_fight', when: 'mateoDark',
+      points: { harpoon: [0.34, 0.31], ditty: [0.33, 0.53], coat: [0.63, 0.26], bell: [0.5, 0.5], pocket: [0.58, 0.6] },
+      home: 'The harbour players needed a king for their pageant. Mateo coopered his own crown from a barrel hoop and six stave ends. The cloak is a signal flag trimmed with gull feathers.' },
   };
   BL.REWARD_POOL = {
     common: Object.values(CARDS).filter((c) => c.rarity === 'common').map((c) => c.id),

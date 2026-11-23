@@ -2173,7 +2173,7 @@
        record: { runs, wins, deep }, reached: the deepest level any expedition has reached (it sets the Hold) }. */
   E.SALVAGE_PER_SCORE = 50;
   E.salvageFor = (score) => Math.max(0, Math.floor((score || 0) / E.SALVAGE_PER_SCORE));
-  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', outfits: {}, debugOutfits: [], shellsHome: false, mateoQuiets: 0 });
+  E.newMeta = () => ({ salvage: 0, earned: 0, owned: [], kit: E.fitKit(), ach: [], lazaret: [], bring: [], lazOpen: false, holdUp: 0, currents: [], record: E.newRecord(), reached: 0, heard: [], told: [], hesterDone: [], keeperNote: null, keepers: [], keeper: 'wren', outfits: {}, debugOutfits: [], shellsHome: false, mateoQuiets: 0, mateoHome: 0 });
   E.outfitOpen = function (meta, id) {
     if (!knownOutfit(id)) return false;
     if (meta.debugOutfits?.includes(id)) return true;
@@ -2182,6 +2182,9 @@
       case 'shells': return meta.shellsHome === true;
       case 'heart': return E.heartIsHome(meta);
       case 'longwatch': return meta.ach.includes('longwatch') && (meta.record.quiets || 0) > (meta.mateoQuiets || 0);
+      // Mateo's costumes: he came home safe with that many pins broken (v0.64.0)
+      case 'mateoShallows': return (meta.mateoHome || 0) >= 1;
+      case 'mateoDark': return (meta.mateoHome || 0) >= 2;
       default: return true;
     }
   };
@@ -2279,6 +2282,9 @@
   /* The logbook: finished expeditions, counted since v0.13.0. `wins` counts the ones that came home, `hearts` the ones
      that brought the Heart home, and `deep` is the deepest landing reached: { level, floor }. */
   E.newRecord = () => ({ runs: 0, wins: 0, hearts: 0, quiets: 0, deep: null });
+  /* The deepest pin a run broke, counting levels from 1: 0 none, 1 the Shallows', 2 Dark Water's, 3 the Belfry's.
+     Every expedition starts on the shore, so a deeper pin means the ones above it were broken on the way. */
+  E.pinsHome = (run) => (run.cleared || []).reduce((n, lv) => Math.max(n, lv + 1), 0);
   E.recordRun = function (meta, run, won) {
     if (!run || run.tutorial) return meta.record;
     const r = meta.record;
@@ -2286,6 +2292,8 @@
     if (won) {
       r.wins++;
       if (!run.cheated && E.keeperId(run) === 'wren' && run.cleared?.includes(0)) meta.shellsHome = true;
+      // how far down Mateo has broken the pins and still come home: 1 the Shallows, 2 Dark Water, 3 the Belfry
+      if (!run.cheated && E.keeperId(run) === 'mateo') meta.mateoHome = Math.max(meta.mateoHome || 0, E.pinsHome(run));
     }
     if (won && run.heart) r.hearts = (r.hearts || 0) + 1;
     if (won && run.quieted) {
@@ -2410,6 +2418,10 @@
     if (typeof m.shellsHome !== 'boolean') {
       m.shellsHome = m.hesterDone.includes('log') || (rec.wins > 0 && m.ach.includes('outofbell'));
     }
+    // Mateo's safe returns were not counted before v0.64.0: quieting the Belfry as Mateo means he broke every pin
+    // on the way and came home
+    if (typeof m.mateoHome !== 'number') m.mateoHome = m.mateoQuiets > 0 || m.ach.includes('lasthoop') ? E.LEVELS.length : 0;
+    m.mateoHome = E.keeperOpen(m, 'mateo') ? Math.max(0, Math.min(E.LEVELS.length, Math.floor(m.mateoHome) || 0)) : 0;
     m.debugOutfits = Array.isArray(m.debugOutfits) ? [...new Set(m.debugOutfits.filter(knownOutfit))] : [];
     // a choice of outfit for each keeper (v0.61.0; until then `outfit` held Wren's): only their own, and only if open
     const worn = m.outfits && typeof m.outfits === 'object' ? m.outfits : { wren: m.outfit };

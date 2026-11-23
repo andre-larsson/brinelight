@@ -2707,6 +2707,65 @@ The user asked for the Pack and kit pictures and text to be consistent, and for 
 - **Mateo's bell (v0.61.1, 2026-11-23).** His shore and fight pictures had no bell, so the Bell slot's line pointed at his lantern. Both now show a small brass bell on his belt, between the buckle and the red rag, like the one in his dive picture. They are Codex edits of each picture (two variants each, A used; the raw edits are `assets-src/units/mateo_bell-edit-*.png` and `mateo_guard_bell-edit-*.png`), with only the bell's rectangle pasted back by `tools/wren-art.py compose --base`. His Bell line points at the bell. His Pocket line moved from the rag to his trouser hip, because the Bell line now ran through its dot. His Ditty Bag line still points at his lantern, since he has no bag in the picture.
 - **Open:** The kit screens draw a line to a place on the picture even though the picture never shows the piece: do the lines still earn their place?
 
+### Mateo's costumes: Front Man and Harbour King (v0.64.0, 2026-11-23)
+
+**Built (v0.64.0).** After the suggestions and drafts below, the user wrote "Keep front man and harbour king. Costume should be fairly easy to unlock." Asked whether to build them and how easy the unlock should be, the user chose "Build, two easy steps" from four choices (the others: both on the first safe return, both open when he joins, keep as drafts).
+
+- **Mateo has three outfits** (`BL.OUTFITS`): **Cooper's Blue** (what he has always worn, his first, so never locked), **Front Man** and **Harbour King**. The names are the agent's.
+- **Unlocks, both on a safe return as Mateo:** Front Man once he has come home with the Shallows' pin broken, Harbour King once he has come home with Dark Water's pin silenced. `meta.mateoHome` keeps the deepest pin he has broken and still come home (0 to 3; `E.pinsHome`, set in `E.recordRun`, not on a cheated run). One return from Dark Water opens both.
+  - A save from before v0.64.0 has no count. If Mateo quieted the Belfry on it (`mateoQuiets` or the Last Hoop achievement), both are open. His other returns were not recorded, so they count from now.
+- **Pictures:** pose A of each draft is the Pack picture and pose B the fight stance, like his shipped pair (`img/units/mateo_frontman`, `mateo_frontman_fight`, `mateo_king`, `mateo_king_fight`; about 300 KB together, loaded only when worn). They are the placed drafts unchanged.
+- **Slot lines:** an outfit in a pose of its own carries `points` for the kit screen, and `drawDollLines` uses them before the keeper's. Wren's outfits need none. A test requires them for any outfit of Mateo's that is not his shore picture.
+- **The lighthouse says** (the agent's text): Hester gave the harbour players an old keeper's oilskin and they cut it short for him; for their pageant he coopered his own crown. WORLD.md has both.
+- **Not built:** the other suggestions below (Cooperage Red, Keeper's Ochre, the Barrel, Inspector of Tea, Lifeboat Crew). With "fairly easy" as the rule, the Barrel's 10 Shield Bash finishes and the Lifeboat Crew's current would need easier triggers.
+- **Open:** In a fight the Front Man holds his lunge and the King holds his mallet out behind him. Do the two fight stances read well in play, or should a costume fight in its Pack pose? Is one return from Dark Water opening both at once fine?
+- Checks: `npm test` 274 pass (two new tests for the unlocks and old saves, and one for the slot points). `npm run test:ui` passed (199 s); the Mateo scenario now checks the Pack row at each step, both Pack pictures, that Wren's row never lists his, and that coming home from the Belfry names both costumes on the score screen. `npm run build` OK. Looked at in the real game on desktop and phone: the lighthouse notice, Pack, the slot lines, and both fight pictures loading.
+
+**Suggestions and drafts (before the build).**
+
+
+The user asked for costume unlocks for Mateo and when each should open, then for "something inspired by Freddy Mercury, or RRR bollywood action", then for a draft of each of those. Names, timing and the number 10 are the agent's suggestions.
+
+- **The user's picks (2026-11-23):** "Keep front man and harbour king. Costume should be fairly easy to unlock." The Harbour Reel and the Hogshead are set aside: their placed drafts are removed, and the originals stay in `assets-src/units/samples/`. The timings in the tables below were suggested before "fairly easy" and are too hard for these two (Dark Water's pin, and the Belfry with a current set).
+
+- **Why not Wren's triggers.** The Heart is home before Mateo joins and Hester's finds are shared, so an unlock tied to either would open at once. Each trigger below is something done as Mateo. Only the Last Hoop is recorded today (`lasthoop`); the others need a small record each.
+- **The first six** (three are already drawn; contact sheet compared against `img/units/mateo.webp`):
+
+  | Costume | Opens when | Picture |
+  |---|---|---|
+  | Cooper's Blue (what he wears) | He joins | shipped |
+  | Cooperage Red | He joins | `drafts/keepers/mateo-brick-red.webp` |
+  | Keeper's Ochre: Hester proofs him an apron with the great lamp's oil | His first safe return with the Shallows' pin broken | `drafts/keepers/mateo-ochre-apron.webp` |
+  | The Barrel: his shield is a barrel lid, and this is the rest of the barrel | 10 enemies finished with Shield Bash, across expeditions | `drafts/costumes/mateo_barrel.webp`, needs a bell |
+  | Inspector of Tea, from his invented regulation | His first Last Hoop clear | not drawn |
+  | Lifeboat Crew (the one serious costume) | He quiets the Belfry again with a current set | not drawn |
+
+- **The four homage costumes**, each Mateo's own face in harbour materials, with no real name in the game or the request:
+
+  | Costume | After | Opens when (suggested) |
+  |---|---|---|
+  | The Front Man | Freddie Mercury's yellow stadium jacket: a keeper's ochre oilskin cut short, white sailor's trousers with a red stripe, the mallet as the microphone | His first safe return with Dark Water's pin silenced |
+  | Harbour King | his crown and robe: a barrel-hoop crown with stave points, a signal-flag cloak trimmed with gull feathers | He quiets the Belfry with a current set |
+  | Harbour Reel | RRR's dance number: shirt sleeves, thumbs in his braces, a kick | 3 fights won in one expedition without losing HP |
+  | The Hogshead | RRR's one-man-army entrances: shirt in tatters, a hogshead held up to throw | A fight won with 5 HP or less |
+
+  Left out: RRR's archer finale (a sacred figure), its shoulder-ride pair (it would read as more than fellow keepers between him and Wren), and the housemaid video (nothing in it comes from his trade).
+- **Drafts:** two poses of each, one Codex run, with his harbour-blue pictures attached as the face and style reference. They are new pictures, not edits, so each has its own pose. Originals `assets-src/units/samples/mateo-<name>-<a|b>.png`; placed drafts `assets-src/drafts/costumes/mateo_<name>-<a|b>.webp` (the Front Man and the King only, since the user's picks); the request is the last line of `assets-src/wanted-images.tsv`. Scale was matched to shipped Mateo by head size (hair to chin, about 67 px on the canvas), then `tools/wren-art.py place`:
+
+  | Draft | eye, head, tall |
+  |---|---|
+  | frontman-a (fist straight up) | 203, 580, 1.008 |
+  | frontman-b (low lunge) | 300, 569, 0.895 |
+  | king-a (mallet as sceptre) | 135, 577, 0.990 |
+  | king-b (mallet held out) | 135, 575, 0.973 |
+  | reel-a (the kick) | 106, 570, 1.051 |
+  | reel-b (the crouch) | 123, 577, 0.985 |
+  | hogshead-a (barrel overhead; shrunk 6% to fit the canvas) | 425, 559, 0.845 |
+  | hogshead-b (barrel on his shoulder) | 165, 538, 0.964 |
+
+- **What the fight previews showed** (`tools/swap-shots.js`, phone size): the Front Man's yellow and white read best, and the King's red cloak next. The Reel is the closest to plain Mateo: its dark trousers fade and only the kick (A) changes his outline. The Hogshead reads by the barrel overhead (A); on his shoulder (B) the barrel merges with his head.
+- **To build any of them:** every draft has a small brass bell on the belt and the lantern, so the kit screen's Bell line has a target, but each pose needs its own slot-line points (`points` is per keeper today). The Hogshead has no shield and the Front Man and Reel carry it on the back.
+
 ### Keeper and costume drafts (2026-11-14; not in the game)
 
 The user asked how more characters could be added, and wanted to judge the look first. I proposed a foundation (`BL.KEEPERS`, a keeper choice on the Pack screen, a Logbook per keeper) and five ways keepers could differ: numbers and loadout, own cards, an own water rule, own kit places, companions. None of that is decided. Three rounds of Codex samples followed. They were compared on a private artifact page (https://claude.ai/artifact/39b2dzv4LmqunJR8TmhdsJ), with each picture swapped into the real fight and Workshop (`tools/swap-shots.js`). The user keeps the drafts below and will choose later which to build.

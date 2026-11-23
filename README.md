@@ -166,6 +166,8 @@ Both are announced the moment you earn them. The score counts Crests and Strands
 
 **Wren’s outfits.** Choose one in **Pack for the expedition**. The ochre oilskin and **Harbour Blue** are available on the first descent. Bring Hester the Shallows log to unlock **Lamplighter’s Green**. Break the Harbour Hermit’s bell as Wren and return safely to unlock the **Shell Bikini**. Bring home the Lantern Heart to unlock **Gala**, and beat the Dark Watch as Wren to unlock **Long Johns**. Recorded past completions count. Pack remembers your choice. An outfit changes only how Wren looks on shore and above water. Kit shows as icons in its slots and never changes a keeper’s picture, and it works in every outfit. Under the sea, in the Belfry, every keeper shows in their diving dress. With a dress packed, Pack shows that picture beside the outfits.
 
+**Mateo’s outfits.** Mateo wears **Cooper’s Blue**. Come home safe as Mateo with the Shallows’ pin broken to unlock **Front Man**, and with Dark Water’s pin silenced to unlock **Harbour King**. A save where Mateo has already quieted the Belfry has both. Each has its own stance in a fight, and neither changes how he plays.
+
 **The Workshop (lasts across runs).** Every finished expedition turns its score into **Salvage**: 1 for every 50 points. Abandoning one earns nothing.
 - Spend Salvage in the Workshop on the title screen. **Kit** you buy is yours for good. Kit is the mundane gear a keeper wears and carries, and every keeper shares it; keepsakes are the magic.
 - Kit goes in five places, one piece each, and you choose before each descent. The game remembers your choice.

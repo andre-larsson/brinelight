@@ -63,7 +63,15 @@ test("a keeper's picture shows who they are and what they wear, and kit never ch
     [O.art, O.fight].filter(Boolean).forEach((a) => assert.ok(pic(a), `${o}: img/units/${a}.webp is missing`));
   });
   assert.deepEqual(E.outfitsOf('wren'), ['ochre', 'harbour', 'lamplighter', 'shells', 'gala', 'longjohns']);
-  assert.deepEqual(E.outfitsOf('mateo'), []);
+  assert.deepEqual(E.outfitsOf('mateo'), ['cooper', 'frontman', 'king']);
+  assert.equal(BL.OUTFITS.cooper.art, BL.KEEPERS.mateo.looks.shore, "Mateo's first outfit is his shore picture");
+  assert.equal(BL.OUTFITS.cooper.fight, BL.KEEPERS.mateo.looks.fight, 'and his fighting stance');
+  // an outfit in a pose of its own says where every slot line ends on its picture
+  Object.entries(BL.OUTFITS).filter(([, O]) => O.points).forEach(([o, O]) => {
+    assert.deepEqual(Object.keys(O.points).sort(), BL.KIT_PLACES.map((pl) => pl.id).sort(), o);
+    Object.values(O.points).forEach((at) => assert.ok(at.length === 2 && at.every((v) => v > 0 && v < 1), o));
+  });
+  E.outfitsOf('mateo').filter((o) => BL.OUTFITS[o].art !== BL.KEEPERS.mateo.looks.shore).forEach((o) => assert.ok(BL.OUTFITS[o].points, `${o} is not in his shore pose, so it needs its own points`));
   assert.equal(BL.OUTFITS.ochre.art, BL.KEEPERS.wren.looks.shore, "Wren's first outfit is her shore picture");
   // on land: the outfit; a fighting stance in a fight if there is one. Under the sea: the dive picture
   assert.equal(E.keeperArt(null), 'keeper');
@@ -130,8 +138,8 @@ test('a new outfit needs only a line of data: a keeper keeps their own choice, a
   BL.OUTFITS.apron = { keeper: 'mateo', name: 'Cooper’s Apron', art: 'mateo_apron', fight: 'mateo_apron_guard' };
   try {
     const meta = metaWith({ record: { runs: 3, wins: 2, hearts: 1, quiets: 0 }, keepers: ['mateo'] });
-    assert.deepEqual(E.outfitsOf('mateo'), ['apron']);
-    assert.deepEqual(E.unlockedOutfits(meta, 'mateo'), ['apron']);
+    assert.deepEqual(E.outfitsOf('mateo'), ['cooper', 'frontman', 'king', 'apron']);
+    assert.deepEqual(E.unlockedOutfits(meta, 'mateo'), ['cooper', 'apron']);
     assert.ok(E.equipOutfit(meta, 'gala'));
     assert.equal(E.equipOutfit(meta, 'apron'), false, 'Wren cannot wear his');
     meta.keeper = 'mateo';
@@ -561,7 +569,7 @@ test('old lasting state carries over: gear becomes kit, and the pack becomes wha
 
 test('what opens at the lighthouse is told once: the Workshop, the Lazaret, the Diving Dress and currents', () => {
   const meta = E.newMeta();
-  assert.deepEqual(E.FEATURES, ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:shells', 'outfit:gala', 'outfit:longjohns']);
+  assert.deepEqual(E.FEATURES, ['workshop', 'lazaret', 'suit', 'currents', 'outfit:lamplighter', 'outfit:shells', 'outfit:gala', 'outfit:longjohns', 'outfit:frontman', 'outfit:king']);
   assert.deepEqual(E.featureNews(meta), [], 'a new player has nothing open');
   E.earnSalvage(meta, 500); // the first Salvage opens the Workshop
   assert.deepEqual(E.featureNews(meta), ['workshop']);

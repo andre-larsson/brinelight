@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.63.0';
+  BL.VERSION = '0.64.0';
   BL.CHANGELOG = [
+    { v: '0.64.0', date: '2026-11-23', items: [
+      'Mateo has outfits of his own in Pack. He wears Cooper’s Blue, and two costumes open as he comes home. Come home safe as Mateo with the Shallows’ pin broken to unlock Front Man. Come home safe with Dark Water’s pin silenced to unlock Harbour King.',
+      'Each costume has a picture for Pack and another stance for fights. Under the sea he still shows in his diving dress.',
+      'If Mateo has already quieted the Belfry on your save, both costumes are open. His other returns were not counted before this version, so they count from now.',
+    ] },
     { v: '0.63.0', date: '2026-11-23', items: [
       'The world’s entries no longer change as you get further. Each has one text, and what you learn later is a new entry. The last dry step and The lost bells open with the Belfry, The broken bell opens when the Heart comes home, and Mateo has an entry once he is a keeper.',
       'A level you have not found is no longer named by a locked chapter’s title, or by what earns a piece of kit in the Workshop.',

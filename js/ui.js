@@ -35,7 +35,7 @@
   try {
     const m = JSON.parse(localStorage.getItem(META_KEY) || '{}');
     const raw = { salvage: 0, earned: 0, owned: [], ach: [] };
-    ['salvage', 'earned', 'mateoQuiets', 'holdUp'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
+    ['salvage', 'earned', 'mateoQuiets', 'mateoHome', 'holdUp'].forEach((k) => { if (typeof m[k] === 'number') raw[k] = m[k]; });
     ['owned', 'packed', 'ach', 'lazaret', 'bring', 'currents', 'heard', 'told', 'keepers', 'debugOutfits'].forEach((k) => { if (Array.isArray(m[k])) raw[k] = m[k].filter((x) => typeof x === 'string'); });
     raw.keeper = m.keeper;
     raw.outfit = m.outfit; // Wren's, in saves from before v0.61.0 (E.migrateMeta)
@@ -1836,7 +1836,8 @@
     // the picture is drawn bottom-centred inside the img box (object-fit: contain)
     const k = Math.min(ir.width / img.naturalWidth, ir.height / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
     const x0 = ir.left - box.left + (ir.width - w) / 2, y0 = ir.top - box.top + ir.height - h;
-    const fix = E.keeper(meta).points || {}, n = (v) => v.toFixed(1);
+    // where the lines end on this picture: the outfit's own points if its pose is its own, else the keeper's
+    const fix = BL.OUTFITS[E.outfitId(meta)]?.points || E.keeper(meta).points || {}, n = (v) => v.toFixed(1);
     lines.setAttribute('viewBox', `0 0 ${n(box.width)} ${n(box.height)}`);
     lines.innerHTML = BL.KIT_PLACES.map((pl) => {
       const el = $(`.kit-slot[data-place="${pl.id}"]`, doll), at = fix[pl.id] || pl.at;
