@@ -105,7 +105,7 @@ test('Bash uses four Ward and one Swell action, once a turn even with the Bailer
   assert.ok(!E.canBash(wren).ok);
 });
 
-test('First Ring pays once per fight for Wren after Mateo joins', () => {
+test('the Opening Bell (First Ring until v0.65.0) pays once per fight for Wren after Mateo joins', () => {
   const meta = heartMeta();
   meta.keepers = ['mateo'];
   const run = E.newRun(10, 0, ['bailer'], [], [], true, 2, 0, E.keeperProfile(meta));

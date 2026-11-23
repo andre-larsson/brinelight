@@ -12,6 +12,8 @@
    2026-11-14, which never shopped, never drank a tonic and never Stirred mid-turn. shopOrder and removeId change the
    shopping (see shop()); skipCards, keepsake(run, choices), route(run, nodes), toll(run) (how to pay a toll bell), home (go home after
    that level's pin). refit: 2 forces alternate refits for a balance comparison; the default is the original +.
+   As Mateo it Bashes (noBash never) and fits a hoop on each stair down: the first offered on HOOP_ORDER, or on
+   opts.hoops (an order of its own, e.g. ['chime']); noHoops fits none.
    finalRetry takes the Belfry rematch on a fall. The default stops at the first loss. */
 'use strict';
 const path = require('path');
@@ -104,19 +106,38 @@ function chooseSwellAct(run, endOfTurn, opts = {}) {
   return null;
 }
 
+/* Mateo's Shield Bash: finish an enemy with it at once; otherwise, late in the turn, cash in Ward he can spare. A Bash
+   that costs no Ward (the Chime Hoop) is always worth taking. With hoops it reads E.bashInfo for the cost and E.bashDamage
+   for the blow, and it aims the Herring Hoop's Brine at the enemy with the most health. */
 function chooseBash(run, late) {
   const { E } = load();
   if (!E.canBash(run).ok) return null;
-  const c = run.combat;
-  const targets = E.targets(c).sort((a, b) => a.hp + a.ward - b.hp - b.ward);
-  const kill = targets.find((e) => E.attackValue(c.player, e, E.SHIELD_BASH.dmg) >= e.hp + e.ward);
+  const c = run.combat, b = E.bashInfo(run);
+  const targets = E.targets(c).sort((x, y) => x.hp + x.ward - y.hp - y.ward);
+  const kill = targets.find((e) => E.bashKills(run, e));
   if (kill) return kill.uid;
   if (!late) return null;
   const incoming = E.alive(c).reduce((sum, e) => {
     const intent = E.intentInfo(run, e);
     return sum + (intent ? intent.dmg * intent.hits : 0);
   }, c.thrash || 0);
-  return c.player.ward >= incoming + E.SHIELD_BASH.ward ? targets[0].uid : null;
+  if (c.player.ward < incoming + b.cost) return null;
+  return (b.brine ? targets[targets.length - 1] : targets[0]).uid;
+}
+/* A free Bash waits (the Chime Hoop has paid, or the Bilge Hoop leaves the action alone): the bot takes it before it
+   spends the turn's last Bail or Stir on something else. */
+function bashFirst(run) {
+  const { E } = load();
+  if (!E.canBash(run).ok) return false;
+  const b = E.bashInfo(run);
+  return b.free && b.usesAct;
+}
+/* Which of the two hoops to fit: the first on this list that is offered (opts.hoops gives another order). */
+const HOOP_ORDER = ['iron', 'herring', 'truss', 'bilge', 'withy', 'chime'];
+function pickHoop(run, opts = {}) {
+  const { E } = load();
+  const offer = E.hoopOffer(run) || [];
+  return (opts.hoops || HOOP_ORDER).find((id) => offer.includes(id)) || offer[0] || null;
 }
 
 /* The stair down (v0.31.0): two of six, in this order of need. A keepsake to the sea when the aether is Roiled (seaChoice; opts.noSea never); rest first below 60% HP; take out a plain starter
@@ -381,6 +402,8 @@ function step(run, opts = {}) {
     if (bash && E.bash(run, bash)) return 'bash';
     const a = chooseCombatAction(run);
     if (a && E.playCard(run, a.uid, a.target)) return 'play';
+    const freeBash = opts.noBash || !bashFirst(run) ? null : chooseBash(run, true);
+    if (freeBash && E.bash(run, freeBash)) return 'bash';
     const late = opts.noSwellActs ? null : chooseSwellAct(run, true, opts);
     if (late && E.swellAct(run, late)) return late;
     const lateBash = opts.noBash ? null : chooseBash(run, true);
@@ -408,6 +431,8 @@ function step(run, opts = {}) {
     return 'reward';
   }
   if (s === 'rest') {
+    // Mateo's hoop comes first on the stair down (opts.noHoops leaves it lying, for a comparison without hoops)
+    if (E.hoopOffer(run)) { if (opts.noHoops) run.hoopOffer = null; else { E.fitHoop(run, pickHoop(run, opts)); return 'hoop'; } }
     if (E.stairOpen && E.stairOpen(run) && !opts.noStair) { stair(run, opts); E.backToMap(run); return 'stair'; }
     const sea = opts.noSea ? null : seaChoice(run, opts);
     if (sea && E.giveToSea(run, sea.k, sea.uid, opts.refit)) { E.backToMap(run); return 'sea'; }
@@ -478,4 +503,4 @@ function playRun(run, maxSteps = 5000, opts) {
   return labels;
 }
 
-module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake, dreadKeepsake, pickRewardCard, chooseNode, coveRefit, tollWay };
+module.exports = { load, saveLoad, snapshot, chooseCombatAction, chooseSwellAct, chooseBash, pickHoop, HOOP_ORDER, chooseTonic, chooseMapTonic, shop, SHOP_ORDER, step, playRun, pickKeepsake, dreadKeepsake, pickRewardCard, chooseNode, coveRefit, tollWay };

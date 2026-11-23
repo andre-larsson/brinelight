@@ -355,14 +355,33 @@
      A new keeper needs these, a shore picture and a dive picture. E.keeperArt chooses the picture. */
   BL.KEEPERS = {
     wren: { name: 'Wren', title: 'Wren, the Keeper', looks: { shore: 'keeper', dive: 'keeper_suit' },
-      weapon: { name: 'Harpoon', strike: 'Harpoon Jab', icon: 'slot_harpoon' }, final: 'darkwatch', skill: 'First Ring',
+      // 'First Ring' until v0.65.0 (the user asked for "a catchier name"); the code and saves still say firstRing
+      weapon: { name: 'Harpoon', strike: 'Harpoon Jab', icon: 'slot_harpoon' }, final: 'darkwatch', skill: 'Opening Bell',
       desc: 'Your first Bail or Stir each fight costs 0 Light.' },
     mateo: { name: 'Mateo', title: 'Mateo, the Cooper', looks: { shore: 'mateo', fight: 'mateo_guard', dive: 'mateo_suit' },
       weapon: { name: 'Mallet', strike: 'Mallet Strike', refit: 'Guarded Strike', art: 'c_mallet', icon: 'slot_mallet' },
       points: { harpoon: [0.19, 0.51], ditty: [0.35, 0.51], coat: [0.64, 0.28], bell: [0.52, 0.48], pocket: [0.64, 0.57] },
       dread: 'splitcask', level: 1, final: 'lasthoop', skill: 'Shield Bash',
       desc: 'Spend 4 Ward to deal 6 damage. Bash costs 0 Light and uses one of your Bail or Stir actions. Once per turn.',
+      // how the skill grows on an expedition (BL.HOOPS, v0.65.0): shown in Pack, in his first briefing and in How to Play
+      grow: 'On each stair down from a broken pin you find two cask hoops and fit one to your lid. A hoop changes Bash for the rest of the expedition.',
       quiet: 'The last hoop drops. You lift the lid and wait. Only water comes out. You take the loose end of the line home to tell Hester who held the other end.' },
+  };
+  /* Mateo's hoops (v0.65.0): each one changes his Shield Bash for the rest of the expedition. On the stair down from a
+     broken pin he finds two and fits one (E.hoopOffer, E.fitHoop), so an expedition has at most one for each level
+     below the Shallows, and no hoop twice. The names are a cooper's: the chime hoop sits at a cask's rim, the bilge
+     hoop round its belly, a truss hoop is the stout wooden one that holds the staves while the cask is raised, and a
+     withy hoop is twisted hazel. `art` is its icon (img/icons). The rules are E.bashInfo and E.bash in js/engine.js.
+       dmg    more damage
+       per    1 more damage for every `per` Ward left after paying
+       brine  Brine on the enemy it hits */
+  BL.HOOPS = {
+    iron: { name: 'Iron Hoop', art: 'h_iron', dmg: 4, desc: 'Bash deals 4 more damage.' },
+    truss: { name: 'Truss Hoop', art: 'h_truss', per: 2, desc: 'Bash deals 1 more damage for every 2 Ward you have left after paying for it.' },
+    chime: { name: 'Chime Hoop', art: 'h_chime', desc: 'On a turn when you have Crested or Stranded, Bash costs no Ward.' },
+    bilge: { name: 'Bilge Hoop', art: 'h_bilge', desc: 'Bash no longer uses one of your Bail or Stir actions.' },
+    herring: { name: 'Herring Hoop', art: 'h_herring', brine: 3, desc: 'Bash applies 3 Brine to the enemy it hits.' },
+    withy: { name: 'Withy Hoop', art: 'h_withy', desc: 'When Bash finishes an enemy, you get back the Ward it cost and can Bash again this turn.' },
   };
   /* Outfits: what a keeper wears on land, one picture each (`art`; `fight` for a fighting stance of its own). Each
      belongs to one keeper, and that keeper's first one is what they wear until another is chosen. They are for looks

@@ -124,7 +124,9 @@
       html += sec('Inventory',
         pair('card', 'Card', sorted(BL.CARDS), 'addcard', 'Add card') +
         pair('ks', 'Keepsake', sorted(BL.KEEPSAKES), 'addks', 'Add keepsake') +
-        pair('tonic', 'Tonic', sorted(BL.TONICS), 'addtonic', 'Add tonic'));
+        pair('tonic', 'Tonic', sorted(BL.TONICS), 'addtonic', 'Add tonic') +
+        // Mateo's hoops (v0.65.0): fit any of them now, or take them all off
+        (E.keeperId(run) === 'mateo' ? pair('hoop', 'Hoop', sorted(BL.HOOPS).filter(([id]) => !E.hasHoop(run, id)), 'addhoop', 'Fit hoop') + (E.hoops(run).length ? btn('nohoops', 'Take the hoops off') : '') : ''));
     }
     html += sec('Workshop and Lazaret',
       btn('salvage', '+100 Salvage') + btn('allkit', 'Own all kit') + btn('alllaz', 'Fill the Lazaret'),
@@ -206,6 +208,8 @@
       case 'addcard': cheat((bb, r) => { const card = bb.E.addCard(r, val('card')); if (r.combat && card) r.combat.hand.push({ uid: card.uid, id: card.id, up: card.up }); }); return reopen();
       case 'addks': cheat((bb, r) => { bb.E.gainKeepsake(r, val('ks')); }); return reopen();
       case 'addtonic': cheat((bb, r) => { if (!bb.E.gainTonic(r, val('tonic'))) bb.toast('Tonic slots full'); }); return reopen();
+      case 'addhoop': cheat((bb, r) => { const id = val('hoop'); if (BL.HOOPS[id] && !bb.E.hasHoop(r, id)) r.hoops = bb.E.hoops(r).concat([id]); }); return reopen();
+      case 'nohoops': cheat((bb, r) => { r.hoops = []; }); return reopen();
       case 'meet': cheat((bb, r) => { MEET[val('ach')](r); bb.toast('Met: it unlocks after the next won fight, or at the end of the run'); }); return reopen();
       case 'go': {
         // visit a stop of that type without moving on the map

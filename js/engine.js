@@ -1444,6 +1444,12 @@
     c.swellActN = E.swellActsUsed(c) + 1;
     c.swellActTurn = c.turn;
   }
+  /* One of this turn's actions comes back (the Withy Hoop). No count left means no turn either: E.swellActsUsed reads a
+     turn with no count as one action used, for the old saves. */
+  function returnSwellAct(c) {
+    const n = E.swellActsUsed(c) - 1;
+    if (n > 0) c.swellActN = n; else { c.swellActN = 0; c.swellActTurn = null; }
+  }
   /* A Bail that makes a Strand which gives Light back (the turn's first, or any with the Glimmer Bulb) is free: it can be
      made with no Light at all (v0.41.0; before, it needed the 1 Light up front, though the words called it free). */
   E.freeBail = (run, c) => c.tide <= E.SWELL_ACTS.bail.ebb && E.strandLight(run, c.turnLows + 1) >= E.SWELL_ACT_COST;
@@ -1464,7 +1470,8 @@
     // a free Bail with no Light: its Strand's Light pays for it (so it is spent, not added)
     const cost = E.swellActCost(run), owed = c.light < cost;
     if (!owed) c.light -= cost;
-    if (!cost) c.firstRingUsed = true;
+    // Wren's Opening Bell (`firstRing` in the code and in saves, its name until v0.65.0) has paid: the UI rings it
+    if (!cost) { c.firstRingUsed = true; fx(c, { t: 'firstring', kind }); }
     useSwellAct(c);
     run.stats[kind === 'bail' ? 'bails' : 'stirs'] = (run.stats[kind === 'bail' ? 'bails' : 'stirs'] || 0) + 1;
     fx(c, { t: 'swellact', kind });
@@ -1473,12 +1480,38 @@
     if (owed) c.light = Math.max(0, c.light - cost);
     return true;
   };
+  /* Mateo's Shield Bash, and the hoops on his lid (BL.HOOPS, v0.65.0). A hoop changes Bash for the rest of the
+     expedition: `run.hoops` lists the ones fitted, in order. */
+  E.hoops = (run) => (run && run.hoops) || [];
+  E.hasHoop = (run, id) => E.hoops(run).indexOf(id) >= 0;
+  /* What a Bash would cost and do right now:
+       cost     the Ward it spends: 4, or 0 with the Chime Hoop on a turn with a Crest or Strand
+       free     that Chime Hoop is paying
+       dmg      its base damage: 6, the Iron Hoop's 4 more, and the Truss Hoop's 1 for every 2 Ward left after paying
+       truss    the Truss Hoop's share of `dmg`
+       usesAct  it takes one of the turn's Bail or Stir actions (not with the Bilge Hoop)
+       brine    the Brine the Herring Hoop puts on the enemy
+       again    a Bash that finishes its enemy gives the Ward back and can be used again (the Withy Hoop)
+     Outside a fight it tells the numbers with no Ward held. */
+  E.bashInfo = function (run) {
+    const c = run.combat, H = BL.HOOPS, has = (id) => E.hasHoop(run, id);
+    const free = has('chime') && !!c && c.turnCrests + c.turnLows > 0;
+    const cost = free ? 0 : E.SHIELD_BASH.ward;
+    const left = Math.max(0, (c ? c.player.ward : 0) - cost);
+    const truss = has('truss') ? Math.floor(left / H.truss.per) : 0;
+    return { cost, free, dmg: E.SHIELD_BASH.dmg + (has('iron') ? H.iron.dmg : 0) + truss, truss, usesAct: !has('bilge'), brine: has('herring') ? H.herring.brine : 0, again: has('withy') };
+  };
+  /* The damage a Bash would deal to `target` before its Ward: Might, Chilled and Soaked count, as for any attack. */
+  E.bashDamage = (run, target) => attackValue(run.combat.player, target || null, E.bashInfo(run).dmg);
+  /* Would a Bash finish this enemy now? */
+  E.bashKills = (run, e) => !!e && E.reachable(e) && E.bashDamage(run, e) >= e.hp + e.ward;
   E.canBash = function (run) {
     const c = run.combat;
     if (E.keeperId(run) !== 'mateo' || !c || c.phase !== 'player' || c.won || c.lost) return { ok: false, reason: 'Shield Bash is unavailable' };
     if (c.bashTurn === c.turn) return { ok: false, reason: 'You have already used Shield Bash this turn' };
-    if (E.swellActsUsed(c) >= E.swellActsPerTurn(run)) return { ok: false, reason: 'Your Bail or Stir actions are used this turn' };
-    if (c.player.ward < E.SHIELD_BASH.ward) return { ok: false, reason: 'Shield Bash needs 4 Ward' };
+    const b = E.bashInfo(run);
+    if (b.usesAct && E.swellActsUsed(c) >= E.swellActsPerTurn(run)) return { ok: false, reason: 'Your Bail or Stir actions are used this turn' };
+    if (c.player.ward < b.cost) return { ok: false, reason: `Shield Bash needs ${b.cost} Ward` };
     if (!E.targets(c).length) return { ok: false, reason: 'No enemy is in reach' };
     return { ok: true };
   };
@@ -1486,10 +1519,43 @@
     if (!E.canBash(run).ok) return false;
     const c = run.combat, t = E.targetByUid(c, target);
     if (!t) return false;
-    c.player.ward -= E.SHIELD_BASH.ward;
+    const b = E.bashInfo(run), P = c.player;
+    P.ward -= b.cost;
     c.bashTurn = c.turn;
-    useSwellAct(c);
-    api(run, c).hit(t, E.SHIELD_BASH.dmg);
+    if (b.usesAct) useSwellAct(c);
+    run.stats.bashes = (run.stats.bashes || 0) + 1;
+    fx(c, { t: 'bash', who: t.uid, cost: b.cost, free: b.free });
+    dealDamage(run, c, t, attackValue(P, t, b.dmg), P, true);
+    if (c.lost) return true; // Spines
+    if (t.dead) {
+      run.stats.bashKills = (run.stats.bashKills || 0) + 1;
+      if (b.again && !c.won) {
+        // the Withy Hoop springs back: the Ward and the action are his again, and so is the Bash
+        if (b.usesAct) returnSwellAct(c);
+        c.bashTurn = null;
+        fx(c, { t: 'hoop', k: 'withy' });
+        if (b.cost) gainWard(c, P, b.cost);
+      }
+    } else if (b.brine && !c.won) {
+      fx(c, { t: 'hoop', k: 'herring' });
+      applyStatus(run, c, t, 'brine', b.brine, true);
+    }
+    return true;
+  };
+  /* The two hoops Mateo finds on a stair down: rolled from the run's seed and the level he goes down to, on a stream of
+     its own, so the same seed plays the same map and fights whether or not a hoop is taken. Never one he has fitted. */
+  E.HOOP_CHOICES = 2;
+  E.rollHoops = function (run) {
+    const R = makeR({ rng: (run.seed ^ 0x51ed270b) + (run.level || 0) * 7919 });
+    return R.shuffle(Object.keys(BL.HOOPS).filter((id) => !E.hasHoop(run, id))).slice(0, E.HOOP_CHOICES);
+  };
+  /* The hoops waiting to be chosen from (on the stair down, Mateo only), or null. */
+  E.hoopOffer = (run) => (run && run.hoopOffer && run.hoopOffer.length ? run.hoopOffer : null);
+  E.fitHoop = function (run, id) {
+    const offer = E.hoopOffer(run);
+    if (!offer || offer.indexOf(id) < 0 || E.hasHoop(run, id)) return false;
+    run.hoops = E.hoops(run).concat([id]);
+    run.hoopOffer = null;
     return true;
   };
 
@@ -2086,6 +2152,8 @@
     run.screen = 'rest';
     run.restDone = false;
     run.stair = { picks: [], cache: null }; // two of five things to do there (E.stairDo)
+    // Mateo finds two hoops in what the pin's water left on the stair, and fits one (v0.65.0)
+    run.hoopOffer = E.keeperId(run) === 'mateo' ? E.rollHoops(run) : null;
     return true;
   };
   /* The landings reached in each level of this expedition. */

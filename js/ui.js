@@ -637,6 +637,8 @@
     const held = key === 'swallowed' && o.mem && o.mem.swallowed ? `<div class="tip-row">Inside it: ${o.mem.swallowed.map((x) => `<b>${cardName(x)}</b>`).join(', ')}.</div>` : '';
     return `<b>${s.name} ${n}</b><br>${s.desc(o.st[key])}${held}`;
   }
+  /* Mateo's hoops as rows of a tip or a list: name and what it does to Bash. */
+  const hoopRows = () => E.hoops(run).map((id) => `<div class="tip-row"><b>${BL.HOOPS[id].name}:</b> ${BL.HOOPS[id].desc}</div>`).join('');
   function tipContent(key) {
     const parts = key.split(':');
     const c = run && run.combat;
@@ -660,8 +662,16 @@
       }
       case 'light': return `<b>Light: ${c ? c.light : 0}</b><br>${BL.KEYWORDS.Light}`;
       case 'tide': return `<b>Swell: ${c ? c.tide : 3}</b><br>${BL.KEYWORDS.Swell}<div class="tip-row"><b>Crest</b> (at 6): ${BL.KEYWORDS.Crest.split(': ')[1] || BL.KEYWORDS.Crest}</div><div class="tip-row"><b>Strand</b> (at 0): ${BL.KEYWORDS.Strand.split(': ')[1] || BL.KEYWORDS.Strand}</div>`;
-      case 'bash': return `<b>Shield Bash</b><br>${BL.KEEPERS.mateo.desc}<div class="tip-row">Press H or choose Bash, then aim at an enemy.</div>`;
+      case 'bash': {
+        const b = c ? E.bashInfo(run) : null, kill = c && E.targets(c).find((e) => E.bashKills(run, e));
+        return `<b>Shield Bash</b><br>${BL.KEEPERS.mateo.desc}${hoopRows()}` +
+          (b ? `<div class="tip-row"><b>Now:</b> ${b.cost ? `${b.cost} Ward` : 'no Ward'} for <b>${E.bashDamage(run, null)}</b> damage${b.brine ? ` and ${b.brine} Brine` : ''}${kill ? `. It would finish the ${kill.name}` : ''}.</div>` : '') +
+          '<div class="tip-row">Press H or choose Bash, then aim at an enemy.</div>';
+      }
+      case 'hoops': return `<b>Hoops on your lid</b>${hoopRows()}<div class="tip-row muted">Each changes Shield Bash for the rest of this expedition. You fit one on each stair down.</div>`;
+      case 'openingbell': return `<b>${BL.KEEPERS.wren.skill}</b><br>${BL.KEEPERS.wren.desc}<div class="tip-row">Ready: your next Bail or Stir rings it.</div>`;
       case 'kw': return `<b>${parts[1]}</b><br>${BL.KEYWORDS[parts[1]]}`;
+      case 'bellact': return `<b>${parts[1]}</b><br>${BL.KEYWORDS[parts[1]]}<div class="tip-row"><b>${BL.KEEPERS.wren.skill}:</b> this one costs 0 Light.</div>`;
       case 'st': {
         const o = parts[1] === 'p' ? c.player : E.enemyByUid(c, parts[1]);
         return o ? statusTip(o, parts[2]) : '';
@@ -987,7 +997,8 @@
         <li><b>Carry-over:</b> extra Surge or Ebb keeps flowing from 3. Surge 6 from 3 Crests twice.</li>
         <li><b>Chains:</b> each extra Crest in a turn hits 3 harder (6, 9, 12...). Only the first Strand of a turn gives Light; later ones still strip Ward. Save Surge for one big turn.</li>
         <li><b>Bail</b> and <b>Stir</b>, at the two ends of the Swell: once a turn, without a card, spend 1 Light to <b>Ebb 1</b> (Bail) or <b>Surge 1</b> (Stir). A Bail that makes your first Strand of the turn is free, even with no Light left: that Strand's 1 Light pays it back. You can Bail or Stir, not both (with the ${BL.KIT.bailer.name} in your Ditty Bag, twice a turn).</li>
-        ${E.keeperOpen(meta, 'mateo') ? `<li><b>Wren’s First Ring:</b> ${BL.KEEPERS.wren.desc} <b>Mateo’s Shield Bash:</b> ${BL.KEEPERS.mateo.desc} Press <kbd>H</kbd> or choose Bash, then choose an enemy.</li>` : ''}
+        ${E.keeperOpen(meta, 'mateo') ? `<li><b>Wren’s ${BL.KEEPERS.wren.skill}:</b> ${BL.KEEPERS.wren.desc} A bell shows on her and on the Bail and Stir buttons until it has rung. <b>Mateo’s Shield Bash:</b> ${BL.KEEPERS.mateo.desc} Press <kbd>H</kbd> or choose Bash, then choose an enemy.</li>
+        <li><b>Mateo’s hoops:</b> ${BL.KEEPERS.mateo.grow} ${Object.values(BL.HOOPS).map((H) => `<b>${H.name}:</b> ${H.desc}`).join(' ')}</li>` : ''}
         <li>Your <b>bell</b> pays out when you Crest or Strand. The Brass Tide-Bell draws a card on every one; the other bells in the ${MT.shop} give more, but only on one kind, or only after the first each turn, or Ward instead of a card.</li>
         <li>Badges on your cards say what a card would do right now: ${[['CREST', 'crest'], ['LETHAL', 'lethal'], ['VICTORY', 'victory'], ['STRAND', 'low'], ['ECHO', 'echo']].map((b) => `<span class="c-badge ${b[1]}">${b[0]}</span>`).join(' ')}. <span class="c-badge crest">CREST&times;2</span> means that card makes two Crests.</li>
       </ul>`;
@@ -1136,6 +1147,7 @@
     const bell = E.bell(run) ? BL.KIT[E.bell(run)] : null;
     const kitIds = E.kitIds(run).filter((id) => BL.KIT[id].place !== 'bell');
     const ch = E.charge(run), hold = E.hold(run), rf = E.roil(run);
+    const hoops = E.hoops(run);
     const ts = run.tonics.map((t, i) => t
       ? `<button class="medal tonic-slot${ui.tonicSel === i ? ' selected' : ''}" data-tip="tonic:${i}" data-act="tonic" data-slot="${i}" aria-label="Tonic: ${BL.TONICS[t].name}"><img src="img/icons/${BL.TONICS[t].art}.webp" alt=""></button>`
       : `<span class="medal empty" data-tip="tonic:${i}" aria-hidden="true"></span>`).join('');
@@ -1146,6 +1158,7 @@
       <div class="hud-break"></div>
       ${bell ? `<button class="medal gear bell" data-tip="bell" data-act="kitinfo" data-k="bell" aria-label="${bell.name}: ${E.kitDesc(E.bell(run), run)}"><img src="img/icons/${bell.art}.webp" alt=""></button>` : ''}
       ${kitIds.length ? `<button class="medal gear-pack" data-tip="kit" data-act="kitinfo" aria-label="${MT.item}: ${kitIds.map((id) => BL.KIT[id].name).join(', ')}">${ICON.pack}<span class="n">${kitIds.length}</span></button>` : ''}
+      ${hoops.length ? `<button class="medal gear hoops" data-tip="hoops" data-act="kitinfo" aria-label="Hoops on your lid: ${hoops.map((id) => `${BL.HOOPS[id].name}. ${BL.HOOPS[id].desc}`).join(' ')}"><img src="img/icons/${BL.HOOPS[hoops[hoops.length - 1]].art}.webp" alt="">${hoops.length > 1 ? `<span class="n">${hoops.length}</span>` : ''}</button>` : ''}
       ${run.keepsakes.length ? `<button class="charge${rf.steps ? ' over' : ''}" data-tip="charge" data-act="kitinfo" aria-label="Roil ${ch} of ${hold}${rf.steps ? `, ${roilWords(rf)} in every fight` : ''}">${ICON.charge}<span>${ch}/${hold}</span></button>` : ''}
       <div class="keepsakes">${ks}</div>
       <div class="tonics">${ts}</div>
@@ -1996,7 +2009,7 @@
     const face = (id) => E.keeperArt({ keeper: id, outfits: meta.outfits });
     const choice = keepers.length > 1 ? `<section class="keeper-pick" aria-label="Choose a keeper"><h3 class="ws-place">Keeper</h3><div class="keeper-options">${keepers.map(([id, K]) => {
       const on = id === E.keeperId(meta);
-      return `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${on}"><img src="img/units/${face(id)}.webp" alt=""><b>${K.name}</b><span class="opt-state">${on ? 'Chosen' : 'Choose'}</span><small><strong>${K.skill}.</strong> ${K.desc}</small></button>`;
+      return `<button class="keeper-option" data-act="keeper" data-k="${id}" aria-pressed="${on}"><img src="img/units/${face(id)}.webp" alt=""><b>${K.name}</b><span class="opt-state">${on ? 'Chosen' : 'Choose'}</span><small><strong>${K.skill}.</strong> ${K.desc}${K.grow ? ` ${K.grow}` : ''}</small></button>`;
     }).join('')}</div></section>` : '';
     const outfit = outfitPicker();
     const kit = meta.owned.length || keeps || curs
@@ -2099,7 +2112,7 @@
   }
   function showDescentBrief() {
     if (E.keeperId(run) === 'mateo' && !story.scenes.includes('bash') && overlayEl.hidden) {
-      openOverlay(modal('Mateo’s Shield Bash', `<p>${BL.KEEPERS.mateo.desc}</p><p>Build Ward, then choose <b>Bash</b> beside the Swell or press <kbd>H</kbd> and aim it at an enemy. Every point of Ward you spend is Ward you can’t block with.</p>`,
+      openOverlay(modal('Mateo’s Shield Bash', `<p>${BL.KEEPERS.mateo.desc}</p><p>Build Ward, then choose <b>Bash</b> beside the Swell or press <kbd>H</kbd> and aim it at an enemy. Every point of Ward you spend is Ward you can’t block with.</p><p>${BL.KEEPERS.mateo.grow}</p>`,
         '<button class="btn primary" data-act="bashbrief" autofocus>Set out as Mateo</button>', 'narrow quest-modal', true), { locked: true });
     } else showHesterBrief();
   }
@@ -2258,11 +2271,13 @@
   function statusesHTML(o, who) {
     const c = run.combat;
     const echo = who === 'p' && c && c.echo > 0 ? `<span class="st buff echo-chip" data-tip="echo">${ICON.echo}${c.echo > 1 ? c.echo : ''}</span>` : '';
+    // Wren's Opening Bell shows on her until it has rung (v0.65.0: it was only a 0 on the Bail and Stir buttons)
+    const bellReady = who === 'p' && c && run.firstRing && !c.firstRingUsed ? `<span class="st buff bell-chip" data-tip="openingbell" aria-label="${BL.KEEPERS.wren.skill}, ready">${ICON.slot_bell}</span>` : '';
     const thrash = who === 'p' && c && c.thrash ? `<span class="st debuff thrash-chip" data-tip="kw:Thrash" aria-label="Thrash ${c.thrash}">${ICON.vortex}${c.thrash}</span>` : '';
     // Doused and Breathless are used up as the turn starts: a chip stays on Wren for that turn, so what took the Light
     // or the cards can still be read after the float and the first-time hint are gone (the user's playtest, v0.33.0)
     const spent = who === 'p' && c ? spentNow(c).map(([k, n]) => `<span class="st debuff spent" data-tip="spent:${k}" aria-label="${BL.STATUSES[k].name}, this turn">${ICON[BL.STATUSES[k].icon] || ''}${n || ''}</span>`).join('') : '';
-    return echo + thrash + spent + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
+    return bellReady + echo + thrash + spent + Object.keys(o.st).filter((k) => o.st[k] && BL.STATUSES[k]).map((k) => {
       const s = BL.STATUSES[k];
       const n = (s.kind === 'rite' && o.st[k] === 1 && k !== 'r_beam') || NO_COUNT.indexOf(k) >= 0 ? '' : o.st[k];
       return `<span class="st ${s.kind}" data-tip="st:${who}:${k}">${ICON[s.icon] || ''}${n}</span>`;
@@ -2352,6 +2367,7 @@
       const targetable = E.reachable(e) && ((ui.sel != null && selNeedsTarget()) || ui.tonicSel != null || ui.bashAim);
       el.classList.toggle('targetable', targetable);
       el.classList.toggle('targeted', targetable && ui.target === e.uid);
+      el.classList.toggle('bash-lethal', !!ui.bashAim && targetable && E.bashKills(run, e));
     });
     // incoming damage and danger warning
     let incoming = 0;
@@ -2449,22 +2465,33 @@
     const per = E.swellActsPerTurn(run);
     const used = E.swellActsUsed(c) >= per;
     const cost = E.swellActCost(run);
+    // Wren's Opening Bell is waiting: both buttons wear the bell until one of them rings it
+    const bellReady = !cost && !used;
     const actBtn = (kind, arrow) => {
       const a = E.SWELL_ACTS[kind];
       const can = E.canSwellAct(run, kind); // a Bail into the turn's first Strand needs no Light
       const off = !can.ok || ui.busy;
-      return `<button class="tb-act ${kind}${used ? ' used' : ''}" data-act="swellact" data-kind="${kind}" data-tip="kw:${a.name}"${off ? ' aria-disabled="true"' : ''}
-        aria-label="${a.name}: spend ${cost} Light to ${a.ebb ? 'Ebb' : 'Surge'} 1.${cost ? '' : ' First Ring.'} ${per > 1 ? 'Twice a turn with the Bailer' : 'Once a turn'}, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>${cost}</i>${kind === 'stir' ? arrow : ''}</button>`;
+      return `<button class="tb-act ${kind}${used ? ' used' : ''}${bellReady ? ' bell-ready' : ''}" data-act="swellact" data-kind="${kind}" data-tip="${bellReady ? 'bellact' : 'kw'}:${a.name}"${off ? ' aria-disabled="true"' : ''}
+        aria-label="${a.name}: spend ${cost} Light to ${a.ebb ? 'Ebb' : 'Surge'} 1.${cost ? '' : ` ${BL.KEEPERS.wren.skill}.`} ${per > 1 ? 'Twice a turn with the Bailer' : 'Once a turn'}, Bail or Stir.${can.ok ? '' : ' ' + can.reason + '.'}">${kind === 'bail' ? arrow : ''}<b>${a.name}</b><i>${cost}</i>${kind === 'stir' ? arrow : ''}</button>`;
     };
     const mateo = E.keeperId(run) === 'mateo';
-    const can = mateo && E.canBash(run);
     tb.classList.toggle('has-bash', mateo);
-    const bash = mateo ? `<button class="tb-act bash" data-act="bash" data-tip="bash" aria-pressed="${ui.bashAim}"${can.ok && !ui.busy ? '' : ' aria-disabled="true"'} aria-label="Shield Bash. ${BL.KEEPERS.mateo.desc}${can.ok ? '' : ' ' + can.reason + '.'}"><b>Bash</b><i>${E.SHIELD_BASH.ward}</i></button>` : '';
     tb.innerHTML = `${actBtn('bail', '<span class="tb-arrow">&#9662;</span>')}<span class="tb-label low" data-tip="kw:Strand">Strand</span>
       <div class="tb-track" data-tip="tide">${segs}${hint}</div>
-      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>${actBtn('stir', '<span class="tb-arrow">&#9652;</span>')}${bash}`;
+      <span class="tb-label crest" data-tip="kw:Crest">Crest</span>${actBtn('stir', '<span class="tb-arrow">&#9652;</span>')}${mateo ? bashBtn() : ''}`;
   }
-
+  /* Mateo's Bash button (v0.65.0): the Ward it costs, the damage it deals to the enemy aimed at, and a ring for each hoop
+     on his lid. It lights up when a Bash would finish an enemy, and when the Chime Hoop has made it free. */
+  function bashBtn() {
+    const c = run.combat, can = E.canBash(run), b = E.bashInfo(run), ready = can.ok && !ui.busy;
+    const targets = E.targets(c);
+    const aimed = (ui.bashAim && ui.target && E.targetByUid(c, ui.target)) || (targets.length === 1 ? targets[0] : null);
+    const dmg = E.bashDamage(run, aimed);
+    const kill = can.ok ? (aimed ? (E.bashKills(run, aimed) ? aimed : null) : targets.find((e) => E.bashKills(run, e))) : null;
+    const pips = E.hoops(run).map((id) => `<span class="hoop-pip h-${id}" data-h="${id}"></span>`).join('');
+    return `<button class="tb-act bash${kill && ready ? ' finisher' : ''}${b.free && ready ? ' free' : ''}" data-act="bash" data-tip="bash" aria-pressed="${ui.bashAim}"${ready ? '' : ' aria-disabled="true"'}
+      aria-label="Shield Bash: ${b.cost ? `spend ${b.cost} Ward` : 'no Ward'} to deal ${dmg} damage.${kill ? ` It would finish the ${kill.name}.` : ''}${E.hoops(run).length ? ` Hoops: ${E.hoops(run).map((id) => BL.HOOPS[id].name).join(', ')}.` : ''}${can.ok ? '' : ' ' + can.reason + '.'}"><span class="bash-ic">${ICON.defend}</span><b>Bash</b><span class="bash-nums"><i>${b.cost}</i><span class="bash-to">&#9656;</span><em>${dmg}</em></span>${pips ? `<span class="bash-hoops">${pips}</span>` : ''}</button>`;
+  }
   /* ----- Hand ----- */
   function cardW() { return ui.cw; }
   function computeSizes() {
@@ -2824,8 +2851,8 @@
     if (!E.bash(run, target || targets[0].uid)) return;
     ui.sel = null; ui.tonicSel = null; ui.target = null; ui.bashAim = false;
     ui.busy = true;
-    sfx('card', { type: 'attack' });
-    await processFx();
+    await processFx(); // the blow has its own sound (fx 'bash'), not a card's whoosh
+
     ui.busy = false;
     updateCombat();
     await afterAction();
@@ -2987,6 +3014,40 @@
     fxLayer.appendChild(d);
     setTimeout(() => d.remove(), 350);
   }
+  /* Mateo's lid lands: a heavy rim of light and staves of it thrown outward. */
+  function bashAt(el) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const d = document.createElement('div');
+    d.className = 'bash-fx';
+    d.style.left = (r.left + r.width / 2) + 'px';
+    d.style.top = (r.top + r.height * 0.5) + 'px';
+    d.innerHTML = '<i></i>' + [0, 1, 2, 3, 4, 5].map((k) => `<b style="--a:${k * 60 + 15}deg"></b>`).join('');
+    fxLayer.appendChild(d);
+    setTimeout(() => d.remove(), 520);
+  }
+  /* The Opening Bell rings: its name over Wren, and three rings spreading from the bell at her belt. */
+  function bellCall(el, what) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + r.height * 0.52;
+    for (let k = 0; k < 3; k++) {
+      const ring = document.createElement('div');
+      ring.className = 'bell-ring';
+      ring.style.left = x + 'px'; ring.style.top = y + 'px';
+      ring.style.animationDelay = (k * 0.16) + 's';
+      fxLayer.appendChild(ring);
+      setTimeout(() => ring.remove(), 1500);
+    }
+    const d = document.createElement('div');
+    d.className = 'bell-call';
+    d.innerHTML = `${ICON.slot_bell}<b>${BL.KEEPERS.wren.skill}</b><small>${what}</small>`;
+    d.style.left = x + 'px'; d.style.top = (r.top + r.height * 0.18) + 'px';
+    fxLayer.appendChild(d);
+    const half = d.offsetWidth / 2;
+    d.style.left = Math.max(6 + half, Math.min(innerWidth - 6 - half, x)) + 'px';
+    setTimeout(() => d.remove(), 1900);
+  }
   /* The chain bonus, shown inside the Crest / Strand text the moment it is earned (paid after the fight). */
   function chainRibbon(name, pearls) {
     return `<div class="chain-ribbon"><b>&#9733; ${name}</b><em>${ICON.pearl}+${pearls} Pearls</em></div>`;
@@ -3132,6 +3193,34 @@
           break;
         }
         case 'slash': slashAt(unitEl(f.who)); break;
+        case 'bash': {
+          // Mateo's lid: he steps in behind it, and its rim lands a moment later (v0.65.0; the harpoon's slash before)
+          const el = unitEl(f.who), me = unitEl('p');
+          anim(me && me.closest('.unit'), 'bash-lunge', 460);
+          if (f.cost) floatAt(me, `-${f.cost} Ward`, 'ward-lost'); else if (f.free) floatAt(me, `${BL.HOOPS.chime.name}: free`, 'status buff');
+          await wait(140);
+          bashAt(el);
+          sfx('bash', { pan: panOf(el) });
+          anim($('#field'), 'impact', 260);
+          await wait(50);
+          break;
+        }
+        case 'hoop': {
+          // a hoop did something of its own: its ring on the Bash button flashes, and the Withy Hoop says the Bash is back
+          anim($(`.tb-act.bash .hoop-pip[data-h="${f.k}"]`, screenEl), 'flash', 900);
+          if (f.k === 'withy') { floatAt(unitEl('p'), 'Bash again', 'status buff'); sfx('buff', { pan: -0.3 }); await wait(120); }
+          break;
+        }
+        case 'firstring': {
+          // Wren's Opening Bell: she rings it, and the Bail or Stir it pays for follows
+          const me = unitEl('p');
+          bellCall(me, `Free ${E.SWELL_ACTS[f.kind].name}`);
+          anim($(`.tb-act.${f.kind}`, screenEl), 'rung', 900);
+          $$('.bell-chip', screenEl).forEach((x) => x.classList.add('rung'));
+          sfx('openingbell');
+          await wait(320);
+          break;
+        }
         case 'sweep': $$('.enemy:not(.dead) .sprite', screenEl).forEach(slashAt); break;
         case 'act': {
           const el = unitEl(f.who);
@@ -3649,6 +3738,8 @@
     </div></div></div></div>`;
     const f = $('[autofocus]', screenEl);
     if (f) f.focus({ preventScroll: true });
+    // Mateo's two hoops wait on the stair down: he fits one before anything else (also after a reload)
+    if (E.hoopOffer(run) && overlayEl.hidden) showHoops();
     // the keepers' cache was opened and nothing taken (a reload in between): its choice comes back, with no way out
     if (E.stairCacheOpen(run) && overlayEl.hidden) showCache();
     const job = E.hesterJob(run), item = BL.HESTER_JOBS[lv];
@@ -3656,6 +3747,30 @@
       openOverlay(modal(`${item.name} recovered`, `<p>${item.found}</p><p><b>${hesterReturn(item)}</b></p>`,
         '<button class="btn primary" data-act="hesterfound" autofocus>Pack it for Hester</button>', 'narrow quest-modal', true), { locked: true });
     }
+  }
+  /* Mateo's hoops (v0.65.0): two lie on the stair down, and he fits one to his lid. There is no way out without one,
+     and no going back on it. */
+  function showHoops() {
+    const offer = E.hoopOffer(run);
+    if (!offer) return;
+    const have = E.hoops(run);
+    const tiles = offer.map((id, i) => {
+      const H = BL.HOOPS[id];
+      return `<button class="hoop-tile" data-act="hoopfit" data-h="${id}"${i ? '' : ' autofocus'}><span class="medal gear"><img src="img/icons/${H.art}.webp" alt=""></span><b>${H.name}</b><span class="ht-desc">${H.desc}</span><em>Fit this one</em></button>`;
+    }).join('');
+    const body = `<p class="lead">The pin's water has left wreckage on the stair, and two cask hoops in it are still sound. You have time to drive <b>one</b> onto your lid. It stays there for the rest of this expedition.</p>
+      <div class="hoop-row">${tiles}</div>
+      <p class="buy-left muted"><b>Shield Bash:</b> ${BL.KEEPERS.mateo.desc}</p>${have.length ? `<div class="hoop-have"><b>On your lid</b>${hoopRows()}</div>` : ''}`;
+    openOverlay(modal('Fit a hoop', body, '', 'narrow hoop-modal', true), { locked: true });
+  }
+  function fitHoop(id) {
+    if (!E.fitHoop(run, id)) return;
+    const s = E.stairState(run), H = BL.HOOPS[id];
+    (s.log = s.log || []).push(`You drive the ${H.name} onto your lid. ${H.desc}`);
+    sfx('hoop');
+    closeOverlay(true);
+    save();
+    render();
   }
   /* The keepers' cache's choice: three cards, or none. It is opened already, so there is no Back (v0.40.0). */
   function showCache() {
@@ -4184,6 +4299,7 @@
       case 'hesterfound': E.hesterJob(run).recoverySeen = true; closeOverlay(true); save(); render(); break;
       case 'hesterhome': closeOverlay(true); showNews(); break;
       case 'bashbrief': story.scenes.push('bash'); saveStory(); closeOverlay(true); render(); break;
+      case 'hoopfit': fitHoop(t.dataset.h); break;
       case 'readcask': readCaskNote(); break;
       case 'retryfinal': if (E.retryFinal(run)) { fightSong(); save(); render(); } break;
       case 'acceptfall': if (run?.screen === 'lastchance') { run.screen = 'defeat'; clearSave(); render(); } break;
@@ -4401,6 +4517,7 @@
         // a keepsake on offer is taken or left first (the button is disabled until then)
         const ksWait = (src, list) => src && !src.keepsake && !src.keepsakeLeft && list && list.length;
         if (ksWait(run.rewards, run.rewards && run.rewards.keepsakeChoices) || ksWait(run.treasure, run.treasure && run.treasure.choices)) break;
+        if (E.hoopOffer(run)) { showHoops(); break; } // Mateo's hoop is not fitted yet: choose it first
         if (E.stairCacheOpen(run)) { showCache(); break; } // the keepers' cache is open: choose from it first
         E.backToMap(run);
         save();

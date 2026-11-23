@@ -185,6 +185,15 @@ const SIZES = {
       await shot(tag, '35_dark_pin_dress');
       await setup(`const r = E.newRun(4242, 0); r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.run = r; E.goDeeper(r); B.render();`);
       await shot(tag, '36_stair_cove');
+      // v0.65.0: Mateo's two hoops on the stair, his Bash button with two fitted and a finishing blow in reach, and Wren's Opening Bell waiting
+      await setup(`const r = E.newRun(4242, 0, ['suit'], [], [], true, 2, 0, { keeper: 'mateo' }); r.hoops = ['herring']; r.floor = 8; r.cleared = [0]; r.screen = 'pin'; B.run = r; E.goDeeper(r); B.render();`);
+      await shot(tag, '36b_hoop_choice');
+      await setup(`B.closeOverlay(true); const r = B.run; r.hoopOffer = null; r.hoops = ['iron', 'truss']; E.backToMap(r); const c = E.startCombat(r, 'easy', ['kelp', 'crab']); c.player.ward = 12; c.enemies[1].hp = 9; B.ui.bashAim = true; B.ui.target = c.enemies[1].uid; B.render();`);
+      await sleep(1800);
+      await shot(tag, '36c_bash_hoops');
+      await setup(`const r = E.newRun(4242, 0, ['suit'], [], [], true, 2, 0, { keeper: 'wren', firstRing: true }); B.run = r; E.startCombat(r, 'easy', ['kelp', 'crab']); B.render();`);
+      await sleep(1800);
+      await shot(tag, '36d_opening_bell');
       // v0.20.0: the Belfry: a fight in the diving dress, the Oarfish's Coil, the Bellwether, the Thing in the Bell, the Cantor, a Fog event, the Heart
       await setup(`const r = E.newRun(4242, 2); r.kit.coat = 'suit'; B.run = r; E.startCombat(r, 'hard', ['belljelly', 'bladder', 'minnow']); const c = r.combat; c.enemies[0].st.belled = 1; c.enemies[0].intent = Object.keys(BL.ENEMIES.belljelly.moves)[0]; B.render();`);
       await sleep(1800);

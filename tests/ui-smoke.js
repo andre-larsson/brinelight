@@ -2335,7 +2335,7 @@ async function mateoScenario(page, base, name, size) {
   await click('[data-act="opnext"]');
   if (!/Saltmere inn/.test(await page.eval(`document.querySelector('.op-text').textContent`))) throw new Error('The welcome should say where Mateo stays');
   await click('[data-act="opnext"]');
-  if (!await evalRun('return E.keeperOpen(B.meta, "mateo") && !B.meta.keeperNote && E.keeperProfile(B.meta).firstRing;')) throw new Error('The welcome should unlock Mateo and Wren’s First Ring');
+  if (!await evalRun('return E.keeperOpen(B.meta, "mateo") && !B.meta.keeperNote && E.keeperProfile(B.meta).firstRing;')) throw new Error('The welcome should unlock Mateo and Wren’s Opening Bell');
   await click('[data-act="newrun"]');
   if (!await has('.outfit-opt[data-o="lamplighter"]') || !await has('.outfit-opt[data-o="gala"]')) throw new Error('The earlier log and Heart should count on this save');
   await click('[data-act="outfit"][data-o="gala"]');
@@ -2405,6 +2405,54 @@ async function mateoScenario(page, base, name, size) {
   await inject(page);
   await click('[data-act="continue"]');
   if (!await evalRun('return r.keeper === "mateo" && B.meta.keeper === "mateo" && !E.canBash(r).ok;')) throw new Error('Reload should keep the selected keeper and used Bash');
+  // v0.65.0: on the stair down he finds two hoops and fits one, with no way round the choice, and it changes his Bash
+  await evalRun('r.combat = null; r.screen = "pin"; r.cleared = [0]; B.save(); B.render();');
+  await click('[data-act="godeeper"]');
+  const offered = await evalRun('return (E.hoopOffer(r) || []).join(",");');
+  if (offered.split(',').length !== 2 || await page.eval(`document.querySelectorAll('.hoop-modal .hoop-tile').length`) !== 2) throw new Error(`The stair down should offer Mateo two hoops (${offered})`);
+  await checkPage(page, name + ' hoop choice');
+  await shot('hoops');
+  await page.key('Escape');
+  await sleep(150);
+  if (!await has('.hoop-modal')) throw new Error('The hoop choice should not close without a hoop');
+  await page.goto(url);
+  await inject(page);
+  await click('[data-act="continue"]');
+  if (!await has('.hoop-modal') || await evalRun('return (E.hoopOffer(r) || []).join(",");') !== offered) throw new Error('A reload should bring back the same two hoops');
+  await click('.hoop-modal .hoop-tile');
+  const fitted = await evalRun('return E.hoops(r).join(",");');
+  if (fitted !== offered.split(',')[0] || await has('.hoop-modal')) throw new Error(`Choosing a hoop should fit it and close the choice (${fitted})`);
+  if (!await has('.hud .medal.hoops') || !/onto your lid/.test(await page.eval(`document.querySelector('.stair-log')?.textContent || ''`))) throw new Error('The stair should show the fitted hoop on the HUD and in its log');
+  await evalRun('r.hoops = ["iron", "truss"]; const c = E.startCombat(r, "easy", ["kelp", "crab"]); c.player.ward = 12; c.enemies[1].hp = 9; B.render();');
+  await dismissHints(page);
+  if (await page.eval(`document.querySelector('.tb-act.bash i').textContent + '>' + document.querySelector('.tb-act.bash em').textContent`) !== '4>14') throw new Error('The Bash button should show 4 Ward for 14 damage with the Iron and Truss Hoops and 12 Ward');
+  if (!await has('.tb-act.bash.finisher') || await page.eval(`document.querySelectorAll('.tb-act.bash .hoop-pip').length`) !== 2) throw new Error('The Bash button should light up for a finishing blow and show both hoops');
+  if (!await page.eval(`document.querySelector('.tb-seg').getBoundingClientRect().width >= 15`)) throw new Error('The Bash button with hoops squeezed the Swell steps');
+  await shot('bash-hoops');
+  const crab = await evalRun('return r.combat.enemies[1].uid;');
+  if (size.touch) {
+    await click('[data-act="bash"]');
+    if (!await has(`.enemy.bash-lethal[data-uid="${crab}"]`)) throw new Error('Aiming a Bash should mark the enemy it would finish');
+    await click(`.enemy[data-uid="${crab}"] .sprite`);
+  } else {
+    await page.key('h');
+    await page.key('ArrowRight');
+    if (!await has(`.enemy.bash-lethal.targeted[data-uid="${crab}"]`)) throw new Error('Aiming a Bash with the keyboard should mark the enemy it would finish');
+    await page.key('Enter');
+  }
+  await waitIdle(page, 'after a Bash with hoops');
+  if (!await evalRun('return r.combat.enemies[1].dead && r.combat.player.ward === 8 && r.stats.bashKills === 1;')) throw new Error('The Bash with hoops should finish the crab for 4 Ward');
+  // Wren's Opening Bell: a bell on her and a gold 0 on Bail and Stir until it rings, then its name over her
+  await evalRun('B.run = E.newRun(77, 0, ["suit"], [], [], true, 2, 0, { keeper: "wren", firstRing: true }); E.startCombat(B.run, "easy", ["kelp"]); B.render();');
+  await dismissHints(page);
+  if (!await has('.unit.player .st.bell-chip') || await page.eval(`[...document.querySelectorAll('.tb-act.bell-ready i')].map((x) => x.textContent).join('')`) !== '00') throw new Error('The Opening Bell should show on Wren and as a 0 on Bail and Stir while it waits');
+  await shot('opening-bell');
+  await click('[data-act="swellact"][data-kind="stir"]');
+  await page.waitFor(`document.querySelector('#fx-layer .bell-call')`, 3000, 'the Opening Bell\'s call');
+  if (!/Opening Bell\s*Free Stir/i.test(await page.eval(`document.querySelector('#fx-layer .bell-call').textContent`))) throw new Error('The Opening Bell should say what it paid for');
+  await waitIdle(page, 'after the Opening Bell');
+  if (await has('.unit.player .st.bell-chip') || await has('.tb-act.bell-ready') || !await evalRun('return r.combat.light === 3 && r.combat.tide === 4 && r.combat.firstRingUsed;')) throw new Error('The Opening Bell should ring once and cost no Light');
+  await evalRun('B.run = E.newRun(23, 0, ["suit"], [], [], true, 2, 0, { keeper: "mateo" }); B.save(); B.render();');
   await evalRun('r.level = 2; r.kit.coat = "suit"; r.map = E.genMap(r); E.startCombat(r, "boss"); B.render();');
   await dismissHints(page);
   if (!await has('.enemy[data-id="lasthoop"]') || !await page.eval(`document.querySelector('.unit.player .sprite img').src.endsWith('/mateo_suit.webp')`)) throw new Error('The Last Hoop fight should show Mateo in his dress');

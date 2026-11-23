@@ -42,6 +42,7 @@
     lightgain: -1, douse: -4.5, tide: -6, crest: -8.5, low: -2.5, submerge: -8.5, bail: 6.5, stir: -6,
     coin: -1, tonic: -5.5, keepsake: -7, treasure: -5, step: -2.5, unlock: -8, victory: -8, defeat: -5,
     gull: -4.5, creak: 12, buoy: -12, groan: -12.5, farbell: -15, bubbles: -1, moan: -10, hum: -20,
+    bash: -3, hoop: -8.5, openingbell: -4.5, // v0.65.0, measured the same way: -23, -27 and -24 dB
   };
 
   function create(ctx, destination) {
@@ -357,6 +358,31 @@
         noise(t, { vol: 0.22, a: 0.001, dur: 0.05, pan: p, filter: { type: 'bandpass', f: 1500, q: 2.5 } });
         tone(t + 0.005, { f: 1240 * v, vol: 0.06, a: 0.002, dur: 0.35, pan: p, wet: 0.2 });
         tone(t + 0.005, { f: 1873 * v, vol: 0.035, a: 0.002, dur: 0.25, pan: p, wet: 0.2 });
+      },
+      bash(t, o) { // Mateo's barrel lid slams into a creature: oak, the iron hoops round it, and the weight behind it (v0.65.0)
+        const p = o.pan == null ? 0.3 : o.pan, v = rnd(0.95, 1.05);
+        noise(t, { vol: 0.5, a: 0.0005, dur: 0.02, pan: p, filter: { type: 'bandpass', f: 1500 * v, q: 0.9 } }); // the crack of wood
+        tone(t, { type: 'triangle', f: 210 * v, path: [[120 * v, 0.03], [78 * v, 0.14]], vol: 0.5, a: 0.001, dur: 0.16, pan: p }); // the lid: a hollow knock
+        noise(t, { color: 'pink', vol: 0.4, a: 0.001, dur: 0.07, pan: p, filter: { type: 'bandpass', f: 520 * v, q: 2.2 } }); // the staves
+        tone(t, { f: 95 * v, path: [[42, 0.22]], drive: 2, vol: 0.5, a: 0.002, dur: 0.3, pan: p * 0.5 }); // the weight
+        [[870, 0.09, 0.5], [1420, 0.06, 0.38], [2260, 0.035, 0.26]].forEach(([f, vol, dur]) => tone(t + 0.004, { f: f * v, vol, a: 0.001, dur, pan: p, wet: 0.3 })); // the hoops ring
+        noise(t + 0.02, { color: 'brown', vol: 0.25, a: 0.01, dur: 0.35, pan: p, wet: 0.3, filter: { type: 'lowpass', f: 900, to: 160, sweep: 0.3 } });
+      },
+      hoop(t) { // a hoop driven onto the lid: quick mallet blows round the rim, tighter each time, and it seats with a ring
+        let at = t;
+        [0, 1, 2, 3].forEach((i) => {
+          const f = 300 + i * 46, last = i === 3;
+          tone(at, { type: 'triangle', f, to: f * 0.62, glide: 0.05, vol: last ? 0.3 : 0.2, a: 0.001, dur: last ? 0.16 : 0.09, ui: true });
+          noise(at, { color: 'pink', vol: last ? 0.22 : 0.15, a: 0.001, dur: 0.045, ui: true, filter: { type: 'bandpass', f: 900 + i * 160, q: 1.8 } });
+          tone(at + 0.003, { f: 1180 + i * 130, vol: last ? 0.07 : 0.035, a: 0.001, dur: last ? 0.7 : 0.16, ui: true });
+          at += last ? 0 : 0.2 - i * 0.035;
+        });
+        tone(at + 0.003, { f: 1985, vol: 0.035, a: 0.001, dur: 0.5, ui: true });
+      },
+      openingbell(t) { // Wren's Opening Bell: her hand-bell rung twice, up a fifth, bright (the 'turn' bell is one stroke on A)
+        bell(t, midi(88), { kind: 'hand', vol: 0.17, dur: 1.5, bright: 1, pan: -0.25, wet: 0.35 });
+        bell(t + 0.14, midi(93), { kind: 'hand', vol: 0.15, dur: 2.2, bright: 1, pan: -0.2, wet: 0.4 });
+        shimmer(t + 0.1, 0.02, 0.9, { pan: -0.2, wet: 0.3 });
       },
       ward(t, o) { // bracing: gaining Ward
         const p = o.pan == null ? -0.3 : o.pan;
@@ -699,6 +725,7 @@
       { name: 'hit', opts: { n: 18 }, label: 'Hit (18)', now: 'hit', when: '15 or more adds a shell giving way, a deep boom and the water heaving back.' },
       { name: 'hurt', opts: { n: 6 }, label: 'Hurt (6)', now: 'hurt', when: 'A blow lands on Wren.' },
       { name: 'hurt', opts: { n: 18 }, label: 'Hurt (18)', now: 'hurt', when: 'A heavy blow lands on Wren.' },
+      { name: 'bash', label: 'Shield Bash', when: 'New in v0.65.0: Mateo\'s barrel lid slams into a creature. Oak, the hoops ringing, the weight behind it. The Hit follows.' },
       { name: 'block', label: 'Blocked', now: 'block', when: 'A blow glances off Ward.' },
       { name: 'ward', label: 'Gain Ward', now: 'ward', when: 'Bracing.' },
       { name: 'crack', label: 'Ward cracks', now: 'strand', when: 'A Strand or Crest strips a creature\'s Ward.' },
@@ -712,6 +739,8 @@
     ] },
     { group: 'Bells', items: [
       { name: 'turn', label: 'Your Turn', now: 'turn', when: 'Wren rings her hand-bell.' },
+      { name: 'openingbell', label: 'Opening Bell', when: 'New in v0.65.0: Wren\'s first Bail or Stir of a fight is free. Her hand-bell, two strokes up a fifth.' },
+      { name: 'hoop', label: 'A hoop driven on', when: 'New in v0.65.0: Mateo fits a hoop to his lid on the stair. Four mallet blows, tighter each time.' },
       { name: 'bell', label: 'The great bell', now: 'bell', when: 'A descent starts, a pin appears, the opening\'s first picture.' },
       { name: 'phase', label: 'The bell cracks', now: 'phase', when: 'A pin\'s second phase.' },
       { name: 'toll', label: 'The last pin', when: 'New in v0.36.0: the fight on the last landing opens.' },

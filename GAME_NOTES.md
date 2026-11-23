@@ -1743,6 +1743,50 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Mateo's hoops, a Bash with its own look, and the Opening Bell (v0.65.0, 2026-11-24)
+
+**What the user asked.** "How can we make Mateo's special ability feel more fun and special? Maybe by adding upgrades for it? Also, should we give Wren special ability as well?" From six directions they chose: "Do Mateo: A plus D, with B and C as hoops. Maybe make 'first ring' visually more obvious when it happens, keeping it as it is, and with a catchier name." A was a look and sound of its own, D upgrades during a run, B scaling with Ward and C a tie to the Swell. Not chosen: permanent upgrades in the Workshop (a Mateo-only Shield slot), refitting Bash at a Cove, and an active ability for Wren.
+
+**What was wrong with Bash (bot, v0.64.0, 300 expeditions as Mateo after the Heart).** Its power was fine. It could be used on 80% of his turns and the bot used it on 17.5%, about once a fight, and 47% of those finished an enemy. It faded with depth: 8.3% of his damage in the Shallows, 6.5% in Dark Water, 5.0% in the Belfry (1,500 seeds), because 6 stays flat while his damage a turn goes from 9.7 to 25.6. It used his Bail or Stir action without touching the Swell. It played the attack-card sound and the harpoon's slash.
+
+**Built.**
+- **Hoops** (`BL.HOOPS`, `E.bashInfo`, `E.bash`, `E.rollHoops`, `E.fitHoop`; `tests/hoops.test.js`). On each stair down from a broken pin Mateo finds two and fits one, in a window with no way round it, before the stair's own two picks. A hoop lasts the expedition and is never offered twice, so an expedition has at most two. The two are rolled from the seed and the level on a stream of their own: the same seed plays the same map and fights with or without hoops.
+  - Iron: 4 more damage. Truss: 1 more for every 2 Ward left after paying (B). Chime: no Ward cost on a turn with a Crest or Strand (C). Bilge: no longer uses a Bail or Stir action (C, the other way round). Herring: 3 Brine. Withy: a Bash that finishes an enemy gives the Ward back and can be used again that turn.
+  - They show as rings on the Bash button, as a medal on the HUD, in the Bash tooltip and in How to Play. Six icons from one Codex call (`img/icons/h_*.webp`, prompts in `assets-src/wanted-images.tsv`).
+- **The blow.** Mateo lunges behind his lid and its rim lands (fx `bash`, sound `bash`: oak, the hoops ringing, the weight). The button shows the Ward it costs and the damage against the enemy aimed at, glows gold when a Bash would finish an enemy, and an enemy it would finish is tagged while he aims. Sound `hoop` when one is fitted.
+- **Opening Bell.** Wren's First Ring, renamed (my pick; the code and saves keep `firstRing`). The rule is unchanged. A bell chip shows on her and a gold 0 on Bail and Stir until it rings. When it rings, its name and "Free Bail" or "Free Stir" appear over her with three rings and two strokes of her hand-bell (fx `firstring`, sound `openingbell`).
+- The debug panel fits and removes hoops (Inventory, as Mateo).
+
+**Provisional calls (mine).**
+- Every number on the hoops, and that there are six.
+- The first hoop comes after the Shallows' pin, so the Shallows play as in v0.64.0 apart from the look and sound. If that is too late, the cheapest earlier place is a first hoop after his first Dread, or one chosen when he sets out.
+- The Bilge Hoop frees Bash from the action. The other idea was a Bash that also moves the Swell one step, but its direction would have to be automatic, and the user wants the direction left to the player (2026-11-11).
+- Names. Other names considered for Opening Bell: One Bell (a ship's first half-hour of a watch) and Keeper's Call.
+- Wren has no upgrades, as asked. With hoops Mateo is the keeper who grows during an expedition.
+
+**Balance (bot, 4,000 matched seeds a row, after the Heart, Diving Dress, Hold 40, `keeper` rows in `tools/measure.js`).** Pin 2 and pin 3 are shares of the pin before. One standard error is about 1.1 points for pin 2 and 3 for pin 3.
+
+| Row | Home % | Pin 1 % | Pin 2 % | Pin 3 % |
+|---|---|---|---|---|
+| Wren, Opening Bell | 2.4 | 29.4 | 21.4 | 37.3 |
+| Mateo, Bash off | 1.6 | 22.8 | 14.9 | 47.1 |
+| Mateo, no hoops (v0.64.0) | 2.3 | 32.9 | 18.1 | 39.1 |
+| Mateo, hoops as offered | 3.1 | 32.9 | 21.1 | 44.8 |
+| Iron offered first | 3.3 | 32.9 | 20.9 | 47.4 |
+| Truss offered first | 3.3 | 32.9 | 21.3 | 47.1 |
+| Chime offered first | 3.3 | 32.9 | 20.7 | 47.8 |
+| Bilge offered first | 3.0 | 32.9 | 18.7 | 49.6 |
+| Herring offered first | 3.3 | 32.9 | 21.8 | 45.6 |
+| Withy offered first | 2.9 | 32.9 | 19.2 | 45.6 |
+
+- A hoop is worth about 3 points of Dark Water pin clears, which brings Mateo level with Wren there (21.1% against 21.4%). Whole expeditions go from 2.3% to 3.1%, against Wren's 2.4%.
+- With hoops Bash is 8.3%, 9.3% and 11.1% of his damage by level (1,500 seeds; the Herring Hoop's Brine is not counted), and he Bashes 1.05 and 1.15 times a fight below the Shallows (0.92 and 0.73 before).
+- The Bilge and Withy Hoops do little for the bot. It only Bashes to finish an enemy or with Ward to spare, so it gains little from a free action and does not set up chains. A person may get more from them. If they stay behind in play, the dials are a second effect on each.
+- The Shallows are untouched: every Mateo row has the same pin 1.
+- New here, not from this change: over 4,000 seeds Mateo breaks the Shallows' pin 3.5 points more often than Wren (32.9% against 29.4%). The 500-seed comparison of 2026-11-18 had them level.
+
+**Checked.** `npm test` 286 pass. `npm run test:ui --only mateo` on desktop and a 360x640 phone: the hoop choice, a reload in the middle of it, the button's numbers, the finishing-blow tag, and the Opening Bell's chip, call and cost. New sounds measured like the others (loudest 50 ms): `bash` -23 dB, `hoop` -27, `openingbell` -24.
+
 ### Second opinion on the lore, and a glossary that only unlocks (v0.63.0, 2026-11-23)
 
 **What the user asked.** After v0.62.0 the user asked for a second opinion: "check for any additional lore consistency issues". Four other models reviewed the repository at `c20c773`, each alone and with the same briefing: Grok 4.7, Composer 2.5, GPT-6.2 Sol and Gemini 3.8 Flash. The agent checked every claim against the files and the pictures before accepting it. The user then said "Fix 1-12 and documents", and about the glossary: "Is it possible to rewrite glossary text to fit both before/after the heart? Or only unlock after heart is unlocked. I dont want to change texts in glossary throughout progress, only unlock new ones."
@@ -2888,6 +2932,9 @@ The user asked which is more fun next, a new keeper or a new intermediary level,
 
 ## Open questions for the next playtest
 
+- v0.65.0: Does Bash feel like Mateo's own move now (the lunge, the sound, the button)? Is the sound too loud or too long next to a card's hit?
+- v0.65.0: Is the first hoop too late, coming only after the Shallows' pin? Which hoops did you want, and was any a non-choice? Did the Bilge or Withy Hoop change how you played?
+- v0.65.0: Do you notice the Opening Bell before you use it and when it rings? Is "Opening Bell" the name?
 - v0.43.0: Do Hester and Bosun make the game feel less lonely? Is the opening's new picture too long a stop before the first fight (five pictures now)?
 - v0.42.0: The Wild Peal: does a Bail or Stir softening it feel fair, and does its pull away from 3 against the Toll's pull to 3 read? Is a lasting Douse fun or a slog? Does the Hulk feel different now that Crests set off its Spines?
 - v0.41.0: Is the game harder now, and still fun? Do the toll bells feel like a decision (HP, Pearls or a Barnacle) or an annoyance? Does a level with one stop fewer feel thin, or tighter?

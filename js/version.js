@@ -5,8 +5,13 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.64.0';
+  BL.VERSION = '0.65.0';
   BL.CHANGELOG = [
+    { v: '0.65.0', date: '2026-11-24', items: [
+      'Mateo’s Shield Bash has its own look and sound. He steps in behind his lid and its rim lands on the enemy. The Bash button shows the Ward a Bash costs and the damage it will deal, and it lights up when a Bash would finish an enemy.',
+      'Mateo finds hoops for his lid. On each stair down from a broken pin he finds two cask hoops and fits one. A hoop changes Bash for the rest of the expedition. There are six: Iron, Truss, Chime, Bilge, Herring and Withy. How to Play says what each does.',
+      'Wren’s First Ring is now called Opening Bell, and you can see it. A bell shows on her, and a gold 0 on Bail and Stir, until it has rung. When it rings, its name appears over her with two strokes of her hand-bell. The rule is the same: her first Bail or Stir each fight costs 0 Light.',
+    ] },
     { v: '0.64.0', date: '2026-11-23', items: [
       'Mateo has outfits of his own in Pack. He wears Cooper’s Blue, and two costumes open as he comes home. Come home safe as Mateo with the Shallows’ pin broken to unlock Front Man. Come home safe with Dark Water’s pin silenced to unlock Harbour King.',
       'Each costume has a picture for Pack and another stance for fights. Under the sea he still shows in his diving dress.',
