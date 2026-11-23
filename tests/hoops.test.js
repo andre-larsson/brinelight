@@ -24,7 +24,7 @@ test('every hoop has a name, an icon and words, and Bash without one is as it wa
     assert.ok(fs.existsSync(path.join(__dirname, '../img/icons', h.art + '.webp')), `${id} needs its icon img/icons/${h.art}.webp`);
   }
   const { r, c, e } = fight([]);
-  assert.deepEqual(E.bashInfo(r), { cost: 4, free: false, dmg: 6, truss: 0, usesAct: true, brine: 0, again: false });
+  assert.deepEqual(E.bashInfo(r), { cost: 4, off: 0, free: false, dmg: 6, truss: 0, usesAct: true, brine: 0, again: false });
   const hp = e.hp;
   assert.ok(E.bash(r, e.uid));
   assert.equal(e.hp, hp - 6);
@@ -34,25 +34,27 @@ test('every hoop has a name, an icon and words, and Bash without one is as it wa
   assert.ok(!c.fx.some((f) => f.t === 'slash'), 'a Bash has its own effect, not the harpoon\'s slash');
 });
 
-test('the Iron Hoop adds 4 damage', () => {
+test('the Iron Hoop adds 3 damage', () => {
   const { r, c, e } = fight(['iron']);
   const hp = e.hp;
-  assert.equal(E.bashDamage(r, e), 10);
+  assert.equal(BL.HOOPS.iron.dmg, 3);
+  assert.equal(E.bashDamage(r, e), 9);
   assert.ok(E.bash(r, e.uid));
-  assert.equal(e.hp, hp - 10);
+  assert.equal(e.hp, hp - 9);
   assert.equal(c.player.ward, 6);
 });
 
-test('the Truss Hoop adds 1 damage for every 2 Ward left after paying', () => {
+test('the Truss Hoop adds 1 damage for every 3 Ward left after paying', () => {
   const { r, e } = fight(['truss'], 11);
-  assert.equal(E.bashInfo(r).truss, 3); // 11 - 4 = 7 left
+  assert.equal(BL.HOOPS.truss.per, 3);
+  assert.equal(E.bashInfo(r).truss, 2); // 11 - 4 = 7 left
   const hp = e.hp;
   assert.ok(E.bash(r, e.uid));
-  assert.equal(e.hp, hp - 9);
-  const bare = fight(['truss'], 4);
+  assert.equal(e.hp, hp - 8);
+  const bare = fight(['truss'], 6);
   assert.equal(E.bashDamage(bare.r, bare.e), 6);
-  const both = fight(['truss', 'iron'], 12);
-  assert.equal(E.bashDamage(both.r, both.e), 6 + 4 + 4);
+  const both = fight(['truss', 'iron'], 13);
+  assert.equal(E.bashDamage(both.r, both.e), 6 + 3 + 3);
 });
 
 test('the Chime Hoop makes Bash cost no Ward on a turn with a Crest or a Strand', () => {
@@ -77,9 +79,9 @@ test('the Chime Hoop makes Bash cost no Ward on a turn with a Crest or a Strand'
   assert.equal(c.turnLows, 1);
   assert.equal(E.bashInfo(r).cost, 0);
   // with the Truss Hoop, all the Ward he holds is Ward left
-  const t = fight(['chime', 'truss'], 8);
+  const t = fight(['chime', 'truss'], 9);
   t.c.turnCrests = 1;
-  assert.equal(E.bashDamage(t.r, t.e), 6 + 4);
+  assert.equal(E.bashDamage(t.r, t.e), 6 + 3);
 });
 
 test('the Bilge Hoop frees Bash from the Bail and Stir actions, still once a turn', () => {
@@ -99,19 +101,19 @@ test('the Bilge Hoop frees Bash from the Bail and Stir actions, still once a tur
   assert.equal(E.canBash(plain.r).reason, 'Your Bail or Stir actions are used this turn');
 });
 
-test('the Herring Hoop puts 3 Brine on the enemy it hits', () => {
+test('the Herring Hoop puts 2 Brine on the enemy it hits', () => {
   const { r, c, e } = fight(['herring'], 10, ['hulk']);
   assert.ok(E.bash(r, e.uid));
-  assert.equal(e.st.brine, 3);
+  assert.equal(e.st.brine, 2);
   E.endTurn(r);
   c.player.ward = 10;
   assert.ok(E.bash(r, e.uid));
-  assert.equal(e.st.brine, 2 + 3);
+  assert.equal(e.st.brine, 1 + 2);
   // the Salted Hook adds its 1, as for any Brine the keeper applies
   const hook = fight(['herring'], 10, ['hulk']);
   E.gainKeepsake(hook.r, 'saltedhook');
   assert.ok(E.bash(hook.r, hook.e.uid));
-  assert.equal(hook.e.st.brine, 4);
+  assert.equal(hook.e.st.brine, 3);
 });
 
 test('the Withy Hoop gives the Ward and the Bash back when it finishes an enemy', () => {

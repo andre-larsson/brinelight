@@ -1743,6 +1743,55 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **The bloopers page (asked for a sketch only, not built):** "Outtakes" behind Credits, opened once the Heart is home like a post-credits reel. Two tabs, Pictures and Songs; each row the outtake (a picture, or a 15-30 s clip) and one line, "Asked for: ... Got: ...". Material: the art dropped in the v0.23.0 review, the first post-Hermit bell picture, keeper drafts, the metal song takes that came out as teen-angst screaming. About a day of work; clips, not whole songs, for size. Kept off the main path so it doesn't break the mood.
 
+### Weaker hoops (v0.66.0, 2026-11-24)
+
+**What the user said** about v0.65.0: "I think the hoop effects, especially when combined are a bit too strong".
+
+**Changed.** The Iron Hoop adds 3 damage (4 before). The Truss Hoop adds 1 damage for every 3 Ward left (every 2 before). The Herring Hoop applies 2 Brine (3 before). The Chime, Bilge and Withy Hoops are unchanged. All three numbers are in `BL.HOOPS`, and so is the Chime Hoop's `off` (the Ward it takes off the cost, 4 of 4).
+
+**How strong a hoop is (bot, 3,000 matched seeds a row).** Mateo holds the hoops from the first landing and fits no more, so the many Shallows fights measure them. The number is the share of expeditions that break the Shallows' pin, 32.0% with no hoop. Bash itself is worth about 10 points there. In play he never has a hoop this early, so read these as relative strength and not as win rates.
+
+| Hoops held | v0.65.0 | v0.66.0 |
+|---|---|---|
+| Iron | 43.3 | 39.6 |
+| Truss | 39.8 | 36.7 |
+| Chime | 37.5 | 37.5 |
+| Bilge | 38.7 | 38.7 |
+| Herring | 44.9 | 39.3 |
+| Withy | 37.0 | 37.0 |
+| Iron + Truss | 52.2 | 46.0 |
+| Iron + Chime | 53.9 | 49.5 |
+| Iron + Bilge | 50.9 | 47.0 |
+| Iron + Herring | 56.5 | 46.1 |
+| Iron + Withy | 52.8 | 46.4 |
+| Truss + Chime | 49.4 | 45.4 |
+| Truss + Bilge | 47.1 | 44.1 |
+| Truss + Herring | 52.0 | 43.6 |
+| Truss + Withy | 47.9 | 42.3 |
+| Chime + Bilge | 51.0 | 51.0 |
+| Chime + Herring | 58.4 | 50.0 |
+| Chime + Withy | 41.8 | 41.8 |
+| Bilge + Herring | 52.4 | 46.4 |
+| Bilge + Withy | 44.4 | 44.4 |
+| Herring + Withy | 50.1 | 43.4 |
+
+- One hoop was worth 5.0 to 12.9 points and is now worth 4.7 to 7.6 (mean 8.2 to 6.1). A pair was worth up to 26.4 and is now worth up to 19.0 (mean 18.7 to 13.8).
+- Iron and Herring were the outliers alone. Herring's Brine also piles up faster the more often he Bashes, which is why its pairs were the strongest.
+- **Still the strongest pairs: the Chime Hoop's** (with Bilge 51.0, Herring 50.0, Iron 49.5). A free Bash on every turn with a Crest or Strand means more Bashes, and whatever the other hoop adds rides on each one. I left it, because "costs no Ward" is what the hoop is (the user's own example for the Swell tie). The dial is `off`. At 2 (half price) the bot gets nothing from the hoop alone (32.3), because it never spends Ward it needs.
+
+**In real expeditions (bot, 4,000 matched seeds, hoops found on the stairs as in play).** Pin 2 and pin 3 are shares of the pin before.
+
+| Row | Home % | Pin 2 % | Pin 3 % |
+|---|---|---|---|
+| Wren, Opening Bell | 2.4 | 21.4 | 37.3 |
+| Mateo, no hoops | 2.3 | 18.1 | 39.1 |
+| Mateo, hoops, v0.65.0 | 3.1 | 21.1 | 44.8 |
+| Mateo, hoops, v0.66.0 | 2.7 | 19.6 | 41.6 |
+
+What the hoops add is about halved: 0.4 points of whole expeditions (0.8 before), 1.5 of Dark Water's pin (3.0) and 2.5 of the Belfry's (5.7). By the hoop offered first, Dark Water's pin is now Chime 20.7, Iron 19.9, Herring 19.9, Truss 19.3, Withy 19.2, Bilge 18.7 (one standard error is about 1.1).
+
+**Tools.** `TUNE='{"iron":3,"truss":3,"herring":2,"chime":4}'` with the pairs spec re-measures other numbers without editing the game. The spec was a scratch file. It wraps `E.newRun` in a row's `setup` to set `run.hoops`, with `bot: { noHoops: true }`.
+
 ### Mateo's hoops, a Bash with its own look, and the Opening Bell (v0.65.0, 2026-11-24)
 
 **What the user asked.** "How can we make Mateo's special ability feel more fun and special? Maybe by adding upgrades for it? Also, should we give Wren special ability as well?" From six directions they chose: "Do Mateo: A plus D, with B and C as hoops. Maybe make 'first ring' visually more obvious when it happens, keeping it as it is, and with a catchier name." A was a look and sound of its own, D upgrades during a run, B scaling with Ward and C a tie to the Swell. Not chosen: permanent upgrades in the Workshop (a Mateo-only Shield slot), refitting Bash at a Cove, and an active ability for Wren.
@@ -1751,7 +1800,7 @@ Steps 1 and 2 of the build order above, which the user asked for ("Yes, do 1 and
 
 **Built.**
 - **Hoops** (`BL.HOOPS`, `E.bashInfo`, `E.bash`, `E.rollHoops`, `E.fitHoop`; `tests/hoops.test.js`). On each stair down from a broken pin Mateo finds two and fits one, in a window with no way round it, before the stair's own two picks. A hoop lasts the expedition and is never offered twice, so an expedition has at most two. The two are rolled from the seed and the level on a stream of their own: the same seed plays the same map and fights with or without hoops.
-  - Iron: 4 more damage. Truss: 1 more for every 2 Ward left after paying (B). Chime: no Ward cost on a turn with a Crest or Strand (C). Bilge: no longer uses a Bail or Stir action (C, the other way round). Herring: 3 Brine. Withy: a Bash that finishes an enemy gives the Ward back and can be used again that turn.
+  - (v0.65.0's numbers; v0.66.0 above made three of them smaller.) Iron: 4 more damage. Truss: 1 more for every 2 Ward left after paying (B). Chime: no Ward cost on a turn with a Crest or Strand (C). Bilge: no longer uses a Bail or Stir action (C, the other way round). Herring: 3 Brine. Withy: a Bash that finishes an enemy gives the Ward back and can be used again that turn.
   - They show as rings on the Bash button, as a medal on the HUD, in the Bash tooltip and in How to Play. Six icons from one Codex call (`img/icons/h_*.webp`, prompts in `assets-src/wanted-images.tsv`).
 - **The blow.** Mateo lunges behind his lid and its rim lands (fx `bash`, sound `bash`: oak, the hoops ringing, the weight). The button shows the Ward it costs and the damage against the enemy aimed at, glows gold when a Bash would finish an enemy, and an enemy it would finish is tagged while he aims. Sound `hoop` when one is fitted.
 - **Opening Bell.** Wren's First Ring, renamed (my pick; the code and saves keep `firstRing`). The rule is unchanged. A bell chip shows on her and a gold 0 on Bail and Stir until it rings. When it rings, its name and "Free Bail" or "Free Stir" appear over her with three rings and two strokes of her hand-bell (fx `firstring`, sound `openingbell`).
@@ -2932,6 +2981,7 @@ The user asked which is more fun next, a new keeper or a new intermediary level,
 
 ## Open questions for the next playtest
 
+- v0.66.0: Are the hoops still worth looking forward to at Iron 3, Truss every 3 Ward and Herring 2 Brine? Is a pair with the Chime Hoop still too strong?
 - v0.65.0: Does Bash feel like Mateo's own move now (the lunge, the sound, the button)? Is the sound too loud or too long next to a card's hit?
 - v0.65.0: Is the first hoop too late, coming only after the Shallows' pin? Which hoops did you want, and was any a non-choice? Did the Bilge or Withy Hoop change how you played?
 - v0.65.0: Do you notice the Opening Bell before you use it and when it rings? Is "Opening Bell" the name?

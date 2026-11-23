@@ -1485,8 +1485,8 @@
   E.hoops = (run) => (run && run.hoops) || [];
   E.hasHoop = (run, id) => E.hoops(run).indexOf(id) >= 0;
   /* What a Bash would cost and do right now:
-       cost     the Ward it spends: 4, or 0 with the Chime Hoop on a turn with a Crest or Strand
-       free     that Chime Hoop is paying
+       cost     the Ward it spends: 4, less the Chime Hoop's share on a turn with a Crest or Strand
+       off      what the Chime Hoop takes off the cost now; `free` when that leaves nothing to pay
        dmg      its base damage: 6, the Iron Hoop's 4 more, and the Truss Hoop's 1 for every 2 Ward left after paying
        truss    the Truss Hoop's share of `dmg`
        usesAct  it takes one of the turn's Bail or Stir actions (not with the Bilge Hoop)
@@ -1495,11 +1495,11 @@
      Outside a fight it tells the numbers with no Ward held. */
   E.bashInfo = function (run) {
     const c = run.combat, H = BL.HOOPS, has = (id) => E.hasHoop(run, id);
-    const free = has('chime') && !!c && c.turnCrests + c.turnLows > 0;
-    const cost = free ? 0 : E.SHIELD_BASH.ward;
+    const off = has('chime') && !!c && c.turnCrests + c.turnLows > 0 ? Math.min(E.SHIELD_BASH.ward, H.chime.off) : 0;
+    const cost = E.SHIELD_BASH.ward - off;
     const left = Math.max(0, (c ? c.player.ward : 0) - cost);
     const truss = has('truss') ? Math.floor(left / H.truss.per) : 0;
-    return { cost, free, dmg: E.SHIELD_BASH.dmg + (has('iron') ? H.iron.dmg : 0) + truss, truss, usesAct: !has('bilge'), brine: has('herring') ? H.herring.brine : 0, again: has('withy') };
+    return { cost, off, free: off > 0 && !cost, dmg: E.SHIELD_BASH.dmg + (has('iron') ? H.iron.dmg : 0) + truss, truss, usesAct: !has('bilge'), brine: has('herring') ? H.herring.brine : 0, again: has('withy') };
   };
   /* The damage a Bash would deal to `target` before its Ward: Might, Chilled and Soaked count, as for any attack. */
   E.bashDamage = (run, target) => attackValue(run.combat.player, target || null, E.bashInfo(run).dmg);
@@ -1524,7 +1524,7 @@
     c.bashTurn = c.turn;
     if (b.usesAct) useSwellAct(c);
     run.stats.bashes = (run.stats.bashes || 0) + 1;
-    fx(c, { t: 'bash', who: t.uid, cost: b.cost, free: b.free });
+    fx(c, { t: 'bash', who: t.uid, cost: b.cost, off: b.off, free: b.free });
     dealDamage(run, c, t, attackValue(P, t, b.dmg), P, true);
     if (c.lost) return true; // Spines
     if (t.dead) {

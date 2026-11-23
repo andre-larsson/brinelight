@@ -374,13 +374,17 @@
      withy hoop is twisted hazel. `art` is its icon (img/icons). The rules are E.bashInfo and E.bash in js/engine.js.
        dmg    more damage
        per    1 more damage for every `per` Ward left after paying
+       off    Ward off the cost on a turn with a Crest or Strand
        brine  Brine on the enemy it hits */
   BL.HOOPS = {
-    iron: { name: 'Iron Hoop', art: 'h_iron', dmg: 4, desc: 'Bash deals 4 more damage.' },
-    truss: { name: 'Truss Hoop', art: 'h_truss', per: 2, desc: 'Bash deals 1 more damage for every 2 Ward you have left after paying for it.' },
-    chime: { name: 'Chime Hoop', art: 'h_chime', desc: 'On a turn when you have Crested or Stranded, Bash costs no Ward.' },
+    /* v0.66.0, the user: "the hoop effects, especially when combined are a bit too strong". Until then the Iron Hoop
+       added 4, the Truss Hoop 1 for every 2 Ward, and the Herring Hoop applied 3 Brine. */
+    iron: { name: 'Iron Hoop', art: 'h_iron', dmg: 3, desc: 'Bash deals 3 more damage.' },
+    truss: { name: 'Truss Hoop', art: 'h_truss', per: 3, desc: 'Bash deals 1 more damage for every 3 Ward you have left after paying for it.' },
+    // `off` is the Ward it takes off the cost: 4 is all of it
+    chime: { name: 'Chime Hoop', art: 'h_chime', off: 4, desc: 'On a turn when you have Crested or Stranded, Bash costs no Ward.' },
     bilge: { name: 'Bilge Hoop', art: 'h_bilge', desc: 'Bash no longer uses one of your Bail or Stir actions.' },
-    herring: { name: 'Herring Hoop', art: 'h_herring', brine: 3, desc: 'Bash applies 3 Brine to the enemy it hits.' },
+    herring: { name: 'Herring Hoop', art: 'h_herring', brine: 2, desc: 'Bash applies 2 Brine to the enemy it hits.' },
     withy: { name: 'Withy Hoop', art: 'h_withy', desc: 'When Bash finishes an enemy, you get back the Ward it cost and can Bash again this turn.' },
   };
   /* Outfits: what a keeper wears on land, one picture each (`art`; `fight` for a fighting stance of its own). Each

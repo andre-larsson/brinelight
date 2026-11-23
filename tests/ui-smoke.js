@@ -2425,7 +2425,7 @@ async function mateoScenario(page, base, name, size) {
   if (!await has('.hud .medal.hoops') || !/onto your lid/.test(await page.eval(`document.querySelector('.stair-log')?.textContent || ''`))) throw new Error('The stair should show the fitted hoop on the HUD and in its log');
   await evalRun('r.hoops = ["iron", "truss"]; const c = E.startCombat(r, "easy", ["kelp", "crab"]); c.player.ward = 12; c.enemies[1].hp = 9; B.render();');
   await dismissHints(page);
-  if (await page.eval(`document.querySelector('.tb-act.bash i').textContent + '>' + document.querySelector('.tb-act.bash em').textContent`) !== '4>14') throw new Error('The Bash button should show 4 Ward for 14 damage with the Iron and Truss Hoops and 12 Ward');
+  if (await page.eval(`document.querySelector('.tb-act.bash i').textContent + '>' + document.querySelector('.tb-act.bash em').textContent`) !== '4>11') throw new Error('The Bash button should show 4 Ward for 11 damage with the Iron and Truss Hoops and 12 Ward');
   if (!await has('.tb-act.bash.finisher') || await page.eval(`document.querySelectorAll('.tb-act.bash .hoop-pip').length`) !== 2) throw new Error('The Bash button should light up for a finishing blow and show both hoops');
   if (!await page.eval(`document.querySelector('.tb-seg').getBoundingClientRect().width >= 15`)) throw new Error('The Bash button with hoops squeezed the Swell steps');
   await shot('bash-hoops');

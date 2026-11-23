@@ -5,8 +5,11 @@
 (function () {
   'use strict';
   const BL = (globalThis.BL = globalThis.BL || {});
-  BL.VERSION = '0.65.0';
+  BL.VERSION = '0.66.0';
   BL.CHANGELOG = [
+    { v: '0.66.0', date: '2026-11-24', items: [
+      'Mateo’s hoops are a little weaker, alone and together. The Iron Hoop adds 3 damage to Bash (it was 4). The Truss Hoop adds 1 damage for every 3 Ward you have left (it was every 2). The Herring Hoop applies 2 Brine (it was 3). The Chime, Bilge and Withy Hoops are as they were.',
+    ] },
     { v: '0.65.0', date: '2026-11-24', items: [
       'Mateo’s Shield Bash has its own look and sound. He steps in behind his lid and its rim lands on the enemy. The Bash button shows the Ward a Bash costs and the damage it will deal, and it lights up when a Bash would finish an enemy.',
       'Mateo finds hoops for his lid. On each stair down from a broken pin he finds two cask hoops and fits one. A hoop changes Bash for the rest of the expedition. There are six: Iron, Truss, Chime, Bilge, Herring and Withy. How to Play says what each does.',
